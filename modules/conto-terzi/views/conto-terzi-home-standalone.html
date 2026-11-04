@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Conto Terzi - GFV Platform</title>
+    <title>Conto Terzi - GFV</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
@@ -338,7 +338,10 @@
 
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+                            const modules = tenantDoc.exists()
+                                ? resolveEffectiveModules(tenantDoc.data())
+                                : [];
                             const hasManodopera = tenantHasManodopera(modules);
                             applyRegistroLavoriLinks(document, hasManodopera);
                             document.body.dataset.gfvRegistro = hasManodopera ? 'lavori' : 'diario';

@@ -6,9 +6,11 @@
  */
 
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { getCurrentPositionGeo, geolocationErrorMessage } from '../../../core/js/geo-capture.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -310,7 +312,7 @@ async function init() {
                 const tenantId = getCurrentTenantId();
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = resolveEffectiveModules(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {
@@ -374,9 +376,10 @@ async function init() {
 function getTerrenoLabel(t) {
     if (!t) return '';
     const nome = (t.nome || '').trim();
+    const base = t.stato === 'archiviato' && nome ? `${nome} (archiviato)` : nome;
     const podere = (t.podere || '').trim();
-    if (nome && podere) return `${nome} – ${podere}`;
-    if (nome) return nome;
+    if (base && podere) return `${base} – ${podere}`;
+    if (base) return base;
     if (podere) return podere;
     return 'Terreno senza nome';
 }
@@ -393,14 +396,15 @@ async function loadFrutteti() {
     try {
         frutteti = await getAllFrutteti();
         const terreniModule = await import(resolvePath('../../../core/services/terreni-service.js'));
-        terreni = await terreniModule.getAllTerreni();
+        terreni = await terreniModule.getAllTerreni({ includiArchiviati: true });
         const filterFruttetoSelect = document.getElementById('filter-frutteto');
         const fruttetoSelect = document.getElementById('fruttetoId');
 
         const options = frutteti.map(f => `<option value="${f.id}">${getFruttetoOptionLabel(f)}</option>`);
+        const aperti = frutteti.filter((f) => f.statoImpianto !== 'chiuso').map(f => `<option value="${f.id}">${getFruttetoOptionLabel(f)}</option>`);
 
         filterFruttetoSelect.innerHTML = '<option value="">Tutti i frutteti</option>' + options.join('');
-        fruttetoSelect.innerHTML = '<option value="">Seleziona frutteto</option>' + options.join('');
+        fruttetoSelect.innerHTML = '<option value="">Seleziona frutteto</option>' + aperti.join('');
     } catch (error) {
         console.error('[RACCOLTA-FRUTTA] Errore caricamento frutteti:', error);
     }
@@ -545,8 +549,11 @@ function renderRaccolte() {
             <td style="font-size:12px;line-height:1.35;">${posLabel}</td>
             <td>${linkLavoro}</td>
             <td>
-                <button class="btn btn-secondary btn-sm" data-action="edit" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Modifica</button>
-                <button class="btn btn-danger btn-sm" data-action="delete" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Elimina</button>
+                ${htmlAzioniRegistro(
+                    isRegistroSolaLettura({ registro: r, impianto: frutteti.find((f) => f.id === r.fruttetoId) }),
+                    `<button class="btn btn-secondary btn-sm" data-action="edit" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Modifica</button>
+                <button class="btn btn-danger btn-sm" data-action="delete" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Elimina</button>`
+                )}
             </td>
         </tr>`;
     }).join('');

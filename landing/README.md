@@ -57,7 +57,7 @@ Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
 
 Altri scenari: `tonyfinto=lento`, `spento`, `tetto`, `limite`, `dati`, `errore`, `rete`, `appcheck`. Nella build (`npm run build` / `build:anteprima`) il finto **non** c’è.
 
-Clip v4 in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
+Clip v6 (talking v7) in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
 
 ## Voce di Tony (passo 12b)
 
@@ -80,7 +80,7 @@ Il contenitore delle clip (`.tony-player-host`) ha al massimo due livelli durant
 
 ## Registrazione nella chat (passo 13)
 
-Dopo il saluto, se App Check (o il modo finto) è pronto, «Crea il tuo account gratuito» apre un **modulo nella chat** (email, password, conferma, nome azienda; niente nome e cognome). Email e password **non** passano dalla chat né da Tony: niente `tonyLandingAsk`, niente voce, niente log. Clip `topic-registrazione` (2,5 s) poi idle. A fine registrazione «Vai alla tua dashboard» apre il login dell’app con l’email già scritta nel frammento `#email=` (mai la password).
+Dopo il saluto, se App Check (o il modo finto) è pronto, «Crea il tuo account gratuito» apre un **modulo nella chat** (email, password, conferma, nome azienda; niente nome e cognome). Email e password **non** passano dalla chat né da Tony: niente `tonyLandingAsk`, niente voce, niente log. Clip `topic-registrazione` (2,5 s) poi taccuino in loop. A fine registrazione resta aperta la sessione sulla landing e parte l’aiuto per l’account (passo 14).
 
 Prove in locale **senza account veri** (solo `npm run dev`):
 
@@ -92,6 +92,54 @@ npm run dev
 Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok
 
 Altri scenari: `tonyreg=lento`, `email-usata`, `password-debole`, `rete`, `azienda`, `azienda-pulizia-fallita`, `profilo`, `legale`. Con solo `tonyfinto=` (senza `tonyreg`) vale come `ok`. Nella build di produzione il modo finto **non** c’è.
+
+## Aiuto per l'account (passo 14)
+
+Dopo la registrazione Tony propone tre domande (sede, poderi, terreni), saltabili con «Dopo». Le risposte vanno a `tonyLandingAsk` in fase `account` (serve l’accesso); i dati restano **solo in memoria**. Alla fine compare la scheda «Confermi?»: **solo** «Sì, salva» chiama `tonyLandingSetup`. Poi la frase fissa «Fatto! Per 7 giorni…» con voce `tony-fatto.mp3` e «Vai alla tua dashboard» (login con email già scritta).
+
+Regola d’oro: tra Tony e il salvataggio c’è sempre il visitatore. Il modello non salva e non dice «ho salvato».
+
+Prove in locale (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok&tonyaiuto=ok&tonysetup=ok
+
+Altri: `tonyaiuto=troppi|categoria|vuoto|limite|accesso|tetto`, `tonysetup=lento|doppio|dati-non-validi|niente-da-salvare|limite-terreni|gia-preparato|…`. Nella build i modi finti **non** ci sono.
+
+## Tetto di spesa e avvisi (passo 15)
+
+La spesa stimata di Tony sulla landing (Gemini + voce + margine) è già sommata a ogni risposta. Cosa aggiunge questo passo:
+
+| Quando | Cosa succede |
+|---|---|
+| Spesa stimata ≥ 50% del tetto (15 € se il tetto è 30 €) | Email di avviso a `info@globalfarmview.net` |
+| ≥ 80% (24 €) | La voce si spegne da sola (già nel codice); email «80%» |
+| ≥ 100% (30 €) | Tony risponde «Tony è nei campi…»; `enabled = false` in Firestore + email |
+| Spesa **vera** Google ≥ budget (console) | `enabled = false` + email «budget Google» |
+
+Le email partono da `no-reply@globalfarmview.net` (Resend, come il resto dell’app) e arrivano solo a `info@globalfarmview.net`. Una sola email per soglia e per mese.
+
+**Riaccendere Tony:** Firebase → Firestore → `config` → `tonyLanding` → `enabled = true`. Il campo `spentoDa` dice chi l’ha spento (`tetto-mensile` o `budget-google`). Il Tony dell’app non viene mai spento.
+
+Anteprima locale delle email (nessun invio):
+
+```bash
+node functions/scripts/anteprima-avvisi-tony-landing.cjs
+```
+
+Le funzioni `tonyLandingAvvisiSpesa` e `tonyLandingBudget` si pubblicano al **promote** su `main` (insieme al budget Google e all’argomento Pub/Sub `tony-landing-budget`). Vedi la sezione «Dopo l’unione» del prompt passo 15.
+
+Per rigenerare le stesse regole di salvataggio usate dalla scheda:
+
+```bash
+node landing/scripts/genera-setup-core-landing.mjs
+```
+
+`tonyLandingAsk` (fase account) va ripubblicata al promote su `main` (vedi «Dopo l’unione» del passo).
 
 ### Dopo l’unione (console, prima del passo 16)
 

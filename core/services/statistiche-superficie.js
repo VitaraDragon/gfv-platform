@@ -45,6 +45,7 @@ export function calcolaSuperficieStats(lavori, terreni) {
   let superficieTotale = 0;
   for (const terreno of listaTerreni) {
     if (!terreno || typeof terreno !== 'object') continue;
+    if (terreno.stato === 'archiviato') continue;
     const ha = num(terreno.superficie);
     superficieTotale += ha;
     const id = terreno.id;

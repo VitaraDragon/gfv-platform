@@ -177,14 +177,32 @@ export async function assertLavoroInLista(page, expect, opts = {}) {
 }
 
 /**
+ * Attende che il select lavori abbia almeno un lavoro reale (oltre al placeholder).
+ * Il select è «attached» subito; le option arrivano dopo il fetch Firestore —
+ * con Tony pronto più in fretta (guide in parallelo) contarle subito dava falsi T1_SEED_INADEQUATE.
  * @param {import('playwright-core').Page} page
+ * @param {{ timeoutMs?: number }} [opts]
  */
-export async function selectFirstAssignedWork(page) {
+export async function selectFirstAssignedWork(page, { timeoutMs } = {}) {
   const select = page.locator('#selected-work');
   await select.waitFor({ state: 'attached', timeout: 30_000 });
-  const optionCount = await select.locator('option').count();
-  if (optionCount < 2) {
-    throw new Error('Nessun lavoro assegnato nel field workspace operaio');
+  const waitMs = typeof timeoutMs === 'number' ? timeoutMs : 30_000;
+  try {
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById('selected-work');
+        if (!el) return false;
+        return el.querySelectorAll('option').length >= 2;
+      },
+      null,
+      { timeout: waitMs }
+    );
+  } catch (err) {
+    const optionCount = await select.locator('option').count();
+    throw new Error(
+      'Nessun lavoro assegnato nel field workspace operaio' +
+        (optionCount != null ? ` (option=${optionCount})` : '')
+    );
   }
   await select.selectOption({ index: 1 });
 }

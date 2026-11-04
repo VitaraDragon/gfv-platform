@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Impegni giornalieri - GFV Platform</title>
+    <title>Impegni giornalieri - GFV</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="../../../core/styles/manodopera-semaforo.css">
     <script>
@@ -537,7 +537,8 @@
                 let hasManodopera = false;
                 if (tenantId) {
                     const tDoc = await getDoc(doc(db, 'tenants', tenantId));
-                    const modules = tDoc.exists() ? (tDoc.data().modules || []) : [];
+                    const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+                    const modules = tDoc.exists() ? resolveEffectiveModules(tDoc.data() || {}) : [];
                     hasManodopera = modules.includes('manodopera');
                     if (window.Tony && window.Tony.initContextWithModules) {
                         window.Tony.initContextWithModules(modules, {

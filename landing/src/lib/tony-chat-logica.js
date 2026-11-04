@@ -4,7 +4,7 @@
  */
 
 export const MAX_CARATTERI_DOMANDA = 300;
-export const MAX_BATTUTE_STORIA = 6;
+export const MAX_BATTUTE_STORIA = 10;
 export const MAX_CARATTERI_BATTUTA_TONY = 600;
 
 /** Prime N risposte lette in automatico (brief 4.4). */
@@ -20,18 +20,26 @@ export const MESSAGGI_CHAT = Object.freeze({
   tetto: 'Tony è nei campi. Intanto prova GFV!',
   // BOZZA: da far rivedere
   limiteSessione:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGiorno:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGlobale:
-    "Oggi ho risposto a tante domande e sono un po' stanco. Intanto prova GFV!",
+    "Oggi qui sulla pagina ho risposto a moltissime persone e mi fermo fino a domani. Puoi creare il tuo account gratuito: dentro GFV ti guido io.",
   // BOZZA: da far rivedere
   datiPersonali:
     "Qui non scrivermi email o password: quando crei l'account te le chiede il modulo.",
   // BOZZA: da far rivedere
   errore: 'In questo momento non riesco a risponderti. Intanto prova GFV!',
+  // BOZZA: da far rivedere
+  limiteAccount:
+    'Per ora basta così: puoi aggiungere sede, poderi e terreni anche dopo, dalla dashboard.',
+  // BOZZA: da far rivedere
+  accessoMancante:
+    'Per salvare i dati serve accedere di nuovo con la stessa email. Riprova tra un attimo o apri il login dell’app.',
+  sessioneIntervistaScaduta:
+    'La sessione è scaduta: accedi di nuovo per continuare.',
 });
 
 const ALFABETO_SESSIONE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
@@ -135,9 +143,16 @@ export function aggiornaStoria(storia, battuta) {
 }
 
 /**
- * @param {{ domanda: string, sessione: string, storia: Array }} args
+ * @param {{ domanda: string, sessione: string, storia: Array, fase?: string, argomento?: string }} args
  */
-export function corpoRichiesta({ domanda, sessione, storia }) {
+export function corpoRichiesta({ domanda, sessione, storia, fase, argomento, raccolti }) {
+  if (fase === 'account') {
+    const out = { domanda, sessione, storia, fase: 'account', argomento };
+    if (typeof raccolti === 'string' && raccolti.trim()) {
+      out.raccolti = raccolti.trim();
+    }
+    return out;
+  }
   return { domanda, sessione, storia };
 }
 
@@ -156,7 +171,8 @@ export function corpoRichiestaVoce({ idVoce, sessione, testo }) {
  *   altoparlante: boolean,
  *   risposteVocaliAutomatiche: number,
  *   riduciMovimento?: boolean,
- *   paginaNascosta?: boolean
+ *   paginaNascosta?: boolean,
+ *   faseAccount?: boolean
  * }} args
  * @returns {'automatica' | 'pulsante' | 'nessuna'}
  */
@@ -165,6 +181,7 @@ export function modoVoce({
   altoparlante,
   risposteVocaliAutomatiche,
   paginaNascosta,
+  faseAccount,
 }) {
   const e = esito && typeof esito === 'object' ? esito : {};
   const idVoce = typeof e.idVoce === 'string' ? e.idVoce : '';
@@ -180,7 +197,8 @@ export function modoVoce({
   if (
     altoparlante === true &&
     paginaNascosta !== true &&
-    (typeof risposteVocaliAutomatiche !== 'number' ||
+    (faseAccount === true ||
+      typeof risposteVocaliAutomatiche !== 'number' ||
       risposteVocaliAutomatiche < MAX_RISPOSTE_VOCE_AUTOMATICHE)
   ) {
     return 'automatica';
@@ -238,13 +256,69 @@ function parseBloccoSse(blocco) {
 }
 
 /**
- * @param {{ codice?: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number }} esito
+ * @param {{ codice?: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number, fase?: string }} esito
  */
 export function azionePerEsito(esito) {
   const e = esito && typeof esito === 'object' ? esito : {};
   const codice = String(e.codice || '');
   const http = typeof e.http === 'number' ? e.http : 0;
   const testoDone = typeof e.testo === 'string' ? e.testo : '';
+  const faseAccount = e.fase === 'account';
+
+  if (faseAccount) {
+    if (
+      codice === 'accesso-mancante' ||
+      codice === 'accesso-non-valido' ||
+      http === 401
+    ) {
+      return {
+        tipo: 'accesso-mancante',
+        testo: testoDone || MESSAGGI_CHAT.accessoMancante,
+        mostraRegistrazione: false,
+        campoAttivo: true,
+      };
+    }
+    if (
+      codice === 'limite-account' ||
+      codice === 'spento' ||
+      codice === 'tetto' ||
+      codice === 'limite-globale'
+    ) {
+      return {
+        tipo: 'aiuto-sospeso',
+        testo:
+          testoDone ||
+          (codice === 'limite-account'
+            ? MESSAGGI_CHAT.limiteAccount
+            : MESSAGGI_CHAT[codice === 'limite-globale' ? 'limiteGlobale' : codice] ||
+              MESSAGGI_CHAT.errore),
+        mostraRegistrazione: false,
+        campoAttivo: false,
+      };
+    }
+    if (codice === 'ok') {
+      return {
+        tipo: 'risposta',
+        testo: testoDone || MESSAGGI_CHAT.errore,
+        mostraRegistrazione: false,
+        campoAttivo: true,
+      };
+    }
+    if (codice === 'dati-personali') {
+      return {
+        tipo: 'filtro',
+        testo: testoDone || MESSAGGI_CHAT.datiPersonali,
+        mostraRegistrazione: false,
+        campoAttivo: true,
+      };
+    }
+    return {
+      tipo: 'aiuto-sospeso',
+      testo: testoDone || MESSAGGI_CHAT.errore,
+      mostraRegistrazione: false,
+      campoAttivo: false,
+    };
+  }
 
   if (
     codice === 'app-check-mancante' ||
@@ -331,5 +405,109 @@ export function azionePerEsito(esito) {
     testo: MESSAGGI_CHAT.errore,
     mostraRegistrazione: true,
     campoAttivo: false,
+  };
+}
+
+/** Messaggio visibile se la risposta in streaming tarda (passo 12). */
+export const ATTESA_LUNGA_MS = 7000;
+
+/** @param {string} [testo] */
+export const messaggioAttesaLunga = (testo) =>
+  String(testo || 'Ci sto pensando, un attimo…');
+
+/**
+ * Aggiorna il testo live a confini di frase (. ! ?).
+ * @param {{ onAggiorna: (testoVisibile: string) => void }} opts
+ */
+export function creaBufferTestoStreaming({ onAggiorna }) {
+  let buffer = '';
+  let visibile = '';
+
+  function flush(force = false) {
+    if (!force) {
+      const match = buffer.match(/^([\s\S]*?[.!?])([\s\S]*)$/);
+      if (match) {
+        visibile += match[1];
+        buffer = match[2];
+        onAggiorna(visibile);
+        return true;
+      }
+      return false;
+    }
+    if (buffer) {
+      visibile += buffer;
+      buffer = '';
+      onAggiorna(visibile);
+    }
+    return true;
+  }
+
+  return {
+    /** @param {string} delta */
+    aggiungi(delta) {
+      buffer += String(delta ?? '');
+      while (flush(false)) {
+        /* svuota più frasi complete */
+      }
+    },
+    /** @returns {string} */
+    finisci() {
+      flush(true);
+      return visibile;
+    },
+  };
+}
+
+/**
+ * Timer «Ci sto pensando…» durante lo streaming.
+ * @param {{ ms?: number, onMostra: () => void, onNascondi: () => void }} opts
+ */
+export function creaGestoreAttesaLunga({ ms = ATTESA_LUNGA_MS, onMostra, onNascondi }) {
+  let timer = null;
+
+  return {
+    inizio() {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        onMostra();
+      }, ms);
+    },
+    pezzoArrivato() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      onNascondi();
+    },
+    fine() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      onNascondi();
+    },
+  };
+}
+
+/**
+ * Chiude il blocco «Prima di chiedere…» senza accettare né inviare.
+ * Rimette il testo nel campo; non tocca la presa visione.
+ * @param {{ testoInvioInAttesa: { testo: string, daChip?: boolean } | null, campoCorrente?: string }} stato
+ * @returns {{ mostraConsensoInvio: false, testoInvioInAttesa: null, campo: string }}
+ */
+export function chiudiConsensoInvioSenzaAccettare(stato) {
+  const s = stato && typeof stato === 'object' ? stato : {};
+  const pendente = s.testoInvioInAttesa;
+  const testo =
+    pendente && typeof pendente.testo === 'string'
+      ? pendente.testo
+      : typeof s.campoCorrente === 'string'
+        ? s.campoCorrente
+        : '';
+  return {
+    mostraConsensoInvio: false,
+    testoInvioInAttesa: null,
+    campo: testo,
   };
 }

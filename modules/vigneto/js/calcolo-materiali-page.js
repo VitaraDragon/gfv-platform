@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { getAllPianificazioni, deletePianificazione, confermaPianificazione } from '../services/pianificazione-impianto-service.js';
 
 try {
@@ -20,6 +21,7 @@ try {
 import { calcolaMateriali, formattaMaterialiPerTabella, TIPI_IMPIANTO, getTipiImpiantoPerColtura, getDefaultTipoImpiantoPerColtura, normalizeFormaAllevamentoToKey } from '../services/calcolo-materiali-service.js';
 import { getFormeAllevamentoList, getChiaveTecnica, getNomeVisualizzato, getConfigurazioneImpianto } from '../config/forme-allevamento.js';
 import { getConfigColtura, isColturaValida } from '../../../shared/config/pianificazione-impianto-colture.js';
+import { nomeTerrenoPerStorico } from '../../../shared/js/terreno-archivio.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
@@ -91,7 +93,7 @@ async function init() {
                         return;
                     }
                     const moduloRichiesto = currentConfig.moduloRequired;
-                    const modules = tenant.modules || [];
+                    const modules = resolveEffectiveModules(tenant);
                     const hasModule = modules.some(m => m && m.toLowerCase() === moduloRichiesto.toLowerCase());
                     if (!hasModule) {
                         const nomeModulo = moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto';
@@ -189,7 +191,7 @@ function applyCalcoloMaterialiLabels(config) {
 
 async function loadTerreni() {
     try {
-        terreni = await getAllTerreni();
+        terreni = await getAllTerreni({ includiArchiviati: true });
     } catch (error) {
         console.error('Errore caricamento terreni:', error);
         terreni = [];
@@ -279,7 +281,7 @@ function renderPianificazioni() {
 
     tbody.innerHTML = pianificazioni.map((p, index) => {
         const terreno = terreni.find(t => t.id === p.terrenoId);
-        const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
+        const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno non trovato');
         
         const dataCreazione = p.createdAt ? (formatDateLikeToItalianLongLocal(p.createdAt) || '-') : '-';
         const statoBadge = getStatoBadge(p.stato);
@@ -352,7 +354,7 @@ window.selezionaPianificazione = function(pianificazioneId) {
                  'warning');
         // Mostra comunque le info ma disabilita il calcolo
         const terreno = terreni.find(t => t.id === pianificazioneSelezionata.terrenoId);
-        const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
+        const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno non trovato');
         document.getElementById('pianificazione-nome').textContent = 
             `${terrenoNome} - Pianificazione incompleta (bozza)`;
         document.getElementById('info-pianificazione-selezionata').style.display = 'block';
@@ -377,7 +379,7 @@ window.selezionaPianificazione = function(pianificazioneId) {
 
     // Mostra info pianificazione
     const terreno = terreni.find(t => t.id === pianificazioneSelezionata.terrenoId);
-    const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
+    const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno non trovato');
     document.getElementById('pianificazione-nome').textContent = 
         `${terrenoNome} - ${pianificazioneSelezionata.numeroFile} file - ${(pianificazioneSelezionata.numeroUnitaTotale || 0).toLocaleString('it-IT')} unità`;
     document.getElementById('info-pianificazione-selezionata').style.display = 'block';
@@ -805,7 +807,7 @@ window.esportaPDF = function() {
 
         // Dati Pianificazione
         const terreno = terreni.find(t => t.id === pianificazioneSelezionata.terrenoId);
-        const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+        const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno sconosciuto');
         
         doc.setFontSize(subtitleSize);
         doc.setFont(undefined, 'bold');
@@ -1078,7 +1080,7 @@ window.eliminaPianificazioneConfirm = function(pianificazioneId) {
     }
 
     const terreno = terreni.find(t => t.id === pianificazione.terrenoId);
-    const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
+    const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno non trovato');
     const dataCreazione = pianificazione.createdAt
         ? (formatDateLikeToItalianLongLocal(pianificazione.createdAt) || '-')
         : '-';
@@ -1124,7 +1126,7 @@ window.confermaPianificazioneConfirm = function(pianificazioneId) {
     }
 
     const terreno = terreni.find(t => t.id === pianificazione.terrenoId);
-    const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+    const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno sconosciuto');
     
     const conferma = confirm(
         `Sei sicuro di voler confermare questa pianificazione?\n\n` +

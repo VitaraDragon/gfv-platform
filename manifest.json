@@ -1,6 +1,6 @@
 {
-  "name": "GFV Platform - Gestione Azienda Agricola",
-  "short_name": "GFV Platform",
+  "name": "GFV - Gestione Azienda Agricola",
+  "short_name": "GFV",
   "description": "Sistema completo per la gestione di aziende agricole: terreni, attività, macchine, manodopera e molto altro",
   "start_url": "./core/dashboard-standalone.html",
   "scope": "./",

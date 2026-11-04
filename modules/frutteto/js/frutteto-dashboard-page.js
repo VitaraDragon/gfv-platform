@@ -6,6 +6,7 @@
  */
 
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
@@ -274,7 +275,7 @@ async function init() {
             // per evitare di creare confusione se l'anagrafica frutteti è già utilizzabile.
             // Usiamo solo un warning in console.
             const tenant = await getCurrentTenant().catch(() => null);
-            var modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+            var modules = resolveEffectiveModules(tenant);
             // Forzatura: siamo nella dashboard Frutteto, quindi frutteto (e almeno tony) devono essere presenti
             var hasFrutteto = modules.some(function(m) { return (m || '').toString().toLowerCase() === 'frutteto'; });
             var hasTony = modules.some(function(m) { return (m || '').toString().toLowerCase() === 'tony'; });

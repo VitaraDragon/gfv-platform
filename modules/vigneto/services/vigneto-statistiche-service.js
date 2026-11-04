@@ -132,7 +132,7 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
       let superficieTotaleAgg = 0;
       
       risultatiStats.forEach(({ vigneto, stats }) => {
-        superficieTotaleAgg += vigneto.superficieEttari || 0;
+        if (vigneto.statoImpianto !== 'chiuso') superficieTotaleAgg += vigneto.superficieEttari || 0;
         if (stats) {
           produzioneTotaleQliAgg += stats.produzioneTotaleQli || 0;
           speseVendemmiaAnnoAgg += stats.speseVendemmiaAnno || 0;
@@ -214,7 +214,7 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
     
     vigneti.forEach(vigneto => {
       const vendemmie = vendemmieMap.get(vigneto.id) || [];
-      superficieTotale += vigneto.superficieEttari || 0;
+      if (vigneto.statoImpianto !== 'chiuso') superficieTotale += vigneto.superficieEttari || 0;
       
       vendemmie.forEach(vendemmia => {
         produzioneTotaleQli += vendemmia.quantitaQli || 0;

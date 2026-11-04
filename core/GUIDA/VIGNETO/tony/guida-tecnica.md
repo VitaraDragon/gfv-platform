@@ -2,6 +2,10 @@
 
 Modulo tenant: tipicamente `vigneto` (minuscolo; verificare `tenant.modules`).
 
+**Accesso modulo** = pagato **o** trial attivo (`hasModuleAccessFromTenant` / `module-access-resolver.js`). In prova: stesse pagine standalone e stesso comportamento lato Terreni (pulsante grappolo → anagrafica vigneti) del modulo a pagamento.
+
+Non proporre vigneti con `statoImpianto: chiuso` (cambio coltura o terreno archiviato) né terreni archiviati. Se l'utente chiede di modificare un lavoro in sola lettura, spiega il perché e non salvare. La coltura del lavoro è quella del terreno.
+
 ## Path standalone (relativi a `modules/vigneto/views/`)
 
 | Pagina | File |

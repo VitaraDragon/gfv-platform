@@ -5,7 +5,8 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Segna Ore - GFV Platform</title>
+    <title>Segna Ore - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-32x32.png">
     <link rel="stylesheet" href="styles/responsive-standalone.css">
     <style>
         * {
@@ -565,6 +566,8 @@
             testoIntestazioneOreDelGiorno
         } from './services/ore-service.js';
         import { dataCompletamentoLavoro, FINESTRA_ORE_IN_RITARDO_GIORNI, lavoroSelezionabilePerOre } from './services/ore-lavoro-selezionabile.js?v=2026-10-16a';
+        import { getAllTerreni } from './services/terreni-service.js';
+        import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../shared/js/storico-sola-lettura.js';
         import {
             permessiOra,
             formattaOreMinuti,
@@ -583,7 +586,7 @@
         import {
             righeGiornoDopoEliminazione,
             righeGiornoDopoSalvataggio
-        } from './js/tony/tony-riepilogo-giorno.js?v=2026-10-09g';
+        } from './js/tony/tony-riepilogo-giorno.js?v=2026-11-02b';
 
         try {
             await window.GFVStandaloneReady;
@@ -601,7 +604,7 @@
             isLavoroSegnabileOperaio,
             resolveSegnaturaOreRoleFlags
         } from './services/manodopera-lavori-scope.js?v=2026-10-17b';
-        import { eLavoroSospeso } from './js/tony/tony-ora-lavoro-match.js?v=2026-10-09g';
+        import { eLavoroSospeso } from './js/tony/tony-ora-lavoro-match.js?v=2026-11-02b';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -806,7 +809,8 @@
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 
@@ -876,6 +880,13 @@
                 const roleFlags = resolveSegnaturaOreRoleFlags(currentUserData);
 
                 const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, roleFlags, currentUserData || null);
+                const terreniOre = await getAllTerreni({ includiArchiviati: true }).catch(() => []);
+                const terreniPerId = new Map((terreniOre || []).filter((t) => t && t.id).map((t) => [t.id, t]));
+                fetched.forEach((lav) => {
+                    if (lav && lav.terrenoId && terreniPerId.has(lav.terrenoId)) {
+                        lav.terreno = terreniPerId.get(lav.terrenoId);
+                    }
+                });
 
                 const dataLimite = new Date();
                 dataLimite.setDate(dataLimite.getDate() - FINESTRA_ORE_IN_RITARDO_GIORNI);
@@ -1601,6 +1612,9 @@
 
         function esitoFinestraOreCompletate(lavoro, giorno) {
             if (!lavoro || !giorno) return { ok: true, motivo: '' };
+            if (lavoro.terreno && isLavoroSolaLettura(lavoro, lavoro.terreno)) {
+                return { ok: false, motivo: MESSAGGIO_ORE_SOLA_LETTURA };
+            }
             const stato = lavoro.stato;
             if (stato !== 'completato' && stato !== 'completato_da_approvare') return { ok: true, motivo: '' };
             const ruolo = ruoloSelezioneOre();
@@ -1609,7 +1623,8 @@
                 lavoro,
                 ruolo,
                 oggi: new Date(),
-                giorno
+                giorno,
+                terreno: lavoro.terreno || null
             });
         }
 

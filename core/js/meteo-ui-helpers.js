@@ -5,6 +5,85 @@
 
 import { localizeMeteoAlert, localizeMeteoAlerts } from '../config/meteo-alert-i18n.js';
 
+/** Timeout chiamata meteo dashboard (ms). */
+export const METEO_FETCH_TIMEOUT_MS = 15000;
+
+export const MSG_METEO_TIMEOUT =
+  'Meteo non disponibile al momento. Riprova più tardi.';
+
+export const MSG_SEDE_PIN_MANCANTE =
+  'Imposta il pin della sede in Impostazioni per vedere il meteo.';
+
+export const MSG_METEO_PIANO_BASE =
+  'Meteo sede disponibile con il piano Base';
+
+export const ABBONAMENTO_HREF_DASHBOARD = './admin/abbonamento-standalone.html';
+
+/**
+ * Scelta messaggio/link del widget meteo sul piano Free (logica pura).
+ * @param {{ planId?: string|null }} [args]
+ * @returns {{ showUpsell: boolean, message: string, linkHref: string, linkLabel: string }|null}
+ */
+export function meteoFreeUpsell(args) {
+  const planId = String((args && args.planId) || '').trim().toLowerCase();
+  if (planId !== 'free') return null;
+  return {
+    showUpsell: true,
+    message: MSG_METEO_PIANO_BASE,
+    linkHref: ABBONAMENTO_HREF_DASHBOARD,
+    linkLabel: 'Vai ad Abbonamento →',
+  };
+}
+
+/**
+ * Messaggio UI per errori/timeout del widget meteo dashboard.
+ * @param {{ code?: string|null, timedOut?: boolean, fallback?: string }} [args]
+ * @returns {string}
+ */
+export function messaggioMeteoDashboard(args) {
+  const a = args && typeof args === 'object' ? args : {};
+  if (a.timedOut) return MSG_METEO_TIMEOUT;
+  if (a.code === 'SEDE_NOT_SET') return MSG_SEDE_PIN_MANCANTE;
+  if (a.fallback) return String(a.fallback);
+  return 'Meteo non disponibile al momento.';
+}
+
+/**
+ * Se la sede ha via/comune ma non ha coordinate, all'apertura mappa conviene geocodificare.
+ * @param {{ indirizzo?: string|null, citta?: string|null, sedeCoordinate?: { lat?: number, lng?: number }|null }} args
+ * @returns {boolean}
+ */
+export function deveProporrePinSedeDaIndirizzo(args) {
+  const a = args && typeof args === 'object' ? args : {};
+  const via = String(a.indirizzo || '').trim();
+  const comune = String(a.citta || '').trim();
+  if (!via && !comune) return false;
+  const c = a.sedeCoordinate;
+  if (!c || typeof c !== 'object') return true;
+  const lat = typeof c.lat === 'number' ? c.lat : Number(c.lat);
+  const lng = typeof c.lng === 'number' ? c.lng : Number(c.lng);
+  return !(Number.isFinite(lat) && Number.isFinite(lng));
+}
+
+/**
+ * Race con timeout: se `promise` non risolve entro `ms`, torna `fallback`.
+ * Usata per meteo e conteggi operatività in dashboard.
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {T} fallback
+ * @returns {Promise<T>}
+ */
+export function conTimeoutOFallback(promise, ms, fallback) {
+  const attesa = Math.max(0, Number(ms) || 0);
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((resolve) => {
+      setTimeout(() => resolve(fallback), attesa);
+    }),
+  ]);
+}
+
 export function escapeMeteoHtml(text) {
   if (text == null) return '';
   return String(text)

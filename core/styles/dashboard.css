@@ -1667,10 +1667,28 @@ body.dashboard-quick-bar-modal-open {
     box-sizing: border-box;
 }
 
+/* display:grid batte l'attributo HTML [hidden] senza questa regola */
+.dashboard-meteo-row[hidden] {
+    display: none;
+}
+
+.dashboard-meteo-side[hidden] {
+    display: none;
+}
+
+/* Free: solo riquadro upsell, una colonna */
+.dashboard-meteo-row--free-single {
+    grid-template-columns: 1fr;
+}
+
 @media (min-width: 901px) {
     .dashboard-meteo-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: stretch;
+    }
+
+    .dashboard-meteo-row--free-single {
+        grid-template-columns: 1fr;
     }
 }
 

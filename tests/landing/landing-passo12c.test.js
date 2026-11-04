@@ -9,8 +9,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  attesaPrimaDiParlareMs,
+  bussataAutomaticaConsentita,
+  PRECARICA_SCENA_MS,
+  precaricoScenaConsentito,
+  deveRiprovareBussataQuandoVisibile,
+  BUSSATA_AUTOMATICA_MS,
   DIMENSIONI_TONY_STATICO,
   DISSOLVENZA_STATICO_MS,
+  layoutTonyDesktop,
+  MIN_SCRIVE_MS,
+  ORDINE_PRECARICA_CHAT,
   percorsoTonyStatico,
   prossimoStato,
   scalettaClip,
@@ -41,6 +50,116 @@ function pngHeader(rel) {
   const tipoColore = buf[25];
   return { larghezza, altezza, tipoColore };
 }
+
+describe('Riduci nell’intestazione del pannello', () => {
+  it('Riduci è in TonyStage; LandingHome ha solo Parla con Tony', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    const stage = leggi('landing/src/components/TonyStage.vue');
+    const testi = leggi('landing/src/content/testi-landing.js');
+    expect(testi).toMatch(/riduci:\s*'Riduci'/);
+    expect(testi).toMatch(/ripristina:\s*'Parla con Tony'/);
+    expect(home).toMatch(/tonyRidotto/);
+    expect(home).toMatch(/v-show="!tonyRidotto"/);
+    expect(home).not.toMatch(/class="tony-btn-riduci"/);
+    expect(home).toMatch(/tony-btn-riapri/);
+    expect(stage).toMatch(/tony-btn-riduci/);
+    expect(stage).toMatch(/emit\('riduci'\)/);
+    expect(stage).toContain('etichetta-riga');
+  });
+
+  it('layoutTonyDesktop sceglie laterale o basso', () => {
+    expect(layoutTonyDesktop({ larghezzaFinestra: 1400, ingombro: 600 })).toBe(
+      'laterale'
+    );
+    expect(layoutTonyDesktop({ larghezzaFinestra: 1024, ingombro: 600 })).toBe(
+      'basso'
+    );
+    expect(layoutTonyDesktop({ larghezzaFinestra: 900, ingombro: 580 })).toBe(
+      'basso'
+    );
+  });
+});
+
+describe('MIN_SCRIVE e bussata automatica', () => {
+  it('attesaPrimaDiParlareMs rispetta il minimo scrive', () => {
+    expect(MIN_SCRIVE_MS).toBe(2800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 0,
+      })
+    ).toBe(2800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 1000,
+      })
+    ).toBe(1800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 2800,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 4000,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 300,
+        riduciMovimento: true,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({ clipCorrente: 'idle', msDaInizioClip: 0 })
+    ).toBe(0);
+  });
+
+  it('bussataAutomaticaConsentita con contatore e interazione', () => {
+    expect(BUSSATA_AUTOMATICA_MS).toBe(8000);
+    expect(PRECARICA_SCENA_MS).toBe(400);
+    expect(bussataAutomaticaConsentita({})).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 1 })).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 2 })).toBe(false);
+    expect(bussataAutomaticaConsentita({ utenteHaInteragito: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ sessioneGiaBussato: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ rinunciaSalvata: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ paginaNascosta: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ stageAperto: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ avvisoAperto: true })).toBe(false);
+  });
+
+  it('precarico e riprova bussata quando la pagina torna visibile', () => {
+    expect(precaricoScenaConsentito({ paginaNascosta: true })).toBe(true);
+    expect(precaricoScenaConsentito({ utenteHaInteragito: true })).toBe(false);
+    expect(
+      deveRiprovareBussataQuandoVisibile({ paginaNascosta: true, bussateAutomatiche: 0 })
+    ).toBe(true);
+    expect(
+      deveRiprovareBussataQuandoVisibile({ paginaNascosta: false, bussateAutomatiche: 0 })
+    ).toBe(false);
+    expect(
+      deveRiprovareBussataQuandoVisibile({
+        paginaNascosta: true,
+        utenteHaInteragito: true,
+      })
+    ).toBe(false);
+  });
+
+  it('precarica thinking e scrive prima dell’ascolto', () => {
+    expect(ORDINE_PRECARICA_CHAT.slice(0, 4)).toEqual([
+      'entry',
+      'idle',
+      'thinking',
+      'scrive',
+    ]);
+  });
+});
 
 describe('scalettaClip passo 12c', () => {
   it('entra→idle vuota; altre righe invariate', () => {
@@ -145,10 +264,10 @@ describe('player contenitore pulito', () => {
     expect(host.childElementCount).toBeLessThanOrEqual(2);
     expect(host.childElementCount).toBe(1);
 
-    player.suona(urlB, { loop: true, durataMs: 4000, dissolvenzaMs: 150 });
+    player.suona(urlB, { loop: true, durataMs: 4000, dissolvenzaMs: 0 });
     await vi.advanceTimersByTimeAsync(0);
     expect(host.childElementCount).toBeLessThanOrEqual(2);
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(50);
     expect(host.childElementCount).toBe(1);
 
     player.ferma();
@@ -206,6 +325,45 @@ describe('player contenitore pulito', () => {
     expect(cb).not.toHaveBeenCalled();
     vi.advanceTimersByTime(100);
     expect(cb).toHaveBeenCalled();
+    player.ferma();
+  });
+
+  it('clip in arrivo a opacità 0 finché non rivela; mai due figure a opacità 1', async () => {
+    vi.useFakeTimers();
+    playSpy.mockRestore();
+    /** @type {HTMLVideoElement[]} */
+    const codaPlay = [];
+    playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function playMock() {
+      codaPlay.push(this);
+      return Promise.resolve();
+    });
+
+    const contaOpacita1 = () =>
+      Array.from(host.children).filter((el) => {
+        const o = /** @type {HTMLElement} */ (el).style.opacity;
+        return o === '' || o === '1';
+      }).length;
+
+    const player = creaPlayerClip({ contenitore: host, formato: 'webm' });
+    player.suona('/tony-live/a.webm', { loop: true, durataMs: 4000 });
+    expect(codaPlay.length).toBe(1);
+    expect(Number(codaPlay[0].style.opacity)).toBe(0);
+    expect(contaOpacita1()).toBe(0);
+    codaPlay[0].dispatchEvent(new Event('playing'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(Number(codaPlay[0].style.opacity)).toBe(1);
+    expect(contaOpacita1()).toBe(1);
+
+    player.suona('/tony-live/b.webm', { loop: true, durataMs: 4000, dissolvenzaMs: 150 });
+    expect(codaPlay.length).toBe(2);
+    const nuovo = codaPlay[1];
+    expect(Number(nuovo.style.opacity)).toBe(0);
+    expect(contaOpacita1()).toBeLessThanOrEqual(1);
+    nuovo.dispatchEvent(new Event('playing'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(Number(nuovo.style.opacity)).toBe(1);
+    expect(contaOpacita1()).toBe(1);
+    expect(host.childElementCount).toBe(1);
     player.ferma();
   });
 });
@@ -289,12 +447,12 @@ describe('tempi e sorgenti', () => {
     expect(sicurezzaEntrataMs('desktop')).toBe(3042 + 1500);
     expect(sicurezzaEntrataMs('mobile')).toBe(2708 + 1500);
     expect(DISSOLVENZA_STATICO_MS).toBe(180);
-    expect(tempiVoce().dissolvenzaBoccaMs).toBe(150);
+    expect(tempiVoce().dissolvenzaBoccaMs).toBe(0);
 
     const stage = leggi('landing/src/components/TonyStage.vue');
     expect(stage).not.toContain("tony-figura--fade': riduciMovimento || fase === 'statico'");
     expect(stage).not.toContain('tony-figura--fade\': riduciMovimento || fase === \'statico\'');
-    expect(stage).toMatch(/height:\s*55/);
+    expect(stage).toMatch(/height:\s*45/);
     if (stage.includes('--ms-bocca')) {
       expect(stage).toContain('var(--ms-bocca)');
     }
@@ -315,6 +473,41 @@ describe('tempi e sorgenti', () => {
     expect(scalettaClip('entra', 'idle').includes('entry')).toBe(false);
     const stage = leggi('landing/src/components/TonyStage.vue');
     expect(stage).toContain("codaClip = ['entry', 'idle']");
+  });
+});
+
+describe('bussata automatica in LandingHome', () => {
+  it('timer, sessione e warm-up OPTIONS', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    expect(home).toContain('ritardoBussataAutomaticaMs');
+    expect(home).toContain('bussataAutomaticaConsentita');
+    expect(home).toContain('PRECARICA_SCENA_MS');
+    expect(home).toContain('precaricaScenaInAnticipo');
+    expect(home).toContain('deveRiprovareBussataQuandoVisibile');
+    expect(home).toContain('CHIAVE_BUSSATA_SESSIONE');
+    expect(home).toMatch(/method:\s*['"]OPTIONS['"]/);
+    expect(home).toContain('URL_TONY_LANDING_ASK');
+    expect(home).toContain('URL_TONY_LANDING_AUDIO');
+  });
+
+  it('vaiEntrata e vaiStatico non riproducono il whoosh', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    const fnEntrata = home.match(/function vaiEntrata\(\)[\s\S]*?\n\}/);
+    const fnStatico = home.match(/function vaiStatico\(\)[\s\S]*?\n\}/);
+    expect(fnEntrata?.[0] || '').not.toContain('audioWhoosh');
+    expect(fnStatico?.[0] || '').not.toContain('audioWhoosh');
+  });
+});
+
+describe('TonyChat informativa e riepilogo', () => {
+  it('informativa aiuto una volta e riepilogo sempre in fase aiuto', () => {
+    const chat = leggi('landing/src/components/TonyChat.vue');
+    expect(chat).toContain('CHIAVE_INFORMATIVA_AIUTO');
+    expect(chat).toContain('informativaAiutoVisibile');
+    expect(chat).toContain('informativaHoCapito');
+    expect(chat).toContain('@click="onChipAiuto(ta.chipRiepilogo)"');
+    expect(chat).not.toMatch(/v-if="haDatiAiuto\(\)"[\s\S]{0,200}chipRiepilogo/);
+    expect(chat).not.toMatch(/chipRiepilogo[\s\S]{0,80}v-if="haDatiAiuto\(\)"/);
   });
 });
 

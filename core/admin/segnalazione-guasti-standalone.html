@@ -6,7 +6,8 @@
     <script>try{if(new URLSearchParams(location.search).get("embed")==="1")document.documentElement.setAttribute("data-guasto-embed","1")}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Segnalazione Guasti - GFV Platform</title>
+    <title>Segnalazione Guasti - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
@@ -857,6 +858,11 @@
             let guastiTenant = [];
             let salvataggioGuastoInCorso = false;
             let terreniMap = new Map(); // Mappa terreni per lookup rapido
+            function nomeTerrenoGuasto(t) {
+                if (!t) return 'Terreno senza nome';
+                const base = t.nome || 'Terreno senza nome';
+                return t.stato === 'archiviato' ? base + ' (archiviato)' : base;
+            }
             let guastiUnsubscribe = null;
             
             // Variabili mappa
@@ -917,7 +923,8 @@
                                 console.info('[segnalazione-guasti] lettura tenant ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tTenant));
                                 if (tenantDoc.exists()) {
                                     const tenantData = tenantDoc.data();
-                                    const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                    const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData);
 
                                     // Inizializza context Tony con i moduli attivi usando helper
                                     if (window.Tony && window.Tony.initContextWithModules) {
@@ -1299,9 +1306,9 @@
                                     // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
                                     let ubicazione = '';
                                     if (terreno.podere && terreno.podere.trim()) {
-                                        ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                        ubicazione = `${terreno.podere.trim()} - ${nomeTerrenoGuasto(terreno)}`;
                                     } else {
-                                        ubicazione = terreno.nome || 'Terreno senza nome';
+                                        ubicazione = nomeTerrenoGuasto(terreno);
                                     }
                                     ubicazioneInput.value = ubicazione;
                                 }
@@ -1500,9 +1507,9 @@
                                     // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
                                     let ubicazione = '';
                                     if (terreno.podere && terreno.podere.trim()) {
-                                        ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                        ubicazione = `${terreno.podere.trim()} - ${nomeTerrenoGuasto(terreno)}`;
                                     } else {
-                                        ubicazione = terreno.nome || 'Terreno senza nome';
+                                        ubicazione = nomeTerrenoGuasto(terreno);
                                     }
                                     ubicazioneInput.value = ubicazione;
                                 }
@@ -1544,9 +1551,9 @@
                                 // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
                                 let ubicazione = '';
                                 if (terreno.podere && terreno.podere.trim()) {
-                                    ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                    ubicazione = `${terreno.podere.trim()} - ${nomeTerrenoGuasto(terreno)}`;
                                 } else {
-                                    ubicazione = terreno.nome || 'Terreno senza nome';
+                                    ubicazione = nomeTerrenoGuasto(terreno);
                                 }
                                 ubicazioneInput.value = ubicazione;
                             }

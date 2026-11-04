@@ -8,7 +8,8 @@
     <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Gestione Lavori - GFV Platform</title>
+    <title>Gestione Lavori - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <link rel="stylesheet" href="../styles/manodopera-semaforo.css">
     <style>
@@ -1834,7 +1835,8 @@
             try {
                 const { getCurrentTenant } = await import('../services/tenant-service.js');
                 const tenant = await getCurrentTenant();
-                if (tenant && tenant.modules && tenant.modules.includes('vigneto')) {
+                const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                if (tenant && resolveEffectiveModules(tenant).includes('vigneto')) {
                     const pianificazioneModule = await import('../../modules/vigneto/services/pianificazione-impianto-service.js');
                     const formeAllevamentoModule = await import('../../modules/vigneto/config/forme-allevamento.js');
                     const vignetiModule = await import('../../modules/vigneto/services/vigneti-service.js');
@@ -2022,13 +2024,18 @@
                         const data = terrenoDoc.data();
                         extraTerreno = {
                             id: terrenoDoc.id,
-                            nome: data.nome || '',
+                            nome: data.stato === 'archiviato'
+                                ? `${data.nome || ''} (archiviato)`.trim()
+                                : (data.nome || ''),
                             superficie: data.superficie || 0,
                             clienteId: data.clienteId || null,
                             coltura: data.coltura || null,
+                            stato: data.stato || 'attivo',
                             ...data
                         };
-                        if (!lavoriState.terreniList.some((t) => t.id === selectedId)) {
+                        if (data.stato === 'archiviato') {
+                            extraTerreno.nome = `${data.nome || ''} (archiviato)`.trim();
+                        } else if (!lavoriState.terreniList.some((t) => t.id === selectedId)) {
                             lavoriState.terreniList.push(extraTerreno);
                             updateState({ terreniList: lavoriState.terreniList });
                         }

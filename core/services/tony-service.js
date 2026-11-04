@@ -76,11 +76,20 @@ const GUIDA_LOAD_ENTRIES = [
  * @param {{ path: string, bases: string[] }} entry
  * @returns {Promise<string>}
  */
+function guidaFetchCacheBust() {
+  const v =
+    (typeof window !== 'undefined' && window.__TONY_CLIENT_BUILD) ||
+    '2026-11-02b';
+  return encodeURIComponent(String(v));
+}
+
 async function fetchGuidaMarkdownPart(scriptBase, entry) {
   for (let i = 0; i < entry.bases.length; i++) {
     try {
-      const url = new URL(entry.bases[i] + entry.path, scriptBase).href;
-      const res = await fetch(url, { cache: 'no-store' });
+      const baseUrl = new URL(entry.bases[i] + entry.path, scriptBase).href;
+      const sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
+      const url = baseUrl + sep + 'v=' + guidaFetchCacheBust();
+      const res = await fetch(url);
       if (res.ok) {
         const text = await res.text();
         if (text && text.trim().length) return text;
@@ -91,17 +100,26 @@ async function fetchGuidaMarkdownPart(scriptBase, entry) {
 }
 
 /**
+ * Scarica tutte le parti guida in parallelo (Promise.all).
+ * Esportata per i test.
+ * @param {URL} scriptBase
+ * @param {Array<{ path: string, bases: string[] }>} entries
+ * @returns {Promise<string[]>}
+ */
+export async function fetchGuidaMarkdownPartsParallel(scriptBase, entries) {
+  const list = Array.isArray(entries) ? entries : [];
+  return Promise.all(list.map((entry) => fetchGuidaMarkdownPart(scriptBase, entry)));
+}
+
+/**
  * Carica la guida app completa dai file .md (cartella GUIDA + legacy guida-app/moduli).
  * Fallback: null → versione condensata in tony-guida-app.js.
  * @returns {Promise<string|null>}
  */
 async function loadGuidaAppFull() {
   const scriptBase = new URL(import.meta.url);
-  const parts = [];
-  for (let j = 0; j < GUIDA_LOAD_ENTRIES.length; j++) {
-    const t = await fetchGuidaMarkdownPart(scriptBase, GUIDA_LOAD_ENTRIES[j]);
-    if (t) parts.push(t);
-  }
+  const partsRaw = await fetchGuidaMarkdownPartsParallel(scriptBase, GUIDA_LOAD_ENTRIES);
+  const parts = partsRaw.filter((t) => t && String(t).trim().length);
   const full = parts.join('\n\n---\n\n');
   if (full.length > 100) return full;
   console.warn('[Tony] Guida completa non caricabile (uso versione condensata).');
@@ -139,7 +157,7 @@ const GUIDA_SINTESI_PARCO_MACCHINE_ENTRY = {
 };
 
 const GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK = `
-Parco Macchine (sintesi): solo se modulo parcoMacchine attivo. Dashboard → Parco Macchine → hub con azioni rapide. Trattori e attrezzi: ore e manutenzione per ore/data. Flotta (furgone/automezzo/veicolo): km e tagliando km; revisione e assicurazione per data. Gestione macchine, scadenze (incluso Tagliando km), officina e guasti. Diario: trattore/attrezzo/ore macchina opzionali; la flotta stradale non usa ore nel Diario.
+Parco Macchine (sintesi): solo se modulo parcoMacchine attivo. graffetta in alto a sinistra → Parco Macchine → hub con azioni rapide. Trattori e attrezzi: ore e manutenzione per ore/data. Flotta (furgone/automezzo/veicolo): km e tagliando km; revisione e assicurazione per data. Gestione macchine, scadenze (incluso Tagliando km), officina e guasti. Diario: trattore/attrezzo/ore macchina opzionali; la flotta stradale non usa ore nel Diario.
 `.trim();
 
 async function loadGuidaSintesiParcoMacchine() {
@@ -297,7 +315,8 @@ async function loadGuidaSintesiVendemmiaMeccanica() {
   return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_VENDEMMIA_MECCANICA_ENTRY);
 }
 
-const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico, non un software.
+const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV. Sei un collega che parla con un amico, non un software.
+Chiama l'app solo GFV, mai GFV Platform.
 
 TONO E VOCABOLARIO:
 - Usa verbi attivi e colloquiali: invece di "È possibile visualizzare", usa "Dagli un'occhiata" o "Ti mostro".
@@ -512,7 +531,8 @@ class TonyService {
     this.context.guida_sintesi_report = GUIDA_SINTESI_REPORT_FALLBACK;
     this.context.guida_sintesi_vendemmia_meccanica = GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK;
     this.context.guida_sintesi_tony = GUIDA_SINTESI_TONY_FALLBACK;
-    this._initPromise = (async () => {
+    // Guide in background (parallelo): non bloccano l'apertura del widget / saluto locale.
+    this._guidesReadyPromise = (async () => {
       try {
         const fullGuida = await loadGuidaAppFull();
         if (fullGuida) {
@@ -520,164 +540,36 @@ class TonyService {
           console.log('[Tony] Guida app completa caricata.');
         }
       } catch (_) { /* mantieni condensata */ }
-      try {
-        const sintesiRaw = await loadGuidaSintesi();
-        const sintesi =
-          sintesiRaw && String(sintesiRaw).trim().length > 80
-            ? String(sintesiRaw).trim()
-            : GUIDA_SINTESI_FALLBACK;
-        this.context.guida_sintesi = sintesi;
-        if (sintesiRaw && String(sintesiRaw).trim().length > 80) {
-          console.log('[Tony] Guida sintesi caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi = GUIDA_SINTESI_FALLBACK;
-      }
-      try {
-        const sintesiParcoRaw = await loadGuidaSintesiParcoMacchine();
-        const sintesiParco =
-          sintesiParcoRaw && String(sintesiParcoRaw).trim().length > 60
-            ? String(sintesiParcoRaw).trim()
-            : GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK;
-        this.context.guida_sintesi_parco_macchine = sintesiParco;
-        if (sintesiParcoRaw && String(sintesiParcoRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Parco Macchine caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_parco_macchine = GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK;
-      }
-      try {
-        const sintesiVignetoRaw = await loadGuidaSintesiVigneto();
-        const sintesiVigneto =
-          sintesiVignetoRaw && String(sintesiVignetoRaw).trim().length > 60
-            ? String(sintesiVignetoRaw).trim()
-            : GUIDA_SINTESI_VIGNETO_FALLBACK;
-        this.context.guida_sintesi_vigneto = sintesiVigneto;
-        if (sintesiVignetoRaw && String(sintesiVignetoRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Vigneto caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_vigneto = GUIDA_SINTESI_VIGNETO_FALLBACK;
-      }
-      try {
-        const sintesiFruttetoRaw = await loadGuidaSintesiFrutteto();
-        const sintesiFrutteto =
-          sintesiFruttetoRaw && String(sintesiFruttetoRaw).trim().length > 60
-            ? String(sintesiFruttetoRaw).trim()
-            : GUIDA_SINTESI_FRUTTETO_FALLBACK;
-        this.context.guida_sintesi_frutteto = sintesiFrutteto;
-        if (sintesiFruttetoRaw && String(sintesiFruttetoRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Frutteto caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_frutteto = GUIDA_SINTESI_FRUTTETO_FALLBACK;
-      }
-      try {
-        const sintesiMagazzinoRaw = await loadGuidaSintesiMagazzino();
-        const sintesiMagazzino =
-          sintesiMagazzinoRaw && String(sintesiMagazzinoRaw).trim().length > 60
-            ? String(sintesiMagazzinoRaw).trim()
-            : GUIDA_SINTESI_MAGAZZINO_FALLBACK;
-        this.context.guida_sintesi_magazzino = sintesiMagazzino;
-        if (sintesiMagazzinoRaw && String(sintesiMagazzinoRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Magazzino caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_magazzino = GUIDA_SINTESI_MAGAZZINO_FALLBACK;
-      }
-      try {
-        const sintesiManodoperaRaw = await loadGuidaSintesiManodopera();
-        const sintesiManodopera =
-          sintesiManodoperaRaw && String(sintesiManodoperaRaw).trim().length > 60
-            ? String(sintesiManodoperaRaw).trim()
-            : GUIDA_SINTESI_MANODOPERA_FALLBACK;
-        this.context.guida_sintesi_manodopera = sintesiManodopera;
-        if (sintesiManodoperaRaw && String(sintesiManodoperaRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Manodopera caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_manodopera = GUIDA_SINTESI_MANODOPERA_FALLBACK;
-      }
-      try {
-        const sintesiContoTerziRaw = await loadGuidaSintesiContoTerzi();
-        const sintesiContoTerzi =
-          sintesiContoTerziRaw && String(sintesiContoTerziRaw).trim().length > 60
-            ? String(sintesiContoTerziRaw).trim()
-            : GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
-        this.context.guida_sintesi_conto_terzi = sintesiContoTerzi;
-        if (sintesiContoTerziRaw && String(sintesiContoTerziRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Conto Terzi caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_conto_terzi = GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
-      }
-      try {
-        const sintesiMeteoRaw = await loadGuidaSintesiMeteo();
-        const sintesiMeteo =
-          sintesiMeteoRaw && String(sintesiMeteoRaw).trim().length > 60
-            ? String(sintesiMeteoRaw).trim()
-            : GUIDA_SINTESI_METEO_FALLBACK;
-        this.context.guida_sintesi_meteo = sintesiMeteo;
-        if (sintesiMeteoRaw && String(sintesiMeteoRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Meteo caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_meteo = GUIDA_SINTESI_METEO_FALLBACK;
-      }
 
-      try {
-        const sintesiSeminativoRaw = await loadGuidaSintesiSeminativo();
-        const sintesiSeminativo =
-          sintesiSeminativoRaw && String(sintesiSeminativoRaw).trim().length > 60
-            ? String(sintesiSeminativoRaw).trim()
-            : GUIDA_SINTESI_SEMINATIVO_FALLBACK;
-        this.context.guida_sintesi_seminativo = sintesiSeminativo;
-        if (sintesiSeminativoRaw && String(sintesiSeminativoRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Seminativo caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_seminativo = GUIDA_SINTESI_SEMINATIVO_FALLBACK;
-      }
-      try {
-        const sintesiReportRaw = await loadGuidaSintesiReport();
-        const sintesiReport =
-          sintesiReportRaw && String(sintesiReportRaw).trim().length > 60
-            ? String(sintesiReportRaw).trim()
-            : GUIDA_SINTESI_REPORT_FALLBACK;
-        this.context.guida_sintesi_report = sintesiReport;
-        if (sintesiReportRaw && String(sintesiReportRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Report caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_report = GUIDA_SINTESI_REPORT_FALLBACK;
-      }
-      try {
-        const sintesiVmRaw = await loadGuidaSintesiVendemmiaMeccanica();
-        const sintesiVm =
-          sintesiVmRaw && String(sintesiVmRaw).trim().length > 60
-            ? String(sintesiVmRaw).trim()
-            : GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK;
-        this.context.guida_sintesi_vendemmia_meccanica = sintesiVm;
-        if (sintesiVmRaw && String(sintesiVmRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi Vendemmia meccanica caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_vendemmia_meccanica = GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK;
-      }
+      const sintesiJobs = [
+        { load: loadGuidaSintesi, key: 'guida_sintesi', fallback: GUIDA_SINTESI_FALLBACK, min: 80, label: 'sintesi' },
+        { load: loadGuidaSintesiParcoMacchine, key: 'guida_sintesi_parco_macchine', fallback: GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK, min: 60, label: 'Parco Macchine' },
+        { load: loadGuidaSintesiVigneto, key: 'guida_sintesi_vigneto', fallback: GUIDA_SINTESI_VIGNETO_FALLBACK, min: 60, label: 'Vigneto' },
+        { load: loadGuidaSintesiFrutteto, key: 'guida_sintesi_frutteto', fallback: GUIDA_SINTESI_FRUTTETO_FALLBACK, min: 60, label: 'Frutteto' },
+        { load: loadGuidaSintesiMagazzino, key: 'guida_sintesi_magazzino', fallback: GUIDA_SINTESI_MAGAZZINO_FALLBACK, min: 60, label: 'Magazzino' },
+        { load: loadGuidaSintesiManodopera, key: 'guida_sintesi_manodopera', fallback: GUIDA_SINTESI_MANODOPERA_FALLBACK, min: 60, label: 'Manodopera' },
+        { load: loadGuidaSintesiContoTerzi, key: 'guida_sintesi_conto_terzi', fallback: GUIDA_SINTESI_CONTO_TERZI_FALLBACK, min: 60, label: 'Conto Terzi' },
+        { load: loadGuidaSintesiMeteo, key: 'guida_sintesi_meteo', fallback: GUIDA_SINTESI_METEO_FALLBACK, min: 60, label: 'Meteo' },
+        { load: loadGuidaSintesiSeminativo, key: 'guida_sintesi_seminativo', fallback: GUIDA_SINTESI_SEMINATIVO_FALLBACK, min: 60, label: 'Seminativo' },
+        { load: loadGuidaSintesiReport, key: 'guida_sintesi_report', fallback: GUIDA_SINTESI_REPORT_FALLBACK, min: 60, label: 'Report' },
+        { load: loadGuidaSintesiVendemmiaMeccanica, key: 'guida_sintesi_vendemmia_meccanica', fallback: GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK, min: 60, label: 'Vendemmia meccanica' },
+        { load: loadGuidaSintesiTony, key: 'guida_sintesi_tony', fallback: GUIDA_SINTESI_TONY_FALLBACK, min: 60, label: 'modulo Tony' },
+      ];
+      await Promise.all(
+        sintesiJobs.map(async (job) => {
+          try {
+            const raw = await job.load();
+            const ok = raw && String(raw).trim().length > job.min;
+            this.context[job.key] = ok ? String(raw).trim() : job.fallback;
+            if (ok) console.log('[Tony] Guida sintesi ' + job.label + ' caricata.');
+          } catch (_) {
+            this.context[job.key] = job.fallback;
+          }
+        })
+      );
+    })();
 
-      try {
-        const sintesiTonyRaw = await loadGuidaSintesiTony();
-        const sintesiTony =
-          sintesiTonyRaw && String(sintesiTonyRaw).trim().length > 60
-            ? String(sintesiTonyRaw).trim()
-            : GUIDA_SINTESI_TONY_FALLBACK;
-        this.context.guida_sintesi_tony = sintesiTony;
-        if (sintesiTonyRaw && String(sintesiTonyRaw).trim().length > 60) {
-          console.log('[Tony] Guida sintesi modulo Tony caricata.');
-        }
-      } catch (_) {
-        this.context.guida_sintesi_tony = GUIDA_SINTESI_TONY_FALLBACK;
-      }
+    this._initPromise = (async () => {
       try {
         const { getAI, getGenerativeModel, GoogleAIBackend } = await import(
           'https://esm.sh/firebase@11/ai'
@@ -1512,6 +1404,11 @@ class TonyService {
   async ask(userPrompt, askOptions = {}) {
     if (!this._ready) {
       throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
+    }
+    if (this._guidesReadyPromise) {
+      try {
+        await this._guidesReadyPromise;
+      } catch (_) { /* fallback già in context */ }
     }
     if (typeof window !== 'undefined' && window.__tonyFreemiumBlocked) {
       throw new Error('Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento.');

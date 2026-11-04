@@ -4,6 +4,7 @@
  */
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import {
@@ -13,6 +14,8 @@ import {
 } from '../services/trattamenti-service.js';
 import { avvisoDosaggioProdotti } from '../models/SeminativoTrattamento.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
+import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 import { aliasColturaScheda, colturaSchedaRegistro } from '../../../core/config/registro-trattamenti-specie.js';
 import {
   aziendaDaTenant,
@@ -85,10 +88,7 @@ function escapeHtml(value) {
 function getTerrenoLabel(id) {
   const terreno = terreni.find((item) => item.id === id);
   if (!terreno) return '—';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
 }
 
 function campagnaLabel(row) {
@@ -182,10 +182,16 @@ function renderTable() {
     const ref = row.source === 'lavoro'
       ? `<a class="btn btn-sm btn-secondary" href="${LAVORI_HREF}?lavoroId=${encodeURIComponent(row.lavoroId)}">🔗 Vedi Lavoro</a>`
       : `<a class="btn btn-sm btn-secondary" href="${DIARIO_HREF}?attivitaId=${encodeURIComponent(row.attivitaId || '')}">🔗 Vedi Attività</a>`;
-    const azioni = trattamento
-      ? `<button type="button" class="btn btn-sm btn-secondary" data-edit-row="${index}">Modifica</button>
+    const azioni = htmlAzioniRegistro(
+      isRegistroSolaLettura({
+        registro: trattamento || row,
+        terreno: terreni.find((item) => item.id === row.terrenoId)
+      }),
+      trattamento
+        ? `<button type="button" class="btn btn-sm btn-secondary" data-edit-row="${index}">Modifica</button>
          <button type="button" class="btn btn-sm btn-danger" data-delete-row="${index}">Elimina</button>`
-      : `<button type="button" class="btn btn-sm btn-success" data-completa-row="${index}">Completa</button>`;
+        : `<button type="button" class="btn btn-sm btn-success" data-completa-row="${index}">Completa</button>`
+    );
     return `<tr>
       <td>${escapeHtml(row.data || '—')}</td>
       <td>${escapeHtml(campagnaLabel(row) || '—')}</td>
@@ -210,7 +216,7 @@ function populateFilters() {
     seen.add(row.campagnaId);
     campagne.push({ value: row.campagnaId, label: campagnaLabel(row) });
   });
-  fillSelect(document.getElementById('filter-terreno'), terreni.map((t) => ({
+  fillSelect(document.getElementById('filter-terreno'), terreniOperativi(terreni).map((t) => ({
     value: t.id,
     label: getTerrenoLabel(t.id)
   })), 'Tutti i terreni');
@@ -759,7 +765,7 @@ async function bootRegistro() {
     const tenantId = getCurrentTenantId();
     if (!tenantId) return;
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = resolveEffectiveModules(tenant);
     hasManodopera = modules.some((item) => String(item || '').toLowerCase() === 'manodopera');
     hasMagazzino = await hasModuleAccess('magazzino');
     if (!modules.some((item) => String(item || '').toLowerCase() === 'seminativo')) modules.push('seminativo');

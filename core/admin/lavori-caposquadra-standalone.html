@@ -5,7 +5,8 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>I Miei Lavori - GFV Platform</title>
+    <title>I Miei Lavori - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
@@ -845,6 +846,12 @@
         let lavoriListBaseForTony = [];
         let tonyLavoriCaposquadraFilter = { stato: '', terreno: '', tipoLavoro: '', progresso: '', ricerca: '' };
         let terreniMap = new Map();
+        function nomeTerrenoCaposquadra(t, fallback) {
+            if (!t) return fallback == null ? '' : fallback;
+            var base = String(t.nome || '').trim();
+            if (!base) return fallback == null ? '' : fallback;
+            return t.stato === 'archiviato' ? base + ' (archiviato)' : base;
+        }
         let currentLavoroId = null;
         let currentTerreno = null;
         let hasVendemmiaMeccanicaModule = false;
@@ -1300,7 +1307,7 @@
                 }
                 if (f.terreno != null && String(f.terreno).trim() !== '') {
                     var t = terreniMap.get(l.terrenoId);
-                    var tn = t ? (t.nome || '') : '';
+                    var tn = nomeTerrenoCaposquadra(t, '');
                     var nt = tonyNorm(tn);
                     var ft = tonyNorm(f.terreno);
                     if (ft && nt.indexOf(ft) < 0 && nt !== ft) return false;
@@ -1317,7 +1324,7 @@
                 if (f.ricerca != null && String(f.ricerca).trim() !== '') {
                     var r = tonyNorm(f.ricerca);
                     var t2 = terreniMap.get(l.terrenoId);
-                    var blob = tonyNorm([l.nome, l.tipoLavoro, t2 ? t2.nome : ''].join(' '));
+                    var blob = tonyNorm([l.nome, l.tipoLavoro, nomeTerrenoCaposquadra(t2, '')].join(' '));
                     if (blob.indexOf(r) < 0) return false;
                 }
                 return true;
@@ -1350,7 +1357,7 @@
                     stato: l.stato || '',
                     tipoLavoro: l.tipoLavoro || '',
                     terrenoId: l.terrenoId || '',
-                    terrenoNome: t ? (t.nome || '') : '',
+                    terrenoNome: nomeTerrenoCaposquadra(t, ''),
                     dataInizio: diStr,
                     statoProgresso: l.statoProgresso || '',
                     percentualeSuperficie: l.percentuale != null ? String(l.percentuale) : ''
@@ -1440,7 +1447,8 @@
                                 const tenantData = tenantDoc.data();
                                 window.__gfvTenantData = Object.assign({ id: currentTenantId }, tenantData);
                                 publishFeatureFlags(window.__gfvTenantData, currentTenantId);
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                                 
@@ -1679,7 +1687,7 @@
                 `;
             }
             lavoriConZone.forEach(lavoro => {
-                const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
+                const terrenoNome = nomeTerrenoCaposquadra(lavoro.terreno, 'N/A');
                 const dataInizioFormatted = lavoro.dataInizio 
                     ? (formatDateLikeToItalianLongLocal(lavoro.dataInizio) || 'N/A')
                     : 'N/A';
@@ -3255,7 +3263,9 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                            const { resolveEffectiveModules: resolveEffLav } = await import('../utils/module-access-resolver.js');
+                            const _effLav = resolveEffLav(tenantData);
+                            const hasParcoMacchineModule = _effLav.includes('parcoMacchine');
                             
                             if (hasParcoMacchineModule) {
                                 // Libera trattore
@@ -3286,7 +3296,8 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const hasVignetoModule = tenantData.modules && tenantData.modules.includes('vigneto');
+                            const { resolveEffectiveModules: resolveEffLavVig } = await import('../utils/module-access-resolver.js');
+                            const hasVignetoModule = resolveEffLavVig(tenantData).includes('vigneto');
                             
                             if (hasVignetoModule) {
                                 const { aggiornaVignetiDaTerreno } = await import('../../modules/vigneto/services/lavori-vigneto-service.js');

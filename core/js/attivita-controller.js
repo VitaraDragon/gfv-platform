@@ -10,6 +10,9 @@
 // Le importazioni Firebase verranno fatte nel file HTML principale
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
+import { filtraLavoriPerDiarioContoTerzi } from '../../modules/conto-terzi/js/lavoro-da-preventivo.js';
+import { isTerrenoArchiviato, nomeTerrenoPerStorico } from '../../shared/js/terreno-archivio.js';
+import { isAttivitaSolaLettura } from '../../shared/js/storico-sola-lettura.js';
 import {
     dateLikeToIsoDateString,
     dateLikeToLocalCalendarIso,
@@ -634,7 +637,8 @@ export async function loadTerreni(
             options: {
                 orderBy: 'nome',
                 orderDirection: 'asc',
-                clienteId: null // Solo terreni aziendali
+                clienteId: null,
+                includiArchiviati: true
             }
         });
         
@@ -666,6 +670,7 @@ export async function loadTerreni(
                             nome: data.nome || '',
                             coltura: data.coltura || null,
                             clienteId: data.clienteId,
+                            stato: data.stato || 'attivo',
                             superficie: data.superficie || 0,
                             coordinate: data.coordinate || null,
                             polygonCoords: data.polygonCoords || null
@@ -701,7 +706,7 @@ export async function loadTerreni(
             terreniDaMostrare = terreni.filter(t => !t.clienteId || t.clienteId === '');
         }
         
-        terreniDaMostrare.forEach(terreno => {
+        terreniDaMostrare.filter((terreno) => !isTerrenoArchiviato(terreno)).forEach(terreno => {
             if (terrenoSelect) {
                 const option1 = document.createElement('option');
                 option1.value = terreno.id;
@@ -712,7 +717,7 @@ export async function loadTerreni(
             if (filterTerrenoSelect) {
                 const option2 = document.createElement('option');
                 option2.value = terreno.id;
-                option2.textContent = terreno.nome;
+                option2.textContent = nomeTerrenoPerStorico(terreno, terreno.nome || '');
                 filterTerrenoSelect.appendChild(option2);
             }
         });
@@ -927,19 +932,28 @@ export async function loadAttivita(
 }
 
 /**
- * Popola dropdown lavori nel form (solo lavori conto terzi in corso)
- * @param {Array} lavoriList - Array lavori disponibili
+ * Lavori CT da mostrare in Diario (schede / form rapidi).
+ * @param {Array} lavoriList
+ * @param {boolean} hasManodopera
+ * @returns {Array}
  */
-export function populateLavoriDropdown(lavoriList = []) {
+export function lavoriDiarioContoTerziVisibili(lavoriList = [], hasManodopera = true) {
+    return filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera: !!hasManodopera });
+}
+
+/**
+ * Popola dropdown lavori nel form (lavori CT in corso; senza Manodopera anche da_pianificare)
+ * @param {Array} lavoriList - Array lavori disponibili
+ * @param {{ hasManodopera?: boolean }} [opts]
+ */
+export function populateLavoriDropdown(lavoriList = [], opts = {}) {
     const select = document.getElementById('attivita-lavoro');
     if (!select) return;
 
-    // Filtra solo lavori in corso se statoFiltro specificato
     const urlParams = new URLSearchParams(window.location.search);
     const statoFiltro = urlParams.get('stato');
-    const lavoriFiltrati = statoFiltro 
-        ? lavoriList.filter(l => l.stato === statoFiltro)
-        : lavoriList.filter(l => l.stato === 'in_corso'); // Default: solo in corso
+    const hasManodopera = opts.hasManodopera === true;
+    const lavoriFiltrati = filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera, statoFiltro });
 
     select.innerHTML = '<option value="">-- Seleziona lavoro --</option>';
     lavoriFiltrati.forEach(lavoro => {
@@ -1350,7 +1364,7 @@ export async function renderAttivita(params) {
     const summaryStr = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
     const itemsForTony = filteredAttivita.map((att) => {
         const terreno = (terreni || []).find((t) => t.id === att.terrenoId);
-        const terrenoNome = terreno ? (terreno.nome || '-') : (att.terrenoNome || '-');
+        const terrenoNome = nomeTerrenoPerStorico(terreno, att.terrenoNome || '-');
         const dataIso = att.data ? dateLikeToIsoDateString(att.data) : '';
         const p = att.posizioneRilevamento;
         const posizioneGpsTony =
@@ -1439,8 +1453,8 @@ export async function renderAttivita(params) {
                 `;
             }
         } else {
-            // Mostra lavori in corso con form rapido
-            const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+            // Mostra lavori in corso (e senza Manodopera anche da_pianificare CT) con form rapido
+            const lavoriInCorso = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
             
             if (lavoriInCorso.length > 0) {
             html += `
@@ -1453,7 +1467,7 @@ export async function renderAttivita(params) {
                 const cliente = clientiList.find(c => c.id === lavoro.clienteId);
                 const terreno = terreni.find(t => t.id === lavoro.terrenoId);
                 const clienteNome = cliente ? (cliente.ragioneSociale || cliente.nome || 'Cliente sconosciuto') : 'Cliente sconosciuto';
-                const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+                const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno sconosciuto');
                 
                 html += `
                     <div class="lavoro-rapido-card" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB;">
@@ -1573,7 +1587,7 @@ export async function renderAttivita(params) {
     
     // Se modalità conto terzi e non è modalità completati
     if (isContoTerziMode && !isModalitaCompletati) {
-        const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+        const lavoriInCorso = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
         if (lavoriInCorso.length === 0) {
             // Non ci sono lavori in corso, mostra solo messaggio
             html += `
@@ -1757,8 +1771,8 @@ export async function renderAttivita(params) {
                     </div>
                     ` : ''}
                     <div class="col-azioni" data-label="Azioni">
-                        ${hasManodoperaModule ? '' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
-                        <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`}
+                        ${hasManodoperaModule ? '' : (isAttivitaSolaLettura(att, (terreni || []).find((t) => t.id === att.terrenoId), att.lavoroId ? (lavoriList || []).find((l) => l.id === att.lavoroId) : null) ? '<span title="Solo consultazione">Solo consultazione</span>' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
+                        <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`)}
                     </div>
                 </div>
                 `;
@@ -1815,23 +1829,25 @@ export async function renderAttivita(params) {
     
     // Inizializza calcolo automatico ore nette per tutti i form rapidi
     if (isContoTerziMode && lavoriList.length > 0) {
-        const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
-        lavoriInCorso.forEach(lavoro => {
+        const lavoriInCorsoInit = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
+        lavoriInCorsoInit.forEach(lavoro => {
             setTimeout(() => initCalcoloOreNetteRapido(lavoro.id), 200);
         });
     }
     
     // Popola dropdown macchine per form rapidi se Parco Macchine attivo
     if (isContoTerziMode && hasParcoMacchineModule && lavoriList.length > 0) {
-        const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
-        lavoriInCorso.forEach(lavoro => {
+        const lavoriInCorsoMacchine = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
+        lavoriInCorsoMacchine.forEach(lavoro => {
             populateTrattoriRapido(lavoro.id);
         });
     }
     
     // Oggi di calendario locale: toISOString() è UTC e, dopo mezzanotte a Roma, max bloccherebbe il giorno corrente.
     const today = dateLikeToLocalCalendarIso(new Date());
-    const lavoriInCorso = isContoTerziMode ? lavoriList.filter(l => l.stato === 'in_corso') : [];
+    const lavoriInCorso = isContoTerziMode
+        ? lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule)
+        : [];
     lavoriInCorso.forEach(lavoro => {
         const dataInput = document.getElementById(`rapido-data-${lavoro.id}`);
         if (dataInput) {
@@ -1894,7 +1910,7 @@ export async function caricaDettagliLavoriCompletati(params) {
             const cliente = clientiList.find(c => c.id === lavoro.clienteId);
             const terreno = terreni.find(t => t.id === lavoro.terrenoId);
             const clienteNome = cliente ? (cliente.ragioneSociale || cliente.nome || 'Cliente sconosciuto') : 'Cliente sconosciuto';
-            const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+            const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno sconosciuto');
             
             // Trova attività per questo lavoro
             const attivitaLavoro = attivita.filter(a => a.lavoroId === lavoro.id);

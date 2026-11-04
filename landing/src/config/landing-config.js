@@ -4,8 +4,8 @@
 
 export const LANDING_ATTIVA = false;
 
-/** Email di contatto del footer (vuota finché non la decidiamo). */
-export const EMAIL_CONTATTO = '';
+/** Email di contatto (footer, prima casella, pagine legali, frase dei problemi di registrazione). Inoltro Cloudflare attivo. */
+export const EMAIL_CONTATTO = 'info@globalfarmview.net';
 
 /** Due righe in prima persona di Pier (da scrivere con lui). */
 export const TESTO_CHI_SIAMO = '';

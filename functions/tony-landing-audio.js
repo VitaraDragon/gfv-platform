@@ -16,8 +16,7 @@ const {
   origineAmmessa,
   normalizzaConfig,
   chiaviTempo,
-  scadenze,
-  costoStimatoEur
+  scadenze
 } = require("./lib/tony-landing-limiti");
 const {
   COSTANTI_VOCE,
@@ -29,6 +28,10 @@ const {
   urlElevenLabs,
   statoPerCodice
 } = require("./lib/tony-landing-voce");
+const {
+  leggiSubscriptionElevenLabs,
+  decidiMargineVoce
+} = require("./lib/tony-landing-elevenlabs-quota");
 const { readJsonBody } = require("./tony-landing-ask");
 
 const elevenLabsApiKey = defineSecret("ELEVENLABS_API_KEY");
@@ -158,7 +161,7 @@ async function consumaBigliettoVoce(db, args) {
       adessoMs: adessoMs,
       caratteriGiorno:
         typeof g.caratteriVoce === "number" ? g.caratteriVoce : 0,
-      spesaMeseEur: typeof m.costoEur === "number" ? m.costoEur : 0
+      margineVoce: args.margineVoce
     });
 
     if (!decisione.consentita) {
@@ -166,7 +169,6 @@ async function consumaBigliettoVoce(db, args) {
     }
 
     const caratteri = decisione.caratteri;
-    const costo = costoStimatoEur({ caratteriVoce: caratteri });
     const expireG = Timestamp.fromDate(expireContatori);
     const expireMe = Timestamp.fromDate(expireMese);
     const ts = FieldValue.serverTimestamp();
@@ -179,12 +181,12 @@ async function consumaBigliettoVoce(db, args) {
       },
       { merge: true }
     );
+    // Solo caratteri voce: la spesa in euro è solo Gemini (tonyLandingAsk).
     tx.set(
       refG,
       {
         caratteriVoce: FieldValue.increment(caratteri),
         voci: FieldValue.increment(1),
-        costoEur: FieldValue.increment(costo),
         expireAt: expireG,
         aggiornatoIl: ts
       },
@@ -194,7 +196,6 @@ async function consumaBigliettoVoce(db, args) {
       refM,
       {
         caratteriVoce: FieldValue.increment(caratteri),
-        costoEur: FieldValue.increment(costo),
         expireAt: expireMe,
         aggiornatoIl: ts
       },
@@ -286,6 +287,21 @@ async function handleTonyLandingAudio(req, res, opzioni) {
           return sintetizzaDefault(testoVoce, {
             chiave: chiave,
             segnale: segnali && segnali.segnale
+          });
+        };
+  const leggiSub =
+    typeof opt.leggiSubscription === "function"
+      ? opt.leggiSubscription
+      : async function () {
+          let chiave = "";
+          try {
+            chiave = elevenLabsApiKey.value();
+          } catch (_e) {
+            chiave = "";
+          }
+          return leggiSubscriptionElevenLabs({
+            chiave: chiave,
+            fetchFn: opt.fetchFn
           });
         };
 
@@ -396,6 +412,26 @@ async function handleTonyLandingAudio(req, res, opzioni) {
     const hashTesto = impronta(validata.testo);
     const hashSessione = impronta(validata.sessione);
 
+    let margineVoce = { consentita: true, codice: "ok" };
+    try {
+      const subEsito = await leggiSub();
+      if (!subEsito || subEsito.ok !== true) {
+        margineVoce = decidiMargineVoce({ apiFallita: true });
+        logRiga("warn", [
+          "margine-elevenlabs=non-leggibile",
+          "errore=" + String((subEsito && subEsito.errore) || "sconosciuto")
+        ]);
+      } else {
+        margineVoce = decidiMargineVoce({
+          sub: subEsito.sub,
+          voiceReserveChars: config.voiceReserveChars
+        });
+      }
+    } catch (_subErr) {
+      margineVoce = decidiMargineVoce({ apiFallita: true });
+      logRiga("warn", ["margine-elevenlabs=non-leggibile", "errore=eccezione"]);
+    }
+
     let consumo;
     try {
       consumo = await consumaBigliettoVoce(db, {
@@ -407,7 +443,8 @@ async function handleTonyLandingAudio(req, res, opzioni) {
         expireContatori: scad.contatori,
         expireMese: scad.mese,
         giorno: giorno,
-        mese: mese
+        mese: mese,
+        margineVoce: margineVoce
       });
     } catch (_e) {
       rispondiCodice(res, "errore");

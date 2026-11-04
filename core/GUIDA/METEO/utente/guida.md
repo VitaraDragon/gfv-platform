@@ -2,6 +2,8 @@
 
 Questa guida spiega **meteo sede** (incluso nel piano Base) e **modulo Meteo** (previsioni per ogni campo sulla mappa). Linguaggio semplice, senza dettagli tecnici.
 
+Un terreno **archiviato** non riceve avvisi meteo e non occupa un posto tra i campi in previsione. Il meteo della sede aziendale non cambia.
+
 ---
 
 ## Due livelli: cosa avete già e cosa aggiunge il modulo

@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../core/js/date-format-it.j
 import { showAlert } from '../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../core/js/simulator-standalone-page.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from './storico-sola-lettura.js';
 import { colturaSchedaRegistro, aliasColturaScheda } from '../../core/config/registro-trattamenti-specie.js';
 import {
     aziendaDaTenant,
@@ -1063,7 +1064,7 @@ async function loadAnagrafica() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">' + cfg.filterAllLabel + '</option>' : '<option value="">' + cfg.selectPlaceholder + '</option>';
-        colture.forEach(v => {
+        colture.filter((v) => v.statoImpianto !== 'chiuso').forEach(v => {
             const opt = document.createElement('option');
             opt.value = v.id;
             opt.textContent = cfg.optionLabel(v);
@@ -1149,11 +1150,14 @@ async function loadTrattamenti() {
             : avviso.hasWarning
                 ? `<span class="avviso-dosaggio" title="${(avviso.tooltip || '').replace(/"/g, '&quot;')}" aria-label="Avviso dosaggio">⚠️</span>`
                 : `<span class="alert-badge green" title="Dosaggi nel range consigliato" aria-label="Tutto ok"></span>`;
-        const azioni = hasTrattamento
-            ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
-               <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
-            : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`;
         const foundColtura = colture.find(v => v.id === row[cfg.idKey]);
+        const azioni = htmlAzioniRegistro(
+            isRegistroSolaLettura({ registro: t || row, impianto: foundColtura }),
+            hasTrattamento
+                ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
+               <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
+                : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`
+        );
         const colturaLabel = row[cfg.nomeKey] || (foundColtura ? cfg.optionLabel(foundColtura) : '') || row[cfg.idKey] || '-';
         return `<tr>
             <td>${formatDate(row.data)}</td>

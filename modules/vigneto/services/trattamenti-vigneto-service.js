@@ -192,6 +192,8 @@ export async function updateTrattamento(vignetoId, trattamentoId, updates, optio
     if (!trattamentoEsistente) {
       throw new Error('Trattamento non trovato');
     }
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(trattamentoEsistente, 'vigneti', vignetoId);
 
     const prevMagazzinoIds = Array.isArray(trattamentoEsistente.magazzinoMovimentoIds)
       ? trattamentoEsistente.magazzinoMovimentoIds.filter(Boolean)
@@ -264,6 +266,8 @@ export async function deleteTrattamento(vignetoId, trattamentoId, opzioni = {}) 
       err.code = 'REGISTRO_CONSERVAZIONE';
       throw err;
     }
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(existing, 'vigneti', vignetoId);
     
     const collectionPath = getTrattamentiPath(vignetoId);
     await deleteDocument(collectionPath, trattamentoId, tenantId);
@@ -696,17 +700,15 @@ export async function findTrattamentoByLavoroId(lavoroId) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId || !lavoroId) return null;
-    const { getLavoro } = await import('../../../core/services/lavori-service.js');
-    const lavoro = await getLavoro(lavoroId);
-    if (!lavoro?.terrenoId) return null;
+    // Cerca su tutti i vigneti: dopo un cambio terrenoId il lavoro punta altrove
+    // ma il trattamento resta sul vigneto originale (serve per scollegare, non cancellare).
     const { getAllVigneti } = await import('./vigneti-service.js');
-    const vigneti = await getAllVigneti({ terrenoId: lavoro.terrenoId });
-    if (!vigneti.length) return null;
-    const lists = await Promise.all(vigneti.map(v => getTrattamenti(v.id)));
-    for (let i = 0; i < vigneti.length; i++) {
-      const trattamento = lists[i].find(t => t.lavoroId === lavoroId);
+    const vigneti = await getAllVigneti();
+    for (const vigneto of vigneti) {
+      const trattamenti = await getTrattamenti(vigneto.id);
+      const trattamento = trattamenti.find((t) => t.lavoroId === lavoroId);
       if (trattamento) {
-        return { vignetoId: vigneti[i].id, trattamentoId: trattamento.id, trattamento };
+        return { vignetoId: vigneto.id, trattamentoId: trattamento.id, trattamento };
       }
     }
     return null;

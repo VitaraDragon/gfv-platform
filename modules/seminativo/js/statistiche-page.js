@@ -4,10 +4,12 @@
  */
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { caricaStatisticheSeminativo } from '../services/statistiche-service.js';
 import { totaliStatistiche } from '../models/SeminativoStatistiche.js';
+import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 let terreni = [];
 let righe = [];
@@ -24,10 +26,7 @@ function escapeHtml(value) {
 function getTerrenoLabel(id) {
   const terreno = terreni.find((item) => item.id === id);
   if (!terreno) return '—';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
 }
 
 function campagnaLabel(row) {
@@ -194,7 +193,7 @@ function render() {
 }
 
 function populateFilters() {
-  fillSelect(document.getElementById('filter-terreno'), terreni.map((t) => ({
+  fillSelect(document.getElementById('filter-terreno'), terreniOperativi(terreni).map((t) => ({
     value: t.id,
     label: getTerrenoLabel(t.id)
   })), 'Tutti i terreni');
@@ -266,7 +265,7 @@ export async function initStatistichePage() {
     }
     if (!getCurrentTenantId()) return;
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = resolveEffectiveModules(tenant);
     if (!modules.some((item) => String(item || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
     if (!modules.some((item) => String(item || '').toLowerCase() === 'tony')) modules.push('tony');
     syncTonyModules(modules);

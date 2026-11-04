@@ -6,6 +6,8 @@ Se ti chiedi "da dove nasce questo dato?" oppure "cosa succede dopo questo passa
 
 Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell'app: **pulsante moduli in alto a sinistra** (graffetta, «Apri o chiudi i moduli»), **home** del modulo (Vigneto, Manodopera, Conto Terzi, …), **Per te oggi**, sezione dashboard **I miei accessi** (solo se visibile), **Richiede attenzione** — non "card in dashboard" (obsoleto) e non un pulsante «Moduli» separato in Home.
 
+Archiviare un terreno (non cancellarlo) toglie il terreno da tendine, conteggio piano e meteo, e chiude vigneti e frutteti ancora aperti. Lo storico di lavori, ore, potature e trattamenti resta col nome e la scritta (archiviato). Un cambio di coltura fa lo stesso sui vigneti o frutteti aperti. Tony non li propone. Se chiedono di modificare un lavoro in sola lettura, spiega che è solo consultazione. La coltura di un lavoro nuovo è quella del terreno. Cambiare gli ettari aggiorna vigneto, frutteto e campagne ancora aperti, non i registri già salvati.
+
 **Regola unica nomi comandi (Tony e guide):**
 1. **Aprire i moduli** = pulsante moduli in alto a sinistra della pelle Proposta (aria-label «Apri o chiudi i moduli», icona graffetta). Non citare un pulsante «Moduli» in Home: con la pelle Proposta è nascosto.
 2. **I miei accessi** = **sezione della dashboard** (barra scorciatoie), **non** voce di menu. In Home Proposta può non essere visibile: non presentarla come percorso principale.

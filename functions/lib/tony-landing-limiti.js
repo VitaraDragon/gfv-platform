@@ -20,15 +20,19 @@ const COSTANTI = Object.freeze({
   /** Lunghezza massima della domanda del visitatore. */
   MAX_CARATTERI_DOMANDA: 300,
   /** Battute di storia tenute (ultime N). */
-  MAX_BATTUTE_STORIA: 6,
+  MAX_BATTUTE_STORIA: 10,
   /** Taglio testo di una battuta di Tony nella storia. */
   MAX_CARATTERI_BATTUTA_TONY: 600,
   /** Dimensione massima del body JSON in byte. */
   MAX_BYTE_RICHIESTA: 8192,
-  /** Tetto mensile assoluto in euro (config può solo abbassarlo). */
+  /** Tetto mensile assoluto in euro — SOLO spesa Gemini (config può solo abbassarlo). */
   TETTO_MENSILE_EUR: 30,
-  /** Sotto questa frazione del budget la voce resta accesa (80%). */
-  SOGLIA_SOLO_TESTO: 0.8,
+  /**
+   * Soglie avviso email sulla spesa Gemini (frazione del tetto).
+   * La voce ElevenLabs NON usa queste soglie: ha un margine a parte.
+   */
+  SOGLIA_AVVISO_GEMINI_50: 0.5,
+  SOGLIA_AVVISO_GEMINI_80: 0.8,
   /** TTL contatori giornalieri / sessione / visitatore. */
   ORE_SCADENZA_CONTATORI: 48,
   /** TTL documento spesa del mese. */
@@ -41,18 +45,31 @@ const COSTANTI = Object.freeze({
   MODELLO_GEMINI: "gemini-2.5-flash",
   /** Token di uscita massimi per risposta. */
   MAX_TOKEN_RISPOSTA: 200,
+  /** Messaggi massimi della fase account per utente (passo 14). */
+  MAX_DOMANDE_ACCOUNT: 25,
+  /** TTL contatore account (ore). */
+  ORE_VALIDITA_ACCOUNT: 48,
+  /** Token di uscita massimi nella fase account. */
+  MAX_TOKEN_RISPOSTA_ACCOUNT: 600,
+  /** Argomenti ammessi nella fase account. */
+  ARGOMENTI_ACCOUNT: Object.freeze(["sede", "poderi", "terreni"]),
   /** Timeout unica chiamata a Gemini. */
   TIMEOUT_GEMINI_MS: 20000,
   /**
-   * Prezzi stimati in euro (stesso numero del listino USD, un po' più alti del vero).
+   * Prezzi di listino Gemini 2.5 Flash (Paid Tier, text), convertiti 1 USD = 1 EUR
+   * senza maggiorazioni. Fonte: https://ai.google.dev/gemini-api/docs/pricing
+   * (consultata 2026-10-30). Output include i token di ragionamento (thinking).
    * Se Google cambia i prezzi, si aggiornano qui.
    */
   PREZZO_INGRESSO_EUR_PER_MILIONE: 0.3,
   PREZZO_USCITA_EUR_PER_MILIONE: 2.5,
-  /** Margine per App Check e Cloud Functions. */
-  COSTO_FISSO_RICHIESTA_EUR: 0.0002,
-  /** Da ricontrollare sul piano ElevenLabs (serve al passo 12). */
-  PREZZO_VOCE_EUR_PER_1000_CARATTERI: 0.3
+  /**
+   * Riserva caratteri ElevenLabs: sotto questa soglia (o sotto il 3% del piano)
+   * la landing non genera più voce. Sovrascrivibile con config.voiceReserveChars.
+   */
+  VOICE_RESERVE_CHARS_PREDEFINITO: 20000,
+  /** Cache abbonamento ElevenLabs (ms). */
+  CACHE_ELEVENLABS_SUB_MS: 15 * 60 * 1000
 });
 
 /** Domini ammessi per CORS (confronto esatto della stringa Origin). */
@@ -69,6 +86,9 @@ const ORIGINI_AMMESSE = Object.freeze([
   "http://127.0.0.1:4173"
 ]);
 
+/** Canali di anteprima di Firebase Hosting del sito gfv-platform (es. https://gfv-platform--prova-tony-ab12cd34.web.app). */
+const ORIGINE_ANTEPRIMA_HOSTING = /^https:\/\/gfv-platform--[a-z0-9-]+\.web\.app$/;
+
 /** Messaggi per il visitatore. // BOZZA: da far rivedere */
 const MESSAGGI = Object.freeze({
   // BOZZA: da far rivedere
@@ -77,18 +97,26 @@ const MESSAGGI = Object.freeze({
   tetto: "Tony è nei campi. Intanto prova GFV!",
   // BOZZA: da far rivedere
   limiteSessione:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGiorno:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGlobale:
-    "Oggi ho risposto a tante domande e sono un po' stanco. Intanto prova GFV!",
+    "Oggi qui sulla pagina ho risposto a moltissime persone e mi fermo fino a domani. Puoi creare il tuo account gratuito: dentro GFV ti guido io.",
   // BOZZA: da far rivedere
   datiPersonali:
     "Qui non scrivermi email o password: quando crei l'account te le chiede il modulo.",
   // BOZZA: da far rivedere
-  errore: "In questo momento non riesco a risponderti. Intanto prova GFV!"
+  errore: "In questo momento non riesco a risponderti. Intanto prova GFV!",
+  // BOZZA: da far rivedere
+  limiteAccount:
+    "Per ora basta così: puoi aggiungere sede, poderi e terreni anche dopo, dalla dashboard.",
+  // BOZZA: da far rivedere
+  accessoMancante:
+    "Per salvare i dati serve accedere di nuovo con la stessa email. Riprova tra un attimo o apri il login dell’app.",
+  sessioneIntervistaScaduta:
+    "La sessione è scaduta: accedi di nuovo per continuare."
 });
 
 /**
@@ -115,7 +143,7 @@ const PROMPT_SISTEMA_PROVVISORIO =
  */
 function origineAmmessa(origin) {
   if (typeof origin !== "string") return false;
-  return ORIGINI_AMMESSE.indexOf(origin) !== -1;
+  return ORIGINI_AMMESSE.indexOf(origin) !== -1 || ORIGINE_ANTEPRIMA_HOSTING.test(origin);
 }
 
 /**
@@ -129,7 +157,8 @@ function normalizzaConfig(dati) {
     voiceEnabled: false,
     dailyQuestionCap: COSTANTI.MAX_DOMANDE_GIORNO_PREDEFINITO,
     dailyVoiceCharCap: 60000,
-    monthlyBudgetEur: COSTANTI.TETTO_MENSILE_EUR
+    monthlyBudgetEur: COSTANTI.TETTO_MENSILE_EUR,
+    voiceReserveChars: COSTANTI.VOICE_RESERVE_CHARS_PREDEFINITO
   };
   if (!dati || typeof dati !== "object") return base;
 
@@ -165,12 +194,23 @@ function normalizzaConfig(dati) {
     }
   }
 
+  let voiceReserveChars = COSTANTI.VOICE_RESERVE_CHARS_PREDEFINITO;
+  if (
+    typeof dati.voiceReserveChars === "number" &&
+    Number.isInteger(dati.voiceReserveChars) &&
+    dati.voiceReserveChars >= 0 &&
+    dati.voiceReserveChars <= 500000
+  ) {
+    voiceReserveChars = dati.voiceReserveChars;
+  }
+
   return {
     enabled: enabled,
     voiceEnabled: voiceEnabled,
     dailyQuestionCap: dailyQuestionCap,
     dailyVoiceCharCap: dailyVoiceCharCap,
-    monthlyBudgetEur: monthlyBudgetEur
+    monthlyBudgetEur: monthlyBudgetEur,
+    voiceReserveChars: voiceReserveChars
   };
 }
 
@@ -307,18 +347,43 @@ function storiaPulita(storia) {
 
 /**
  * @param {unknown} corpo
- * @returns {{ ok: true, domanda: string, sessione: string, storia: Array } | { ok: false, codice: string }}
+ * @returns {{ ok: true, domanda: string, sessione: string, storia: Array, fase?: string, argomento?: string } | { ok: false, codice: string }}
  */
 function validaRichiesta(corpo) {
   if (!corpo || typeof corpo !== "object" || Array.isArray(corpo)) {
     return { ok: false, codice: "richiesta-non-valida" };
   }
   const chiavi = Object.keys(corpo);
-  for (let i = 0; i < chiavi.length; i++) {
+  const haFase = Object.prototype.hasOwnProperty.call(corpo, "fase");
+  if (!haFase) {
+    for (let i = 0; i < chiavi.length; i++) {
+      if (
+        chiavi[i] !== "domanda" &&
+        chiavi[i] !== "sessione" &&
+        chiavi[i] !== "storia"
+      ) {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+    }
+  } else {
+    if (corpo.fase !== "account") {
+      return { ok: false, codice: "richiesta-non-valida" };
+    }
+    for (let i = 0; i < chiavi.length; i++) {
+      if (
+        chiavi[i] !== "domanda" &&
+        chiavi[i] !== "sessione" &&
+        chiavi[i] !== "storia" &&
+        chiavi[i] !== "fase" &&
+        chiavi[i] !== "argomento" &&
+        chiavi[i] !== "raccolti"
+      ) {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+    }
     if (
-      chiavi[i] !== "domanda" &&
-      chiavi[i] !== "sessione" &&
-      chiavi[i] !== "storia"
+      typeof corpo.argomento !== "string" ||
+      COSTANTI.ARGOMENTI_ACCOUNT.indexOf(corpo.argomento) < 0
     ) {
       return { ok: false, codice: "richiesta-non-valida" };
     }
@@ -343,7 +408,80 @@ function validaRichiesta(corpo) {
     return { ok: false, codice: "sessione-non-valida" };
   }
   const storia = storiaPulita(corpo.storia);
+  if (haFase) {
+    let raccolti;
+    if (Object.prototype.hasOwnProperty.call(corpo, "raccolti")) {
+      if (typeof corpo.raccolti !== "string") {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+      const raccoltiTrim = corpo.raccolti.trim();
+      if (new TextEncoder().encode(raccoltiTrim).length > 1024) {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+      raccolti = raccoltiTrim;
+    }
+    const out = {
+      ok: true,
+      domanda: domanda,
+      sessione: sessione,
+      storia: storia,
+      fase: "account",
+      argomento: corpo.argomento
+    };
+    if (raccolti) out.raccolti = raccolti;
+    return out;
+  }
   return { ok: true, domanda: domanda, sessione: sessione, storia: storia };
+}
+
+/**
+ * Id contatore fase account: SHA-256 di «account:» + uid (uid non in chiaro).
+ * @param {string} uid
+ * @returns {string}
+ */
+function idAccount(uid) {
+  return crypto
+    .createHash("sha256")
+    .update("account:" + String(uid || ""), "utf8")
+    .digest("hex");
+}
+
+/**
+ * Controlli fase account: spento → tetto → globale → limite account.
+ * @param {{ config: object, spesaMeseEur?: number, domandeGiorno?: number, domandeAccount?: number }} args
+ */
+function decidiDomandaAccount(args) {
+  const a = args && typeof args === "object" ? args : {};
+  const config = a.config && typeof a.config === "object" ? a.config : {};
+  const spesa =
+    typeof a.spesaMeseEur === "number" && !Number.isNaN(a.spesaMeseEur)
+      ? a.spesaMeseEur
+      : 0;
+  const domandeAccount =
+    typeof a.domandeAccount === "number" && !Number.isNaN(a.domandeAccount)
+      ? a.domandeAccount
+      : 0;
+
+  const budget =
+    typeof config.monthlyBudgetEur === "number" && !Number.isNaN(config.monthlyBudgetEur)
+      ? config.monthlyBudgetEur
+      : COSTANTI.TETTO_MENSILE_EUR;
+
+  if (config.enabled !== true) {
+    return { consentita: false, codice: "spento", voce: false };
+  }
+  if (spesa >= budget) {
+    return { consentita: false, codice: "tetto", voce: false };
+  }
+  if (domandeAccount >= COSTANTI.MAX_DOMANDE_ACCOUNT) {
+    return { consentita: false, codice: "limite-account", voce: false };
+  }
+
+  // La voce non dipende più dal tetto Gemini in euro: il margine ElevenLabs
+  // lo controlla tonyLandingAudio. Qui basta voiceEnabled.
+  const voce = config.voiceEnabled === true;
+
+  return { consentita: true, codice: "ok", voce: !!voce };
 }
 
 /**
@@ -407,9 +545,7 @@ function decidiDomanda(args) {
     return { consentita: false, codice: "limite-giorno", voce: false };
   }
 
-  const voce =
-    config.voiceEnabled === true &&
-    spesa < COSTANTI.SOGLIA_SOLO_TESTO * budget;
+  const voce = config.voiceEnabled === true;
 
   return { consentita: true, codice: "ok", voce: !!voce };
 }
@@ -432,6 +568,11 @@ function messaggioPerCodice(codice) {
       return MESSAGGI.limiteGlobale;
     case "dati-personali":
       return MESSAGGI.datiPersonali;
+    case "limite-account":
+      return MESSAGGI.limiteAccount;
+    case "accesso-mancante":
+    case "accesso-non-valido":
+      return MESSAGGI.accessoMancante;
     case "errore":
       return MESSAGGI.errore;
     default:
@@ -440,6 +581,8 @@ function messaggioPerCodice(codice) {
 }
 
 /**
+ * Spesa Gemini in euro (listino, senza maggiorazioni e senza voce).
+ * `caratteriVoce` è ignorato: resta solo per compatibilità con chiamate vecchie.
  * @param {{ tokenIngresso?: number, tokenUscita?: number, caratteriVoce?: number }} args
  * @returns {number}
  */
@@ -449,14 +592,43 @@ function costoStimatoEur(args) {
     typeof a.tokenIngresso === "number" && a.tokenIngresso > 0 ? a.tokenIngresso : 0;
   const tout =
     typeof a.tokenUscita === "number" && a.tokenUscita > 0 ? a.tokenUscita : 0;
-  const cv =
-    typeof a.caratteriVoce === "number" && a.caratteriVoce > 0 ? a.caratteriVoce : 0;
+  void a.caratteriVoce;
   const totale =
-    COSTANTI.COSTO_FISSO_RICHIESTA_EUR +
     (tin / 1000000) * COSTANTI.PREZZO_INGRESSO_EUR_PER_MILIONE +
-    (tout / 1000000) * COSTANTI.PREZZO_USCITA_EUR_PER_MILIONE +
-    (cv / 1000) * COSTANTI.PREZZO_VOCE_EUR_PER_1000_CARATTERI;
+    (tout / 1000000) * COSTANTI.PREZZO_USCITA_EUR_PER_MILIONE;
   return Math.round(totale * 1000000) / 1000000;
+}
+
+/** Alias esplicito: stesso calcolo di costoStimatoEur (solo Gemini). */
+const costoGeminiEur = costoStimatoEur;
+
+/**
+ * Spesa Gemini da usare per tetto/avvisi, dal documento mese.
+ * Se ci sono tokenIngresso/tokenUscita → ricalcola da listino.
+ * Se c'è già `spesaGeminiRipartita === true` → usa costoEur così com'è.
+ * Altrimenti (mese con voce gonfiata, senza token) → 0, così non scatta
+ * un falso avviso al 100% dopo il deploy.
+ * @param {object|null|undefined} datiMese
+ * @returns {{ spesaGeminiEur: number, daRipartire: boolean, daToken: boolean }}
+ */
+function spesaGeminiDaDocumento(datiMese) {
+  const d = datiMese && typeof datiMese === "object" ? datiMese : {};
+  const tin =
+    typeof d.tokenIngresso === "number" && d.tokenIngresso > 0 ? d.tokenIngresso : 0;
+  const tout =
+    typeof d.tokenUscita === "number" && d.tokenUscita > 0 ? d.tokenUscita : 0;
+  if (tin > 0 || tout > 0) {
+    return {
+      spesaGeminiEur: costoGeminiEur({ tokenIngresso: tin, tokenUscita: tout }),
+      daRipartire: false,
+      daToken: true
+    };
+  }
+  if (d.spesaGeminiRipartita === true) {
+    const c = typeof d.costoEur === "number" && d.costoEur > 0 ? d.costoEur : 0;
+    return { spesaGeminiEur: c, daRipartire: false, daToken: false };
+  }
+  return { spesaGeminiEur: 0, daRipartire: true, daToken: false };
 }
 
 /**
@@ -489,7 +661,7 @@ function tokenDaUsage(usageMetadata, testoDomanda, testoRisposta) {
 /**
  * Corpo per Gemini: solo systemInstruction, contents, generationConfig.
  * Mai tools / toolConfig / functionDeclarations / cachedContent.
- * @param {{ promptSistema: string, storia: Array, domanda: string }} args
+ * @param {{ promptSistema: string, storia: Array, domanda: string, formatoAccount?: boolean, schemaRisposta?: object }} args
  */
 function corpoRichiestaGemini(args) {
   const a = args && typeof args === "object" ? args : {};
@@ -508,16 +680,25 @@ function corpoRichiestaGemini(args) {
     role: "user",
     parts: [{ text: String(a.domanda || "") }]
   });
+  const generationConfig = a.formatoAccount
+    ? {
+        temperature: 0.2,
+        maxOutputTokens: COSTANTI.MAX_TOKEN_RISPOSTA_ACCOUNT,
+        responseMimeType: "application/json",
+        responseSchema: a.schemaRisposta || undefined,
+        thinkingConfig: { thinkingBudget: 0 }
+      }
+    : {
+        temperature: 0.4,
+        maxOutputTokens: COSTANTI.MAX_TOKEN_RISPOSTA,
+        thinkingConfig: { thinkingBudget: 0 }
+      };
   return {
     systemInstruction: {
       parts: [{ text: String(a.promptSistema || "") }]
     },
     contents: contents,
-    generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: COSTANTI.MAX_TOKEN_RISPOSTA,
-      thinkingConfig: { thinkingBudget: 0 }
-    }
+    generationConfig: generationConfig
   };
 }
 
@@ -566,12 +747,16 @@ module.exports = {
   ipDaRichiesta,
   idVisitatore,
   idSessione,
+  idAccount,
   storiaPulita,
   validaRichiesta,
   contieneDatiPersonali,
   decidiDomanda,
+  decidiDomandaAccount,
   messaggioPerCodice,
   costoStimatoEur,
+  costoGeminiEur,
+  spesaGeminiDaDocumento,
   tokenDaUsage,
   corpoRichiestaGemini,
   testoDaPayloadGemini,

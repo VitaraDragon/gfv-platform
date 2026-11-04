@@ -57,13 +57,14 @@
     <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Dashboard - GFV Platform</title>
+    <title>Dashboard - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-32x32.png">
     <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="GFV Platform">
+    <meta name="apple-mobile-web-app-title" content="GFV">
     <link rel="apple-touch-icon" sizes="180x180" href="../icons/icon-180x180.png">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="styles/responsive-standalone.css">
@@ -73,7 +74,7 @@
     <div class="dashboard-container">
         <div class="dashboard-header">
             <div>
-                <h1>🌾 GFV Platform</h1>
+                <h1>🌾 GFV</h1>
                 <div class="user-info" id="user-info">Caricamento...</div>
                 <div class="user-roles" id="user-roles"></div>
             </div>
@@ -135,7 +136,7 @@
       alertScript.src = (base ? base + sep : '') + 'js/standalone-alert-global.js';
       document.head.appendChild(alertScript);
       var tonyLoader = document.createElement('script');
-      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-10-09g';
+      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-11-02b';
       document.head.appendChild(tonyLoader);
     })();
     </script>
@@ -147,7 +148,7 @@
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
         import { getNomeVisualizzato } from './js/nome-visualizzato.js';
-        import { spiegaIngressoDopoLogin, scriviIndizioIngresso, pulisciIndizioIngresso, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-10-09g';
+        import { spiegaIngressoDopoLogin, scriviIndizioIngresso, pulisciIndizioIngresso, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-11-03b';
         const { 
             roleNames, 
             normalizeRole, 
@@ -222,6 +223,7 @@
         } from './config/tony-proactive-signals.js';
         import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
         import { leggiUtenteETenantAvvio, leggiTenantDocAvvio, aziendePerSwitch } from './js/dashboard-avvio-letture.js';
+        import { tryAutoSaveSedePinOnFirstAccess } from './js/sede-auto-pin.js';
         import { initDashboardQuickBar } from './js/dashboard-quick-bar.js';
         import {
             dashboardPerfBegin,
@@ -477,6 +479,7 @@
                 pulisciPreferenzaClassicCampo();
                 scriviIndizioIngresso('workspace');
                 document.documentElement.setAttribute('data-ingresso', 'attesa');
+                try { sessionStorage.setItem('gfv_skip_view_transition', '1'); } catch (eSkipVt) { /* ignore */ }
                 window.location.href = './mobile/field-workspace-standalone.html';
             } else if (spiegato.scelta === 'errore') {
                 document.documentElement.removeAttribute('data-ingresso');
@@ -1193,7 +1196,18 @@
             const hasTonyModule = Array.isArray(availableModules) && availableModules.some(function(m) {
                 return String(m).toLowerCase() === 'tony';
             });
-            if (planId !== 'free' || hasTonyModule) {
+            // Free: carica subito se onboarding Tony Guida (saluto 7 giorni) o modulo Tony.
+            var wantTonyNow = planId !== 'free' || hasTonyModule;
+            if (!wantTonyNow && planId === 'free') {
+                try {
+                    var tdSaluto = window.__gfvTenantData;
+                    if (tdSaluto && tdSaluto.tonyLandingSetupCompletatoIl && typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+                        // shouldLoadTony nel loader verifica ancora tonyGuidaOnboardingEndsAt
+                        wantTonyNow = true;
+                    }
+                } catch (eWant) { /* ignore */ }
+            }
+            if (wantTonyNow) {
                 if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
                     window.gfvTryLoadTonyWidgetWhenReady();
                 } else if (typeof window.gfvLoadTonyWidget === 'function') {
@@ -1221,6 +1235,48 @@
                     try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                 }
             }
+            try {
+                const td = window.__gfvTenantData || {};
+                const ruoli = (userDataNormalized && userDataNormalized.ruoli) || [];
+                const ruoloPin = ruoli.map(function (r) { return String(r || '').toLowerCase(); })
+                    .find(function (r) { return r === 'admin' || r === 'amministratore' || r === 'manager'; });
+                if (ruoloPin && currentTenantId) {
+                    void tryAutoSaveSedePinOnFirstAccess({
+                        tenantId: currentTenantId,
+                        tenantData: td,
+                        ruolo: ruoloPin,
+                        loadGoogleMapsAPI: function () {
+                            return window.GFVConfigLoader && window.GFVConfigLoader.loadGoogleMapsAPI
+                                ? window.GFVConfigLoader.loadGoogleMapsAPI()
+                                : Promise.resolve();
+                        },
+                        serverTimestamp: serverTimestamp,
+                        updateTenant: function (patch) {
+                            const clean = Object.assign({}, patch);
+                            Object.keys(clean).forEach(function (k) {
+                                if (clean[k] === undefined) delete clean[k];
+                            });
+                            return updateDoc(doc(db, 'tenants', currentTenantId), clean).then(function () {
+                                window.__gfvTenantData = Object.assign({}, window.__gfvTenantData || {}, clean);
+                            });
+                        },
+                        onAvviso: function (msg) {
+                            try {
+                                const el = document.createElement('p');
+                                el.className = 'dashboard-auto-pin-avviso';
+                                el.style.cssText = 'margin:8px 16px;padding:8px 12px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;font-size:14px;';
+                                el.innerHTML = escapeHtml(msg) +
+                                    ' <a href="./admin/impostazioni-standalone.html">Apri Impostazioni</a>';
+                                const hub = document.getElementById('dashboard-panorama-hub') || document.body;
+                                hub.insertBefore(el, hub.firstChild);
+                            } catch (eAv) { console.warn('[sede-auto-pin]', msg); }
+                        }
+                    });
+                }
+            } catch (eAutoPin) {
+                console.warn('[sede-auto-pin]', eAutoPin);
+            }
+
             dashboardPerfSummary('dashboard pronta');
             scheduleTonyDashboardDeferred(availableModules, userDataNormalized, currentTenantId);
         }
@@ -1349,7 +1405,7 @@
             if (!user) user = await resolveAuthUser(auth);
             if (!user) {
                 sessionStorage.removeItem('gfv_expected_user_id');
-                window.location.href = await loginPageUrl('./auth/login-standalone.html');
+                window.location.href = await loginPageUrl('./auth/login-standalone.html?motivo=sessione-persa');
                 return;
             }
             
@@ -1362,7 +1418,7 @@
                     const { signOut } = await import('./services/firebase-service.js');
                     await signOut(auth);
                     sessionStorage.removeItem('gfv_expected_user_id');
-                    window.location.href = await loginPageUrl('./auth/login-standalone.html');
+                    window.location.href = await loginPageUrl('./auth/login-standalone.html?motivo=utente-cambiato');
                     return;
                 } else {
                     // Questa scheda è appena stata usata per registrazione, aggiorna l'utente previsto
@@ -1407,8 +1463,7 @@
                             if (!justRegistered) {
                                 console.warn('⚠️ ATTENZIONE: Utente autenticato ma documento non trovato e non viene dalla registrazione!');
                                 await auth.signOut();
-                                alert('Errore: profilo utente non trovato. Completa la registrazione o contatta l\'amministratore. Non è più possibile recuperare un documento «orfano» copiando ruoli da un altro account.');
-                                window.location.href = '../auth/registrazione-standalone.html';
+                                window.location.href = await loginPageUrl('./auth/login-standalone.html?motivo=profilo-mancante');
                                 return;
                             }
                             

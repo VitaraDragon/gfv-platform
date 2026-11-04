@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Terreni Clienti - Conto Terzi - GFV Platform</title>
+    <title>Terreni Clienti - Conto Terzi - GFV</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
@@ -522,6 +522,10 @@
 
             <div class="section-header">
                 <h2>Elenco Terreni</h2>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                    <input type="checkbox" id="filter-mostra-archiviati" onchange="loadTerreni()">
+                    Mostra archiviati
+                </label>
                 <div id="terreni-count">0 terreni</div>
             </div>
 
@@ -975,7 +979,10 @@
 
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+                            const modules = tenantDoc.exists()
+                                ? resolveEffectiveModules(tenantDoc.data() || {})
+                                : [];
                             hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                             if (hasVendemmiaMeccanicaModule) {
                                 await ensureVignetoDetectionCtx();
@@ -1077,13 +1084,25 @@
                     options: {
                         orderBy: 'nome',
                         orderDirection: 'asc',
-                        clienteId: currentClienteId // Solo terreni del cliente selezionato
+                        clienteId: currentClienteId,
+                        includiArchiviati: true
                     }
                 });
                 
+                const { getCollegamentiTerreno } = await import('../../../core/services/terreni-service.js');
+                const { haCollegamenti, isTerrenoArchiviato } = await import('../../../shared/js/terreno-archivio.js');
+                await Promise.all(terreniList.map(async (terreno) => {
+                    if (isTerrenoArchiviato(terreno)) return;
+                    try {
+                        terreno._haCollegamenti = haCollegamenti(await getCollegamentiTerreno(terreno.id));
+                    } catch (e) {
+                        terreno._verificaCollegamentiErrore = true;
+                    }
+                }));
                 terreni = terreniList;
                 mapsState.terreni = terreni;
-                renderTerreni(terreni);
+                const mostraArchiviati = !!document.getElementById('filter-mostra-archiviati')?.checked;
+                renderTerreni(mostraArchiviati ? terreni : terreni.filter((t) => !isTerrenoArchiviato(t)));
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
                 showAlert('Errore caricamento terreni: ' + error.message, 'error');
@@ -1200,7 +1219,7 @@
                 const hasMappa = terrenoObj.polygonCoords && terrenoObj.polygonCoords.length > 0;
                 const cardClass = 'terreno-card terreno-card-has-mappa';
                 html += `<div class="${cardClass}" onclick="handleTerrenoCardClick(event, '${escapeHtml(terrenoObj.id)}')">`;
-                html += `<h3>${escapeHtml(terrenoObj.nome)}</h3>`;
+                html += `<h3>${escapeHtml(terrenoObj.nome)}${terrenoObj.stato === 'archiviato' ? ' (archiviato)' : ''}</h3>`;
                 if (terrenoObj.superficie) {
                     html += `<div class="info"><strong>Superficie:</strong> ${terrenoObj.superficie.toFixed(2)} ha</div>`;
                 }
@@ -1227,7 +1246,10 @@
                 }
                 html += `<div class="actions" onclick="event.stopPropagation()">
                     <button class="btn btn-sm btn-primary" onclick="window.editTerreno('${escapeHtml(terrenoObj.id)}')">✏️ Modifica</button>
-                    <button class="btn btn-sm btn-danger" onclick="window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">🗑️ Elimina</button>
+                    ${terrenoObj.stato === 'archiviato'
+                        ? `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.ripristinaTerrenoCliente('${escapeHtml(terrenoObj.id)}')">Ripristina</button>`
+                        : `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">${terreno._haCollegamenti ? 'Archivia' : '🗑️ Elimina'}</button>`
+                    }
                 </div>`;
                 html += '</div>';
             });
@@ -1707,16 +1729,37 @@
                 return;
             }
 
-            if (!confirm(`Sei sicuro di voler eliminare il terreno "${terreno.nome}"?`)) {
-                return;
-            }
-
             try {
-                await deleteDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId));
-                showAlert('Terreno eliminato con successo', 'success');
-                await loadTerreni();
+                const { getCollegamentiTerreno, archiviaTerreno } = await import('../../../core/services/terreni-service.js');
+                const { eseguiEliminazioneOArchiviazione } = await import('../../../core/js/azione-eliminazione-terreno.js');
+                const esito = await eseguiEliminazioneOArchiviazione(terreno, {
+                    getCollegamentiTerreno,
+                    archiviaTerreno,
+                    eliminaTerreno: async (id) => {
+                        await deleteDoc(doc(db, 'tenants', currentTenantId, 'terreni', id));
+                    },
+                    confirm: (messaggio) => confirm(messaggio),
+                    chiediMotivo: (messaggio) => prompt(messaggio, '1'),
+                    chiediNota: (messaggio) => prompt(messaggio, ''),
+                    avvisa: (messaggio, tipo) => showAlert(messaggio, tipo || 'error')
+                });
+                if (esito.azione === 'eliminato') showAlert('Terreno eliminato con successo', 'success');
+                if (esito.azione === 'archiviato') showAlert('Terreno archiviato. Lo storico resta consultabile.', 'success');
+                if (esito.azione === 'eliminato' || esito.azione === 'archiviato') await loadTerreni();
             } catch (error) {
                 console.error('Errore eliminazione terreno:', error);
+                showAlert('Errore: ' + error.message, 'error');
+            }
+        };
+
+        window.ripristinaTerrenoCliente = async function(terrenoId) {
+            if (!confirm('Ripristinare questo terreno negli elenchi? I vigneti e i frutteti chiusi restano nello storico.')) return;
+            try {
+                const { ripristinaTerreno } = await import('../../../core/services/terreni-service.js');
+                await ripristinaTerreno(terrenoId);
+                showAlert('Terreno ripristinato.', 'success');
+                await loadTerreni();
+            } catch (error) {
                 showAlert('Errore: ' + error.message, 'error');
             }
         };

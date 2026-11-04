@@ -1,6 +1,54 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo.**
+**Ultimo aggiornamento documentazione: 2026-11-03 — Archiviazione terreni (QA 3 nov, punto 2).**
+
+## 2026-11-03 — Terreni: archiviare invece di eliminare
+
+Un terreno con lavori, vigneti, frutteti o altro collegato si archivia (`stato: archiviato`): lo storico resta e il nome si legge con « (archiviato)». Senza collegamenti resta Elimina. Gli archiviati escono da tendine, limite piano e avvisi meteo. Il cambio coltura chiude il vigneto o il frutteto aperti e salva `storicoColture`. I lavori chiusi prima del cambio, e tutto ciò che sta su un terreno archiviato, sono in sola lettura. La coltura di un lavoro nuovo è quella del terreno. Se cambiano gli ettari, si aggiorna la superficie di vigneti, frutteti e campagne ancora aperti. La tendina Frutteto mostra solo terreni da frutto e Annulla chiude il modulo. Le regole Firestore non sono cambiate: il blocco è nel client e nei servizi. Dopo il merge Pier pubblica le function meteo.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — PR #331: workspace di campo che non partiva, import vigneto, ritento cascata.**
+
+## 2026-11-03 — PR #331: avvio workspace e ritento disattivazione
+
+Il workspace di campo tornava a dichiarare `hasAnyRoleFn`, così operaio e caposquadra lo aprono. Le pagine vigneto che avevano perso l'import del servizio (anagrafica, potatura, vendemmia, pianificazione, calcolo materiali, dashboard, statistiche) lo hanno di nuovo. Se la disattivazione di Conto Terzi si ferma con la Vendemmia Meccanica ancora attiva, la pagina Abbonamento offre «Riprova» e richiama `cancelStripeAddon`. Se Tony non riesce a caricare il resolver dei moduli, usa i moduli grezzi del tenant. Nessun deploy e nessuna scrittura su Firestore.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — PR #331: cascata Conto Terzi senza falso errore e senza toccare il bundle.**
+
+## 2026-11-03 — PR #331: disattivazione Conto Terzi e moduli effettivi
+
+Disattivare Conto Terzi chiama il server una sola volta. Vendemmia Meccanica segue nella risposta (`cascaded`); un modulo già in disattivazione o già tolto è un successo, così un nuovo tentativo completa la VM. La cascata usa solo l'abbonamento del modulo: se la VM è nel bundle `gfv-completo` non si annulla l'abbonamento del bundle né il piano Base; una VM in prova si spegne senza Stripe. Il contatore dei rimbalzi si azzera in ogni logout. Le pagine che decidevano l'accesso con `tenant.modules` usano i moduli effettivi (pagati + prove). Il toast del preventivo non mostra più HTML: testo e link vero verso il Diario. Dopo il merge: pubblicare la function `cancelStripeAddon`. Nessun deploy in questo giro.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — Guide utente/Tony: QA storico accessi, preventivi CT, VM↔CT.**
+
+## 2026-11-03 — Guide allineate a fix QA storico accessi (branch fix/qa-03nov-1-storico-accessi)
+
+Guide MANODOPERA/VIGNETO: moduli in **prova 30 giorni** = stessi accessi del pagato (workspace, pagine modulo, grappolo terreni). CONTO TERZI: flusso **Pianifica** con/senza Manodopera (da pianificare vs in corso + Diario CT); preventivo resta **Pianificato**, avanzamento sul lavoro. CORE + VENDEMMIA MECCANICA: VM dipende da Conto terzi; disattivazione CT a cascata su VM. Mirror `core/GUIDA/`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — Secondo giro correzioni app + landing (pin sede v2, saluto subito, F5 auth, ortaggi catalogo, email login).**
+
+## 2026-11-03 — Correzioni app e landing, secondo giro (2–3 novembre)
+
+Pin sede: Geocoder atteso via `importLibrary`, match comune su tutti i campi, ripiego al centro del comune, toast senza doppioni, chiave auto-pin v2. Guida: tornare in dashboard con graffetta → Home. Saluto 7 giorni senza aspettare le guide (caricamento parallelo, niente `no-store`). Meteo Free: messaggio una sola volta. A11y: `tony-input` e campi Impostazioni. Landing: F5 con `authStateReady`, pannello riaperto senza bussata, passo dai dati, JSON ritentato se troncato, ortaggi solo con coltura catalogo, login con `#email=`, tetto audio saluto. Build Tony `2026-11-02b`. Dopo merge: deploy `tonyLandingAsk` (e setup se serve), hosting app + landing.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-02 — Correzioni app + landing (meteo Free, pin sede, saluto 7 giorni, guida graffetta, engine, GFV, landing OK/terreni/F5).**
+
+## 2026-11-02 — Correzioni app e landing (2 novembre)
+
+Meteo Free: messaggio «piano Base» invece del caricamento infinito; CSS `[hidden]` sulla riga meteo. Pin sede: geocode con verifica comune + salvataggio automatico al primo accesso dopo landing; Tony setup scrive `tonyLandingSetupCompletatoIl`. Saluto locale e percorso 7 giorni (zero CF). Guide: navigazione con graffetta; Free = Tony Guida 7 giorni. Ripristinate tre correzioni in `engine.js` perse nel merge. Titoli «GFV», favicon core, a11y filtri Terreni, skip view-transition sui redirect automatici. Landing: pronuncia OK, conteggio terreni dopo riepilogo, sessione F5, ortaggi→Ortive. Dopo merge: deploy functions `tonyLandingSetup`, `tonyLandingAsk`, `tonyLandingAudio` (voce); hosting app e landing.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo.**
 
 ## 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo
 

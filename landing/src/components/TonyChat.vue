@@ -1,24 +1,55 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { URL_REGISTRAZIONE } from '../config/landing-config.js';
+import { URL_REGISTRAZIONE, VERSIONE_AVVISO_TONY } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
-import { tempiVoce } from '../lib/tony-bussa-logica.js';
+import {
+  attesaPrimaDiParlareMs,
+  CHIAVE_INFORMATIVA_AIUTO,
+  leggiPresaVisione,
+  salvaPresaVisione,
+  tempiVoce,
+} from '../lib/tony-bussa-logica.js';
 import { chiediATony } from '../lib/tony-chat-client.js';
 import {
   MAX_CARATTERI_DOMANDA,
   MESSAGGI_CHAT,
   azionePerEsito,
   aggiornaStoria,
+  chiudiConsensoInvioSenzaAccettare,
+  creaBufferTestoStreaming,
+  creaGestoreAttesaLunga,
+  messaggioAttesaLunga,
   modoVoce,
   nuovaSessione,
   validaDomanda,
 } from '../lib/tony-chat-logica.js';
 import { chiediVoce } from '../lib/tony-voce-client.js';
 import { creaPlayerVoce } from '../lib/tony-voce-player.js';
+import {
+  PASSI_AIUTO,
+  allineaPassoAiuto,
+  collegaTerreniAiPoderi,
+  decidiDopoRisposta,
+  erroriColturaTerreniForm,
+  esitoRipiegoAccount,
+  prossimoPasso,
+  serializzaRaccolti,
+  storiaDopoRiepilogo,
+  unisciDati,
+} from '../lib/tony-aiuto-account.js';
+import {
+  leggiSessioneIntervista,
+  salvaSessioneIntervista,
+} from '../lib/tony-sessione-intervista.js';
+import { percorsoVoceAiuto, percorsoVoceFatto } from '../lib/tony-bussa-logica.js';
+import { motivoRipiegoRegistrazionePages } from '../lib/tony-registrazione.js';
 import TonyRegistrazione from './TonyRegistrazione.vue';
+import TonySchedaConferma from './TonySchedaConferma.vue';
 
 const props = defineProps<{
   ottieniToken: () => Promise<string | null>;
+  ottieniTokenAccesso?: () => Promise<string | null>;
+  salvaAzienda?: (dati: object) => Promise<any>;
   variante: string;
   riduciMovimento: boolean;
   salutoFinito: boolean;
@@ -26,6 +57,8 @@ const props = defineProps<{
   staticoForzato: boolean;
   audioIniziale: boolean;
   moduloDisponibile: boolean;
+  /** Ms dall'inizio reale della clip scrive (0 se non partita). */
+  msDaInizioScrive?: () => number;
 }>();
 
 const emit = defineEmits([
@@ -41,9 +74,13 @@ const emit = defineEmits([
   'apri-modulo',
   'chiudi-modulo',
   'registrazione-completata',
+  'invio-in-corso',
+  'argomento',
+  'vai-dashboard',
 ]);
 
 const t = testiLanding.tonyBussa;
+const ta = t.aiuto;
 
 type Battuta = {
   ruolo: 'utente' | 'tony' | 'nascosta';
@@ -57,6 +94,37 @@ const campoAttivo = ref(true);
 const moduloAperto = ref(false);
 const registrazioneCompletata = ref(false);
 const chipVisibili = ref(true);
+const invioInCorso = ref(false);
+/** Fase aiuto account (passo 14). */
+const faseAiuto = ref(false);
+const passoAiuto = ref<string | null>(null);
+const datiAiuto = ref<{
+  sede: any;
+  poderi: any[];
+  terreni: any[];
+}>({ sede: null, poderi: [], terreni: [] });
+const schedaAperta = ref(false);
+const aiutoFatto = ref(false);
+const aiutoSospeso = ref(false);
+const argomentiSuonati = new Set<string>();
+const turniSenzaNovitaNelPasso = ref(0);
+const consecutiviFuoriTema = ref(0);
+/** Dopo «Torna alla chat»: non riaprire la scheda su fatto:true finché l'utente non chiede il riepilogo. */
+let tornatoDalRiepilogo = false;
+/** Riapertura per domandeRimaste ≤ 3 già usata una volta. */
+let giaRiaperturaLimiteDomande = false;
+/** Stato del campo/chip/evidenza prima di aprire il modulo (R1). */
+let statoPrimaDelModulo: {
+  campoAttivo: boolean;
+  chipVisibili: boolean;
+  mostraAccountEvidenza: boolean;
+} | null = null;
+/** Stato del campo/chip/passo prima di aprire la scheda Confermi (R1 passo 15). */
+let statoPrimaDellaScheda: {
+  campoAttivo: boolean;
+  chipVisibili: boolean;
+  passoAiuto: string | null;
+} | null = null;
 const messaggi = ref<Battuta[]>([]);
 const storia = ref<Array<{ ruolo: 'utente' | 'tony'; testo: string }>>([]);
 const sessione = ref(nuovaSessione(
@@ -79,6 +147,10 @@ const altoparlanteVisibile = ref(false);
 const mostraAscolta = ref(false);
 const voceInCorso = ref(false);
 const voceParlandoSr = ref(false);
+const informativaAiutoVisibile = ref(false);
+const attesaLungaVisibile = ref(false);
+const mostraConsensoInvio = ref(false);
+const testoInvioInAttesa = ref<{ testo: string; daChip: boolean } | null>(null);
 
 let recognition: any = null;
 let abortCorrente: AbortController | null = null;
@@ -91,7 +163,38 @@ let blobAscolta: Blob | null = null;
 let metaVoce: { idVoce: string; testo: string } | null = null;
 let chiediVoceFn: typeof chiediVoce = chiediVoce;
 let scenarioVoceFinta: string | null = null;
+/** Timestamp di inizio clip «scrive» (primo pezzo di testo). */
+let inizioScriveMs = 0;
 const playerVoce = creaPlayerVoce();
+
+function aspetta(ms: number) {
+  return new Promise<void>((resolve) => {
+    if (ms <= 0) {
+      resolve();
+      return;
+    }
+    setTimeout(resolve, ms);
+  });
+}
+
+async function aspettaMinimoScrivePrimaDiParlare() {
+  let msDaInizio = 0;
+  if (typeof props.msDaInizioScrive === 'function') {
+    msDaInizio = props.msDaInizioScrive();
+  } else if (inizioScriveMs > 0) {
+    msDaInizio = Date.now() - inizioScriveMs;
+  }
+  const clipCorrente =
+    typeof props.msDaInizioScrive === 'function' && msDaInizio === 0
+      ? 'idle'
+      : 'scrive';
+  const attesa = attesaPrimaDiParlareMs({
+    clipCorrente,
+    msDaInizioClip: msDaInizio,
+    riduciMovimento: props.riduciMovimento,
+  });
+  await aspetta(attesa);
+}
 
 const contatoreVisibile = computed(() => {
   const n = campo.value.length;
@@ -108,13 +211,184 @@ const chatVisibile = computed(
 
 const mobile = computed(() => props.variante === 'mobile');
 
+/** Sul telefono niente focus automatico: apre la tastiera e sposta Tony. */
+function deveFocalizzareCampo() {
+  if (props.variante === 'mobile') return false;
+  if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+    return false;
+  }
+  return true;
+}
+
+function focalizzaCampoSeConsentito() {
+  if (!deveFocalizzareCampo()) return;
+  nextTick(() => inputEl.value?.focus());
+}
+
+function storagePagina() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function storageSessione() {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function presaVisioneOk() {
+  return leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY).vista;
+}
+
+function informativaAiutoGiaVista() {
+  const s = storageSessione();
+  return s ? s.getItem(CHIAVE_INFORMATIVA_AIUTO) === '1' : false;
+}
+
+function segnaInformativaAiutoVista() {
+  const s = storageSessione();
+  if (s) s.setItem(CHIAVE_INFORMATIVA_AIUTO, '1');
+}
+
+function onHoCapitoInformativaAiuto() {
+  informativaAiutoVisibile.value = false;
+  segnaInformativaAiutoVista();
+}
+
+function onHoCapitoConsensoInvio() {
+  mostraConsensoInvio.value = false;
+  salvaPresaVisione(
+    storagePagina(),
+    VERSIONE_AVVISO_TONY,
+    new Date().toISOString(),
+    props.audioIniziale !== false
+  );
+  const pendente = testoInvioInAttesa.value;
+  testoInvioInAttesa.value = null;
+  if (pendente) void inviaTesto(pendente.testo, pendente.daChip);
+}
+
+function onChiudiConsensoInvio() {
+  const esito = chiudiConsensoInvioSenzaAccettare({
+    testoInvioInAttesa: testoInvioInAttesa.value,
+    campoCorrente: campo.value,
+  });
+  mostraConsensoInvio.value = esito.mostraConsensoInvio;
+  testoInvioInAttesa.value = esito.testoInvioInAttesa;
+  campo.value = esito.campo;
+}
+
+function onEscConsenso(e: KeyboardEvent) {
+  if (e.key !== 'Escape') return;
+  if (!mostraConsensoInvio.value) return;
+  e.preventDefault();
+  e.stopPropagation();
+  onChiudiConsensoInvio();
+}
+
+/** Riprende l'intervista dopo un ricaricamento (sessionStorage, 2 ore). */
+async function ripristinaSessioneIntervista() {
+  const rec = leggiSessioneIntervista(storageSessione());
+  if (!rec) return false;
+  messaggi.value = rec.messaggi.map((m: { ruolo: 'utente' | 'tony'; testo: string }) => ({
+    ruolo: m.ruolo,
+    testo: m.testo,
+  }));
+  storia.value = rec.storia;
+  datiAiuto.value = collegaTerreniAiPoderi(rec.datiAiuto);
+  faseAiuto.value = true;
+  registrazioneCompletata.value = true;
+  tornatoDalRiepilogo = rec.tornatoDalRiepilogo;
+  giaRiaperturaLimiteDomande = rec.giaRiaperturaLimiteDomande;
+  turniSenzaNovitaNelPasso.value = rec.turniSenzaNovitaNelPasso;
+  consecutiviFuoriTema.value = rec.consecutiviFuoriTema;
+  if (rec.sessione) sessione.value = rec.sessione;
+  const schedaDisponibile = rec.schedaAperta && !!props.salvaAzienda;
+  if (schedaDisponibile) {
+    statoPrimaDellaScheda = { campoAttivo: true, chipVisibili: true, passoAiuto: 'terreni' };
+    schedaAperta.value = true;
+    passoAiuto.value = 'scheda';
+    campoAttivo.value = false;
+    chipVisibili.value = false;
+  } else {
+    passoAiuto.value = rec.passoAiuto === 'scheda' ? 'terreni' : rec.passoAiuto;
+    schedaAperta.value = false;
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+  }
+  const inAccount =
+    rec.passoAiuto && PASSI_AIUTO.indexOf(rec.passoAiuto === 'scheda' ? 'terreni' : rec.passoAiuto) >= 0;
+  if (inAccount && props.ottieniTokenAccesso) {
+    let token: string | null = null;
+    try {
+      token = await props.ottieniTokenAccesso();
+    } catch {
+      token = null;
+    }
+    if (!token) {
+      messaggi.value.push({
+        ruolo: 'tony',
+        testo: MESSAGGI_CHAT.sessioneIntervistaScaduta,
+      });
+      aiutoSospeso.value = false;
+      campoAttivo.value = true;
+      chipVisibili.value = !schedaAperta.value;
+    }
+  }
+  emit('registrazione-completata');
+  scorriInBasso();
+  return true;
+}
+
+/** Salva lo stato dell'intervista (mai email o password). */
+function salvaSessioneCorrente() {
+  if (smontato || inAttesa.value) return;
+  salvaSessioneIntervista(storageSessione(), {
+    faseAiuto: faseAiuto.value,
+    aiutoFatto: aiutoFatto.value,
+    messaggi: messaggi.value,
+    storia: storia.value,
+    datiAiuto: datiAiuto.value,
+    passoAiuto: passoAiuto.value,
+    schedaAperta: schedaAperta.value,
+    tornatoDalRiepilogo,
+    giaRiaperturaLimiteDomande,
+    turniSenzaNovitaNelPasso: turniSenzaNovitaNelPasso.value,
+    consecutiviFuoriTema: consecutiviFuoriTema.value,
+    sessione: sessione.value,
+  });
+}
+
+watch(
+  () => [
+    messaggi.value.length,
+    storia.value.length,
+    JSON.stringify(datiAiuto.value),
+    passoAiuto.value,
+    schedaAperta.value,
+    faseAiuto.value,
+    aiutoFatto.value,
+    inAttesa.value,
+  ],
+  salvaSessioneCorrente,
+  { flush: 'post' }
+);
+
 onMounted(() => {
+  void ripristinaSessioneIntervista();
+  informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   const SR =
     typeof window !== 'undefined'
       ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       : null;
   microfonoDisponibile.value = typeof SR === 'function';
   document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('keydown', onEscConsenso);
   if (import.meta.env.DEV) {
     const query = typeof window !== 'undefined' ? window.location.search : '';
     import('../lib/tony-chat-finto.js')
@@ -156,7 +430,7 @@ watch(
       passaAStatico(MESSAGGI_CHAT.spento);
       return;
     }
-    nextTick(() => inputEl.value?.focus());
+    focalizzaCampoSeConsentito();
   }
 );
 
@@ -229,6 +503,11 @@ function apriModulo() {
   if (!props.moduloDisponibile || moduloAperto.value) return;
   fermaMicrofono();
   fermaVoceCorrente();
+  statoPrimaDelModulo = {
+    campoAttivo: campoAttivo.value,
+    chipVisibili: chipVisibili.value,
+    mostraAccountEvidenza: mostraAccountEvidenza.value,
+  };
   moduloAperto.value = true;
   campoAttivo.value = false;
   messaggi.value.push({
@@ -239,21 +518,262 @@ function apriModulo() {
   emit('apri-modulo');
 }
 
+/** Ripiego su Pages solo se il pannello è davvero impossibile. */
+function onRipiegoRegistrazionePages() {
+  const motivo = motivoRipiegoRegistrazionePages({
+    salutoFinito: props.salutoFinito,
+    protezionePronta: props.protezionePronta,
+    anteprima: import.meta.env.MODE === 'anteprima' || import.meta.env.DEV === true,
+  });
+  console.warn('[landing] Registrazione nel pannello impossibile; ripiego su Pages', {
+    motivo: motivo || 'modulo-non-disponibile',
+    salutoFinito: props.salutoFinito,
+    protezionePronta: props.protezionePronta,
+    moduloDisponibile: props.moduloDisponibile,
+    mode: import.meta.env.MODE,
+  });
+}
+
 function onChiudiModulo() {
   if (registrazioneCompletata.value) return;
   moduloAperto.value = false;
-  campoAttivo.value = true;
+  if (statoPrimaDelModulo) {
+    campoAttivo.value = statoPrimaDelModulo.campoAttivo;
+    chipVisibili.value = statoPrimaDelModulo.chipVisibili;
+    mostraAccountEvidenza.value = statoPrimaDelModulo.mostraAccountEvidenza;
+    statoPrimaDelModulo = null;
+  } else {
+    campoAttivo.value = true;
+  }
   emit('chiudi-modulo');
+}
+
+function onInvioInCorso(valore: boolean) {
+  invioInCorso.value = !!valore;
+  emit('invio-in-corso', invioInCorso.value);
 }
 
 function onRegistrazioneCompletata() {
   registrazioneCompletata.value = true;
+  moduloAperto.value = false;
+  campoAttivo.value = false;
+  chipVisibili.value = false;
+  informativaAiutoVisibile.value = !informativaAiutoGiaVista();
+  messaggi.value.push({ ruolo: 'tony', testo: t.registrazione.fatto });
+  messaggi.value.push({ ruolo: 'tony', testo: ta.invito });
+  faseAiuto.value = true;
+  passoAiuto.value = 'invito';
+  storia.value = [];
+  risposteVocaliAutomatiche = 0;
+  tornatoDalRiepilogo = false;
+  giaRiaperturaLimiteDomande = false;
+  sessione.value = nuovaSessione(
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? () => crypto.randomUUID()
+      : undefined
+  );
+  scorriInBasso();
+  void suonaFraseFissa('invito');
   emit('registrazione-completata');
+  emit('chiudi-modulo');
+}
+
+function haDatiAiuto() {
+  const d = datiAiuto.value;
+  return !!(
+    d.sede ||
+    (d.poderi && d.poderi.length) ||
+    (d.terreni && d.terreni.length)
+  );
+}
+
+function domandaFissa(passo: string) {
+  if (passo === 'sede') return ta.domandaSede;
+  if (passo === 'poderi') return ta.domandaPoderi;
+  if (passo === 'terreni') return ta.domandaTerreni;
+  return '';
+}
+
+function avviaPasso(passo: string) {
+  // Flusso lineare: non tornare a un passo già superato (es. poderi dopo terreni).
+  const cur = PASSI_AIUTO.indexOf(passoAiuto.value || '');
+  const next = PASSI_AIUTO.indexOf(passo);
+  if (cur >= 0 && next >= 0 && next < cur) {
+    return;
+  }
+  turniSenzaNovitaNelPasso.value = 0;
+  consecutiviFuoriTema.value = 0;
+  passoAiuto.value = passo;
+  schedaAperta.value = false;
+  campoAttivo.value = true;
+  chipVisibili.value = true;
+  const testo = domandaFissa(passo);
+  messaggi.value.push({ ruolo: 'tony', testo });
+  const chiaveVoce =
+    passo === 'sede'
+      ? 'domandaSede'
+      : passo === 'poderi'
+        ? 'domandaPoderi'
+        : passo === 'terreni'
+          ? 'domandaTerreni'
+          : '';
+  if (chiaveVoce) void suonaFraseFissa(chiaveVoce);
+  if (!argomentiSuonati.has(passo)) {
+    argomentiSuonati.add(passo);
+    emit('argomento', passo);
+  }
+  scorriInBasso();
+}
+
+function onChipAiuto(etichetta: string) {
+  if (inAttesa.value || invioInCorso.value) return;
+  if (etichetta === ta.chipSi) {
+    avviaPasso('sede');
+    return;
+  }
+  if (etichetta === ta.chipSaltaTutto) {
+    emit('vai-dashboard');
+    return;
+  }
+  if (etichetta === ta.chipDopo) {
+    const corrente = passoAiuto.value;
+    const prox = corrente ? prossimoPasso(corrente) : null;
+    if (prox) avviaPasso(prox);
+    else apriScheda();
+    return;
+  }
+  if (etichetta === ta.chipAvanti) {
+    const corrente = passoAiuto.value;
+    const prox = corrente ? prossimoPasso(corrente) : null;
+    if (prox) avviaPasso(prox);
+    else apriScheda();
+    return;
+  }
+  if (etichetta === ta.chipRiepilogo) {
+    apriScheda();
+  }
+}
+
+function apriScheda() {
+  tornatoDalRiepilogo = false;
+  statoPrimaDellaScheda = {
+    campoAttivo: campoAttivo.value,
+    chipVisibili: chipVisibili.value,
+    passoAiuto: passoAiuto.value,
+  };
+  schedaAperta.value = true;
+  campoAttivo.value = false;
+  chipVisibili.value = false;
+  passoAiuto.value = 'scheda';
+  messaggi.value.push({ ruolo: 'tony', testo: ta.schedaIntro });
+  void suonaFraseFissa('schedaIntro');
+  scorriInBasso();
+}
+
+function onTornaDallaScheda(dati?: {
+  sede?: any;
+  poderi?: any[];
+  terreni?: any[];
+}) {
+  schedaAperta.value = false;
+  tornatoDalRiepilogo = true;
+  turniSenzaNovitaNelPasso.value = 0;
+  consecutiviFuoriTema.value = 0;
+  if (dati && typeof dati === 'object') {
+    datiAiuto.value = collegaTerreniAiPoderi({
+      sede: dati.sede ?? null,
+      poderi: Array.isArray(dati.poderi) ? dati.poderi : [],
+      terreni: Array.isArray(dati.terreni) ? dati.terreni : [],
+    });
+  }
+  const nTerreni = Array.isArray(datiAiuto.value.terreni)
+    ? datiAiuto.value.terreni.length
+    : 0;
+  // Il riepilogo è la fonte di verità: le vecchie battute con elenchi/conteggi
+  // diventano «superate» e il modello riparte dallo stato aggiornato.
+  storia.value = storiaDopoRiepilogo(storia.value, datiAiuto.value);
+  if (nTerreni >= 5) {
+    passoAiuto.value = 'terreni';
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+    messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+    void suonaFraseFissa('cinqueTerreni');
+  } else {
+    passoAiuto.value = 'terreni';
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+    const frase = String(ta.tornaDalRiepilogo || '').replace(
+      /\bN\b/,
+      String(nTerreni)
+    );
+    messaggi.value.push({ ruolo: 'tony', testo: frase });
+    void suonaFraseFissa('tornaDalRiepilogo');
+  }
+  statoPrimaDellaScheda = null;
+  scorriInBasso();
+}
+
+async function suVoceFatto() {
+  if (!altoparlante.value) return;
+  try {
+    const percorsi = percorsoVoceFatto();
+    const risposta = await fetch(percorsi.mp3);
+    if (!risposta.ok) return;
+    const blob = await risposta.blob();
+    playerVoce.sblocca();
+    await playerVoce.suona(blob, {
+      onInizio: () => emit('voceIniziata'),
+      onFine: () => emit('voceFinita'),
+    });
+  } catch {
+    emit('voceFinita');
+  }
+}
+
+/** Mp3 statici dell'intervista (404 → muto senza errori). */
+async function suonaFraseFissa(chiave: string) {
+  if (!altoparlante.value) return;
+  try {
+    fermaVoceCorrente();
+    const percorsi = percorsoVoceAiuto(chiave);
+    const risposta = await fetch(percorsi.mp3);
+    if (!risposta.ok) return;
+    const blob = await risposta.blob();
+    playerVoce.sblocca();
+    await playerVoce.suona(blob, {
+      onInizio: () => emit('voceIniziata'),
+      onFine: () => emit('voceFinita'),
+    });
+  } catch {
+    /* mp3 assente o interrotto: resta muto */
+  }
+}
+
+async function onSchedaSalvata() {
+  schedaAperta.value = false;
+  aiutoFatto.value = true;
+  campoAttivo.value = false;
+  chipVisibili.value = false;
+  messaggi.value.push({ ruolo: 'tony', testo: ta.fatto });
+  scorriInBasso();
+  await suVoceFatto();
+}
+
+function onVaiDashboard() {
+  emit('vai-dashboard');
 }
 
 async function inviaTesto(grezzo: string, daChip = false) {
-  if (moduloAperto.value) return;
+  if (moduloAperto.value || schedaAperta.value) return;
+  if (faseAiuto.value && passoAiuto.value === 'invito') return;
   if (inAttesa.value || !campoAttivo.value || modalitàStatica.value) return;
+  if (aiutoFatto.value || aiutoSospeso.value) return;
+  if (!presaVisioneOk()) {
+    testoInvioInAttesa.value = { testo: grezzo, daChip };
+    mostraConsensoInvio.value = true;
+    scorriInBasso();
+    return;
+  }
   const validazione = validaDomanda(grezzo);
   if (!validazione.ok) {
     if (validazione.motivo === 'vuota') return;
@@ -294,18 +814,41 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   abortCorrente = new AbortController();
   let primoPezzo = false;
+  attesaLungaVisibile.value = false;
+  const gestoreAttesa = creaGestoreAttesaLunga({
+    onMostra: () => {
+      attesaLungaVisibile.value = true;
+    },
+    onNascondi: () => {
+      attesaLungaVisibile.value = false;
+    },
+  });
+  gestoreAttesa.inizio();
+
+  const bufferStream = creaBufferTestoStreaming({
+    onAggiorna: (visibile) => {
+      testoParziale.value = visibile;
+      const ultimo = messaggi.value[messaggi.value.length - 1];
+      if (ultimo && ultimo.live) ultimo.testo = visibile;
+      scorriInBasso();
+    },
+  });
 
   const onPezzo = (delta: string) => {
+    gestoreAttesa.pezzoArrivato();
     if (!primoPezzo) {
       primoPezzo = true;
+      inizioScriveMs = Date.now();
       emit('testoArrivato');
       messaggi.value.push({ ruolo: 'tony', testo: '', live: true });
     }
-    testoParziale.value += delta;
-    const ultimo = messaggi.value[messaggi.value.length - 1];
-    if (ultimo && ultimo.live) ultimo.testo = testoParziale.value;
-    scorriInBasso();
+    bufferStream.aggiungi(delta);
   };
+
+  const inAccount =
+    faseAiuto.value &&
+    passoAiuto.value &&
+    PASSI_AIUTO.indexOf(passoAiuto.value) >= 0;
 
   let esito: any;
   try {
@@ -319,6 +862,8 @@ async function inviaTesto(grezzo: string, daChip = false) {
         onPezzo,
         segnale: abortCorrente.signal,
         scenario: scenarioFinto.value,
+        fase: inAccount ? 'account' : undefined,
+        argomento: inAccount ? passoAiuto.value || undefined : undefined,
       });
     } else {
       esito = await chiediATony({
@@ -326,18 +871,24 @@ async function inviaTesto(grezzo: string, daChip = false) {
         sessione: sessione.value,
         storia: storia.value,
         ottieniToken: props.ottieniToken,
+        ottieniTokenAccesso: props.ottieniTokenAccesso,
         onPezzo,
         segnale: abortCorrente.signal,
+        fase: inAccount ? 'account' : undefined,
+        argomento: inAccount ? passoAiuto.value || undefined : undefined,
+        raccolti: inAccount ? serializzaRaccolti(datiAiuto.value) || undefined : undefined,
       });
     }
   } catch {
-    esito = { codice: 'errore' };
+    esito = { codice: 'errore', fase: inAccount ? 'account' : undefined };
   }
 
   if (smontato) return;
+  gestoreAttesa.fine();
   abortCorrente = null;
   inAttesa.value = false;
 
+  if (inAccount && esito && !esito.fase) esito.fase = 'account';
   const azione = azionePerEsito(esito);
   if (azione.tipo === 'statico') {
     if (primoPezzo) {
@@ -349,12 +900,51 @@ async function inviaTesto(grezzo: string, daChip = false) {
     return;
   }
 
+  if (azione.tipo === 'accesso-mancante') {
+    if (primoPezzo) {
+      const ultimo = messaggi.value[messaggi.value.length - 1];
+      if (ultimo && ultimo.live) {
+        ultimo.testo = azione.testo;
+        ultimo.live = false;
+      }
+    } else {
+      messaggi.value.push({ ruolo: 'tony', testo: azione.testo });
+    }
+    testoParziale.value = '';
+    aiutoSospeso.value = false;
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+    emit('rispostaFinita');
+    scorriInBasso();
+    focalizzaCampoSeConsentito();
+    return;
+  }
+
+  if (azione.tipo === 'aiuto-sospeso') {
+    if (primoPezzo) {
+      const ultimo = messaggi.value[messaggi.value.length - 1];
+      if (ultimo && ultimo.live) {
+        ultimo.testo = azione.testo;
+        ultimo.live = false;
+      }
+    } else {
+      messaggi.value.push({ ruolo: 'tony', testo: azione.testo });
+    }
+    testoParziale.value = '';
+    aiutoSospeso.value = true;
+    campoAttivo.value = false;
+    chipVisibili.value = false;
+    emit('rispostaFinita');
+    return;
+  }
+
   if (primoPezzo) {
     const ultimo = messaggi.value[messaggi.value.length - 1];
     if (ultimo && ultimo.live) {
       ultimo.testo = azione.testo;
       ultimo.live = false;
     }
+    bufferStream.finisci();
   } else {
     messaggi.value.push({ ruolo: 'tony', testo: azione.testo });
   }
@@ -365,7 +955,88 @@ async function inviaTesto(grezzo: string, daChip = false) {
     storia.value = aggiornaStoria(storia.value, { ruolo: 'tony', testo: azione.testo });
   }
 
-  campoAttivo.value = azione.campoAttivo;
+  if (inAccount && esito.codice === 'ok') {
+    if (esito.troppiTerreni) {
+      messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+      void suonaFraseFissa('cinqueTerreni');
+    }
+    const prima = JSON.stringify(datiAiuto.value);
+    const uniti = unisciDati(datiAiuto.value, esito.dati, passoAiuto.value || '');
+    const novita = JSON.stringify(uniti.dati) !== prima;
+    datiAiuto.value = uniti.dati;
+    if (uniti.troppiTerreni && !esito.troppiTerreni) {
+      messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+      void suonaFraseFissa('cinqueTerreni');
+    }
+    if (esito.fuoriTema === true) {
+      consecutiviFuoriTema.value += 1;
+    } else {
+      consecutiviFuoriTema.value = 0;
+    }
+    const ripiego = esitoRipiegoAccount(esito);
+    if (ripiego) {
+      turniSenzaNovitaNelPasso.value = 0;
+    } else if (novita) {
+      turniSenzaNovitaNelPasso.value = 0;
+    } else {
+      turniSenzaNovitaNelPasso.value += 1;
+    }
+    const passoAllineato = allineaPassoAiuto(
+      passoAiuto.value || '',
+      datiAiuto.value,
+      esito.dati,
+      domanda
+    );
+    if (
+      passoAllineato &&
+      passoAllineato !== passoAiuto.value &&
+      PASSI_AIUTO.indexOf(passoAllineato) >= 0
+    ) {
+      passoAiuto.value = passoAllineato;
+    }
+    const dopoRisposta = decidiDopoRisposta({
+      nuoviDati: novita,
+      fuoriTema: consecutiviFuoriTema.value,
+      turniSenzaNovitaNelPasso: turniSenzaNovitaNelPasso.value,
+      domandeRimaste:
+        typeof esito.domandeRimaste === 'number' ? esito.domandeRimaste : undefined,
+      passo: passoAiuto.value || '',
+      giaRiaperturaLimiteDomande,
+    });
+    if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
+      if (dopoRisposta.perLimiteDomande) giaRiaperturaLimiteDomande = true;
+      if (dopoRisposta.messaggio) {
+        messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
+        const passoCorrente = passoAiuto.value || '';
+        if (passoCorrente === 'terreni') void suonaFraseFissa('passaggioTerreni');
+        else if (passoCorrente === 'poderi') void suonaFraseFissa('passaggioPoderi');
+        else if (passoCorrente === 'sede') void suonaFraseFissa('passaggioSede');
+      }
+      apriScheda();
+    } else if (dopoRisposta.azione === 'prossimoPasso') {
+      // Solo la domanda del passo successivo (niente doppia domanda sui poderi).
+      const prox = prossimoPasso(passoAiuto.value || '');
+      if (prox) avviaPasso(prox);
+      else apriScheda();
+    } else if (esito.dati && esito.dati.fatto === true) {
+      const chiedeRiepilogo =
+        typeof domanda === 'string' &&
+        /riepilogo|basta|ho finito|fatto|^no\b/i.test(domanda.trim());
+      if (tornatoDalRiepilogo && !chiedeRiepilogo) {
+        campoAttivo.value = true;
+        chipVisibili.value = true;
+      } else {
+        const prox = prossimoPasso(passoAiuto.value || '');
+        if (prox) avviaPasso(prox);
+        else apriScheda();
+      }
+    } else {
+      campoAttivo.value = true;
+      chipVisibili.value = true;
+    }
+  } else {
+    campoAttivo.value = azione.campoAttivo;
+  }
   if (azione.tipo === 'limite') {
     mostraAccountEvidenza.value = true;
     chipVisibili.value = false;
@@ -377,6 +1048,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
     risposteVocaliAutomatiche,
     riduciMovimento: props.riduciMovimento,
     paginaNascosta: typeof document !== 'undefined' ? document.hidden : false,
+    faseAccount: inAccount,
   });
 
   if (esito.voce === true && typeof esito.idVoce === 'string') {
@@ -386,17 +1058,17 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   if (modo === 'automatica') {
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
     void gestisciVoceAutomatica(esito, azione.testo);
   } else if (modo === 'pulsante') {
     mostraAscolta.value = true;
     emit('rispostaFinita');
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
   } else {
     emit('rispostaFinita');
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
   }
   void daChip;
 }
@@ -417,6 +1089,8 @@ async function gestisciVoceAutomatica(esito: any, testo: string) {
     return;
   }
   blobAscolta = esitoVoce.blob;
+  await aspettaMinimoScrivePrimaDiParlare();
+  if (smontato) return;
   const esitoPlay = await playerVoce.suona(esitoVoce.blob, {
     attesaMaxMs: tempiVoce().attesaMaxVoceMs,
     onInizio: () => {
@@ -617,6 +1291,7 @@ onUnmounted(() => {
   playerVoce.libera();
   if (timerFuoco) window.clearTimeout(timerFuoco);
   document.removeEventListener('visibilitychange', onVisibility);
+  document.removeEventListener('keydown', onEscConsenso);
 });
 
 /** Esposto a TonyStage quando si saluta a metà richiesta. */
@@ -657,7 +1332,7 @@ defineExpose({ interrompi });
     </p>
 
     <div
-      v-if="messaggi.length"
+      v-if="messaggi.length || mostraConsensoInvio"
       ref="listaMessaggi"
       class="conversazione"
     >
@@ -678,6 +1353,31 @@ defineExpose({ interrompi });
       >
         {{ voceInCorso ? t.fermaVoce : t.ascolta }}
       </button>
+      <div
+        v-if="mostraConsensoInvio"
+        class="consenso-invio"
+        role="region"
+        aria-label="Consenso privacy"
+      >
+        <button
+          type="button"
+          class="consenso-x"
+          aria-label="Chiudi"
+          @click="onChiudiConsensoInvio"
+        >
+          ×
+        </button>
+        <p>{{ t.consensoInvioBreve }}</p>
+        <div class="consenso-azioni">
+          <button type="button" class="chip" @click="onHoCapitoConsensoInvio">
+            {{ t.consensoInvioCta }}
+          </button>
+          <button type="button" class="chip chip--secondario" @click="onChiudiConsensoInvio">
+            {{ t.consensoInvioChiudi }}
+          </button>
+        </div>
+        <a class="consenso-link" href="/privacy#tony">{{ ta.informativaLink }}</a>
+      </div>
     </div>
 
     <p
@@ -686,6 +1386,9 @@ defineExpose({ interrompi });
       aria-live="polite"
     >
       {{ t.pensaLettoreSchermo }}
+    </p>
+    <p v-if="attesaLungaVisibile && inAttesa" class="attesa-lunga" aria-live="polite">
+      {{ messaggioAttesaLunga(t.pensaLungo) }}
     </p>
     <p
       v-if="voceParlandoSr"
@@ -696,23 +1399,99 @@ defineExpose({ interrompi });
     </p>
 
     <TonyRegistrazione
-      v-if="chatVisibile && moduloAperto"
+      v-if="moduloAperto"
       @chiudi-modulo="onChiudiModulo"
       @registrazione-completata="onRegistrazioneCompletata"
+      @invio-in-corso="onInvioInCorso"
     />
 
-    <template v-else-if="chatVisibile && campoAttivo">
-      <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
-        <button
-          v-for="c in t.chip"
-          :key="c"
-          type="button"
-          class="chip"
-          :disabled="inAttesa"
-          @click="onChip(c)"
-        >
-          {{ c }}
+    <TonySchedaConferma
+      v-else-if="chatVisibile && schedaAperta && salvaAzienda"
+      :dati="datiAiuto"
+      :salva-azienda="salvaAzienda"
+      @torna-chat="onTornaDallaScheda"
+      @salvata="onSchedaSalvata"
+      @invio-in-corso="onInvioInCorso"
+      @vai-dashboard="onVaiDashboard"
+    />
+
+    <template v-else-if="chatVisibile && faseAiuto && passoAiuto === 'invito'">
+      <div class="chip-riga" role="group" aria-label="Aiuto account">
+        <button type="button" class="chip" @click="onChipAiuto(ta.chipSi)">
+          {{ ta.chipSi }}
         </button>
+        <button type="button" class="chip" @click="onChipAiuto(ta.chipSaltaTutto)">
+          {{ ta.chipSaltaTutto }}
+        </button>
+      </div>
+    </template>
+
+    <template v-else-if="chatVisibile && campoAttivo && !aiutoFatto && !mostraConsensoInvio">
+      <p v-if="faseAiuto && !informativaAiutoVisibile" class="privacy-chip-link">
+        <a href="/privacy#tony">{{ ta.informativaLink }}</a>
+      </p>
+      <div
+        v-if="faseAiuto && informativaAiutoVisibile"
+        class="informativa-aiuto"
+        role="region"
+        aria-label="Informativa aiuto account"
+      >
+        <button
+          type="button"
+          class="informativa-chiudi"
+          :aria-label="ta.informativaChiudi"
+          @click="onHoCapitoInformativaAiuto"
+        >
+          ×
+        </button>
+        <p>
+          {{ ta.informativa }}
+          <a href="/privacy#tony">{{ ta.informativaLink }}</a>
+        </p>
+        <button type="button" class="chip chip--capito" @click="onHoCapitoInformativaAiuto">
+          {{ ta.informativaHoCapito }}
+        </button>
+      </div>
+      <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
+        <template v-if="faseAiuto">
+          <button
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChipAiuto(ta.chipDopo)"
+          >
+            {{ ta.chipDopo }}
+          </button>
+          <button
+            v-if="haDatiAiuto()"
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChipAiuto(ta.chipAvanti)"
+          >
+            {{ ta.chipAvanti }}
+          </button>
+          <button
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChipAiuto(ta.chipRiepilogo)"
+          >
+            {{ ta.chipRiepilogo }}
+          </button>
+        </template>
+        <template v-else>
+          <button
+            v-for="c in t.chip"
+            :key="c"
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChip(c)"
+          >
+            {{ c }}
+          </button>
+        </template>
       </div>
 
       <div class="campo-riga">
@@ -759,9 +1538,31 @@ defineExpose({ interrompi });
       </div>
     </template>
 
-    <div class="fumetto-azioni">
+    <div v-if="chatVisibile && (aiutoFatto || aiutoSospeso)" class="fumetto-azioni">
       <button
-        v-if="moduloDisponibile && !moduloAperto"
+        v-if="aiutoSospeso && haDatiAiuto()"
+        type="button"
+        class="btn-account"
+        @click="apriScheda"
+      >
+        {{ ta.chipRiepilogo }}
+      </button>
+      <button type="button" class="btn-account btn-account--evidenza" @click="onVaiDashboard">
+        {{ ta.vaiDashboard }}
+      </button>
+      <button
+        type="button"
+        class="btn-saluta"
+        :disabled="invioInCorso"
+        @click="emit('saluta')"
+      >
+        {{ t.saluta }}
+      </button>
+    </div>
+
+    <div v-else class="fumetto-azioni">
+      <button
+        v-if="moduloDisponibile && !moduloAperto && !faseAiuto"
         type="button"
         class="btn-account"
         :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
@@ -770,14 +1571,28 @@ defineExpose({ interrompi });
         {{ t.ctaAccount }}
       </button>
       <a
-        v-else-if="!moduloAperto"
+        v-else-if="!moduloAperto && !faseAiuto"
         class="btn-account"
         :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
         :href="URL_REGISTRAZIONE"
+        @click="onRipiegoRegistrazionePages"
       >
         {{ t.ctaAccount }}
       </a>
-      <button type="button" class="btn-saluta" @click="emit('saluta')">
+      <button
+        v-if="faseAiuto && !schedaAperta && !aiutoFatto"
+        type="button"
+        class="btn-account"
+        @click="apriScheda"
+      >
+        {{ ta.chipRiepilogo }}
+      </button>
+      <button
+        type="button"
+        class="btn-saluta"
+        :disabled="invioInCorso"
+        @click="emit('saluta')"
+      >
         {{ t.saluta }}
       </button>
     </div>
@@ -786,11 +1601,51 @@ defineExpose({ interrompi });
 
 <style scoped>
 .tony-chat {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
   min-height: 0;
   flex: 1 1 auto;
+}
+
+/* Sovrapposta in alto: non sposta Invia / Saluta Tony. */
+.informativa-aiuto {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 6;
+  margin: 0;
+  padding: 0.45rem 1.6rem 0.45rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: #3d4a3a;
+  background: #f7faf8;
+  border: 1px solid rgba(15, 77, 50, 0.18);
+  border-radius: 10px;
+  max-height: none;
+  overflow: visible;
+  box-shadow: 0 4px 14px rgba(7, 25, 16, 0.12);
+}
+.informativa-aiuto a {
+  color: inherit;
+  text-decoration: underline;
+}
+.informativa-chiudi {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.25rem;
+  border: 0;
+  background: transparent;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #0f4d32;
+  padding: 0.15rem 0.35rem;
+}
+.informativa-aiuto .chip--capito {
+  margin-top: 0.35rem;
 }
 
 .riga-altoparlante {
@@ -837,6 +1692,78 @@ defineExpose({ interrompi });
   max-height: 10rem;
   overflow: auto;
   padding-right: 0.15rem;
+}
+
+@media (min-width: 1024px) {
+  .conversazione {
+    max-height: 45vh;
+  }
+}
+
+.attesa-lunga {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #4a6358;
+  font-style: italic;
+}
+
+.consenso-invio {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 1.6rem 0.55rem 0.65rem;
+  border: 1px solid rgba(15, 77, 50, 0.2);
+  border-radius: 10px;
+  background: #f7faf8;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  /* A 400×800 deve stare tutto visibile (testo + pulsanti) senza scroll interno. */
+  max-height: none;
+  overflow: visible;
+  flex: 0 0 auto;
+}
+
+.consenso-x {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #0f4d32;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.consenso-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip--secondario {
+  background: #fff;
+  border-color: rgba(15, 77, 50, 0.35);
+}
+
+.consenso-link,
+.privacy-chip-link a {
+  font-size: 0.78rem;
+  color: #0f4d32;
+}
+
+.chip--capito {
+  align-self: flex-start;
+}
+
+.privacy-chip-link {
+  margin: 0 0 0.15rem;
 }
 
 .battuta {

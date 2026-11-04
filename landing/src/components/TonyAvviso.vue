@@ -17,6 +17,13 @@ const radice = ref<HTMLElement | null>(null);
 const letto = ref(false);
 const audio = ref(true);
 let overflowPrima = '';
+let paddingRightPrima = '';
+let compensatoScrollbar = false;
+
+function supportaScrollbarGutter(): boolean {
+  if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') return false;
+  return CSS.supports('scrollbar-gutter', 'stable');
+}
 
 function fuochi(root: HTMLElement) {
   const nodi = root.querySelectorAll<HTMLElement>(
@@ -55,7 +62,16 @@ function conferma() {
 
 onMounted(() => {
   overflowPrima = document.body.style.overflow;
+  paddingRightPrima = document.body.style.paddingRight;
   document.body.style.overflow = 'hidden';
+  // Se manca scrollbar-gutter, compensa la barra che sparisce per evitare lo scatto.
+  if (!supportaScrollbarGutter() && typeof window !== 'undefined') {
+    const gap = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    if (gap > 0) {
+      document.body.style.paddingRight = `${gap}px`;
+      compensatoScrollbar = true;
+    }
+  }
   document.addEventListener('keydown', onKeydown);
   nextTick(() => {
     radice.value?.focus();
@@ -65,6 +81,10 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown);
   document.body.style.overflow = overflowPrima;
+  if (compensatoScrollbar) {
+    document.body.style.paddingRight = paddingRightPrima;
+    compensatoScrollbar = false;
+  }
 });
 </script>
 

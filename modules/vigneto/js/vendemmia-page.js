@@ -12,6 +12,9 @@ import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standa
 import { getVendemmie, getVendemmia, createVendemmia, updateVendemmia, deleteVendemmia } from '../services/vendemmia-service.js';
 import { getAllVigneti } from '../services/vigneti-service.js';
 import { getAllMacchine } from '../../../modules/parco-macchine/services/macchine-service.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const lavoriServiceModule = await import(resolvePath('../../../core/services/lavori-service.js'));
@@ -83,7 +86,7 @@ async function init() {
                 
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = resolveEffectiveModules(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {
@@ -126,7 +129,7 @@ async function init() {
                     const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
                     const { countVendemmieIncomplete } = await import('../../../core/config/tony-proactive-signals.js');
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = resolveEffectiveModules(tenant);
                     const incomplete = countVendemmieIncomplete(allVendemmie || []);
                     runTonyProactiveHubBriefing({
                         hubId: 'vendemmia',
@@ -159,7 +162,7 @@ async function loadVigneti() {
         vignetoSelect.innerHTML = '<option value="">Seleziona vigneto</option>';
         filterVigneto.innerHTML = '<option value="">Tutti i vigneti</option>';
         
-        vigneti.forEach(vigneto => {
+        vigneti.filter((v) => v.statoImpianto !== 'chiuso').forEach(vigneto => {
             const option = `<option value="${vigneto.id}">${vigneto.varieta} - ${vigneto.superficieEttari} ha</option>`;
             vignetoSelect.innerHTML += option;
             filterVigneto.innerHTML += option;
@@ -430,8 +433,14 @@ function renderVendemmie() {
                 <td>${statoBadge}${linkLavoro}</td>
                 <td>${vendemmia.costoTotale ? vendemmia.costoTotale.toFixed(2) : '0.00'}</td>
                 <td class="actions-cell">
-                    <button class="btn btn-sm btn-primary" onclick="editVendemmia('${vendemmia.vignetoId}', '${vendemmia.id}')">✏️ Modifica</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteVendemmiaConfirm('${vendemmia.vignetoId}', '${vendemmia.id}')">🗑️ Elimina</button>
+                    ${htmlAzioniRegistro(
+                        isRegistroSolaLettura({
+                            registro: vendemmia,
+                            impianto: vigneti.find((v) => v.id === vendemmia.vignetoId)
+                        }),
+                        `<button class="btn btn-sm btn-primary" onclick="editVendemmia('${vendemmia.vignetoId}', '${vendemmia.id}')">✏️ Modifica</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteVendemmiaConfirm('${vendemmia.vignetoId}', '${vendemmia.id}')">🗑️ Elimina</button>`
+                    )}
                 </td>
             </tr>
         `;
@@ -626,8 +635,14 @@ window.editVendemmia = async function(vignetoId, vendemmiaId) {
             }
         }
         
-        // Popola form
-        document.getElementById('vignetoId').value = vignetoId;
+        // Popola form. In modifica resta il vigneto della riga, anche se è chiuso.
+        const selectVigneto = document.getElementById('vignetoId');
+        tieniImpiantoNellaTendina(
+            selectVigneto,
+            vigneti.find((v) => v.id === vignetoId),
+            (v) => `${v.varieta} - ${v.superficieEttari} ha`
+        );
+        selectVigneto.value = vignetoId;
         onVignetoChange();
         
         const dataVendemmia = vendemmia.data instanceof Date 

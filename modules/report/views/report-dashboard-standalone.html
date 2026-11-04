@@ -287,7 +287,8 @@
         return;
       }
       const tenant = await getCurrentTenant();
-      const activeModules = tenant && Array.isArray(tenant.modules) ? tenant.modules : [];
+      const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+      const activeModules = resolveEffectiveModules(tenant);
 
       buildSectionCards(activeModules);
       reportMain.classList.remove('hidden');

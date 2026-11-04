@@ -226,6 +226,8 @@ export async function updatePotatura(vignetoId, potaturaId, updates) {
     if (!potaturaEsistente) {
       throw new Error('Potatura non trovata');
     }
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(potaturaEsistente, 'vigneti', vignetoId);
     
     potaturaEsistente.update(updates);
     
@@ -261,6 +263,11 @@ export async function deletePotatura(vignetoId, potaturaId) {
     
     if (!vignetoId || !potaturaId) {
       throw new Error('ID vigneto e potatura obbligatori');
+    }
+    const potaturaEsistente = await getPotatura(vignetoId, potaturaId);
+    if (potaturaEsistente) {
+      const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+      await assertRegistroImpiantoModificabile(potaturaEsistente, 'vigneti', vignetoId);
     }
     
     const collectionPath = getPotaturePath(vignetoId);

@@ -5,7 +5,8 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Abbonamento - GFV Platform</title>
+    <title>Abbonamento - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
@@ -705,6 +706,8 @@
             getModuleConfig,
             calculateTotalPrice,
             canActivateModule,
+            moduliDaDisattivareInsieme,
+            testoConfermaDisattivazioneCascata,
             getBundleBreakdown,
             monthlyToAnnual,
             formatBillingDisplay,
@@ -771,6 +774,13 @@
         function addonPendingDeactivation(addonId) {
             const rec = getStripeAddonRecord(addonId);
             return !!(rec && rec.pendingDeactivation);
+        }
+
+        /** Dipendenti ancora effettivi: la cascata non è finita (es. CT spento, VM ancora attiva). */
+        function dipendentiCascataAncoraAttivi(moduleId) {
+            return moduliDaDisattivareInsieme(moduleId, effectiveModules).filter(function(id) {
+                return id !== moduleId;
+            });
         }
 
         /** Addon disattivato in app ma ancora pagato fino a deactivatesAt (riattivabile). */
@@ -1494,6 +1504,14 @@
                 } else {
                     const mod = getModuleConfig(entry.id);
                     if (!mod) return;
+                    const ancoraAttivi = dipendentiCascataAncoraAttivi(mod.id);
+                    const nomiAncora = ancoraAttivi.map(function(id) {
+                        const dip = getModuleConfig(id);
+                        return dip ? dip.name : id;
+                    }).join(', ');
+                    const riprovaHtml = ancoraAttivi.length
+                        ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #dc3545; color: white; border: none;" onclick="riprovaDisattivazioneModulo('${mod.id}')">Riprova</button>`
+                        : '';
                     html += `
                         <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #ffc107;">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
@@ -1501,9 +1519,13 @@
                                     <div style="font-size: 20px; margin-bottom: 5px;">${mod.icon}</div>
                                     <div style="font-weight: bold; color: #856404; font-size: 14px;">${mod.name}</div>
                                 </div>
-                                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #2E8B57; color: white; border: none;" onclick="reactivateModule('${mod.id}')">Riattiva</button>
+                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                                    ${riprovaHtml}
+                                    <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #2E8B57; color: white; border: none;" onclick="reactivateModule('${mod.id}')">Riattiva</button>
+                                </div>
                             </div>
                             <div style="font-size: 12px; color: #666; margin-bottom: 8px;">${mod.description}</div>
+                            ${ancoraAttivi.length ? `<div style="font-size: 11px; color: #856404; margin-bottom: 6px;">Ancora da spegnere insieme: ${nomiAncora}</div>` : ''}
                             <div style="font-size: 11px; color: #856404;">Riattivabile gratuitamente fino al ${when}</div>
                         </div>
                     `;
@@ -1988,41 +2010,100 @@
                 showAlert('Disattivazione già in corso per questo modulo.', 'info');
                 return;
             }
+            const moduliCascata = moduliDaDisattivareInsieme(moduleId, effectiveModules);
             const addonRec = getStripeAddonRecord(moduleId);
             const previewDate = addonRec && (addonRec.periodEnd || addonRec.deactivatesAt);
+            const cascataMsg = testoConfermaDisattivazioneCascata(moduleId, moduliCascata);
             const confirmed = await showConfirmDialog({
                 title: 'Disattivare il modulo?',
                 icon: '⚠️',
                 variant: 'danger',
-                confirmLabel: 'Disattiva',
+                confirmLabel: 'Conferma',
                 bodyHtml:
                     '<p class="confirm-lead"><strong>' + escapeConfirmHtml(module.name) + '</strong></p>' +
+                    (moduliCascata.length > 1
+                        ? '<p>' + escapeConfirmHtml(cascataMsg) + '</p>'
+                        : '') +
                     '<div class="confirm-policy">' + escapeConfirmHtml(deactivationPolicyMessage(previewDate)) + '</div>'
             });
             if (!confirmed) return;
             if (!(await preparaDisattivazioneManodopera(manodoperaDopoRevoca(moduleId, 'module')))) return;
 
             try {
-                const cancelFn = getHttpsCallable('cancelStripeAddon');
-                const result = await cancelFn({
-                    tenantId: currentTenantId,
-                    addonId: moduleId,
-                    addonType: 'module'
-                });
-                clearCurrentTenantCache();
-                await loadTenantData();
-                refreshSubscriptionUi();
-
-                const data = result.data || {};
-                if (data.immediate) {
-                    showAlert(`Modulo "${module.name}" disattivato (nessun abbonamento Stripe collegato).`, 'success');
-                } else {
-                    showAlert(`Modulo "${module.name}" disattivato.\n\n${deactivationPolicyMessage(data.deactivatesAt)}`, 'success');
-                }
-                notifyClientModulesChanged();
+                await completaDisattivazioneModulo(moduleId);
             } catch (error) {
                 console.error('Errore disattivazione modulo:', error);
                 showAlert(`Errore: ${error.message}`, 'error');
+                await ricaricaAbbonamentoDopoErrore();
+            }
+        };
+
+        async function ricaricaAbbonamentoDopoErrore() {
+            try {
+                clearCurrentTenantCache();
+                await loadTenantData();
+                refreshSubscriptionUi();
+            } catch (reloadErr) {
+                console.warn('[Abbonamento] refresh dopo errore disattivazione:', reloadErr);
+            }
+        }
+
+        async function completaDisattivazioneModulo(moduleId) {
+            const cancelFn = getHttpsCallable('cancelStripeAddon');
+            const result = await cancelFn({
+                tenantId: currentTenantId,
+                addonId: moduleId,
+                addonType: 'module'
+            });
+            clearCurrentTenantCache();
+            await loadTenantData();
+            refreshSubscriptionUi();
+
+            const data = (result && result.data) || {};
+            function nomeModulo(id) {
+                const m = getModuleConfig(id);
+                return m ? m.name : id;
+            }
+            const idsMessaggio = [data.addonId || moduleId];
+            (Array.isArray(data.cascaded) ? data.cascaded : []).forEach(function(item) {
+                const id = item && (item.id || item);
+                if (id && idsMessaggio.indexOf(id) < 0) idsMessaggio.push(id);
+            });
+            const nomi = idsMessaggio.map(nomeModulo).join(', ');
+            const saltati = Array.isArray(data.skipped) ? data.skipped : [];
+            const notaSaltati = saltati.length
+                ? '\n\nRestano attivi (inclusi in un bundle o senza abbonamento proprio): ' +
+                    saltati.map(function(item) { return nomeModulo(item && (item.id || item)); }).join(', ') + '.'
+                : '';
+            if (data.immediate) {
+                showAlert(`Modulo/i disattivati: ${nomi} (nessun abbonamento Stripe collegato).${notaSaltati}`, 'success');
+            } else {
+                showAlert(`Modulo/i disattivati: ${nomi}.\n\n${deactivationPolicyMessage(data.deactivatesAt)}${notaSaltati}`, 'success');
+            }
+            notifyClientModulesChanged();
+        }
+
+        window.riprovaDisattivazioneModulo = async function(moduleId) {
+            const altri = dipendentiCascataAncoraAttivi(moduleId);
+            if (!altri.length) {
+                showAlert('Non resta nessun modulo da spegnere insieme a questo.', 'info');
+                return;
+            }
+            const cascataMsg = testoConfermaDisattivazioneCascata(moduleId, [moduleId].concat(altri));
+            const confirmed = await showConfirmDialog({
+                title: 'Riprovare la disattivazione?',
+                icon: '⚠️',
+                variant: 'danger',
+                confirmLabel: 'Riprova',
+                bodyHtml: '<p>' + escapeConfirmHtml(cascataMsg) + '</p>'
+            });
+            if (!confirmed) return;
+            try {
+                await completaDisattivazioneModulo(moduleId);
+            } catch (error) {
+                console.error('Errore disattivazione modulo:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+                await ricaricaAbbonamentoDopoErrore();
             }
         };
 

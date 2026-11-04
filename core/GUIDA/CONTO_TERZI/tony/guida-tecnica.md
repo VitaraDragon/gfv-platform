@@ -24,6 +24,16 @@ Target utili: `conto terzi`, `clienti`, `preventivi`, `tariffe`, `terreni client
 
 Dove esposto `window.currentTableData` / `table-data-ready`, usare solo summary e items per risposte su liste visibili.
 
+## Preventivo → lavoro (`modules/conto-terzi/js/lavoro-da-preventivo.js`)
+
+Dopo **Pianifica** sul preventivo accettato: stato preventivo **`pianificato`** (non traccia l’avanzamento operativo).
+
+- **`hasManodopera` true:** lavoro creato con stato **`da_pianificare`**; toast invita a **Gestione lavori**; href da `registroLavoriHref({ hasManodopera: true, … })`.
+- **`hasManodopera` false:** lavoro **`in_corso`**; toast «registra nel Diario Conto Terzi»; registro via `registroLavoriHref({ hasManodopera: false, … })`.
+- Diario CT (`filtraLavoriPerDiarioContoTerzi`): senza Manodopera include anche CT legacy **`da_pianificare`** con `clienteId`.
+
+In risposta utente: distinguere sempre i due rami; non dire che serve Gestione lavori se Manodopera non è accessibile.
+
 ## Preventivi — numero e accettazione
 
 - Numero: `PREV-{anno}-{seq}` padded (`preventivo-lock-utils.js`); allocazione seq atomica sul tenant (`preventivoSeqByYear`) + create preventivo.

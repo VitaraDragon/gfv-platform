@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Anagrafica Frutteti - GFV Platform</title>
+    <title>Anagrafica Frutteti - GFV</title>
     <link rel="manifest" href="../../../manifest.json">
     <meta name="theme-color" content="#FF6F00">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
@@ -387,7 +387,15 @@
                         <option value="attivo">Attivo</option>
                         <option value="in_riposo">In riposo</option>
                         <option value="da_rimuovere">Da rimuovere</option>
+                        <option value="chiuso">Chiuso</option>
                     </select>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
+                        <input type="checkbox" id="filter-mostra-chiusi" onchange="applyFilters()">
+                        Mostra chiusi
+                    </label>
                 </div>
                 <div class="filter-group">
                     <label>&nbsp;</label>
@@ -562,7 +570,7 @@
                     <textarea id="note" name="note" rows="3" placeholder="Note aggiuntive"></textarea>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" id="cancel-frutteto-btn">Annulla</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-frutteto-btn" onclick="closeFruttetoModal()">Annulla</button>
                     <button type="submit" class="btn btn-success">Salva</button>
                 </div>
             </form>

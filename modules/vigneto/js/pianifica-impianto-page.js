@@ -7,6 +7,7 @@
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { createPianificazione, getPianificazione, updatePianificazione } from '../services/pianificazione-impianto-service.js';
 
 try {
@@ -124,7 +125,7 @@ async function init() {
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
                     const moduloRichiesto = config.moduloRequired;
-                    if (!tenant || !tenant.modules || !tenant.modules.includes(moduloRichiesto)) {
+                    if (!tenant || !resolveEffectiveModules(tenant).includes(moduloRichiesto)) {
                         alert('Il modulo ' + (moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto') + ' non è attivo. Attivalo dalla pagina Abbonamento.');
                         window.location.href = '../../../../core/admin/abbonamento-standalone.html';
                         return;
@@ -431,7 +432,7 @@ async function onTerrenoSelected(event) {
     }
 
     try {
-        const terreni = await getAllTerreni();
+        const terreni = await getAllTerreni({ includiArchiviati: true });
         currentTerreno = terreni.find(t => t.id === terrenoId);
         
         if (!currentTerreno) {

@@ -7,7 +7,7 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-10-09g';
+    var TONY_LOADER_QUERY = '2026-11-02b';
     if (window.__gfvTonyLoaderBuild) {
         if (window.__gfvTonyLoaderBuild !== TONY_LOADER_QUERY) console.warn('[Tony] loader doppio ignorato', TONY_LOADER_QUERY, 'già attivo', window.__gfvTonyLoaderBuild);
         return;
@@ -36,7 +36,7 @@
             addMeta('apple-mobile-web-app-capable', 'yes');
             addMeta('mobile-web-app-capable', 'yes');
             addMeta('apple-mobile-web-app-status-bar-style', 'default');
-            addMeta('apple-mobile-web-app-title', 'GFV Platform');
+            addMeta('apple-mobile-web-app-title', 'GFV');
             if (!document.querySelector('link[rel="apple-touch-icon"]')) {
                 var l = document.createElement('link');
                 l.rel = 'apple-touch-icon';
@@ -163,29 +163,40 @@
 
     function publishTenantForTony(tenantData, modulesOpt) {
         if (!tenantData || typeof tenantData !== 'object') return;
-        var modules = modulesOpt;
-        if (!Array.isArray(modules)) {
-            modules = Array.isArray(tenantData.modules) ? tenantData.modules.slice() : [];
-        }
-        var rawPlan = tenantData.plan || tenantData.piano || 'base';
-        var planId = normalizePlan(rawPlan) || 'base';
-        window.__gfvTenantData = Object.assign({}, tenantData, { plan: planId, piano: planId });
-        window.__gfvModuliAttivi = modules;
-        window.__gfvSubscriptionPlanId = planId;
-        try {
-            window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planId } }));
-        } catch (ePub) { /* ignore */ }
-        try {
-            window.dispatchEvent(new CustomEvent('gfv-tenant-tony-ready'));
-        } catch (eReady) { /* ignore */ }
-        importCoreModule('config/feature-flags.js').then(function (ff) {
-            if (ff && typeof ff.publishFeatureFlags === 'function') {
-                ff.publishFeatureFlags(tenantData, tenantData.id || null);
+        function applyPublish(modules) {
+            var rawPlan = tenantData.plan || tenantData.piano || 'base';
+            var planId = normalizePlan(rawPlan) || 'base';
+            window.__gfvTenantData = Object.assign({}, tenantData, { plan: planId, piano: planId });
+            window.__gfvModuliAttivi = modules;
+            window.__gfvSubscriptionPlanId = planId;
+            try {
+                window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planId } }));
+            } catch (ePub) { /* ignore */ }
+            try {
+                window.dispatchEvent(new CustomEvent('gfv-tenant-tony-ready'));
+            } catch (eReady) { /* ignore */ }
+            importCoreModule('config/feature-flags.js').then(function (ff) {
+                if (ff && typeof ff.publishFeatureFlags === 'function') {
+                    ff.publishFeatureFlags(tenantData, tenantData.id || null);
+                }
+            }).catch(function () { /* ignore */ });
+            if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+                window.gfvTryLoadTonyWidgetWhenReady();
             }
-        }).catch(function () { /* ignore */ });
-        if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
-            window.gfvTryLoadTonyWidgetWhenReady();
         }
+        if (Array.isArray(modulesOpt)) {
+            applyPublish(modulesOpt);
+            return;
+        }
+        var rawModules = Array.isArray(tenantData.modules) ? tenantData.modules.slice() : []; // ripiego se resolveEffectiveModules non parte
+        importCoreModule('utils/module-access-resolver.js').then(function (mar) {
+            var modules = mar && typeof mar.resolveEffectiveModules === 'function'
+                ? mar.resolveEffectiveModules(tenantData)
+                : rawModules;
+            applyPublish(modules);
+        }).catch(function () {
+            applyPublish(rawModules);
+        });
     }
 
     function ensureStandaloneShell() {

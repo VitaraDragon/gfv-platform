@@ -6,9 +6,12 @@
  */
 
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -384,7 +387,7 @@ async function loadFrutteti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i frutteti</option>' : '<option value="">Seleziona frutteto</option>';
-        frutteti.forEach(f => {
+        frutteti.filter((v) => v.statoImpianto !== 'chiuso').forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.id;
             opt.textContent = f.specie || f.varieta || f.nome || f.id;
@@ -485,8 +488,11 @@ async function loadPotature() {
                 <td>${costo}</td>
                 <td>${lavoroCell}</td>
                 <td>
-                    <button type="button" class="btn btn-secondary btn-sm" data-edit="${p.id}" data-frutteto-id="${fruttetoId}">Modifica</button>
-                    <button type="button" class="btn btn-danger btn-sm" data-delete="${p.id}" data-frutteto-id="${fruttetoId}">Elimina</button>
+                    ${htmlAzioniRegistro(
+                        isRegistroSolaLettura({ registro: p, impianto: frutteti.find((f) => f.id === p.fruttetoId) }),
+                        `<button type="button" class="btn btn-secondary btn-sm" data-edit="${p.id}" data-frutteto-id="${fruttetoId}">Modifica</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-delete="${p.id}" data-frutteto-id="${fruttetoId}">Elimina</button>`
+                    )}
                 </td>
             </tr>`;
         }).join('');
@@ -543,6 +549,11 @@ async function openModalEdit(fruttetoId, potaturaId) {
     document.getElementById('modal-title').textContent = 'Modifica potatura';
     document.getElementById('potatura-id').value = potaturaId;
     document.getElementById('potatura-frutteto-id').value = fruttetoId;
+    tieniImpiantoNellaTendina(
+        document.getElementById('potatura-frutteto'),
+        frutteti.find((f) => f.id === fruttetoId),
+        (f) => f.specie || f.varieta || f.nome || f.id
+    );
     document.getElementById('potatura-frutteto').value = fruttetoId;
     const dataVal = p.data instanceof Date ? p.data : (p.data?.toDate ? p.data.toDate() : new Date(p.data));
     document.getElementById('potatura-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
@@ -1236,7 +1247,7 @@ async function init() {
                 const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                 if (tenantDoc.exists()) {
                     const tenantData = tenantDoc.data();
-                    const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                    const modules = resolveEffectiveModules(tenantData);
                     hasManodoperaModule = modules.includes('manodopera');
                     
                     // Inizializza context Tony con i moduli attivi usando helper

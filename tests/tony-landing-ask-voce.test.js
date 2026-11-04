@@ -416,7 +416,7 @@ describe('flusso ask → audio', () => {
       }
     );
     expect(resAudio.statusCode).toBe(200);
-    expect(pezzi[0]).toContain('Gi, effe, vu');
+    expect(pezzi[0]).toContain('Gi effe vu');
 
     const resBad = fakeRes();
     await handleTonyLandingAudio(

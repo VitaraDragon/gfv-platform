@@ -26,6 +26,7 @@ const {
   validaRichiesta,
   contieneDatiPersonali,
   decidiDomanda,
+  decidiDomandaAccount,
   messaggioPerCodice,
   costoStimatoEur,
   tokenDaUsage,
@@ -41,6 +42,10 @@ const testoLimiti = fs.readFileSync(
 );
 const testoAsk = fs.readFileSync(
   path.join(root, 'functions/tony-landing-ask.js'),
+  'utf8'
+);
+const testoAccount = fs.readFileSync(
+  path.join(root, 'functions/lib/tony-landing-account.js'),
   'utf8'
 );
 const testoRules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
@@ -81,9 +86,10 @@ describe('Costanti', () => {
     expect(COSTANTI.MAX_DOMANDE_GIORNO_PREDEFINITO).toBe(1000);
     expect(COSTANTI.MAX_DOMANDE_GIORNO_ASSOLUTO).toBe(3000);
     expect(COSTANTI.MAX_CARATTERI_DOMANDA).toBe(300);
-    expect(COSTANTI.MAX_BATTUTE_STORIA).toBe(6);
+    expect(COSTANTI.MAX_BATTUTE_STORIA).toBe(10);
     expect(COSTANTI.TETTO_MENSILE_EUR).toBe(30);
-    expect(COSTANTI.SOGLIA_SOLO_TESTO).toBe(0.8);
+    expect(COSTANTI.SOGLIA_AVVISO_GEMINI_50).toBe(0.5);
+    expect(COSTANTI.SOGLIA_AVVISO_GEMINI_80).toBe(0.8);
     expect(COSTANTI.ORE_SCADENZA_CONTATORI).toBe(48);
     expect(COSTANTI.CACHE_CONFIG_MS).toBe(60000);
     expect(COSTANTI.MODELLO_GEMINI).toBe('gemini-2.5-flash');
@@ -190,7 +196,7 @@ describe('decidiDomanda', () => {
     ).toBe('tetto');
   });
 
-  it('voce: soglia 80% e voiceEnabled', () => {
+  it('voce: solo voiceEnabled (spesa Gemini non spegne la voce)', () => {
     expect(
       decidiDomanda({
         config: configAcceso,
@@ -202,7 +208,7 @@ describe('decidiDomanda', () => {
         config: configAcceso,
         spesaMeseEur: 24
       }).voce
-    ).toBe(false);
+    ).toBe(true);
     expect(
       decidiDomanda({
         config: { ...configAcceso, voiceEnabled: false },
@@ -224,6 +230,52 @@ describe('decidiDomanda', () => {
   });
 });
 
+describe('decidiDomandaAccount', () => {
+  it('non applica il limite globale giornaliero', () => {
+    expect(
+      decidiDomandaAccount({
+        config: configAcceso,
+        domandeGiorno: 9999,
+        domandeAccount: 0
+      }).consentita
+    ).toBe(true);
+  });
+
+  it('blocca solo al limite account', () => {
+    expect(
+      decidiDomandaAccount({
+        config: configAcceso,
+        domandeAccount: COSTANTI.MAX_DOMANDE_ACCOUNT
+      }).codice
+    ).toBe('limite-account');
+  });
+});
+
+describe('validaRichiesta raccolti', () => {
+  it('accetta raccolti solo in fase account entro 1KB', () => {
+    const ok = validaRichiesta({
+      domanda: 'ciao',
+      sessione: 'abcdefghijklmnop',
+      storia: [],
+      fase: 'account',
+      argomento: 'sede',
+      raccolti: 'Sede: Faenza'
+    });
+    expect(ok.ok).toBe(true);
+    expect(ok.raccolti).toBe('Sede: Faenza');
+
+    const troppo = validaRichiesta({
+      domanda: 'ciao',
+      sessione: 'abcdefghijklmnop',
+      storia: [],
+      fase: 'account',
+      argomento: 'sede',
+      raccolti: 'x'.repeat(2000)
+    });
+    expect(troppo.ok).toBe(false);
+  });
+});
+
 describe('Messaggi e prompt', () => {
   it('testi esatti spento/tetto e limiti', () => {
     expect(messaggioPerCodice('spento')).toBe(
@@ -232,12 +284,9 @@ describe('Messaggi e prompt', () => {
     expect(messaggioPerCodice('tetto')).toBe(
       'Tony è nei campi. Intanto prova GFV!'
     );
-    expect(messaggioPerCodice('limite-sessione')).toBe(
-      'Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!'
-    );
-    expect(messaggioPerCodice('limite-giorno')).toBe(
-      'Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!'
-    );
+    expect(messaggioPerCodice('limite-sessione')).toBe(MESSAGGI.limiteSessione);
+    expect(messaggioPerCodice('limite-giorno')).toBe(MESSAGGI.limiteGiorno);
+    expect(messaggioPerCodice('limite-globale')).toBe(MESSAGGI.limiteGlobale);
     expect(messaggioPerCodice('sconosciuto-xyz')).toBe(MESSAGGI.errore);
   });
 
@@ -266,6 +315,9 @@ describe('CORS', () => {
     for (const o of ORIGINI_AMMESSE) {
       expect(origineAmmessa(o)).toBe(true);
     }
+    expect(
+      origineAmmessa('https://gfv-platform--prova-tony-ab12cd34.web.app')
+    ).toBe(true);
     for (const o of [
       null,
       '',
@@ -275,7 +327,10 @@ describe('CORS', () => {
       'http://gfvagri.com',
       'https://gfvagri.com.esempio.it',
       'https://esempio.com',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://altro--x.web.app',
+      'https://gfv-platform--x.web.app.evil.com',
+      'http://gfv-platform--x.web.app'
     ]) {
       expect(origineAmmessa(o)).toBe(false);
     }
@@ -355,13 +410,13 @@ describe('validaRichiesta e storiaPulita', () => {
     ).toBe(true);
   });
 
-  it('storiaPulita: ultime 6, ruoli, tagli', () => {
-    const dieci = [];
-    for (let i = 0; i < 10; i++) {
-      dieci.push({ ruolo: i % 2 === 0 ? 'utente' : 'tony', testo: 't' + i });
+  it('storiaPulita: ultime 10, ruoli, tagli', () => {
+    const molte = [];
+    for (let i = 0; i < 14; i++) {
+      molte.push({ ruolo: i % 2 === 0 ? 'utente' : 'tony', testo: 't' + i });
     }
-    const s = storiaPulita(dieci);
-    expect(s).toHaveLength(6);
+    const s = storiaPulita(molte);
+    expect(s).toHaveLength(10);
     expect(s[0].testo).toBe('t4');
     expect(storiaPulita([{ ruolo: 'admin', testo: 'x' }])).toEqual([]);
     expect(
@@ -402,15 +457,15 @@ describe('Tempo e scadenze', () => {
 });
 
 describe('Spesa', () => {
-  it('prezzi token e fisso', () => {
+  it('prezzi listino senza fisso né voce', () => {
     expect(
       costoStimatoEur({ tokenIngresso: 1000000, tokenUscita: 0 })
-    ).toBeCloseTo(0.3 + 0.0002, 6);
+    ).toBeCloseTo(0.3, 6);
     expect(
       costoStimatoEur({ tokenIngresso: 0, tokenUscita: 1000000 })
-    ).toBeCloseTo(2.5 + 0.0002, 6);
-    expect(costoStimatoEur({})).toBe(0.0002);
-    expect(costoStimatoEur({ tokenIngresso: -10, tokenUscita: -5 })).toBe(0.0002);
+    ).toBeCloseTo(2.5, 6);
+    expect(costoStimatoEur({})).toBe(0);
+    expect(costoStimatoEur({ tokenIngresso: -10, tokenUscita: -5 })).toBe(0);
   });
 
   it('tokenDaUsage con e senza metadata', () => {
@@ -425,16 +480,15 @@ describe('Spesa', () => {
     expect(stima.tokenIngresso).toBeGreaterThanOrEqual(1500);
   });
 
-  it('esempio: 3000+200 ≈ 0,0016 €; 600/giorno×31 sotto 30 €; tetto ferma anche sotto il cap giornaliero', () => {
-    // 3000 * 0.30/1e6 + 200 * 2.50/1e6 + 0.0002 = 0.0009 + 0.0005 + 0.0002 = 0.0016
+  it('esempio: 3000+200 ≈ 0,0014 €; tetto mensile ferma anche sotto il cap giornaliero', () => {
+    // 3000 * 0.30/1e6 + 200 * 2.50/1e6 = 0.0009 + 0.0005 = 0.0014
     const una = costoStimatoEur({ tokenIngresso: 3000, tokenUscita: 200 });
-    expect(una).toBeCloseTo(0.0016, 6);
-    // 1000/giorno × 31 ≈ 49,60 € > 30
+    expect(una).toBeCloseTo(0.0014, 6);
+    // 1000/giorno × 31 ≈ 43,40 € > 30 → il tetto mensile è il freno vero
     expect(una * 1000 * 31).toBeGreaterThan(30);
-    // Il vero freno ai costi è il tetto mensile di 30 €, non il limite giornaliero di domande.
     const sotto = una * 600 * 31;
     expect(sotto).toBeLessThan(30);
-    expect(sotto).toBeCloseTo(29.76, 2);
+    expect(sotto).toBeCloseTo(26.04, 2);
     const blocco = decidiDomanda({
       config: configAcceso,
       spesaMeseEur: 30,
@@ -491,7 +545,7 @@ describe('testoDaPayloadGemini e rigaSse', () => {
 
 describe('Isolamento', () => {
   it('niente tenants/users e require ammessi', () => {
-    for (const t of [testoLimiti, testoAsk]) {
+    for (const t of [testoLimiti, testoAsk, testoAccount]) {
       expect(t).not.toMatch(/\btenants\b/);
       expect(t).not.toMatch(/\busers\b/);
       expect(t).not.toMatch(/tonyLandingSetup(?!Quota)/);

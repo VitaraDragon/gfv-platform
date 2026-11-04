@@ -6,6 +6,7 @@
  */
 
 import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
 try {
@@ -33,6 +34,7 @@ const specieFruttifereConfigModule = await import('../config/specie-fruttifere.j
 const { FORME_ALLEVAMENTO_FRUTTETO } = specieFruttifereConfigModule;
 
 const { getAllTerreni } = terreniServiceModule;
+const { terreniPerTendina, isTerrenoFrutteto } = await import(resolvePath('../../../shared/js/coltura-terreno.js'));
 const { populateVarietaDropdown, addVarietaPersonalizzata } = varietaFruttetoServiceModule;
 const { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = firebaseServiceModule;
 const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
@@ -113,7 +115,7 @@ async function init() {
                 const tenantId = getCurrentTenantId();
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = resolveEffectiveModules(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {
@@ -209,26 +211,31 @@ async function init() {
 function getTerrenoLabel(t) {
     if (!t) return '-';
     const nome = (t.nome || '').trim();
+    const base = t.stato === 'archiviato' && nome ? `${nome} (archiviato)` : nome;
     const podere = (t.podere || '').trim();
-    if (nome && podere) return `${nome} – ${podere}`;
-    if (nome) return nome;
+    if (base && podere) return `${base} – ${podere}`;
+    if (base) return base;
     if (podere) return podere;
     return 'Terreno senza nome';
 }
 
-async function loadTerreni() {
+async function loadTerreni(idCorrente) {
     try {
-        terreni = await getAllTerreni();
+        terreni = await getAllTerreni({ includiArchiviati: true });
         const terrenoSelect = document.getElementById('terrenoId');
         const filterTerrenoSelect = document.getElementById('filter-terreno');
+        const perTendina = terreniPerTendina(terreni, {
+            filtro: (t) => isTerrenoFrutteto(t),
+            idCorrente: idCorrente || (terrenoSelect && terrenoSelect.value) || ''
+        });
 
         const optionsHtml = ['<option value="">Seleziona terreno</option>']
-            .concat(terreni.map(t => `<option value="${t.id}">${getTerrenoLabel(t)}</option>`))
+            .concat(perTendina.map(t => `<option value="${t.id}">${getTerrenoLabel(t)}</option>`))
             .join('');
         terrenoSelect.innerHTML = optionsHtml;
 
         const filterOptionsHtml = ['<option value="">Tutti i terreni</option>']
-            .concat(terreni.map(t => `<option value="${t.id}">${getTerrenoLabel(t)}</option>`))
+            .concat(perTendina.filter((t) => t.stato !== 'archiviato').map(t => `<option value="${t.id}">${getTerrenoLabel(t)}</option>`))
             .join('');
         filterTerrenoSelect.innerHTML = filterOptionsHtml;
     } catch (error) {
@@ -366,6 +373,9 @@ window.applyFilters = function() {
             return false;
         }
         
+        if (!document.getElementById('filter-mostra-chiusi')?.checked && frutteto.statoImpianto === 'chiuso' && filterStato !== 'chiuso') {
+            return false;
+        }
         // Filtro stato
         if (filterStato && frutteto.statoImpianto !== filterStato) {
             return false;
@@ -719,6 +729,7 @@ window.editFrutteto = async function(fruttetoId) {
 
     currentEditingId = fruttetoId;
     document.getElementById('frutteto-modal-title').textContent = 'Modifica Frutteto';
+    await loadTerreni(frutteto.terrenoId);
 
     document.getElementById('terrenoId').value = frutteto.terrenoId || '';
     
@@ -765,6 +776,8 @@ window.editFrutteto = async function(fruttetoId) {
 
     document.getElementById('frutteto-modal').classList.add('active');
 };
+
+document.getElementById('cancel-frutteto-btn')?.addEventListener('click', () => window.closeFruttetoModal());
 
 window.closeFruttetoModal = function() {
     document.getElementById('frutteto-modal').classList.remove('active');

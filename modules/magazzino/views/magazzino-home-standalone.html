@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Prodotti e Magazzino - GFV Platform</title>
+    <title>Prodotti e Magazzino - GFV</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -223,8 +223,9 @@
                 try {
                     const userRoles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
                     const modules = tenantDoc.exists()
-                        ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
+                        ? resolveEffectiveModules(tenantDoc.data() || {})
                         : ['magazzino'];
                     if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                         window.Tony.initContextWithModules(modules, {

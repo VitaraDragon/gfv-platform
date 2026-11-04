@@ -145,11 +145,11 @@ export async function refreshSeminativoHub(options = {}) {
     getAllSeminativi().catch(() => []),
     getAllSemine().catch(() => []),
     getAllRaccolteSeminativo().catch(() => []),
-    listTerreniSeminativo().catch(() => []),
+    listTerreniSeminativo({ includiArchiviati: true }).catch(() => []),
     getAllAttivita().catch(() => []),
     includeLavori ? getAllLavori().catch(() => []) : Promise.resolve([])
   ]);
-  const panoramica = panoramicaHubSeminativo({ campagne, semine, raccolte });
+  const panoramica = panoramicaHubSeminativo({ campagne, semine, raccolte, terreni });
   const elenchi = {
     raccolte: raccolteRecentiHub({
       campagna: panoramica.campagna,

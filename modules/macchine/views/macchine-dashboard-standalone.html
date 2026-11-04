@@ -6,7 +6,7 @@
     <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Gestione Parco Macchine - GFV Platform</title>
+    <title>Gestione Parco Macchine - GFV</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
@@ -469,8 +469,9 @@
                         const userData = userDoc.exists() ? userDoc.data() : {};
                         const ruoli = Array.isArray(userData.ruoli) ? userData.ruoli : ['manager'];
                         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
-                        const modules = tenantDoc.exists() && Array.isArray(tenantDoc.data().modules)
-                            ? tenantDoc.data().modules.slice()
+                        const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+                        const modules = tenantDoc.exists()
+                            ? resolveEffectiveModules(tenantDoc.data() || {}).slice()
                             : [];
                         if (!modules.includes('parcoMacchine')) modules.push('parcoMacchine');
                         if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {

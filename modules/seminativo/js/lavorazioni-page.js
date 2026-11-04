@@ -4,10 +4,12 @@
  */
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { listLavorazioniCollegate } from '../services/lavorazioni-service.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
+import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 const PAGE_TYPE = 'lavorazioni_seminativo';
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
@@ -30,10 +32,7 @@ function escapeHtml(value) {
 function getTerrenoLabel(id) {
   const terreno = terreni.find((t) => t.id === id);
   if (!terreno) return '—';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
 }
 
 function statoLabel(row) {
@@ -79,7 +78,7 @@ function fillSelect(el, options, placeholder) {
 function populateFilters() {
   fillSelect(
     document.getElementById('filter-terreno'),
-    terreni.map((t) => ({ value: t.id, label: getTerrenoLabel(t.id) })),
+    terreniOperativi(terreni).map((t) => ({ value: t.id, label: getTerrenoLabel(t.id) })),
     'Tutti i terreni'
   );
   fillSelect(
@@ -249,7 +248,7 @@ export async function initLavorazioniPage() {
       return;
     }
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = resolveEffectiveModules(tenant);
     hasManodopera = modules.some((m) => String(m || '').toLowerCase() === 'manodopera');
     if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
     if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');

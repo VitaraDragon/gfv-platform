@@ -9,6 +9,8 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -915,7 +917,7 @@ async function loadFrutteti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i frutteti</option>' : '<option value="">Seleziona frutteto</option>';
-        frutteti.forEach(f => {
+        frutteti.filter((v) => v.statoImpianto !== 'chiuso').forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.id;
             opt.textContent = f.specie || f.varieta || f.nome || f.id;
@@ -1037,10 +1039,14 @@ async function loadTrattamenti() {
             : avviso.hasWarning
                 ? `<span class="avviso-dosaggio" title="${(avviso.tooltip || '').replace(/"/g, '&quot;')}" aria-label="Avviso dosaggio">⚠️</span>`
                 : `<span class="alert-badge green" title="Dosaggi nel range consigliato" aria-label="Tutto ok"></span>`;
-        const azioni = hasTrattamento
-            ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
+        const impiantoRiga = frutteti.find((f) => f.id === row.fruttetoId);
+        const azioni = htmlAzioniRegistro(
+            isRegistroSolaLettura({ registro: t || row, impianto: impiantoRiga }),
+            hasTrattamento
+                ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
                <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
-            : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`;
+                : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`
+        );
         const fruttetoLabel = row.fruttetoNome || (frutteti.find(f => f.id === row.fruttetoId) && (frutteti.find(f => f.id === row.fruttetoId).specie || frutteti.find(f => f.id === row.fruttetoId).varieta || frutteti.find(f => f.id === row.fruttetoId).nome)) || row.fruttetoId || '-';
         return `<tr>
             <td>${formatDate(row.data)}</td>
@@ -1103,6 +1109,11 @@ async function openModalCompleta(idx) {
         setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
         document.getElementById('trattamento-id').value = found.trattamentoId;
         document.getElementById('trattamento-frutteto-id').value = row.fruttetoId;
+        tieniImpiantoNellaTendina(
+            document.getElementById('trattamento-frutteto'),
+            frutteti.find((f) => f.id === row.fruttetoId),
+            (f) => f.specie || f.varieta || f.nome || f.id
+        );
         document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
         document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
         const t = found.trattamento;
@@ -1200,6 +1211,11 @@ async function openModalEditRow(idx) {
     setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
     document.getElementById('trattamento-id').value = trattamentoId;
     document.getElementById('trattamento-frutteto-id').value = fruttetoId;
+    tieniImpiantoNellaTendina(
+        document.getElementById('trattamento-frutteto'),
+        frutteti.find((f) => f.id === fruttetoId),
+        (f) => f.specie || f.varieta || f.nome || f.id
+    );
     document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
     document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
     const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));

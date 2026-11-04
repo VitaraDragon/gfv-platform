@@ -33,4 +33,14 @@ describe('dashboard.css: colonna previsioni/operatività', () => {
     it('solo previsioni (senza manodopera): la card unica occupa ancora la colonna (1fr)', () => {
         expect(regola('.dashboard-meteo-side__inner--forecast-only')['grid-template-rows']).toBe('1fr');
     });
+
+    it('[hidden] nasconde davvero la riga (display:none vince su display:grid)', () => {
+        expect(regola('.dashboard-meteo-row[hidden]').display).toBe('none');
+    });
+
+    it('colonna laterale [hidden] e riga Free a una colonna', () => {
+        expect(regola('.dashboard-meteo-side[hidden]').display).toBe('none');
+        expect(regola('.dashboard-meteo-row--free-single')['grid-template-columns']).toBe('1fr');
+    });
 });
+

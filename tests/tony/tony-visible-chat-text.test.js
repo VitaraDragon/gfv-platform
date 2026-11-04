@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { cleanTextFromJsonResidue, resolveTonyUserVisibleText } from '../../core/js/tony/engine.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  cleanTextFromJsonResidue,
+  resolveTonyUserVisibleText,
+  sanitizeTonyVisibleChatText,
+} from '../../core/js/tony/engine.js';
 
 const RAW_COMMAND_MARKERS = [
   'OPEN_MODAL',
@@ -64,5 +70,32 @@ describe('chat Tony: niente JSON o comandi grezzi', () => {
     const visible = resolveTonyUserVisibleText(raw, null);
     expect(visible.text).toBe('Prendo quello grande.');
     expect(visible.command).toBeNull();
+  });
+});
+
+describe('engine.js: regressioni ripristinate (estrazione testo visibile)', () => {
+  it('sanitizeTonyVisibleChatText: il campo text passa da tonyExtractTextValueLooseClient (virgolette interne non escapate)', () => {
+    // extractQuotedJsonField si fermerebbe alla prima virgoletta interna → «Dico ».
+    const raw = '{"text":"Dico "ciao" a tutti."}';
+    expect(sanitizeTonyVisibleChatText(raw)).toBe('Dico "ciao" a tutti.');
+  });
+
+  it('cleanTextFromJsonResidue: array "commands" chiuso tolto PRIMA di sanitize (resta il testo dopo l’array)', () => {
+    // Senza il pre-strip, sanitize taglia dal token comando in poi e perde «Dimmi la data.»
+    const raw = 'Apro il diario del campo. "commands": [{"type":"OPEN_MODAL","id":"attivita-modal"}] Dimmi la data.';
+    const out = cleanTextFromJsonResidue(raw);
+    expect(out).toBe('Apro il diario del campo. Dimmi la data.');
+    expectSpeechOnly(out);
+    expect(out).not.toContain('commands');
+  });
+
+  it('resolveTonyUserVisibleText: il fallback finale usa extractTonyTextLoose(text || \'\'), non la copia raw', () => {
+    const src = readFileSync(join(process.cwd(), 'core/js/tony/engine.js'), 'utf8');
+    const body = src.slice(src.indexOf('export function resolveTonyUserVisibleText'));
+    expect(body).toMatch(/extractTonyTextLoose\(text \|\| ''\)/);
+    expect(body).not.toMatch(/extractTonyTextLoose\(raw\)/);
+    // Input non stringa / vuoto: nessuna eccezione e nessun JSON in chat.
+    expect(resolveTonyUserVisibleText(undefined, null).text).toBe('Ok.');
+    expect(resolveTonyUserVisibleText(null, null).text).toBe('Ok.');
   });
 });

@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Gestione Preventivi - Conto Terzi - GFV Platform</title>
+    <title>Gestione Preventivi - Conto Terzi - GFV</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
@@ -377,6 +377,9 @@
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { accettaPreventivo, rifiutaPreventivo as rifiutaPreventivoLocked } from '../services/preventivi-service.js';
+        import { lavoroDaPreventivo } from '../js/lavoro-da-preventivo.js';
+        import { tenantHasManodopera } from '../../../core/config/manodopera-diario-gate.js';
+        import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -1326,46 +1329,62 @@
                     }
                 }
 
-                // Crea nome lavoro
                 const cliente = clienti.find(c => c.id === preventivo.clienteId);
-                const nomeLavoro = `${preventivo.tipoLavoro} - ${preventivo.coltura}${cliente ? ` (${cliente.ragioneSociale})` : ''}`;
+                const tenantDocPianifica = await getDoc(doc(db, 'tenants', currentTenantId));
+                const moduliEffettivi = tenantDocPianifica.exists()
+                    ? resolveEffectiveModules(tenantDocPianifica.data())
+                    : [];
+                const hasManodopera = tenantHasManodopera(moduliEffettivi);
 
-                // Calcola data inizio (usa data prevista se disponibile, altrimenti oggi)
-                let dataInizio = new Date();
-                if (preventivo.dataPrevista?.toDate) {
-                    dataInizio = preventivo.dataPrevista.toDate();
-                } else if (preventivo.dataPrevista instanceof Date) {
-                    dataInizio = preventivo.dataPrevista;
-                }
+                const { lavoroData: lavoroBase, toastMessage, registroHref } = lavoroDaPreventivo(
+                    {
+                        ...preventivo,
+                        clienteLabel: cliente ? (cliente.ragioneSociale || cliente.nome || '') : ''
+                    },
+                    {
+                        hasManodopera,
+                        terrenoId: terrenoIdLavoro,
+                        creatoDa: currentUser.uid
+                    }
+                );
 
-                // Crea lavoro con stato "da_pianificare"
                 const lavoroData = {
-                    nome: nomeLavoro,
-                    terrenoId: terrenoIdLavoro,
-                    tipoLavoro: preventivo.tipoLavoro,
-                    clienteId: preventivo.clienteId,
-                    preventivoId: preventivo.id,
-                    dataInizio: Timestamp.fromDate(dataInizio),
-                    durataPrevista: 1, // Default, manager modificherà
-                    stato: 'da_pianificare',
-                    note: `Lavoro creato da preventivo ${preventivo.numero}.\n${preventivo.note || ''}`.trim(),
-                    creatoDa: currentUser.uid,
+                    ...lavoroBase,
+                    dataInizio: Timestamp.fromDate(
+                        lavoroBase.dataInizio instanceof Date
+                            ? lavoroBase.dataInizio
+                            : new Date(lavoroBase.dataInizio)
+                    ),
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp()
                 };
 
-                // Salva lavoro
                 const lavoroRef = await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
                 const lavoroId = lavoroRef.id;
 
-                // Aggiorna preventivo
                 await updateDoc(doc(db, 'tenants', currentTenantId, 'preventivi', preventivoId), {
                     stato: 'pianificato',
                     lavoroId: lavoroId,
                     updatedAt: serverTimestamp()
                 });
 
-                showAlert('Lavoro creato con successo! Ora puoi completare la pianificazione dalla pagina Gestione Lavori.', 'success');
+                showAlert(toastMessage, 'success');
+                if (registroHref) {
+                    const layer = document.getElementById('gfv-standalone-toast-layer');
+                    const toast = layer && layer.lastElementChild;
+                    if (toast) {
+                        const link = document.createElement('a');
+                        link.href = registroHref;
+                        link.textContent = registroHref.indexOf('attivita-standalone') >= 0
+                            ? 'Apri Diario Conto Terzi'
+                            : 'Apri';
+                        link.style.marginLeft = '8px';
+                        link.style.color = 'inherit';
+                        link.style.fontWeight = '600';
+                        toast.appendChild(document.createTextNode(' '));
+                        toast.appendChild(link);
+                    }
+                }
                 await loadPreventivi();
             } catch (error) {
                 console.error('Errore creazione lavoro:', error);

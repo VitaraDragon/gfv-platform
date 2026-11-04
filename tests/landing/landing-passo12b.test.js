@@ -110,6 +110,23 @@ describe('modoVoce e corpo', () => {
       })
     ).toBe('nessuna');
     expect(MAX_RISPOSTE_VOCE_AUTOMATICHE).toBe(3);
+    expect(
+      modoVoce({
+        esito: esitoOk,
+        altoparlante: true,
+        risposteVocaliAutomatiche: 7,
+        paginaNascosta: false,
+        faseAccount: true,
+      })
+    ).toBe('automatica');
+    expect(
+      modoVoce({
+        esito: esitoOk,
+        altoparlante: false,
+        risposteVocaliAutomatiche: 0,
+        faseAccount: true,
+      })
+    ).toBe('pulsante');
     expect(MAX_CARATTERI_TESTO_VOCE).toBe(COSTANTI_VOCE.MAX_CARATTERI_TESTO);
     expect(corpoRichiestaVoce({ idVoce: ID, sessione: 's', testo: 't' })).toEqual({
       idVoce: ID,
@@ -261,6 +278,8 @@ describe('tony-voce-player', () => {
     const audio = {
       preload: '',
       src: '',
+      readyState: 4,
+      volume: 1,
       play: vi.fn(() => Promise.resolve()),
       pause: vi.fn(),
       removeAttribute: vi.fn(),
@@ -273,6 +292,9 @@ describe('tony-voce-player', () => {
       },
       set onerror(fn) {
         listeners.error = fn;
+      },
+      set oncanplay(fn) {
+        listeners.canplay = fn;
       },
     };
     const player = creaPlayerVoce({

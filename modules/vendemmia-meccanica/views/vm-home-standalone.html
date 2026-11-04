@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Vendemmia Meccanica - GFV Platform</title>
+    <title>Vendemmia Meccanica - GFV</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -291,7 +291,7 @@
     <script type="module">
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { applyRegistroLavoriLinks, tenantHasManodopera } from '../../../core/config/manodopera-diario-gate.js';
-        import { initVmPageAuth, showVmAlert } from '../js/vm-page-auth.js';
+        import { initVmPageAuth, showVmAlert, showVmModuleAccessDenied } from '../js/vm-page-auth.js';
         import { getPianoStagioneRows } from '../services/piano-stagione-service.js';
         import { summarizePianoStagione } from '../services/piano-stagione-kpi.js';
         import { groupClientiVignetoPiano, buildVignetoDetectionContext } from '../services/piano-stagione-utils.js';
@@ -349,9 +349,11 @@
             await loadHubKpi(anno);
         } catch (e) {
             console.error(e);
-            showVmAlert('alert-container', e.message || 'Errore caricamento hub', 'error');
-            if ((e.message || '').includes('Moduli non attivi')) {
-                setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 3500);
+            const msg = e.message || 'Errore caricamento hub';
+            if (/Abbonamento|Conto Terzi|Vendemmia Meccanica|serve:/i.test(msg)) {
+                showVmModuleAccessDenied('alert-container', msg);
+            } else {
+                showVmAlert('alert-container', msg, 'error');
             }
         }
     </script>
