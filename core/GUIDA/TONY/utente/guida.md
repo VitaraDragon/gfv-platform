@@ -124,7 +124,7 @@ Sul **piano gratuito** Tony Guida c’è **solo nei primi 7 giorni** dalla regis
 
 ### I primi 7 giorni: il percorso guidato
 
-Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore) con «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» e tre pulsanti: **1) Mappa / sede**, **2) Terreni (coltura e confini)**, **3) Primo lavoro / attività nel Diario**, più **Chiudi percorso**. Se manca il pin della sede lo dice («lo mettiamo al passo 1»). Nei giorni dopo, una volta al giorno, riprende dal passo che non avete ancora aperto. Se premendo un passo Tony risponde che serve **Tony Avanzato**, aprite la pagina a mano (ingranaggio → **Impostazioni**; graffetta → **Terreni** o **Diario attività**). Dettaglio nella guida Core, sezione Tony.
+Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore) con «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» e tre pulsanti: **1) Mappa / sede**, **2) Terreni (coltura e confini)**, **3) Primo lavoro / attività nel Diario**, più **Chiudi percorso**. Il passo 3 porta al **Diario attività** senza Manodopera; con **Manodopera** porta a **Gestione lavori** e **Segnatura ore**. Ogni pulsante apre la pagina con qualsiasi piano, anche gratuito o Base. Se manca il pin della sede lo dice («lo mettiamo al passo 1»). Nei giorni dopo, una volta al giorno, riprende dal passo che non avete ancora aperto. Il percorso resta salvato nell’azienda e vale su tutti i telefoni e computer. Dettaglio nella guida Core, sezione Tony.
 
 ---
 
@@ -316,7 +316,6 @@ In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizi
 |----------|------------------|
 | **Non vedo** il pulsante Tony | Piano **Free** dopo i primi 7 giorni dalla registrazione; pagina in caricamento; chiedere all’**amministratore** di passare a **Base**. |
 | «Hai raggiunto il limite giornaliero di 30 domande…» | Piano **Free** nei primi 7 giorni: riprova domani oppure passa a **Base**. |
-| Premo un passo del percorso dei primi 7 giorni e Tony dice che serve **Tony Avanzato** | Apri la pagina a mano: ingranaggio → **Impostazioni**; graffetta in alto a sinistra → **Terreni** o **Diario attività**. |
 | Tony dice che serve **Tony Avanzato** | Automazioni (apri pagina, compila, filtri, intervista vocale) richiedono il **modulo Tony** attivo in **Abbonamento**. |
 | **Nessun consiglio moduli** | Consigliere attivo solo su **piano Base**; chiedi esplicitamente («quali moduli…»); servono abbastanza dati azienda (terreni, uso app). |
 | «**Non ho i dati** della lista» | Sei sulla pagina giusta? La tabella è caricata? Prova a **rifare la domanda** dopo che i dati compaiono. |

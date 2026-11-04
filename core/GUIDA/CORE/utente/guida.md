@@ -109,7 +109,7 @@ Nella Home con la pelle attuale (Proposta) questa sezione **non** si vede: per e
 
 Con il **piano Base** (a pagamento), compare **Meteo sede** con previsioni per l’indirizzo dell’azienda in **Impostazioni**. Sul **piano gratuito** al posto delle previsioni compare «Meteo sede disponibile con il piano Base» con il collegamento **Vai ad Abbonamento →**.  
 Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Il meteo usa il **pin della sede** sulla mappa: se manca compare «Imposta il pin della sede in Impostazioni per vedere il meteo.» Andate in **Impostazioni** → **Sede aziendale sulla mappa**: se avete già scritto indirizzo e città, l’app cerca da sola il punto e vi chiede «Controlla il pin e salva»; controllate che sia giusto e premete **Salva Impostazioni Azienda**. Se il servizio non risponde entro qualche secondo compare «Meteo non disponibile al momento. Riprova più tardi.»: ricaricate più tardi la dashboard.  
-**Pin messo da solo al primo accesso:** se in **Impostazioni** ci sono già indirizzo e città ma manca il pin, la prima volta che il manager o l’amministratore apre la dashboard l’app prova a mettere il pin da sola e lo salva, **solo se trova l’indirizzo in quel comune**. Se non lo trova, in cima alla dashboard compare «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).» con il collegamento **Apri Impostazioni**: lì cliccate voi il punto giusto sulla mappa e premete **Salva Impostazioni Azienda**. Il tentativo automatico si fa una volta sola su quel browser.
+**Pin messo da solo:** se in **Impostazioni** ci sono già indirizzo e città ma manca il pin, anche per le aziende che erano già iscritte, quando il manager o l’amministratore apre la dashboard l’app prova a mettere il pin da sola e lo salva. Se non trova il numero civico in quel comune, mette il pin al centro del comune e in cima alla dashboard scrive «Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni». Se non trova nemmeno il comune, compare «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).» con il collegamento **Apri Impostazioni**: lì cliccate voi il punto giusto sulla mappa e premete **Salva Impostazioni Azienda**. Appena il pin è salvato, il **Meteo sede** si aggiorna subito, senza ricaricare la pagina. Il pin resta salvato nei dati dell’azienda e vale su tutti i telefoni e computer: il tentativo automatico si fa una volta sola per l’azienda.
 
 ### Scadenze e «In arrivo»
 
@@ -473,11 +473,11 @@ Sotto il messaggio trovi tre pulsanti, uno per passo, e **Chiudi percorso**:
 
 1. **1) Mappa / sede** — porta a **Impostazioni**, dove mettete il pin della sede.
 2. **2) Terreni (coltura e confini)** — porta a **Terreni**: categoria coltura, coltura e, se volete, i confini.
-3. **3) Primo lavoro / attività nel Diario** — porta al **Diario attività** per la prima giornata in campo.
+3. **3) Primo lavoro / attività nel Diario** — per la prima giornata in campo: **senza Manodopera** porta al **Diario attività**; **con Manodopera** attivo porta invece a **Gestione lavori** e **Segnatura ore**, dove si registrano le giornate (non al Diario).
 
-Se premendo un passo Tony risponde che serve il modulo **Tony Avanzato**, aprite la pagina a mano. **Impostazioni** si apre dall’ingranaggio in alto a destra. **Terreni** e **Diario attività** si aprono dalla graffetta in alto a sinistra.
+Ogni pulsante apre direttamente la sua pagina con qualsiasi piano, anche gratuito o Base: non serve **Tony Avanzato**.
 
-Nei giorni seguenti, al massimo una volta al giorno, Tony riprende dal primo passo che non avete ancora aperto (per esempio «Riprendiamo dai terreni. Usa i pulsanti qui sotto o la graffetta in alto a sinistra.») e mostra solo i passi che restano. Con **Chiudi percorso** Tony risponde «Ok, chiudo il percorso guidato. Se ti serve, chiedimi pure.» e non lo ripropone più. Il percorso si ricorda **su questo browser**: su un altro telefono o computer può ripartire dall’inizio.
+Nei giorni seguenti, al massimo una volta al giorno, Tony riprende dal primo passo che non avete ancora aperto (per esempio «Riprendiamo dai terreni. Usa i pulsanti qui sotto o la graffetta in alto a sinistra.») e mostra solo i passi che restano. Con **Chiudi percorso** Tony risponde «Ok, chiudo il percorso guidato. Se ti serve, chiedimi pure.» e non lo ripropone più. Il percorso resta salvato nei dati dell’azienda: i passi già aperti e **Chiudi percorso** valgono su tutti i telefoni e computer con cui entrate.
 
 ### Salutare Tony quando hai finito
 
