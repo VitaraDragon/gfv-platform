@@ -56,6 +56,22 @@ Con Manodopera attivo, «segna le ore» detto da un manager non apre più un lav
 
 ---
 
+**Ultimo aggiornamento precedente: 2026-10-26 — Tony: slot di turno, ripresa con un luogo, segna ore non è meteo.**
+
+## 2026-10-26 — Tony: slot di turno (#124), ripresa con un luogo (#84), segna ore non è meteo
+
+Porting a mano su main di #124 (`ec0bd83d`) e del resto di #84 (`cbc9c44e`). Dopo un oliveto, mietitura o trebbiatura non confermano campo e ore del turno prima: Tony chiede l’appezzamento. «Continua dalla fila 4 verso il fosso» ripete fila e fosso; la regola 4 c’era già. «Aiutami a segnare le ore di oggi per un lavoro» non apre più la valutazione meteo. «Ore» da sola resta una domanda sul tempo. Serve il deploy di `tonyAsk` e `tonyAskStream`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-26 — Tony: la chat mostra solo la frase.**
+
+## 2026-10-26 — Tony: la chat mostra solo la frase (porting #123)
+
+Porting a mano di #123 (`0db04887`) su main. Se la risposta arriva troncata o con un comando attaccato (`OPEN_MODAL`, `INJECT_FORM_DATA`, …), in chat e in voce resta la frase; il comando parte solo se id, formId o target sono chiusi. Una bolla vuota non viene mostrata. L’estrazione di `text` con virgolette non escapate resta quella di #298; «Tutto pronto» resta l’uscita di ogni bolla. Nessun deploy di Cloud Functions.
+
+---
+
 **Ultimo aggiornamento precedente: 2026-10-25 — Tony: mai JSON grezzo in chat.**
 
 ## 2026-10-25 — Tony: mai JSON grezzo in chat (virgolette non escapate)
@@ -100,7 +116,7 @@ Sui lavori di squadra la zona la segna il caposquadra di quel lavoro, oppure un 
 
 ## 2026-10-19 — Barra «C'è una nuova versione»
 
-Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: il ricaricamento parte subito dopo che la versione nuova ha preso il controllo, così una pagina già aperta non lo perde. Dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
 
 ---
 
