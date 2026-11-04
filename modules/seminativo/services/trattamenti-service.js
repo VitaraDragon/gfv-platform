@@ -80,7 +80,7 @@ export async function getAllTrattamentiSeminativo() {
 export async function listRigheTrattamento(options = {}) {
   const includeLavori = options.includeLavori !== false;
   const [terreni, campagne, nomi, trattamenti, attivita, lavori] = await Promise.all([
-    listTerreniSeminativo(),
+    listTerreniSeminativo({ includiArchiviati: true }),
     getAllSeminativi().catch(() => []),
     (options.categoria === 'concimazione' ? nomiTipiConcimazione() : nomiTipiTrattamento()),
     getAllTrattamentiSeminativo().catch(() => []),

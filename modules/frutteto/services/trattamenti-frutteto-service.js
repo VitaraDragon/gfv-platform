@@ -152,6 +152,8 @@ export async function updateTrattamento(fruttetoId, trattamentoId, updates, opti
 
     const trattamentoEsistente = await getTrattamento(fruttetoId, trattamentoId);
     if (!trattamentoEsistente) throw new Error('Trattamento non trovato');
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(trattamentoEsistente, 'frutteti', fruttetoId);
 
     const prevMagazzinoIds = Array.isArray(trattamentoEsistente.magazzinoMovimentoIds)
       ? trattamentoEsistente.magazzinoMovimentoIds.filter(Boolean)
@@ -208,6 +210,8 @@ export async function deleteTrattamento(fruttetoId, trattamentoId, opzioni = {})
       err.code = 'REGISTRO_CONSERVAZIONE';
       throw err;
     }
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(existing, 'frutteti', fruttetoId);
 
     const collectionPath = getTrattamentiPath(fruttetoId);
     await deleteDocument(collectionPath, trattamentoId, tenantId);

@@ -4,6 +4,8 @@ Questa guida è per chi ha **attivato il modulo Seminativo** sull'azienda. Senza
 
 Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compare.
 
+Se cambiate gli ettari del terreno, si aggiorna la superficie delle campagne in corso e future, non di quelle già chiuse. I registri già salvati restano come sono. Un terreno archiviato non compare nelle tendine; nello storico il nome ha la scritta **(archiviato)**. La coltura di un lavoro nuovo è quella del terreno.
+
 ---
 
 ## Percorso consigliato

@@ -9,6 +9,7 @@ import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standa
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { listLavorazioniCollegate } from '../services/lavorazioni-service.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
+import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 const PAGE_TYPE = 'lavorazioni_seminativo';
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
@@ -31,10 +32,7 @@ function escapeHtml(value) {
 function getTerrenoLabel(id) {
   const terreno = terreni.find((t) => t.id === id);
   if (!terreno) return '—';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
 }
 
 function statoLabel(row) {
@@ -80,7 +78,7 @@ function fillSelect(el, options, placeholder) {
 function populateFilters() {
   fillSelect(
     document.getElementById('filter-terreno'),
-    terreni.map((t) => ({ value: t.id, label: getTerrenoLabel(t.id) })),
+    terreniOperativi(terreni).map((t) => ({ value: t.id, label: getTerrenoLabel(t.id) })),
     'Tutti i terreni'
   );
   fillSelect(

@@ -216,6 +216,8 @@ export async function updateAttivita(attivitaId, updates) {
     if (!attivitaEsistente) {
       throw new Error('Attività non trovata');
     }
+    const { assertAttivitaModificabile } = await import('./storico-guard.js');
+    await assertAttivitaModificabile(attivitaEsistente);
     
     // Aggiorna con nuovi dati
     attivitaEsistente.update(updates);
@@ -253,6 +255,11 @@ export async function deleteAttivita(attivitaId) {
     
     if (!attivitaId) {
       throw new Error('ID attività obbligatorio');
+    }
+    const attivitaEsistente = await getAttivita(attivitaId);
+    if (attivitaEsistente) {
+      const { assertAttivitaModificabile } = await import('./storico-guard.js');
+      await assertAttivitaModificabile(attivitaEsistente);
     }
     
     await deleteDocument(COLLECTION_NAME, attivitaId, tenantId);

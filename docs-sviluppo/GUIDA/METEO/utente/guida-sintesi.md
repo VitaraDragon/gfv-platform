@@ -5,7 +5,7 @@ Linguaggio allineato alla guida utente. Distinguere sempre **Meteo sede** (piano
 ## In sintesi
 
 - **Piano Free:** nessun meteo in dashboard né pagina modulo.
-- **Piano Base, senza modulo Meteo:** riga dashboard **Meteo sede** (sotto **Moduli**); previsioni per **indirizzo sede** in **Impostazioni**; titolo icona sole; niente pagina mappa per terreni.
+- **Piano Base, senza modulo Meteo:** riga dashboard **Meteo sede** (sotto **Moduli**); previsioni per **indirizzo sede** in **Impostazioni**; titolo icona sole; niente pagina mappa per terreni. I terreni archiviati non ricevono avvisi.
 - **Modulo Meteo attivo (+ Base):** widget dashboard **Meteo** espanso (alert, ore, link **Modulo Meteo →**); **Moduli** → **Meteo** → mappa satellitare campi (stessi confini **Mappa aziendale** / **Terreni**); click perimetro/punto → pannello dettaglio (alert, 48h, 8 giorni); blocco **Sede aziendale** in pagina; **← Dashboard Principale**; max ~30 campi possibile.
 - **Ingresso:** **Moduli** → **Meteo**; link da widget; **I miei accessi**; riquadro fondo dashboard solo **senza** Manodopera.
 - **Terreni:** per meteo per campo servono coordinate/perimetro; senza → messaggio e link **Terreni**.

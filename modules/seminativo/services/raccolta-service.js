@@ -48,7 +48,7 @@ export async function getAllRaccolteSeminativo() {
 export async function listRigheRaccolta(options = {}) {
   const includeLavori = options.includeLavori !== false;
   const [terreni, campagne, nomi, raccolte, attivita, lavori] = await Promise.all([
-    listTerreniSeminativo(),
+    listTerreniSeminativo({ includiArchiviati: true }),
     getAllSeminativi().catch(() => []),
     nomiTipiRaccolta().catch(() => nomiSeedRaccoltaCampo()),
     getAllRaccolteSeminativo().catch(() => []),

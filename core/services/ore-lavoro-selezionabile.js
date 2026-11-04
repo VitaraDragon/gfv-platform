@@ -4,6 +4,8 @@
  * usano la stessa regola per operaio, caposquadra e manager.
  */
 
+import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
+
 export const FINESTRA_ORE_IN_RITARDO_GIORNI = 7;
 
 const RUOLI_OK = new Set(['operaio', 'caposquadra', 'manager']);
@@ -138,12 +140,17 @@ function esito(ok, motivo) {
  *   giorno (YYYY-MM-DD o Date): il giorno delle ore. Se omesso = «menu»: il lavoro compare in elenco.
  * @returns {{ ok: boolean, motivo: string }}
  */
-export function lavoroSelezionabilePerOre({ lavoro, ruolo, oggi = new Date(), giorno } = {}) {
+export function lavoroSelezionabilePerOre({ lavoro, ruolo, oggi = new Date(), giorno, terreno } = {}) {
     if (!RUOLI_OK.has(ruolo)) {
         return esito(false, 'Non puoi segnare ore su questo lavoro.');
     }
     if (!lavoro || typeof lavoro !== 'object') {
         return esito(false, 'Seleziona prima un lavoro.');
+    }
+
+    const terrenoCollegato = terreno || (lavoro.terreno && typeof lavoro.terreno === 'object' ? lavoro.terreno : null);
+    if (terrenoCollegato && isLavoroSolaLettura(lavoro, terrenoCollegato)) {
+        return esito(false, MESSAGGIO_ORE_SOLA_LETTURA);
     }
 
     const stato = lavoro.stato || 'assegnato';

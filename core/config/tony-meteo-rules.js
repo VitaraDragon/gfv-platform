@@ -104,6 +104,7 @@ export function buildMeteoConsigli(rules, terreniRows, lavori, sedeCompact) {
   }
 
   for (const row of terreniRows || []) {
+    if (!row || row.stato === 'archiviato' || row.archiviato === true || row.code === 'ARCHIVIATO') continue;
     if (!row.ok) continue;
     if (row.alertsCount > 0) {
       pushConsiglio({

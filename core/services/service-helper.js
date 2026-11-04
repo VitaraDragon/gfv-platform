@@ -380,6 +380,11 @@ export async function loadTerreniViaService(options) {
                 dataScadenzaAffitto: t.dataScadenzaAffitto || null,
                 canoneAffitto: t.canoneAffitto || null,
                 clienteId: t.clienteId || null,
+                stato: t.stato || 'attivo',
+                archiviatoIl: t.archiviatoIl || null,
+                motivoArchiviazione: t.motivoArchiviazione || null,
+                colturaDal: t.colturaDal || null,
+                storicoColture: t.storicoColture || [],
             };
             
             // Aggiungi metodo hasMappa per compatibilità

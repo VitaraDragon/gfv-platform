@@ -180,6 +180,8 @@ export function setupManodoperaVisibility(hasManodoperaModule) {
 // FUNZIONI CARICAMENTO DATI
 // ============================================
 
+import { isTerrenoArchiviato, nomeTerrenoPerStorico } from '../../../shared/js/terreno-archivio.js';
+
 let terreniPerIdLookup = new Map();
 
 /**
@@ -192,6 +194,7 @@ let terreniPerIdLookup = new Map();
 export function dividiTerreniPerVista(tutti, isContoTerzi) {
     const lista = Array.isArray(tutti) ? tutti : [];
     const perLista = lista.filter((terreno) => {
+        if (isTerrenoArchiviato(terreno)) return false;
         const haCliente = terreno && terreno.clienteId != null && String(terreno.clienteId) !== '';
         return isContoTerzi ? haCliente : !haCliente;
     });
@@ -258,7 +261,8 @@ export async function loadTerreni(currentTenantId, db, app, auth, terreniList, p
                 orderBy: 'nome',
                 orderDirection: 'asc',
                 clienteId: null,
-                includeTerreniClienti: true
+                includeTerreniClienti: true,
+                includiArchiviati: true
             }
         });
         const { perLista, perId } = dividiTerreniPerVista(tutti, isContoTerziMode);
@@ -2157,7 +2161,7 @@ export async function renderLavori(
         return {
             id: lav.id,
             nome: lav.nome || '-',
-            terreno: terreno ? (terreno.nome || '-') : '-',
+            terreno: nomeTerrenoPerStorico(terreno, '-'),
             stato: lav.stato || '-',
             tipo: lav.clienteId ? 'conto_terzi' : 'interno',
             tipoLavoro: tipoLavoroNome,
@@ -2315,7 +2319,7 @@ export async function renderLavori(
         `;
 
         lavoriInAttesa.forEach(lavoro => {
-            const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
+            const terrenoNome = nomeTerrenoPerStorico(lavoro.terreno, 'N/A');
             
             // Determina responsabile: caposquadra (lavoro squadra) o operaio autonomo
             let responsabileHtml = 'N/A';
@@ -2398,7 +2402,7 @@ export async function renderLavori(
     `;
 
     altriLavori.forEach(lavoro => {
-        const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
+        const terrenoNome = nomeTerrenoPerStorico(lavoro.terreno, 'N/A');
         
         // Determina responsabile: caposquadra (lavoro squadra) o operaio autonomo
         let responsabileHtml = 'N/A';
@@ -2927,7 +2931,7 @@ export async function loadDettaglioOverview(
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 <div>
-                    <strong>Terreno:</strong> ${terreno ? terreno.nome : 'N/A'}
+                    <strong>Terreno:</strong> ${nomeTerrenoPerStorico(terreno, 'N/A')}
                 </div>
                 <div>
                     <strong>Caposquadra:</strong> ${caposquadra ? `${caposquadra.nome || ''} ${caposquadra.cognome || ''}`.trim() : 'N/A'}

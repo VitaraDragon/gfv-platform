@@ -589,6 +589,13 @@
             
             <!-- Filtri -->
             <div class="filters" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px; justify-content: flex-end;">
+                    <label for="filter-mostra-archiviati" style="font-size: 12px; font-weight: 600; color: #495057;">Archivio</label>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 14px;">
+                        <input type="checkbox" id="filter-mostra-archiviati" onchange="filterTerreni()">
+                        Mostra archiviati
+                    </label>
+                </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
                     <label for="filter-tipo-possesso" style="font-size: 12px; font-weight: 600; color: #495057;">Tipo Possesso</label>
                     <select id="filter-tipo-possesso" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
@@ -1420,6 +1427,10 @@
         window.handleSaveTerreno = handleSaveTerrenoWrapper;
         window.editTerreno = editTerrenoWrapper;
         window.confirmDeleteTerreno = confirmDeleteTerrenoWrapper;
+        window.ripristinaTerreno = async function(terrenoId) {
+            const { ripristinaTerrenoUi } = await import('./js/terreni-events.js');
+            await ripristinaTerrenoUi(terrenoId, loadTerreniWrapper);
+        };
         window.toggleDataScadenzaAffitto = toggleDataScadenzaAffittoWrapper;
         window.updateColtureDropdownTerreni = updateColtureDropdownTerreniWrapper;
         window.filterTerreni = filterTerreniWrapper;

@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
 try {
@@ -384,7 +385,7 @@ async function loadVigneti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i vigneti</option>' : '<option value="">Seleziona vigneto</option>';
-        vigneti.forEach(v => {
+        vigneti.filter((v) => v.statoImpianto !== 'chiuso').forEach(v => {
             const opt = document.createElement('option');
             opt.value = v.id;
             opt.textContent = v.varieta || v.nome || v.id;
@@ -485,8 +486,11 @@ async function loadPotature() {
                 <td>${costo}</td>
                 <td>${lavoroCell}</td>
                 <td>
-                    <button type="button" class="btn btn-secondary btn-sm" data-edit="${p.id}" data-vigneto-id="${vignetoId}">Modifica</button>
-                    <button type="button" class="btn btn-danger btn-sm" data-delete="${p.id}" data-vigneto-id="${vignetoId}">Elimina</button>
+                    ${htmlAzioniRegistro(
+                        isRegistroSolaLettura({ registro: p, impianto: vignetoNome }),
+                        `<button type="button" class="btn btn-secondary btn-sm" data-edit="${p.id}" data-vigneto-id="${vignetoId}">Modifica</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-delete="${p.id}" data-vigneto-id="${vignetoId}">Elimina</button>`
+                    )}
                 </td>
             </tr>`;
         }).join('');

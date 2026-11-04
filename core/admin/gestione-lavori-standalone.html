@@ -2024,13 +2024,18 @@
                         const data = terrenoDoc.data();
                         extraTerreno = {
                             id: terrenoDoc.id,
-                            nome: data.nome || '',
+                            nome: data.stato === 'archiviato'
+                                ? `${data.nome || ''} (archiviato)`.trim()
+                                : (data.nome || ''),
                             superficie: data.superficie || 0,
                             clienteId: data.clienteId || null,
                             coltura: data.coltura || null,
+                            stato: data.stato || 'attivo',
                             ...data
                         };
-                        if (!lavoriState.terreniList.some((t) => t.id === selectedId)) {
+                        if (data.stato === 'archiviato') {
+                            extraTerreno.nome = `${data.nome || ''} (archiviato)`.trim();
+                        } else if (!lavoriState.terreniList.some((t) => t.id === selectedId)) {
                             lavoriState.terreniList.push(extraTerreno);
                             updateState({ terreniList: lavoriState.terreniList });
                         }

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-03 — PR #331: workspace di campo che non partiva, import vigneto, ritento cascata.**
+**Ultimo aggiornamento documentazione: 2026-11-03 — Archiviazione terreni (QA 3 nov, punto 2).**
+
+## 2026-11-03 — Terreni: archiviare invece di eliminare
+
+Un terreno con lavori, vigneti, frutteti o altro collegato si archivia (`stato: archiviato`): lo storico resta e il nome si legge con « (archiviato)». Senza collegamenti resta Elimina. Gli archiviati escono da tendine, limite piano e avvisi meteo. Il cambio coltura chiude il vigneto o il frutteto aperti e salva `storicoColture`. I lavori chiusi prima del cambio, e tutto ciò che sta su un terreno archiviato, sono in sola lettura. La coltura di un lavoro nuovo è quella del terreno. Se cambiano gli ettari, si aggiorna la superficie di vigneti, frutteti e campagne ancora aperti. La tendina Frutteto mostra solo terreni da frutto e Annulla chiude il modulo. Le regole Firestore non sono cambiate: il blocco è nel client e nei servizi. Dopo il merge Pier pubblica le function meteo.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — PR #331: workspace di campo che non partiva, import vigneto, ritento cascata.**
 
 ## 2026-11-03 — PR #331: avvio workspace e ritento disattivazione
 

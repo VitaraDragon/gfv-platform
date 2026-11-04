@@ -56,7 +56,7 @@ export async function listTipiLavorazioneCampoAperto() {
 export async function listLavorazioniCollegate(options = {}) {
   const includeLavori = options.includeLavori !== false;
   const [terreni, tipi, campagne, attivita, lavori] = await Promise.all([
-    listTerreniSeminativo(),
+    listTerreniSeminativo({ includiArchiviati: true }),
     listTipiLavorazioneCampoAperto(),
     getAllSeminativi().catch(() => []),
     getAllAttivita().catch(() => []),

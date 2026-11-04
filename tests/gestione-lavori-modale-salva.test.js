@@ -33,7 +33,9 @@ vi.mock('../core/services/tenant-service.js', () => ({
 }));
 
 import { populateTrattoriDropdown } from '../core/admin/js/gestione-lavori-controller.js';
+import { applicaSolaLetturaAlForm } from '../shared/js/form-sola-lettura.js';
 import {
+    closeLavoroModal,
     handleSalvaLavoro,
     openCreaModal,
     openModificaModal,
@@ -213,6 +215,44 @@ describe('gestione lavori — modale, trattore, Salva', () => {
         expect(document.getElementById('lavoro-nome').required).toBe(true);
         expect(document.getElementById('campo-nascosto').disabled).toBe(true);
         expect(document.getElementById('campo-nascosto').required).toBe(false);
+    });
+
+    it('dopo un lavoro in sola lettura, Nuovo lavoro riaccende i campi e mostra Salva', async () => {
+        formLavoro();
+        const form = document.getElementById('lavoro-form');
+        const giaSpento = document.createElement('input');
+        giaSpento.id = 'gia-spento';
+        giaSpento.disabled = true;
+        form.appendChild(giaSpento);
+        applicaSolaLetturaAlForm(form, { solaLettura: true });
+        giaSpento.disabled = true;
+        giaSpento.removeAttribute('data-sola-lettura-spento');
+
+        await openCreaModal(
+            { currentLavoroId: 'vecchio' },
+            () => {},
+            false,
+            false,
+            null, null, null, null, null, null, null, null, null, null
+        );
+
+        expect(document.getElementById('lavoro-nome').disabled).toBe(false);
+        expect(form.querySelector('button[type="submit"]').style.display).not.toBe('none');
+        expect(form.querySelector('#banner-sola-lettura')).toBeNull();
+        expect(giaSpento.disabled).toBe(true);
+    });
+
+    it('chiudere il modal toglie la sola lettura dal form', () => {
+        formLavoro();
+        const form = document.getElementById('lavoro-form');
+        applicaSolaLetturaAlForm(form, { solaLettura: true });
+        expect(form.querySelector('#banner-sola-lettura')).toBeTruthy();
+
+        closeLavoroModal({ currentLavoroId: 'lav1' }, () => {});
+
+        expect(document.getElementById('lavoro-modal').classList.contains('active')).toBe(false);
+        expect(document.getElementById('lavoro-nome').disabled).toBe(false);
+        expect(form.querySelector('#banner-sola-lettura')).toBeNull();
     });
 
     it('openModificaModal non aspetta i 350 ms per riabilitare i required visibili', async () => {

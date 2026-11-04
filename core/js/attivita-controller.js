@@ -11,6 +11,8 @@
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
 import { filtraLavoriPerDiarioContoTerzi } from '../../modules/conto-terzi/js/lavoro-da-preventivo.js';
+import { isTerrenoArchiviato, nomeTerrenoPerStorico } from '../../shared/js/terreno-archivio.js';
+import { isAttivitaSolaLettura } from '../../shared/js/storico-sola-lettura.js';
 import {
     dateLikeToIsoDateString,
     dateLikeToLocalCalendarIso,
@@ -635,7 +637,8 @@ export async function loadTerreni(
             options: {
                 orderBy: 'nome',
                 orderDirection: 'asc',
-                clienteId: null // Solo terreni aziendali
+                clienteId: null,
+                includiArchiviati: true
             }
         });
         
@@ -667,6 +670,7 @@ export async function loadTerreni(
                             nome: data.nome || '',
                             coltura: data.coltura || null,
                             clienteId: data.clienteId,
+                            stato: data.stato || 'attivo',
                             superficie: data.superficie || 0,
                             coordinate: data.coordinate || null,
                             polygonCoords: data.polygonCoords || null
@@ -702,7 +706,7 @@ export async function loadTerreni(
             terreniDaMostrare = terreni.filter(t => !t.clienteId || t.clienteId === '');
         }
         
-        terreniDaMostrare.forEach(terreno => {
+        terreniDaMostrare.filter((terreno) => !isTerrenoArchiviato(terreno)).forEach(terreno => {
             if (terrenoSelect) {
                 const option1 = document.createElement('option');
                 option1.value = terreno.id;
@@ -713,7 +717,7 @@ export async function loadTerreni(
             if (filterTerrenoSelect) {
                 const option2 = document.createElement('option');
                 option2.value = terreno.id;
-                option2.textContent = terreno.nome;
+                option2.textContent = nomeTerrenoPerStorico(terreno, terreno.nome || '');
                 filterTerrenoSelect.appendChild(option2);
             }
         });
@@ -1360,7 +1364,7 @@ export async function renderAttivita(params) {
     const summaryStr = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
     const itemsForTony = filteredAttivita.map((att) => {
         const terreno = (terreni || []).find((t) => t.id === att.terrenoId);
-        const terrenoNome = terreno ? (terreno.nome || '-') : (att.terrenoNome || '-');
+        const terrenoNome = nomeTerrenoPerStorico(terreno, att.terrenoNome || '-');
         const dataIso = att.data ? dateLikeToIsoDateString(att.data) : '';
         const p = att.posizioneRilevamento;
         const posizioneGpsTony =
@@ -1463,7 +1467,7 @@ export async function renderAttivita(params) {
                 const cliente = clientiList.find(c => c.id === lavoro.clienteId);
                 const terreno = terreni.find(t => t.id === lavoro.terrenoId);
                 const clienteNome = cliente ? (cliente.ragioneSociale || cliente.nome || 'Cliente sconosciuto') : 'Cliente sconosciuto';
-                const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+                const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno sconosciuto');
                 
                 html += `
                     <div class="lavoro-rapido-card" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB;">
@@ -1767,8 +1771,8 @@ export async function renderAttivita(params) {
                     </div>
                     ` : ''}
                     <div class="col-azioni" data-label="Azioni">
-                        ${hasManodoperaModule ? '' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
-                        <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`}
+                        ${hasManodoperaModule ? '' : (isAttivitaSolaLettura(att, (terreni || []).find((t) => t.id === att.terrenoId), att.lavoroId ? (lavoriList || []).find((l) => l.id === att.lavoroId) : null) ? '<span title="Solo consultazione">Solo consultazione</span>' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
+                        <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`)}
                     </div>
                 </div>
                 `;
@@ -1906,7 +1910,7 @@ export async function caricaDettagliLavoriCompletati(params) {
             const cliente = clientiList.find(c => c.id === lavoro.clienteId);
             const terreno = terreni.find(t => t.id === lavoro.terrenoId);
             const clienteNome = cliente ? (cliente.ragioneSociale || cliente.nome || 'Cliente sconosciuto') : 'Cliente sconosciuto';
-            const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+            const terrenoNome = nomeTerrenoPerStorico(terreno, 'Terreno sconosciuto');
             
             // Trova attività per questo lavoro
             const attivitaLavoro = attivita.filter(a => a.lavoroId === lavoro.id);

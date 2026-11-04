@@ -160,10 +160,11 @@ export async function existsCampagnaForTerreno(terrenoId, campagna, excludeId) {
 /**
  * Terreni aziendali la cui coltura è Seminativo (nome salvato sul terreno, o id categoria).
  * Stessa fonte di vigneto/frutteto: `getAllTerreni()`. Esclusi prato, ortive, vite.
+ * @param {{ includiArchiviati?: boolean }} [opzioni] Lo storico dei nomi passa true.
  * @returns {Promise<Array>}
  */
-export async function listTerreniSeminativo() {
-  const terreni = await getAllTerreni();
+export async function listTerreniSeminativo({ includiArchiviati = false } = {}) {
+  const terreni = await getAllTerreni({ includiArchiviati });
   const ctx = { nomiColture: new Set(), categoriaIds: new Set() };
   try {
     const categorie = await getAllCategorie({

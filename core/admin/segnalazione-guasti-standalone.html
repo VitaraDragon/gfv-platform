@@ -858,6 +858,11 @@
             let guastiTenant = [];
             let salvataggioGuastoInCorso = false;
             let terreniMap = new Map(); // Mappa terreni per lookup rapido
+            function nomeTerrenoGuasto(t) {
+                if (!t) return 'Terreno senza nome';
+                const base = t.nome || 'Terreno senza nome';
+                return t.stato === 'archiviato' ? base + ' (archiviato)' : base;
+            }
             let guastiUnsubscribe = null;
             
             // Variabili mappa
@@ -1301,9 +1306,9 @@
                                     // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
                                     let ubicazione = '';
                                     if (terreno.podere && terreno.podere.trim()) {
-                                        ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                        ubicazione = `${terreno.podere.trim()} - ${nomeTerrenoGuasto(terreno)}`;
                                     } else {
-                                        ubicazione = terreno.nome || 'Terreno senza nome';
+                                        ubicazione = nomeTerrenoGuasto(terreno);
                                     }
                                     ubicazioneInput.value = ubicazione;
                                 }
@@ -1502,9 +1507,9 @@
                                     // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
                                     let ubicazione = '';
                                     if (terreno.podere && terreno.podere.trim()) {
-                                        ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                        ubicazione = `${terreno.podere.trim()} - ${nomeTerrenoGuasto(terreno)}`;
                                     } else {
-                                        ubicazione = terreno.nome || 'Terreno senza nome';
+                                        ubicazione = nomeTerrenoGuasto(terreno);
                                     }
                                     ubicazioneInput.value = ubicazione;
                                 }
@@ -1546,9 +1551,9 @@
                                 // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
                                 let ubicazione = '';
                                 if (terreno.podere && terreno.podere.trim()) {
-                                    ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                    ubicazione = `${terreno.podere.trim()} - ${nomeTerrenoGuasto(terreno)}`;
                                 } else {
-                                    ubicazione = terreno.nome || 'Terreno senza nome';
+                                    ubicazione = nomeTerrenoGuasto(terreno);
                                 }
                                 ubicazioneInput.value = ubicazione;
                             }

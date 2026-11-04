@@ -9,6 +9,7 @@ import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standa
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { caricaStatisticheSeminativo } from '../services/statistiche-service.js';
 import { totaliStatistiche } from '../models/SeminativoStatistiche.js';
+import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 let terreni = [];
 let righe = [];
@@ -25,10 +26,7 @@ function escapeHtml(value) {
 function getTerrenoLabel(id) {
   const terreno = terreni.find((item) => item.id === id);
   if (!terreno) return '—';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
 }
 
 function campagnaLabel(row) {
@@ -195,7 +193,7 @@ function render() {
 }
 
 function populateFilters() {
-  fillSelect(document.getElementById('filter-terreno'), terreni.map((t) => ({
+  fillSelect(document.getElementById('filter-terreno'), terreniOperativi(terreni).map((t) => ({
     value: t.id,
     label: getTerrenoLabel(t.id)
   })), 'Tutti i terreni');
