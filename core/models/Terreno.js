@@ -6,6 +6,10 @@
  */
 
 import { Base } from './Base.js';
+import {
+  normalizzaStatoTerreno,
+  MOTIVI_ARCHIVIAZIONE
+} from '../../shared/js/terreno-archivio.js';
 
 export class Terreno extends Base {
   /**
@@ -26,6 +30,13 @@ export class Terreno extends Base {
    * @param {string} data.tipoPalo - Tipo palo vigneto (VM CT): ferro, legno, cemento, personalizzata
    * @param {{ distanzaFile: number, distanzaCeppo: number }} data.sestoImpianto - Sesto impianto (VM CT)
    * @param {Object} data.vendemmiaMeccanica - Stato stagione VM per anno { [anno]: { inPiano, vendemmiato, ... } }
+   * @param {'attivo'|'archiviato'} [data.stato] - Assente = attivo. Non si cancella il terreno.
+   * @param {Date|string} [data.archiviatoIl]
+   * @param {string} [data.archiviatoDa]
+   * @param {'fine_affitto'|'vendita'|'altro'} [data.motivoArchiviazione]
+   * @param {string} [data.notaArchiviazione]
+   * @param {Date|string} [data.colturaDal] - Inizio della coltura attuale (cambio coltura)
+   * @param {Array} [data.storicoColture]
    * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
    * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
    */
@@ -62,6 +73,14 @@ export class Terreno extends Base {
     this.vendemmiaMeccanica = data.vendemmiaMeccanica && typeof data.vendemmiaMeccanica === 'object'
       ? data.vendemmiaMeccanica
       : null;
+
+    this.stato = normalizzaStatoTerreno(data.stato);
+    this.archiviatoIl = data.archiviatoIl || null;
+    this.archiviatoDa = data.archiviatoDa || null;
+    this.motivoArchiviazione = data.motivoArchiviazione || null;
+    this.notaArchiviazione = data.notaArchiviazione || null;
+    this.colturaDal = data.colturaDal || null;
+    this.storicoColture = Array.isArray(data.storicoColture) ? data.storicoColture : [];
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;
@@ -114,6 +133,13 @@ export class Terreno extends Base {
 
     if (this.tipoPalo !== null && this.tipoPalo !== undefined && String(this.tipoPalo).trim() === '') {
       errors.push('Tipo palo non può essere vuoto se specificato');
+    }
+
+    if (this.stato && !['attivo', 'archiviato'].includes(this.stato)) {
+      errors.push('Stato terreno non valido. Stati validi: attivo, archiviato');
+    }
+    if (this.motivoArchiviazione && !MOTIVI_ARCHIVIAZIONE.includes(this.motivoArchiviazione)) {
+      errors.push('Motivo archiviazione non valido');
     }
 
     if (this.sestoImpianto) {

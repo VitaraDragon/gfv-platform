@@ -6,6 +6,7 @@
  * @module modules/seminativo/models/SeminativoRotazione
  */
 
+import { etichettaTerrenoStorico } from '../../../shared/js/terreno-archivio.js';
 import { defaultCampagnaLabel, normalizeCampagnaKey } from './SeminativoCampagna.js';
 
 const PROFILI = [
@@ -126,11 +127,7 @@ function annoInizio(label) {
 }
 
 function etichettaTerreno(terreno) {
-  if (!terreno) return '';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
 }
 
 /**

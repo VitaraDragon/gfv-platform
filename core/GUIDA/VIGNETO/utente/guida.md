@@ -4,6 +4,8 @@ Questa guida è per chi ha **attivato il modulo Vigneto** sull’azienda. Senza 
 
 Verificate **Abbonamento** o chiedete all’amministratore se il modulo non compare.
 
+Se cambiate la coltura del terreno e c'è un vigneto ancora aperto, l'app chiede conferma e lo chiude: potature, trattamenti e vendemmie restano consultabili, con il badge **Chiuso**. In elenco i chiusi si vedono spuntando **Mostra chiusi**. Un vigneto chiuso non compare nelle tendine dei nuovi registri. I lavori aperti prima del cambio restano modificabili finché non li completate. La coltura del lavoro è quella del terreno. Se cambiate gli ettari del terreno, si aggiorna anche la superficie del vigneto ancora aperto. Un terreno archiviato chiude i vigneti aperti e nello storico il nome ha la scritta **(archiviato)**.
+
 ---
 
 ## Percorso consigliato

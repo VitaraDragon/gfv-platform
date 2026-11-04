@@ -25,6 +25,8 @@ import {
   addVarietaPersonalizzata
 } from '../services/varieta-seminativo-service.js';
 import { spesePerCampagne } from '../services/seminativo-spese-service.js';
+import { terreniPerTendina } from '../../../shared/js/coltura-terreno.js';
+import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 const PAGE_TYPE = 'seminativi';
 
@@ -45,10 +47,7 @@ function escapeHtml(value) {
 
 function getTerrenoLabel(t) {
   if (!t) return '—';
-  const nome = String(t.nome || '').trim();
-  const podere = String(t.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(t, 'Terreno senza nome');
 }
 
 function getTerrenoById(id) {
@@ -152,10 +151,18 @@ function fillSelect(el, options, placeholder) {
   }
 }
 
-function populateTerrenoSelects() {
-  const opts = terreni.map((t) => ({ value: t.id, label: getTerrenoLabel(t) }));
-  fillSelect(document.getElementById('campagna-terreno'), opts, 'Seleziona terreno');
-  fillSelect(document.getElementById('filter-terreno'), opts, 'Tutti i terreni');
+function populateTerrenoSelects(idCorrente) {
+  const etichetta = (t) => ({ value: t.id, label: getTerrenoLabel(t) });
+  fillSelect(
+    document.getElementById('campagna-terreno'),
+    terreniPerTendina(terreni, { idCorrente }).map(etichetta),
+    'Seleziona terreno'
+  );
+  fillSelect(
+    document.getElementById('filter-terreno'),
+    terreniOperativi(terreni).map(etichetta),
+    'Tutti i terreni'
+  );
 }
 
 function populateColturaSelects() {
@@ -335,16 +342,17 @@ function openSeminativoCampagnaModal(id) {
   const title = document.getElementById('seminativo-campagna-modal-title');
   if (form) form.reset();
   populateStatoSelects();
-  populateTerrenoSelects();
   populateColturaSelects();
   if (id) {
     const row = allCampagne.find((r) => r.id === id);
     if (!row) return;
     currentEditingId = id;
+    populateTerrenoSelects(row.terrenoId);
     if (title) title.textContent = 'Modifica campagna';
     fillForm(row);
   } else {
     currentEditingId = null;
+    populateTerrenoSelects();
     if (title) title.textContent = 'Nuova campagna';
     fillForm({
       campagna: defaultCampagnaLabel(),
@@ -691,7 +699,7 @@ export async function initSeminativiAnagraficaPage() {
     if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
     syncTonyModules(modules);
 
-    terreni = await listTerreniSeminativo();
+    terreni = await listTerreniSeminativo({ includiArchiviati: true });
     colture = await listColtureSeminativo();
     populateTerrenoSelects();
     populateColturaSelects();

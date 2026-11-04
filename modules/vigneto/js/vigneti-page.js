@@ -317,22 +317,28 @@ async function init() {
     }
 }
 
-async function loadTerreni() {
+async function loadTerreni(idCorrente) {
     try {
-        terreni = await getAllTerreni();
+        terreni = await getAllTerreni({ includiArchiviati: true });
         const terrenoSelect = document.getElementById('terrenoId');
         const filterTerreno = document.getElementById('filter-terreno');
         
-        // Filtra solo terreni con coltura "Vite"
-        const terreniVite = terreni.filter(t => t.coltura && t.coltura.toLowerCase().includes('vite'));
+        // Filtra solo terreni con coltura "Vite", e tieni sempre il terreno già collegato
+        const terreniVite = terreni.filter(t => t.stato !== 'archiviato' && t.coltura && t.coltura.toLowerCase().includes('vite'));
+        if (idCorrente && !terreniVite.some((t) => t.id === idCorrente)) {
+            const corrente = terreni.find((t) => t.id === idCorrente);
+            if (corrente) terreniVite.unshift(corrente);
+        }
         
         terrenoSelect.innerHTML = '<option value="">Seleziona terreno</option>';
         filterTerreno.innerHTML = '<option value="">Tutti i terreni</option>';
         
         terreniVite.forEach(terreno => {
-            const option = `<option value="${terreno.id}">${terreno.nome}</option>`;
-            terrenoSelect.innerHTML += option;
-            filterTerreno.innerHTML += option;
+            const etichetta = terreno.stato === 'archiviato' ? `${terreno.nome} (archiviato)` : terreno.nome;
+            terrenoSelect.innerHTML += `<option value="${terreno.id}">${etichetta}</option>`;
+            if (terreno.stato !== 'archiviato') {
+                filterTerreno.innerHTML += `<option value="${terreno.id}">${terreno.nome}</option>`;
+            }
         });
     } catch (error) {
         console.error('Errore caricamento terreni:', error);
@@ -412,7 +418,7 @@ function renderVigneti() {
         const row = `
             <tr>
                 <td><strong>${vigneto.varieta || '-'}</strong></td>
-                <td>${terreno ? terreno.nome : '-'}</td>
+                <td>${terreno ? (terreno.stato === 'archiviato' ? `${terreno.nome} (archiviato)` : terreno.nome) : '-'}</td>
                 <td>${vigneto.superficieEttari ? vigneto.superficieEttari.toFixed(2) : '-'}</td>
                 <td>${vigneto.annataImpianto || '-'}</td>
                 <td>${vigneto.produzioneTotaleAnno ? vigneto.produzioneTotaleAnno.toFixed(2) : '0.00'}</td>
@@ -451,7 +457,8 @@ function getStatoLabel(stato) {
     const labels = {
         'attivo': 'Attivo',
         'in_riposo': 'In riposo',
-        'da_rimuovere': 'Da rimuovere'
+        'da_rimuovere': 'Da rimuovere',
+        'chiuso': 'Chiuso'
     };
     return labels[stato] || stato;
 }
@@ -497,6 +504,7 @@ window.editVigneto = async function(vignetoId) {
         populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
         populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
 
+        await loadTerreni(vigneto.terrenoId);
         // Popola form
         document.getElementById('terrenoId').value = vigneto.terrenoId || '';
         document.getElementById('varieta').value = vigneto.varieta || '';
@@ -572,6 +580,9 @@ window.applyFilters = function() {
             return false;
         }
         
+        if (!document.getElementById('filter-mostra-chiusi')?.checked && vigneto.statoImpianto === 'chiuso' && filterStato !== 'chiuso') {
+            return false;
+        }
         // Filtro stato
         if (filterStato && vigneto.statoImpianto !== filterStato) {
             return false;

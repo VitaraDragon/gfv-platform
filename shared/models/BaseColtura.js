@@ -41,6 +41,8 @@ export class BaseColtura extends Base {
 
     // Stato e tracciamento
     this.statoImpianto = data.statoImpianto || 'attivo';
+    this.dataChiusura = data.dataChiusura || null;
+    this.motivoChiusura = data.motivoChiusura || null;
     this.dataUltimaPotatura = data.dataUltimaPotatura || null;
     this.dataUltimoTrattamento = data.dataUltimoTrattamento || null;
     this.dataUltimaRaccolta = data.dataUltimaRaccolta || null;
@@ -93,7 +95,11 @@ export class BaseColtura extends Base {
     if (this.superficieEttari === null || this.superficieEttari <= 0) {
       errors.push('Superficie ettari obbligatoria e maggiore di zero');
     }
-    const statiValidi = ['attivo', 'in_riposo', 'da_rimuovere'];
+    const statiValidi = ['attivo', 'in_riposo', 'da_rimuovere', 'chiuso'];
+    const motiviChiusura = ['cambio_coltura', 'terreno_archiviato', 'altro'];
+    if (this.motivoChiusura && !motiviChiusura.includes(this.motivoChiusura)) {
+      errors.push('Motivo chiusura non valido');
+    }
     if (this.statoImpianto && !statiValidi.includes(this.statoImpianto)) {
       errors.push(`Stato impianto deve essere uno tra: ${statiValidi.join(', ')}`);
     }
@@ -176,6 +182,7 @@ export class BaseColtura extends Base {
       attivo: '✅ Attivo',
       in_riposo: '⏸️ In riposo',
       da_rimuovere: '🗑️ Da rimuovere',
+      chiuso: 'Chiuso',
     };
     return m[this.statoImpianto] || this.statoImpianto;
   }

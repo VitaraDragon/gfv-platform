@@ -9,6 +9,8 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -926,7 +928,7 @@ async function loadVigneti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i vigneti</option>' : '<option value="">Seleziona vigneto</option>';
-        vigneti.forEach(v => {
+        vigneti.filter((v) => v.statoImpianto !== 'chiuso').forEach(v => {
             const opt = document.createElement('option');
             opt.value = v.id;
             opt.textContent = v.varieta || v.nome || v.id;
@@ -1048,10 +1050,14 @@ async function loadTrattamenti() {
             : avviso.hasWarning
                 ? `<span class="avviso-dosaggio" title="${(avviso.tooltip || '').replace(/"/g, '&quot;')}" aria-label="Avviso dosaggio">⚠️</span>`
                 : `<span class="alert-badge green" title="Dosaggi nel range consigliato" aria-label="Tutto ok"></span>`;
-        const azioni = hasTrattamento
-            ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
+        const impiantoRiga = vigneti.find((v) => v.id === row.vignetoId);
+        const azioni = htmlAzioniRegistro(
+            isRegistroSolaLettura({ registro: t || row, impianto: impiantoRiga }),
+            hasTrattamento
+                ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
                <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
-            : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`;
+                : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`
+        );
         const vignetoLabel = row.vignetoNome || (vigneti.find(v => v.id === row.vignetoId) && (vigneti.find(v => v.id === row.vignetoId).varieta || vigneti.find(v => v.id === row.vignetoId).nome)) || row.vignetoId || '-';
         return `<tr>
             <td>${formatDate(row.data)}</td>
@@ -1119,6 +1125,11 @@ async function openModalCompleta(idx) {
         setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
         document.getElementById('trattamento-id').value = found.trattamentoId;
         document.getElementById('trattamento-vigneto-id').value = row.vignetoId;
+        tieniImpiantoNellaTendina(
+            document.getElementById('trattamento-vigneto'),
+            vigneti.find((v) => v.id === row.vignetoId),
+            (v) => v.varieta || v.nome || v.id
+        );
         document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
         document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
         const t = found.trattamento;
@@ -1216,6 +1227,11 @@ async function openModalEditRow(idx) {
     setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
     document.getElementById('trattamento-id').value = trattamentoId;
     document.getElementById('trattamento-vigneto-id').value = vignetoId;
+    tieniImpiantoNellaTendina(
+        document.getElementById('trattamento-vigneto'),
+        vigneti.find((v) => v.id === vignetoId),
+        (v) => v.varieta || v.nome || v.id
+    );
     document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
     document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
     const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));

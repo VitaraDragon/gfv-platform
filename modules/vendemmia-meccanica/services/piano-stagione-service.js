@@ -4,6 +4,7 @@
  */
 
 import { getAllTerreni, getTerreno } from '../../../core/services/terreni-service.js';
+import { isTerrenoArchiviato, nomeTerrenoPerStorico } from '../../../shared/js/terreno-archivio.js';
 import { updateDocument } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
@@ -29,9 +30,9 @@ export async function getPianoStagioneRows(anno = getAnnoStagioneCorrente(), opt
 
   let terreni;
   if (options.clienteId) {
-    terreni = await getAllTerreni({ clienteId: options.clienteId, orderBy: 'nome' });
+    terreni = await getAllTerreni({ clienteId: options.clienteId, orderBy: 'nome', includiArchiviati: true });
   } else {
-    const all = await getAllTerreni({ orderBy: 'nome', includeTerreniClienti: true });
+    const all = await getAllTerreni({ orderBy: 'nome', includeTerreniClienti: true, includiArchiviati: true });
     terreni = all.filter((t) => t.clienteId && String(t.clienteId).trim());
   }
 
@@ -44,7 +45,8 @@ export async function getPianoStagioneRows(anno = getAnnoStagioneCorrente(), opt
 
     return {
       terrenoId: t.id,
-      terrenoNome: t.nome,
+      terrenoNome: nomeTerrenoPerStorico(t, t.nome || ''),
+      archiviato: isTerrenoArchiviato(t),
       clienteId: t.clienteId || raw.clienteId,
       clienteNome: cliente ? (cliente.ragioneSociale || cliente.nome || '') : '',
       colturaCategoria: t.colturaCategoria || raw.colturaCategoria || null,

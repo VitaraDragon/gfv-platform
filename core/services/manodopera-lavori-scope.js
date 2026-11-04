@@ -12,6 +12,7 @@ import {
     lavoroSelezionabilePerOre,
     impostaDelegaDropdownSegnaOre
 } from './ore-lavoro-selezionabile.js?v=2026-10-16a';
+import { isLavoroSolaLettura } from '../../shared/js/storico-sola-lettura.js';
 
 /**
  * @param {import('firebase/firestore').Firestore} db
@@ -115,6 +116,8 @@ export function getLavoroDataFinePrevista(lavoro) {
  * @param {{ maxFutureDays?: number, ruolo?: string }} [opts]
  */
 export function isLavoroInDropdownSegnaOre(lavoro, oggi = new Date(), opts = {}) {
+    const terreno = (opts && opts.terreno) || (lavoro && lavoro.terreno);
+    if (terreno && isLavoroSolaLettura(lavoro, terreno)) return false;
     // Stesso alias di isLavoroVisibileOperaioCampo: i documenti vecchi con «attivo» restano segnabili.
     let stato = (lavoro && lavoro.stato) || 'assegnato';
     if (stato === 'attivo') stato = 'in_corso';

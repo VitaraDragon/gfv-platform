@@ -24,6 +24,7 @@ const {
   isTonySegnaOreIntent,
 } = require("./tony-quick-replies");
 const { localizeMeteoAlerts, translateMeteoAlertEvent } = require("./meteo-alert-i18n");
+const { terreniPerAvvisiMeteo } = require("./meteo-terreni-filter");
 const { resolveEffectiveModules } = require("./module-trial");
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -485,8 +486,18 @@ async function handleGetMeteoSedeAvanzato(db, apiKey, request) {
 }
 
 async function fetchTerrenoMeteo(db, apiKey, tenantId, terrenoId, terrenoData, nowMs) {
+  const nome = (terrenoData && terrenoData.nome) || "Terreno";
+  if (terrenoData && terrenoData.stato === "archiviato") {
+    return {
+      terrenoId,
+      nome,
+      ok: false,
+      code: "ARCHIVIATO",
+      alertsCount: 0,
+      message: "Terreno archiviato: niente avvisi meteo.",
+    };
+  }
   const coord = resolveTerrenoCoordinates(terrenoData);
-  const nome = terrenoData.nome || "Terreno";
   const podere = terrenoData.podere || null;
 
   const tipoCampo = normalizeTipoCampo(terrenoData.tipoCampo);
@@ -614,9 +625,10 @@ async function handleGetMeteoTerreni(db, apiKey, request) {
     .collection("terreni")
     .get();
 
-  const terreniDocs = terreniSnap.docs
-    .map((doc) => ({ id: doc.id, data: doc.data() || {} }))
-    .filter((t) => !t.data.clienteId)
+  const terreniMeteo = terreniPerAvvisiMeteo(
+    terreniSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() || {} }))
+  );
+  const terreniDocs = terreniMeteo
     .sort((a, b) => String(a.data.nome || "").localeCompare(String(b.data.nome || ""), "it"))
     .slice(0, MAX_TERRENI_METEO);
 
@@ -624,9 +636,8 @@ async function handleGetMeteoTerreni(db, apiKey, request) {
     fetchTerrenoMeteo(db, apiKey, tenantId, t.id, t.data, nowMs)
   );
 
-  const withoutCoords = terreniSnap.docs
-    .map((doc) => ({ id: doc.id, data: doc.data() || {} }))
-    .filter((t) => !t.data.clienteId && !resolveTerrenoCoordinates(t.data)).length;
+  const withoutCoords = terreniMeteo
+    .filter((t) => !resolveTerrenoCoordinates(t.data)).length;
 
   return {
     ok: true,
@@ -636,7 +647,7 @@ async function handleGetMeteoTerreni(db, apiKey, request) {
       total: terreni.length,
       withMeteo: terreni.filter((r) => r.ok && r.meteo).length,
       withoutCoords,
-      truncated: terreniSnap.docs.filter((d) => !(d.data() || {}).clienteId).length > MAX_TERRENI_METEO,
+      truncated: terreniMeteo.length > MAX_TERRENI_METEO,
     },
   };
 }
@@ -2648,9 +2659,9 @@ async function buildContextMeteo(db, apiKey, tenantId, tenantData, plan, opts = 
       .doc(tenantId)
       .collection("terreni")
       .get();
-    const terreniDocs = terreniSnap.docs
-      .map((doc) => ({ id: doc.id, data: doc.data() || {} }))
-      .filter((t) => !t.data.clienteId)
+    const terreniDocs = terreniPerAvvisiMeteo(
+      terreniSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() || {} }))
+    )
       .sort((a, b) => String(a.data.nome || "").localeCompare(String(b.data.nome || ""), "it"))
       .slice(0, MAX_TERRENI_METEO);
 

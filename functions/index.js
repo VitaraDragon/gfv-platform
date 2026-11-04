@@ -577,8 +577,9 @@ function assembleContextAziendaFromParts(parts) {
     totaleLavori: countByCliente[c.id] !== undefined ? countByCliente[c.id] : (c.totaleLavori != null ? Number(c.totaleLavori) : 0),
   }));
 
-  const terreniClienti = (terreniRaw || []).filter((t) => t.clienteId && t.clienteId !== "");
-  const terreni = (terreniRaw || [])
+  const terreniOperativi = (terreniRaw || []).filter((t) => t.stato !== "archiviato");
+  const terreniClienti = terreniOperativi.filter((t) => t.clienteId && t.clienteId !== "");
+  const terreni = terreniOperativi
     .filter((t) => !t.clienteId || t.clienteId === "")
     .map(({ clienteId: _, ...rest }) => rest)
     .map((t) => {
@@ -648,7 +649,7 @@ async function buildContextAziendaTier(tenantId, tierMax) {
   if (tierNum >= 1) {
     jobKeys.push("terreniRaw", "macchine", "prodotti", "guastiAperti");
     fetchJobs.push(
-      getCollectionLight(tenantId, "terreni", ["nome", "podere", "coltura", "superficie", "tipoPossesso", "dataScadenzaAffitto", "clienteId", "tipoCampo"], 200),
+      getCollectionLight(tenantId, "terreni", ["nome", "podere", "coltura", "superficie", "tipoPossesso", "dataScadenzaAffitto", "clienteId", "tipoCampo", "stato"], 200),
       getCollectionLight(tenantId, "macchine", ["nome", "tipoMacchina", "stato", "cavalli", "cavalliMinimiRichiesti", "prossimaRevisione", "prossimaAssicurazione"], 100),
       getCollectionLight(tenantId, "prodotti", ["nome", "codice", "unitaMisura", "scortaMinima", "sogliaMinima", "giacenza", "prezzoUnitario", "attivo"], 200),
       getGuastiAperti(tenantId, 50)

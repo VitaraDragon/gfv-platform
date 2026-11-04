@@ -1187,11 +1187,12 @@
                 select.innerHTML = '<option value="">-- Seleziona un terreno (opzionale) --</option>';
                 
                 const terreniCliente = [];
+                const valoreCorrente = select.value;
                 snapshot.forEach(doc => {
                     const data = { id: doc.id, ...doc.data() };
-                    if (data.clienteId === clienteId) {
-                        terreniCliente.push(data);
-                    }
+                    if (data.clienteId !== clienteId) return;
+                    if (data.stato === 'archiviato' && data.id !== valoreCorrente) return;
+                    terreniCliente.push(data);
                 });
                 
                 // Ordina per nome

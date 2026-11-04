@@ -175,6 +175,8 @@ export async function updatePotatura(fruttetoId, potaturaId, updates) {
 
     const potaturaEsistente = await getPotatura(fruttetoId, potaturaId);
     if (!potaturaEsistente) throw new Error('Potatura non trovata');
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(potaturaEsistente, 'frutteti', fruttetoId);
 
     potaturaEsistente.update(updates);
     const validation = potaturaEsistente.validate();
@@ -195,6 +197,10 @@ export async function deletePotatura(fruttetoId, potaturaId) {
     const tenantId = getCurrentTenantId();
     if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
     if (!fruttetoId || !potaturaId) throw new Error('ID frutteto e potatura obbligatori');
+
+    const potaturaEsistente = await getPotatura(fruttetoId, potaturaId);
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(potaturaEsistente, 'frutteti', fruttetoId);
 
     const collectionPath = getPotaturePath(fruttetoId);
     await deleteDocument(collectionPath, potaturaId, tenantId);

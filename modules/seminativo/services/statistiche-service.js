@@ -11,7 +11,7 @@ import { riepilogoCampagne } from '../models/SeminativoStatistiche.js';
 
 export async function caricaStatisticheSeminativo() {
   const [terreni, campagne] = await Promise.all([
-    listTerreniSeminativo().catch(() => []),
+    listTerreniSeminativo({ includiArchiviati: true }).catch(() => []),
     getAllSeminativi().catch(() => [])
   ]);
   const [raccolte, trattamenti, spese] = await Promise.all([

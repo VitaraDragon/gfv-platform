@@ -4,6 +4,18 @@ Benvenuto. Questa guida è per chi usa l’azienda **senza aver attivato i modul
 
 Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più scorciatoie e sezioni**: non ti preoccupare se qui non le nomiamo tutte; troverai le spiegazioni dettagliate nella guida del modulo che hai attivato.
 
+## Terreno archiviato
+
+Un terreno che non usate più (fine affitto o vendita) si **archivia**, non si cancella. Lo storico resta: lavori, ore e registri mostrano ancora il nome, con la scritta **(archiviato)**.
+
+In elenco gli archiviati sono nascosti finché non spuntate **Mostra archiviati**. Da lì potete **Ripristinare** il terreno: torna negli elenchi, ma un vigneto o un frutteto già chiuso resta chiuso.
+
+Se il terreno non ha nulla collegato, il pulsante resta **Elimina**. Se la verifica dei collegamenti non riesce, non si cancella nulla: compare «Non riesco a controllare i dati collegati, riprova».
+
+Gli archiviati non contano nel limite terreni del piano e non ricevono avvisi meteo. Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi.
+
+Se cambiate la coltura del terreno (da vite a frutteto, o il contrario) e c'è un vigneto o un frutteto ancora aperto, l'app chiede conferma e lo **chiude**. Lo storico di potature e trattamenti resta, in sola consultazione. I lavori già aperti restano modificabili finché non li completate o li annullate; poi diventano solo consultazione. La coltura di un lavoro nuovo è quella del terreno. Se cambiate la superficie, si aggiorna anche la superficie del vigneto o del frutteto ancora aperti e delle campagne in corso; i registri già salvati non si toccano.
+
 ---
 
 ## Percorso consigliato quando inizi

@@ -308,6 +308,8 @@ export async function deleteLavoroCascade(lavoroId, options = {}) {
     lavoro = await getDocumentData('lavori', lavoroId, tenantId);
   }
   if (!lavoro) throw new Error('Lavoro non trovato');
+  const { assertLavoroModificabile } = await import('./storico-guard.js');
+  await assertLavoroModificabile({ ...lavoro, id: lavoroId });
 
   const related = await gatherRelated(lavoroId, tenantId, { ...lavoro, id: lavoroId });
   if (Array.isArray(options.lavoriList) && options.lavoriList.length) {

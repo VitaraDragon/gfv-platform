@@ -25,6 +25,13 @@ import {
     erroreSalvataggioStato,
     statoPerSelectModifica
 } from '../../services/lavoro-ripresa-guasto.js';
+import { trovaTerrenoPerId } from './gestione-lavori-controller.js?v=2026-10-21c';
+import {
+    isLavoroSolaLettura,
+    MESSAGGIO_SOLA_LETTURA,
+    risolviColturaDaTerreno
+} from '../../../shared/js/storico-sola-lettura.js';
+import { applicaSolaLetturaAlForm } from '../../../shared/js/form-sola-lettura.js';
 
 async function caricaProdottiMiscela() {
     const { aggiornaSezioneMiscelaLavoro, riempiSelectProdottiMiscela } = await import('../../../shared/js/registro-trattamenti-lavoro.js');
@@ -732,7 +739,11 @@ export async function openCreaModal(
     const lavoroStatoSelect = document.getElementById('lavoro-stato');
     
     if (modalTitle) modalTitle.textContent = 'Crea Nuovo Lavoro';
-    if (lavoroForm) lavoroForm.reset();
+    if (lavoroForm) {
+        lavoroForm.reset();
+        // form.reset() non riaccende i campi spenti da un lavoro in sola lettura.
+        applicaSolaLetturaAlForm(lavoroForm, { solaLettura: false });
+    }
     nascondiBlocchiImpiantoLavoro();
     if (lavoroIdInput) lavoroIdInput.value = '';
     if (lavoroStatoSelect) lavoroStatoSelect.value = hasManodoperaModule ? 'assegnato' : 'in_corso';
@@ -820,6 +831,7 @@ export async function openCreaModal(
 export function closeLavoroModal(state, updateState) {
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.remove('active');
+    applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), { solaLettura: false });
     try {
         resetLavoroFormContoTerziLock();
     } catch (err) {
@@ -1076,6 +1088,12 @@ export async function openModificaModal(
     if (sessioneApertura === lavoroModalSessione) {
         syncRequiredConVisibilita(document.getElementById('lavoro-form'));
     }
+    const terreniLista = (state && state.terreniList) || (typeof window !== 'undefined' && window.lavoriState && window.lavoriState.terreniList) || [];
+    const terrenoLavoro = trovaTerrenoPerId(terreniLista, lavoro.terrenoId);
+    applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), {
+        solaLettura: isLavoroSolaLettura(lavoro, terrenoLavoro),
+        messaggio: MESSAGGIO_SOLA_LETTURA
+    });
 
     // Il timer riapplica dal lavoro solo i campi che l'utente non ha ancora toccato.
     setTimeout(() => {
@@ -1766,7 +1784,12 @@ export async function generaVoceDiarioContoTerzi(
             terrenoId: lavoroData.terrenoId,
             terrenoNome: terreno.nome || 'Terreno Cliente',
             tipoLavoro: lavoroData.tipoLavoro || 'Lavoro Conto Terzi',
-            coltura: terreno.coltura || lavoroData.coltura || '',
+            coltura: risolviColturaDaTerreno({
+                terreno,
+                colturaForm: lavoroData.coltura,
+                recordEsistente: lavoroData,
+                isNuovo: false
+            }).coltura || '',
             orarioInizio: orarioInizio,
             orarioFine: orarioFine,
             pauseMinuti: pauseMinuti,
@@ -1939,6 +1962,17 @@ export async function handleSalvaLavoro(
     generaVoceDiarioContoTerziCallback
 ) {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    const lavoroInModifica = state && state.currentLavoroId
+        ? ((state.lavoriList || []).find((l) => l.id === state.currentLavoroId))
+        : null;
+    if (lavoroInModifica) {
+        const terreniLista = (state && state.terreniList) || (typeof window !== 'undefined' && window.lavoriState && window.lavoriState.terreniList) || [];
+        const terrenoLavoro = trovaTerrenoPerId(terreniLista, lavoroInModifica.terrenoId);
+        if (isLavoroSolaLettura(lavoroInModifica, terrenoLavoro)) {
+            showAlert(MESSAGGIO_SOLA_LETTURA, 'error');
+            return;
+        }
+    }
     if (salvaLavoroInCorso) {
         showAlert('Salvataggio precedente ancora in corso…', 'info');
         return;

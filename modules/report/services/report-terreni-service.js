@@ -298,7 +298,12 @@ export async function buildReportTerreniRows(start, end) {
       alerts.push('Nessun vigneto/frutteto collegato in anagrafica');
     }
 
-    rows.push({ terreno, stats, alerts });
+    const archiviato = terreno.stato === 'archiviato';
+    const terrenoVista = archiviato
+      ? { ...terreno, nome: `${terreno.nome || 'Terreno'} (archiviato)`, superficieAttuale: 0 }
+      : { ...terreno, superficieAttuale: terreno.superficie };
+    if (archiviato) alerts.push('Terreno archiviato: escluso dalla superficie attuale');
+    rows.push({ terreno: terrenoVista, stats, alerts });
   }
 
   rows.sort((a, b) => {

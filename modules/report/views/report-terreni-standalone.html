@@ -290,7 +290,7 @@
       for (const row of reportRows) {
         const t = row.terreno;
         const st = row.stats;
-        const ha = t.superficie != null ? Number(t.superficie) : null;
+        const ha = t.superficieAttuale != null ? Number(t.superficieAttuale) : (t.superficie != null ? Number(t.superficie) : null);
         const haStr =
           ha != null && !Number.isNaN(ha)
             ? ha.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

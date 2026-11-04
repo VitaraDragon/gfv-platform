@@ -216,6 +216,10 @@ export async function updateRaccolta(fruttetoId, raccoltaId, updates) {
     
     // Recupera raccolta esistente
     const raccoltaEsistente = await getRaccolta(fruttetoId, raccoltaId);
+    if (raccoltaEsistente) {
+      const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+      await assertRegistroImpiantoModificabile(raccoltaEsistente, 'frutteti', fruttetoId);
+    }
     if (!raccoltaEsistente) {
       throw new Error('Raccolta non trovata');
     }
@@ -267,6 +271,10 @@ export async function deleteRaccolta(fruttetoId, raccoltaId) {
     if (!fruttetoId || !raccoltaId) {
       throw new Error('ID frutteto e raccolta obbligatori');
     }
+
+    const raccoltaEsistente = await getRaccolta(fruttetoId, raccoltaId);
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(raccoltaEsistente, 'frutteti', fruttetoId);
     
     const collectionPath = getRaccoltePath(fruttetoId);
     await deleteDocument(collectionPath, raccoltaId, tenantId);

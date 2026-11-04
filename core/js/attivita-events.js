@@ -18,6 +18,7 @@ import {
     geolocationErrorMessage
 } from './geo-capture.js';
 import { listedSelectValue } from './lavoro-cascade-filters.js';
+import { risolviColturaDaTerreno, isAttivitaSolaLettura, MESSAGGIO_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
 
 function segnaAttivitaSalvata() {
     if (typeof document === 'undefined') return;
@@ -285,6 +286,10 @@ export async function confirmDeleteAttivita(
     
     try {
         const { doc, deleteDoc } = await import('../services/firebase-service.js');
+        const { getAttivita } = await import('../services/attivita-service.js');
+        const { assertAttivitaModificabile } = await import('../services/storico-guard.js');
+        const esistente = await getAttivita(attivitaId);
+        if (esistente) await assertAttivitaModificabile(esistente);
         
         // Gestione vendemmia collegata (se modulo vigneto attivo)
         try {
@@ -824,9 +829,10 @@ export async function openAttivitaModal(params) {
     // Se c'è un terreno già selezionato, trigghera l'evento change per popolare categoria e coltura
     const terrenoSelect = document.getElementById('attivita-terreno');
     if (terrenoSelect && terrenoSelect.value) {
-        // Aspetta un attimo per assicurarsi che i dropdown siano pronti
+        aggiornaBloccoColturaAttivita();
         setTimeout(() => {
             terrenoSelect.dispatchEvent(new Event('change'));
+            aggiornaBloccoColturaAttivita();
         }, 150);
     }
     
@@ -1039,6 +1045,14 @@ export async function handleSaveAttivita(params) {
         showAlert('Terreno non trovato', 'error');
         return;
     }
+    const recordAttivita = currentAttivitaId ? (attivita || []).find((a) => a.id === currentAttivitaId) : null;
+    const lavoroCollegato = recordAttivita && recordAttivita.lavoroId
+        ? (typeof lavoriList !== 'undefined' ? (lavoriList || []).find((l) => l.id === recordAttivita.lavoroId) : null)
+        : null;
+    if (recordAttivita && isAttivitaSolaLettura(recordAttivita, terreno, lavoroCollegato)) {
+        showAlert(MESSAGGIO_SOLA_LETTURA, 'error');
+        return;
+    }
     
     // Campi macchina (solo se modulo Parco Macchine attivo)
     const macchinaId = hasParcoMacchineModule ? document.getElementById('attivita-macchina').value || null : null;
@@ -1087,7 +1101,12 @@ export async function handleSaveAttivita(params) {
         terrenoId: terrenoId,
         terrenoNome: terreno.nome,
         tipoLavoro: tipoLavoro,
-        coltura: coltura || null,
+        coltura: risolviColturaDaTerreno({
+            terreno,
+            colturaForm: coltura,
+            recordEsistente: currentAttivitaId ? (attivita || []).find((a) => a.id === currentAttivitaId) : null,
+            isNuovo: !currentAttivitaId
+        }).coltura,
         orarioInizio: orarioInizio || null,
         orarioFine: orarioFine || null,
         pauseMinuti: pauseMinuti,
@@ -2142,5 +2161,35 @@ export async function handleSalvaTipoLavoro({
         console.error('Errore salvataggio tipo lavoro:', error);
         showAlert('Errore salvataggio tipo lavoro: ' + error.message, 'error');
     }
+}
+
+function aggiornaBloccoColturaAttivita() {
+    const sel = document.getElementById('attivita-terreno');
+    if (!sel) return;
+    const lista = (window.attivitaState && window.attivitaState.terreniList) || [];
+    const terreno = lista.find((t) => t.id === sel.value) || null;
+    const decisione = risolviColturaDaTerreno({ terreno, isNuovo: true });
+    ['attivita-coltura', 'attivita-coltura-categoria', 'attivita-coltura-gerarchica'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = !decisione.libera;
+        el.title = decisione.nota || '';
+    });
+    let nota = document.getElementById('nota-coltura-terreno');
+    const categoria = document.getElementById('attivita-coltura-categoria');
+    if (!nota && categoria && categoria.parentElement) {
+        nota = document.createElement('p');
+        nota.id = 'nota-coltura-terreno';
+        nota.style.fontSize = '12px';
+        nota.style.color = '#666';
+        categoria.parentElement.appendChild(nota);
+    }
+    if (nota) nota.textContent = decisione.libera ? '' : (decisione.nota || '');
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('change', (evento) => {
+        if (evento.target && evento.target.id === 'attivita-terreno') aggiornaBloccoColturaAttivita();
+    });
 }
 
