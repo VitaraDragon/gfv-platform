@@ -15,3 +15,5 @@ Linguaggio allineato alla guida utente. Distinguere sempre **Meteo sede** (piano
 - **Alert:** vento/pioggia/praticabilità — consigli operativi, non sostituto agronomo.
 
 Senza **Base** o senza modulo **Meteo** attivo **non** descrivere la pagina mappa come disponibile; per solo sede usare **Meteo sede** dashboard.
+
+**Pin sede automatico:** al primo accesso l'app mette il pin da sola se trova l'indirizzo; se trova il comune ma non il civico, lo mette al centro del comune con «Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni»; se non trova il comune, avviso «Non trovo la sede a …: metti il pin a mano in Impostazioni».

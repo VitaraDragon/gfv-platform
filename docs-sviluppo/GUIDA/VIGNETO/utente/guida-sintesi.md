@@ -14,3 +14,5 @@ Modulo **Vigneto** attivo sull’azienda (abbonamento **o prova 30 giorni**): in
 - **Tony**: con Tony Avanzato può avere riepilogo vigneto dal contesto dashboard; sulle pagine **Gestione vendemmia** e **Concimazioni** può leggere l’elenco tabellare come l’utente; su altre pagine vigneto preferire domande procedurali o aprire prima l’elenco adatto.
 
 Senza modulo **non** dare istruzioni come se il vigneto esistesse nell’azienda.
+
+**Cambio coltura:** se il terreno ha un vigneto, prima del salvataggio conferma «Su questo terreno c'è il vigneto «X». Cambiando coltura lo chiudo…»; lavori aperti restano modificabili, quelli chiusi o di terreno archiviato vanno in sola lettura con il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione».

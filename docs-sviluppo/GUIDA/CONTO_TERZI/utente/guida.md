@@ -297,6 +297,13 @@ Il cliente riceve un messaggio con un **link dedicato**: da lì può **accettare
 
 ### Senza **Manodopera**
 
+5. Dopo aver premuto **Pianifica**, compare «Creare un lavoro da questo preventivo?» con cliente, tipo e superficie.
+6. Confermate e vedete «Lavoro creato: registra le giornate nel Diario Conto Terzi».
+7. Il lavoro nasce già **in corso**, pronto per registrare le attività.
+8. Aprite il **Diario Conto Terzi** (dal menu o con il filtro «Conto terzi» nel Diario attività) e registrate le giornate lavorate.
+
+### Senza **Manodopera**
+
 5. Il lavoro nasce già **in corso**: non serve completare una pianificazione in Gestione lavori (modulo non attivo).  
 6. Registrate le **giornate** e le attività nel **Diario Conto Terzi** (collegamenti **Lavori in corso** / **Lavori completati** dalla home del modulo).  
 7. Chiusura e storico seguono le regole del Diario e del lavoro conto terzi, come per i lavori interni senza squadre strutturate.

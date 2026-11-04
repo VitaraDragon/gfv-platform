@@ -13,3 +13,5 @@ Modulo **Frutteto** attivo sull’azienda. Linguaggio allineato alla guida utent
 - **Tony**: guida testuale come altri moduli; sulla pagina **Concimazioni** (frutteto) spesso può leggere l’elenco tabellare come l’utente; altrove preferire domande procedurali o aprire prima l’elenco giusto.
 
 Senza modulo **non** dare istruzioni come se il frutteto esistesse nell’azienda.
+
+**Cambio coltura:** se il terreno ha un frutteto, prima del salvataggio conferma «Su questo terreno c'è il frutteto «X». Cambiando coltura lo chiudo…»; lavori aperti restano modificabili, quelli chiusi o di terreno archiviato vanno in sola lettura con il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione».

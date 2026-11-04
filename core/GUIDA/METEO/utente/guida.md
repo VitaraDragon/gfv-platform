@@ -144,7 +144,8 @@ Il **briefing** mattutino in dashboard può includere meteo e operatività se av
 |----------|------------------|
 | «Meteo sede disponibile con il piano Base» | **Piano Free** → **Vai ad Abbonamento →** e passate a **Base**. |
 | Nessuna riga meteo in dashboard | Non siete entrati con un’azienda, oppure la pagina è ancora in caricamento: ricaricate. |
-| «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).» in cima alla dashboard | Al primo accesso l’app ha provato a mettere il pin da sola ma non ha trovato l’indirizzo in quel comune: **Apri Impostazioni** → cliccate il punto sulla mappa → **Salva Impostazioni Azienda**. |
+| «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).» in cima alla dashboard | Al primo accesso l’app ha provato a mettere il pin da sola ma non ha trovato il comune: **Apri Impostazioni** → cliccate il punto sulla mappa → **Salva Impostazioni Azienda**. |
+| «Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni» in cima alla dashboard | Al primo accesso l'app ha trovato il comune ma non il civico: ha messo il pin al centro del comune. **Apri Impostazioni** → spostate il pin sulla sede esatta → **Salva Impostazioni Azienda**. |
 | «Imposta il pin della sede in Impostazioni per vedere il meteo.» | **Impostazioni** → **Sede aziendale sulla mappa**: se indirizzo e città sono già scritti l’app propone il punto («Controlla il pin e salva»), altrimenti **🔍 Cerca**; poi **Salva Impostazioni Azienda**. |
 | «Meteo non disponibile al momento. Riprova più tardi.» | Il servizio non ha risposto in tempo: ricaricate la dashboard più tardi. |
 | Pagina Meteo bloccata | Modulo **non** attivo → **Abbonamento**; oppure piano **Free**. |

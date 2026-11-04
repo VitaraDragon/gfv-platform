@@ -8,11 +8,25 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 
 Un terreno che non usate più (fine affitto o vendita) si **archivia**, non si cancella. Lo storico resta: lavori, ore e registri mostrano ancora il nome, con la scritta **(archiviato)**.
 
+### Come funziona l'archiviazione
+
+Quando il terreno ha dati collegati (lavori, ore, vigneti, frutteti, potature o trattamenti), il pulsante diventa **Archivia** e vedete **tre passaggi**:
+
+1. **Conferma con OK e Annulla**: «Sul terreno «{nome}» ci sono {elenco}. Il terreno esce da elenchi, tendine e conteggi. Lavori, ore, vigneti, potature e trattamenti restano consultabili con il suo nome. Puoi ripristinarlo quando vuoi. Anche i vigneti e i frutteti ancora aperti si chiudono: lo storico resta.» Se ci sono lavori ancora aperti, aggiunge una frase che li rende in sola lettura.
+2. **Motivo dell'archiviazione**: scelta tra **1 = fine affitto**, **2 = vendita**, **3 = altro** (con nota facoltativa).
+3. **Messaggio finale**: «Terreno archiviato. Lo storico resta consultabile e puoi ripristinarlo quando vuoi.»
+
+Se il terreno non ha nulla collegato, compare solo «Sei sicuro di voler eliminare il terreno «{nome}»?» e il pulsante resta **Elimina**.
+
+### Dove compaiono gli archiviati
+
 In elenco gli archiviati sono nascosti finché non spuntate **Mostra archiviati**. Da lì potete **Ripristinare** il terreno: torna negli elenchi, ma un vigneto o un frutteto già chiuso resta chiuso.
 
-Se il terreno non ha nulla collegato, il pulsante resta **Elimina**. Se la verifica dei collegamenti non riesce, non si cancella nulla: compare «Non riesco a controllare i dati collegati, riprova».
+Gli archiviati non contano nel limite terreni del piano e non ricevono avvisi meteo. Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi, senza nessun segno: **(archiviato)** compare solo nello storico e in lista con **Mostra archiviati**.
 
-Gli archiviati non contano nel limite terreni del piano e non ricevono avvisi meteo. Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi.
+### Errori
+
+Se la verifica dei collegamenti non riesce, non si cancella nulla: compare «Non riesco a controllare i dati collegati, riprova».
 
 Se cambiate la coltura del terreno (da vite a frutteto, o il contrario) e c'è un vigneto o un frutteto ancora aperto, l'app chiede conferma e lo **chiude**. Lo storico di potature e trattamenti resta, in sola consultazione. I lavori già aperti restano modificabili finché non li completate o li annullate; poi diventano solo consultazione. La coltura di un lavoro nuovo è quella del terreno. Se cambiate la superficie, si aggiorna anche la superficie del vigneto o del frutteto ancora aperti e delle campagne in corso; i registri già salvati non si toccano.
 
@@ -162,7 +176,7 @@ Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **di
 **Passi:**
 
 1. Premi **Impostazioni** (icona ingranaggio, in alto a destra). In pagina leggi «Configura azienda e account».
-2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Se indirizzo e città sono già scritti ma il pin manca, all’apertura della mappa l’app cerca il punto da sola («Controlla il pin e salva»): verificate e salvate. Se l’indirizzo cercato non è nel comune scritto in **Città**, compare «Non trovo questo indirizzo a …: metti il pin a mano sulla mappa.»: cliccate voi il punto giusto sulla mappa. Il pin serve anche per il **Meteo sede** in dashboard. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda** (mentre salva il pulsante dice «Salvataggio…» e non si può premere di nuovo).
+2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Se indirizzo e città sono già scritti ma il pin manca, all'apertura della mappa l'app cerca il punto da sola («Controlla il pin e salva»): verificate e salvate. Se non trova il civico lo mette al centro del comune («Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni»), se non trova il comune compare «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).»: cliccate voi il punto giusto sulla mappa. Se l'indirizzo cercato non è nel comune scritto in **Città**, compare «Non trovo questo indirizzo a …: metti il pin a mano sulla mappa.»: cliccate voi il punto giusto sulla mappa. Il pin serve anche per il **Meteo sede** in dashboard.
 3. **Logo (facoltativo):** nello stesso riquadro, campo **Logo**. In pagina trovi formati ammessi e dimensione massima. Il logo viene usato **nei preventivi** del modulo **Conto terzi**. Puoi anche **rimuovere** il logo se cambiate idea. Il logo si registra insieme a **Salva Impostazioni Azienda**.
 4. **Podere (facoltativo).** Solo se lavorate per **poderi** (fattorie, cascine, blocchi di campagna): nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** (obbligatorio), **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**. Se non vi serve un podere, **saltate** questo passo e andate ai Terreni.
 5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** di solito **non si eliminano**; potete invece arricchire con le vostre.

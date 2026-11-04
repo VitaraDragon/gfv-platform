@@ -232,3 +232,9 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 - Guida **Core** (Terreni, Diario).
 - Guida **Vigneto** (stesso schema di impianto e registri, specie diversa).
 - Guida **Magazzino** (stesso schema delle altre guide modulo: percorso, indice, mini-guide).
+
+### Cambio coltura del terreno
+
+Se modificate la coltura di un terreno che ha un frutteto, prima del salvataggio vedete una conferma: «Su questo terreno c'è il frutteto «X». Cambiando coltura lo chiudo: resta nello storico con potature, trattamenti e vendemmie, ma non è più modificabile.» Se ci sono lavori ancora aperti su quel terreno, aggiunge: «Su questo terreno ci sono N lavori ancora aperti: {voci}. Restano modificabili finché non li completi o li annulli; poi diventano storico, in sola lettura.»
+
+Un lavoro di un terreno archiviato o precedente al cambio coltura si apre in sola lettura: campi grigi, pulsanti Salva ed Elimina nascosti, e il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione». I lavori ancora aperti restano modificabili.
