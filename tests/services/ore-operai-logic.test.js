@@ -14,6 +14,8 @@ import {
   creaErroreSovrapposizione,
   testoErroreSalvataggioOre,
   oreMacchinaDaSalvare,
+  mezzoDaLavoroPerSegnaturaOre,
+  mezzoDaLavoroInValidazione,
   messaggioSovrapposizioneTony,
   primoOrarioLiberoDopo,
   esitoControlloSovrapposizione,
@@ -366,6 +368,46 @@ describe('ore macchina di default', () => {
   it('un valore numerico esplicito resta quello indicato', () => {
     expect(oreMacchinaDaSalvare({ macchinaId: 'mac1', oreMacchina: 2 }, 4)).toBe(2);
     expect(oreMacchinaDaSalvare({ macchinaId: 'mac1', oreMacchina: 0 }, 4)).toBe(0);
+  });
+
+  it('workspace: copia mezzo dal lavoro se operatore macchina o autonomo', () => {
+    const lavoro = {
+      macchinaId: 'tr1',
+      attrezzoId: 'at1',
+      operatoreMacchinaId: 'op1',
+      operaioId: 'op1',
+    };
+    expect(mezzoDaLavoroPerSegnaturaOre({
+      lavoro,
+      operaioId: 'op1',
+      moduli: ['parcoMacchine'],
+    })).toEqual({ macchinaId: 'tr1', attrezzoId: 'at1', oreMacchina: null });
+    expect(mezzoDaLavoroPerSegnaturaOre({
+      lavoro,
+      operaioId: 'op2',
+      moduli: ['parcoMacchine'],
+    })).toBeNull();
+    expect(mezzoDaLavoroPerSegnaturaOre({
+      lavoro,
+      operaioId: 'op1',
+      moduli: ['manodopera'],
+    })).toBeNull();
+  });
+
+  it('validazione: ripiego sul lavoro solo per l’operatore macchina', () => {
+    const lavoro = { macchinaId: 'tr1', attrezzoId: 'at1', operatoreMacchinaId: 'op1' };
+    expect(mezzoDaLavoroInValidazione({ operaioId: 'op1' }, lavoro)).toEqual({
+      macchinaId: 'tr1',
+      attrezzoId: 'at1',
+    });
+    expect(mezzoDaLavoroInValidazione({ operaioId: 'op2' }, lavoro)).toEqual({
+      macchinaId: null,
+      attrezzoId: null,
+    });
+    expect(mezzoDaLavoroInValidazione({ operaioId: 'op2', macchinaId: 'tr9' }, lavoro)).toEqual({
+      macchinaId: 'tr9',
+      attrezzoId: null,
+    });
   });
 });
 
