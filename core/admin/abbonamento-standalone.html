@@ -550,8 +550,8 @@
                 <!-- Piano Corrente -->
                 <div class="card current-plan">
                     <h2>Piano Attuale</h2>
-                    <div class="plan-name" id="current-plan-name">Base</div>
-                    <div class="plan-price" id="current-plan-price">€9<span>/mese</span></div>
+                    <div class="plan-name" id="current-plan-name">…</div>
+                    <div class="plan-price" id="current-plan-price">…</div>
                     <div style="margin-top: 20px;">
                         <strong>Scadenza:</strong> <span id="current-plan-expiry">Caricamento...</span>
                     </div>
@@ -581,7 +581,7 @@
                         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2E8B57;">
                             <div style="font-size: 14px; color: #666; margin-bottom: 8px;"><strong>Con il Piano Base puoi:</strong></div>
                             <ul style="margin: 0; padding-left: 20px; color: #333; font-size: 14px; line-height: 1.8;">
-                                <li>Attivare <strong>qualsiasi modulo</strong> che ti serve (da €1/mese, fatturati annualmente)</li>
+                                <li>Attivare <strong>qualsiasi modulo</strong> che ti serve (<span id="upgrade-modules-from-price">…</span>, fatturati annualmente)</li>
                                 <li>Gestire <strong>terreni e attività illimitati</strong></li>
                                 <li>Risparmiare con i <strong>bundle ottimizzati</strong></li>
                                 <li>Personalizzare completamente la tua app in base alle tue esigenze</li>
@@ -590,8 +590,8 @@
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <div>
                                 <div style="font-size: 12px; color: #666;">A partire da</div>
-                                <div style="font-size: 32px; font-weight: bold; color: #2E8B57;">€5<span style="font-size: 18px; color: #666;">/mese</span></div>
-                                <div style="font-size: 13px; color: #555; margin-top: 4px;">Fatturato <strong>€60/anno</strong></div>
+                                <div style="font-size: 32px; font-weight: bold; color: #2E8B57;" id="upgrade-base-monthly">…</div>
+                                <div style="font-size: 13px; color: #555; margin-top: 4px;">Fatturato <strong id="upgrade-base-annual">…</strong></div>
                             </div>
                             <button class="btn btn-primary" onclick="selectPlan('base')" style="padding: 12px 30px; font-size: 16px; font-weight: bold;">
                                 ✨ Passa al Piano Base
@@ -1646,6 +1646,28 @@
         function renderUpgradeSection() {
             const upgradeSection = document.getElementById('upgrade-section');
             if (!upgradeSection) return;
+
+            const basePlan = getPlanConfig('base') || SUBSCRIPTION_PLANS.base;
+            const baseMonthly = basePlan && typeof basePlan.price === 'number' ? basePlan.price : 0;
+            const minModulePrice = getAllModules(true)
+                .filter(function(m) { return m.available; })
+                .reduce(function(min, m) {
+                    return typeof m.price === 'number' && m.price < min ? m.price : min;
+                }, Infinity);
+            const modulesFromEl = document.getElementById('upgrade-modules-from-price');
+            if (modulesFromEl) {
+                modulesFromEl.textContent = Number.isFinite(minModulePrice)
+                    ? ('da €' + minModulePrice + '/mese')
+                    : 'a pagamento';
+            }
+            const monthlyEl = document.getElementById('upgrade-base-monthly');
+            if (monthlyEl) {
+                monthlyEl.innerHTML = '€' + baseMonthly + '<span style="font-size: 18px; color: #666;">/mese</span>';
+            }
+            const annualEl = document.getElementById('upgrade-base-annual');
+            if (annualEl) {
+                annualEl.textContent = '€' + monthlyToAnnual(baseMonthly) + '/anno';
+            }
             
             // Retrocompatibilità: migra piani vecchi a 'base'
             const planId = resolvePlanIdFromTenant(currentTenantData);
