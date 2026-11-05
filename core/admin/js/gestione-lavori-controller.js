@@ -39,6 +39,7 @@ import {
 } from '../../js/lavoro-progresso-display.js?v=2026-10-20a';
 import {
     allCategorieFlat,
+    applyFiltriTipiPerColtura,
     buildLavoroCategorieIndex,
     filterTipiLavoroByCategoria,
     getSottocategorieForParent,
@@ -1948,41 +1949,21 @@ export function populateTipoLavoroDropdown(
         }
     }
     
-    // FILTRO VENDEMMIA: Se terreno è VITE e categoria è RACCOLTA, mostra solo tipi vendemmia
-    // APPLICATO DOPO aver filtrato per categoria, così funziona correttamente con la gerarchia
-    if (isTerrenoVite && isRaccolta && tipiFiltrati.length > 0) {
-        console.log('[GESTIONE-LAVORI] Applicando filtro vendemmia: mostro solo Vendemmia Manuale e Vendemmia Meccanica');
-        console.log('[GESTIONE-LAVORI] Tipi prima del filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
-        
-        tipiFiltrati = tipiFiltrati.filter(tipo => {
-            const nomeTipo = (tipo.nome || '').toLowerCase();
-            const includeVendemmia = nomeTipo.includes('vendemmia');
-            console.log('[GESTIONE-LAVORI] Tipo:', tipo.nome, 'include vendemmia?', includeVendemmia);
-            return includeVendemmia;
-        });
-        
-        console.log('[GESTIONE-LAVORI] Tipi dopo filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
-        
-        // Se non ci sono tipi vendemmia nella lista, aggiungi i predefiniti
-        if (tipiFiltrati.length === 0) {
-            console.log('[GESTIONE-LAVORI] Nessun tipo vendemmia trovato, aggiungo predefiniti');
-            // Trova la sottocategoria corretta per aggiungere i tipi predefiniti
-            const sottocatManuale = allCategorieFlat([], sottocategorieLavoriMap).find(sc => 
-                sc.codice === 'raccolta_manuale' || sc.nome?.toLowerCase().includes('manuale')
-            );
-            const sottocatMeccanica = allCategorieFlat([], sottocategorieLavoriMap).find(sc => 
-                sc.codice === 'raccolta_meccanica' || sc.nome?.toLowerCase().includes('meccanica')
-            );
-            
-            tipiFiltrati = [
-                { nome: 'Vendemmia Manuale', sottocategoriaId: sottocatManuale?.id || categoriaId, categoriaId: categoriaId },
-                { nome: 'Vendemmia Meccanica', sottocategoriaId: sottocatMeccanica?.id || categoriaId, categoriaId: categoriaId }
-            ];
+    // Filtro per coltura del terreno (vendemmia solo vigneto, scuotitore/frutteto, ecc.)
+    {
+        let terrenoCorrente = null;
+        if (terrenoId && typeof window.lavoriState !== 'undefined' && window.lavoriState.terreniList) {
+            terrenoCorrente = trovaTerrenoPerId(window.lavoriState.terreniList, terrenoId);
         }
-    } else if (isRaccolta && !terrenoId) {
-        console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non selezionato, mostro tutti i tipi raccolta');
-    } else if (isRaccolta && terrenoId && !isTerrenoVite) {
-        console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non è VITE, mostro tutti i tipi raccolta');
+        const keepNome = selectedValue || previousTipo || null;
+        tipiFiltrati = applyFiltriTipiPerColtura(tipiFiltrati, {
+            isRaccolta,
+            terreno: terrenoCorrente,
+            keepNome
+        });
+        if (isRaccolta && !terrenoId) {
+            console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non selezionato, mostro tipi filtrati senza terreno');
+        }
     }
 
     tipiFiltrati = filterTipiLavoroNascondiTipiGenericiTrattamenti(
