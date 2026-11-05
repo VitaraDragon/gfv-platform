@@ -1260,6 +1260,7 @@
             loadMacchine as loadMacchineModule,
             populateTrattoriDropdown as populateTrattoriDropdownModule,
             populateAttrezziDropdown as populateAttrezziDropdownModule,
+            refreshAvvisoMezzoInUsoAttivita as refreshAvvisoMezzoInUsoAttivitaModule,
             loadTerreni as loadTerreniModule,
             loadLavoriContoTerzi as loadLavoriContoTerziModule,
             loadClienti as loadClientiModule,
@@ -2700,7 +2701,9 @@
                 setupCategoriaLavoroHandler: setupCategoriaLavoroHandler,
                 updateOreNette,
                 updateOreMacchinaDisplay,
-                isContoTerziMode
+                isContoTerziMode,
+                attivita,
+                lavoriList
             });
         }
 
@@ -2967,12 +2970,26 @@
             }
         });
 
+        function ctxMezzoAttivitaCorrente() {
+            const record = currentAttivitaId ? (attivita || []).find((a) => a.id === currentAttivitaId) : null;
+            return {
+                attivita,
+                lavori: lavoriList,
+                escludiAttivitaId: currentAttivitaId,
+                macchinaIdCorrente: record?.macchinaId || null,
+                attrezzoIdCorrente: record?.attrezzoId || null
+            };
+        }
+
         // Listener per gestire compatibilità attrezzi quando cambia trattore
         document.getElementById('attivita-macchina')?.addEventListener('change', function() {
             const trattoreId = this.value;
             const oreMacchinaGroup = document.getElementById('attivita-ore-macchina-group');
             
             populateAttrezziDropdown(trattoreId);
+            refreshAvvisoMezzoInUsoAttivitaModule('trattore', trattoreId, macchineList, ctxMezzoAttivitaCorrente());
+            const attrezzoId = document.getElementById('attivita-attrezzo')?.value || null;
+            refreshAvvisoMezzoInUsoAttivitaModule('attrezzo', attrezzoId, macchineList, ctxMezzoAttivitaCorrente());
             
             // Mostra/nascondi gruppo ore macchina
             if (trattoreId || document.getElementById('attivita-attrezzo').value) {
@@ -2988,6 +3005,7 @@
             const attrezzoId = this.value;
             const trattoreId = document.getElementById('attivita-macchina').value;
             const oreMacchinaGroup = document.getElementById('attivita-ore-macchina-group');
+            refreshAvvisoMezzoInUsoAttivitaModule('attrezzo', attrezzoId, macchineList, ctxMezzoAttivitaCorrente());
             
             // Mostra/nascondi gruppo ore macchina
             if (trattoreId || attrezzoId) {
@@ -3044,6 +3062,7 @@
                 clientiList,
                 terreni,
                 attivita,
+                macchineList,
                 showAlert: showAlertUtil,
                 app,
                 auth,

@@ -2926,7 +2926,24 @@
         function setupMacchineHandlersWrapper(populateAttrezziDropdownCallback, populateOperatoreMacchinaDropdownCallback) {
             setupMacchineHandlersModule(
                 populateAttrezziDropdownCallback || populateAttrezziDropdownWrapper,
-                populateOperatoreMacchinaDropdownCallback || populateOperatoreMacchinaDropdownWrapper
+                populateOperatoreMacchinaDropdownCallback || populateOperatoreMacchinaDropdownWrapper,
+                () => {
+                    const lavoroCorrente = lavoriState.currentLavoroId
+                        ? (lavoriState.lavoriList || []).find((l) => l.id === lavoriState.currentLavoroId)
+                        : null;
+                    return {
+                        macchineList: [
+                            ...(lavoriState.trattoriList || []),
+                            ...(lavoriState.attrezziList || [])
+                        ],
+                        ctx: {
+                            lavori: lavoriState.lavoriList || [],
+                            escludiLavoroId: lavoriState.currentLavoroId || null,
+                            macchinaIdCorrente: lavoroCorrente?.macchinaId || null,
+                            attrezzoIdCorrente: lavoroCorrente?.attrezzoId || null
+                        }
+                    };
+                }
             );
         }
 

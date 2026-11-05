@@ -19,6 +19,47 @@ import {
 } from './geo-capture.js';
 import { listedSelectValue } from './lavoro-cascade-filters.js';
 import { risolviColturaDaTerreno, isAttivitaSolaLettura, MESSAGGIO_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
+import {
+    confermaSalvataggioMezzoInUso,
+    mezzoGiaDellEntitaInModifica,
+    isMezzoInUso,
+    trovaUtilizzoMezzo,
+    aggiornaAvvisoSottoTendina
+} from './mezzo-in-uso-avviso.js';
+
+function refreshAvvisoMezzoInUsoAttivita(tipoMezzo, mezzoId, macchineList = [], ctx = {}) {
+    const selectId = tipoMezzo === 'attrezzo' ? 'attivita-attrezzo' : 'attivita-macchina';
+    const select = typeof document !== 'undefined' ? document.getElementById(selectId) : null;
+    const macchina = (macchineList || []).find((x) => String(x.id) === String(mezzoId || ''));
+    const silenzioso = !mezzoId || !isMezzoInUso(macchina)
+        || mezzoGiaDellEntitaInModifica(mezzoId, ctx);
+    const utilizzo = silenzioso ? null : trovaUtilizzoMezzo(mezzoId, ctx);
+    aggiornaAvvisoSottoTendina(select, macchina, {
+        utilizzo,
+        tipoMezzo,
+        silenzioso,
+        avvisoId: `${selectId}-in-uso-avviso`
+    });
+}
+
+function confermaMezziInUsoAlSalvataggioAttivita({
+    macchinaId,
+    attrezzoId,
+    macchineList = [],
+    ctx = {},
+    confirmFn
+} = {}) {
+    const list = macchineList || [];
+    const check = (id, tipoMezzo) => {
+        if (!id) return true;
+        if (mezzoGiaDellEntitaInModifica(id, ctx)) return true;
+        const macchina = list.find((x) => String(x.id) === String(id));
+        return confermaSalvataggioMezzoInUso(macchina, { tipoMezzo, confirmFn });
+    };
+    if (!check(macchinaId, 'trattore')) return false;
+    if (!check(attrezzoId, 'attrezzo')) return false;
+    return true;
+}
 
 function segnaAttivitaSalvata() {
     if (typeof document === 'undefined') return;
@@ -519,7 +560,9 @@ export async function openAttivitaModal(params) {
         setupCategoriaLavoroHandler,
         updateOreNette,
         updateOreMacchinaDisplay,
-        isContoTerziMode = false
+        isContoTerziMode = false,
+        attivita: attivitaList = null,
+        lavoriList = []
     } = params;
 
     setCurrentAttivitaId(attivitaId);
@@ -774,6 +817,18 @@ export async function openAttivitaModal(params) {
                 
                 populateTrattoriDropdown(macchinaId);
                 populateAttrezziDropdown(macchinaId, attrezzoId);
+                const ctxMezzo = {
+                    attivita: attivitaList || filteredAttivita || [],
+                    lavori: lavoriList || [],
+                    escludiAttivitaId: attivitaId,
+                    macchinaIdCorrente: macchinaId,
+                    attrezzoIdCorrente: attrezzoId
+                };
+                // Avviso sotto tendina solo se mezzo in uso altrove (non se è già di questa attività)
+                if (macchineList && macchineList.length) {
+                    refreshAvvisoMezzoInUsoAttivita('trattore', macchinaId, macchineList, ctxMezzo);
+                    refreshAvvisoMezzoInUsoAttivita('attrezzo', attrezzoId, macchineList, ctxMezzo);
+                }
                 
                 if (macchinaId || attrezzoId) {
                     const oreMacchinaGroup = document.getElementById('attivita-ore-macchina-group');
@@ -891,6 +946,7 @@ export async function handleSaveAttivita(params) {
         clientiList,
         terreni,
         attivita,
+        macchineList = [],
         showAlert,
         verificaConflittiMacchine,
         calculateOreNette,
@@ -1057,6 +1113,26 @@ export async function handleSaveAttivita(params) {
     // Campi macchina (solo se modulo Parco Macchine attivo)
     const macchinaId = hasParcoMacchineModule ? document.getElementById('attivita-macchina').value || null : null;
     const attrezzoId = hasParcoMacchineModule ? document.getElementById('attivita-attrezzo').value || null : null;
+
+    // B6: mezzo in uso altrove → conferma (non blocco). Nessun avviso se è già il mezzo di questa attività.
+    if (hasParcoMacchineModule && (macchinaId || attrezzoId)) {
+        const recordCorrente = currentAttivitaId
+            ? (attivita || []).find((a) => a.id === currentAttivitaId)
+            : null;
+        const okMezzo = confermaMezziInUsoAlSalvataggioAttivita({
+            macchinaId,
+            attrezzoId,
+            macchineList,
+            ctx: {
+                attivita,
+                lavori: lavoriList,
+                escludiAttivitaId: currentAttivitaId,
+                macchinaIdCorrente: recordCorrente?.macchinaId || null,
+                attrezzoIdCorrente: recordCorrente?.attrezzoId || null
+            }
+        });
+        if (!okMezzo) return;
+    }
     
     // Verifica conflitti di orario per macchine/attrezzi
     if (hasParcoMacchineModule && (macchinaId || attrezzoId)) {
