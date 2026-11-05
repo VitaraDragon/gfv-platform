@@ -70,6 +70,7 @@ export function validateMovimentoCarburante(data) {
  *   categoria: string|null,
  *   tipo: string|null,
  *   pieno: boolean,
+ *   macchinaId: string|null,
  *   origineFiltro: string|null,
  *   origineForm: string|null,
  *   apriForm: boolean
@@ -90,6 +91,10 @@ export function parseCarburanteMovimentoQuery(search) {
   var pienoRaw = params.get('pieno');
   var pieno = pienoRaw === '1' || pienoRaw === 'true' || pienoRaw === 'yes';
 
+  var macchinaIdRaw = params.get('macchinaId') || params.get('macchina');
+  var macchinaId = macchinaIdRaw ? String(macchinaIdRaw).trim() : null;
+  if (macchinaId === '') macchinaId = null;
+
   var origineParam = normalizeOrigineCarburante(params.get('origine') || params.get('origineCarburante'));
   var origineFiltro = isOrigineCarburante(origineParam) ? origineParam : null;
 
@@ -106,6 +111,7 @@ export function parseCarburanteMovimentoQuery(search) {
     categoria: categoria,
     tipo: tipo,
     pieno: pieno || origineForm === ORIGINE_PIENO,
+    macchinaId: macchinaId,
     origineFiltro: origineFiltro,
     origineForm: origineForm,
     apriForm: !!apriForm

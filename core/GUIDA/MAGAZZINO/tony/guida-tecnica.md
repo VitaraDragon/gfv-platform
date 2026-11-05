@@ -27,7 +27,8 @@ Target utili: `magazzino` (home), `carburante` (hub carburante), `prodotti`, `mo
 ## Form Tony (Tony avanzato)
 
 - **`prodotto-form`** / **`movimento-form`**: mapping in `core/config/tony-form-mapping.js`, injector in `core/js/tony-form-injector.js`; comandi **INJECT_FORM_DATA**, **OPEN_MODAL** `prodotto-modal` / `movimento-modal`; regole magazzino in `functions/index.js` (SAVE solo su conferma esplicita).
-- **Carburante (movimenti)**: categoria `carburante`, origine `carico_cisterna` (entrata) o `pieno` (uscita + `macchinaId`). Validazione: `modules/magazzino/lib/carburante-movimento.js` (`validateMovimentoCarburante`, `parseCarburanteMovimentoQuery`). Query da hub: `?categoria=carburante&tipo=entrata` (carico) o `?categoria=carburante&tipo=uscita&pieno=1` (pieno).
+- **Carburante (movimenti)**: categoria `carburante`, origine `carico_cisterna` (entrata) o `pieno` (uscita + `macchinaId`). Validazione: `modules/magazzino/lib/carburante-movimento.js` (`validateMovimentoCarburante`, `parseCarburanteMovimentoQuery`). Query da hub: `?categoria=carburante&tipo=entrata` (carico) o `?categoria=carburante&tipo=uscita&pieno=1` (pieno); opzionale `&macchinaId=<id>` precompila il mezzo (B7: Diario / quick bar manager).
+- **Pieno manager senza Manodopera (B7)**: non aprire il workspace; quick bar `pienoCarburante` (`magazzino`+`parcoMacchine`, ruoli manager/amministratore), hub Parco Macchine, Diario attività su riga con `macchinaId`. Workspace resta solo profili campo.
 - **Pieno in campo (versione mobile)**: `core/mobile/js/pieno-campo-ui.js` (scheda in field-workspace solo se `lavoroRichiedeRifornimento(lavoro)` — mezzo presente, non solo attrezzo). Cloud Function `registraPienoCampo` (`functions/registra-pieno-campo.js` + core in `functions/lib/registra-pieno-campo-core.js`): tenant, lavoroId, prodotto carburante, quantità, data → crea movimento uscita con origine `pieno` + `macchinaId` dal lavoro.
 
 ## Acquisizione documenti (foto → magazzino)

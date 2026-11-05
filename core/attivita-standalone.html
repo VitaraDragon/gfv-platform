@@ -1389,6 +1389,7 @@
         let filteredAttivita = [];
         let macchineList = [];
         let hasParcoMacchineModule = false;
+        let hasMagazzinoModule = false;
         let hasManodoperaModule = false;
         let hasContoTerziModule = false;
         let availableModules = [];
@@ -1586,6 +1587,7 @@
                         const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
                         availableModules = resolveEffectiveModules(tenantData);
                         hasParcoMacchineModule = availableModules.includes('parcoMacchine');
+                        hasMagazzinoModule = availableModules.includes('magazzino');
                         hasManodoperaModule = availableModules.includes('manodopera');
                         hasContoTerziModule = availableModules.includes('contoTerzi');
                         const addBtn = document.getElementById('btn-aggiungi-attivita');
@@ -2476,6 +2478,7 @@
                 isContoTerziMode,
                 hasParcoMacchineModule,
                 hasManodoperaModule,
+                hasMagazzinoModule,
                 escapeHtml: escapeHtmlUtil,
                 formatOreNette: formatOreNetteUtil,
                 populateTrattoriRapido: populateTrattoriRapido,

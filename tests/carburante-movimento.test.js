@@ -46,6 +46,13 @@ describe('parseCarburanteMovimentoQuery', () => {
     expect(q.origineForm).toBe('pieno');
   });
 
+  it('pieno con macchinaId precompila il mezzo (B7)', () => {
+    const q = parseCarburanteMovimentoQuery('?categoria=carburante&tipo=uscita&pieno=1&macchinaId=abc');
+    expect(q.macchinaId).toBe('abc');
+    expect(q.origineForm).toBe('pieno');
+    expect(q.apriForm).toBe(true);
+  });
+
   it('solo categoria non apre il form', () => {
     const q = parseCarburanteMovimentoQuery('?categoria=carburante');
     expect(q.apriForm).toBe(false);

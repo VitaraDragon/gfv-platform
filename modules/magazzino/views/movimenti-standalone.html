@@ -462,13 +462,15 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
             const sel = document.getElementById('mov-macchina');
             if (!sel) return;
             const prev = sel.value;
+            const fromQuery = fuelQuery().macchinaId || null;
             const opts = mezziPieno.map(function (m) {
                 const tipo = String(m.tipoMacchina || m.tipo || '').toLowerCase();
                 const extra = tipo && tipo !== 'trattore' ? ' (' + tipo + ')' : '';
                 return `<option value="${m.id}">${escapeHtml(m.nome || m.id)}${extra}</option>`;
             }).join('');
             sel.innerHTML = '<option value="">Seleziona mezzo</option>' + opts;
-            if (prev && mezziPieno.some(function (m) { return m.id === prev; })) sel.value = prev;
+            const prefer = prev || fromQuery;
+            if (prefer && mezziPieno.some(function (m) { return m.id === prefer; })) sel.value = prefer;
         }
 
         function isMezzoRifornibile(m) {
@@ -571,7 +573,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
         function clearCarburanteFilterFromUrl() {
             try {
                 const url = new URL(window.location.href);
-                ['categoria', 'pieno', 'origine', 'origineCarburante'].forEach(function (k) { url.searchParams.delete(k); });
+                ['categoria', 'pieno', 'origine', 'origineCarburante', 'macchinaId', 'macchina'].forEach(function (k) { url.searchParams.delete(k); });
                 window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''));
             } catch (_) { /* ignore */ }
         }
@@ -1057,6 +1059,14 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
             document.getElementById('mov-lavoro').value = '';
             document.getElementById('mov-attivita').value = '';
             applyCarburanteFormMode(q.origineForm || '');
+            // B7: preselezione mezzo da ?macchinaId= (pieno da Diario / quick bar)
+            if (q.origineForm === 'pieno' && q.macchinaId) {
+                fillMacchinaSelect();
+                const macSel = document.getElementById('mov-macchina');
+                if (macSel && mezziPieno.some(function (m) { return m.id === q.macchinaId; })) {
+                    macSel.value = q.macchinaId;
+                }
+            }
             document.getElementById('movimento-modal').classList.add('active');
         }
 

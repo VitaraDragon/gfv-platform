@@ -1389,12 +1389,14 @@ export async function renderAttivita(params) {
         isContoTerziMode,
         hasParcoMacchineModule,
         hasManodoperaModule,
+        hasMagazzinoModule = false,
         escapeHtml,
         formatOreNette,
         populateTrattoriRapido,
         initCalcoloOreNetteRapido,
         caricaDettagliLavoriCompletati
     } = params;
+    const mostraPienoAttivita = !!(hasParcoMacchineModule && hasMagazzinoModule);
 
     const container = document.getElementById('attivita-container');
     if (!container) return;
@@ -1816,6 +1818,7 @@ export async function renderAttivita(params) {
                     </div>
                     ` : ''}
                     <div class="col-azioni" data-label="Azioni">
+                        ${mostraPienoAttivita && att.macchinaId ? `<a href="../modules/magazzino/views/movimenti-standalone.html?categoria=carburante&tipo=uscita&pieno=1&macchinaId=${encodeURIComponent(att.macchinaId)}" class="btn-edit-small" title="Pieno carburante" style="text-decoration:none;">⛽ Pieno</a> ` : ''}
                         ${hasManodoperaModule ? '' : (isAttivitaSolaLettura(att, (terreni || []).find((t) => t.id === att.terrenoId), att.lavoroId ? (lavoriList || []).find((l) => l.id === att.lavoroId) : null) ? '<span title="Solo consultazione">Solo consultazione</span>' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
                         <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`)}
                     </div>
