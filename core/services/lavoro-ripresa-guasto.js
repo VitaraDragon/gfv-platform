@@ -1,10 +1,9 @@
 /**
  * Ripresa di un lavoro sospeso perché un guasto è stato risolto.
  *
- * Lo stato di ripresa si calcola sempre qui: non si salva uno «stato precedente»
- * sulla sospensione. Il caposquadra può scrivere solo le chiavi già ammesse
- * dalle regole, e un campo nuovo non passerebbe. Il manager può aggiornare
- * tutto, ma usa la stessa patch così il risultato è uno solo.
+ * Preferisce `statoPrimaSospensione` salvato alla sospensione (assegnato | in_corso).
+ * Se manca (lavori sospesi prima di quella chiave), ricostruisce da avanzamento
+ * come prima. Il campo viene azzerato nella stessa patch.
  *
  * Mai `stato: 'attivo'`: non è uno stato del lavoro.
  *
@@ -63,11 +62,14 @@ function haOreOZone(lavoro) {
 /**
  * Stato attivo precedente, ricostruito dai dati già sul lavoro.
  * Con avanzamento (percentuale, superficie, ore o zone) → in_corso, altrimenti assegnato.
+ * Usato solo se manca `statoPrimaSospensione` (lavori sospesi prima di quella chiave).
  * @param {object|null|undefined} lavoro
  * @returns {'in_corso'|'assegnato'}
  */
 export function statoDopoRipresa(lavoro) {
   const lav = lavoro || {};
+  const salvato = testo(lav.statoPrimaSospensione).toLowerCase();
+  if (salvato === 'assegnato' || salvato === 'in_corso') return salvato;
   if (numeroPositivo(lav.percentualeCompletamento) || numeroPositivo(lav.superficieTotaleLavorata) || numeroPositivo(lav.superficieLavorata) || haOreOZone(lav)) {
     return 'in_corso';
   }
@@ -77,13 +79,14 @@ export function statoDopoRipresa(lavoro) {
 /**
  * @param {object|null|undefined} lavoro
  * @param {Date|object|string|number} now
- * @returns {{ stato: string, sospensioneCausa: object, sospensioneIl: object, aggiornatoIl: Date|object|string|number }}
+ * @returns {{ stato: string, sospensioneCausa: object, sospensioneIl: object, statoPrimaSospensione: object, aggiornatoIl: Date|object|string|number }}
  */
 export function buildRiprendiLavoroPatch(lavoro, now) {
   return {
     stato: statoDopoRipresa(lavoro),
     sospensioneCausa: AZZERA_CAMPO,
     sospensioneIl: AZZERA_CAMPO,
+    statoPrimaSospensione: AZZERA_CAMPO,
     aggiornatoIl: now
   };
 }
@@ -96,12 +99,18 @@ export function buildRiprendiLavoroPatch(lavoro, now) {
 export function patchRipresaPerFirestore(patch, deleteFieldFn) {
   const azzera = () => (typeof deleteFieldFn === 'function' ? deleteFieldFn() : AZZERA_CAMPO);
   const src = patch || {};
-  return {
+  const out = {
     stato: src.stato,
     sospensioneCausa: src.sospensioneCausa && src.sospensioneCausa.__delete ? azzera() : src.sospensioneCausa,
     sospensioneIl: src.sospensioneIl && src.sospensioneIl.__delete ? azzera() : src.sospensioneIl,
     aggiornatoIl: src.aggiornatoIl
   };
+  if (src.statoPrimaSospensione && src.statoPrimaSospensione.__delete) {
+    out.statoPrimaSospensione = azzera();
+  } else if (src.statoPrimaSospensione !== undefined) {
+    out.statoPrimaSospensione = src.statoPrimaSospensione;
+  }
+  return out;
 }
 
 function guastoAncoraAperto(guasto) {
@@ -139,9 +148,16 @@ export function esitoRipresaDopoGuasto({ lavoro, guasti, guastoId } = {}) {
   return { riprendi: true, motivo: 'ok' };
 }
 
+function etichettaStatoRipresa(stato) {
+  const s = testo(stato).toLowerCase();
+  if (s === 'in_corso') return 'In corso';
+  if (s === 'assegnato') return 'Assegnato';
+  return '';
+}
+
 /**
  * @param {string} nomeLavoro
- * @param {{ ripreso?: boolean, altroGuasto?: boolean, fallita?: boolean }} esito
+ * @param {{ ripreso?: boolean, altroGuasto?: boolean, fallita?: boolean, stato?: string }} esito
  */
 export function testoToastRipresa(nomeLavoro, esito = {}) {
   if (esito.fallita) {
@@ -152,6 +168,10 @@ export function testoToastRipresa(nomeLavoro, esito = {}) {
   }
   if (esito.ripreso) {
     const nome = testo(nomeLavoro) || 'senza nome';
+    const etichetta = etichettaStatoRipresa(esito.stato);
+    if (etichetta) {
+      return `Guasto risolto. Il lavoro "${nome}" è ripreso (${etichetta}).`;
+    }
     return `Guasto risolto. Il lavoro "${nome}" è ripreso.`;
   }
   return 'Guasto risolto.';

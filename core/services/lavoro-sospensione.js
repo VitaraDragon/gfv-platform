@@ -88,25 +88,41 @@ export function parseSospensioneCausa(causa) {
 }
 
 /**
+ * Stato da ripristinare alla ripresa: solo assegnato | in_corso.
+ * `attivo` (dato vecchio) diventa in_corso.
+ * @param {string|null|undefined} stato
+ * @returns {'assegnato'|'in_corso'|null}
+ */
+export function normalizzaStatoPrimaSospensione(stato) {
+  const s = String(stato || '').trim().toLowerCase();
+  if (s === 'attivo') return 'in_corso';
+  if (s === 'assegnato' || s === 'in_corso') return s;
+  return null;
+}
+
+/**
  * Patch Firestore della sospensione operativa. Non include campi standby.
+ * Se `statoPrecedente` è assegnato/in_corso/attivo, salva `statoPrimaSospensione`
+ * per ripristinarlo alla ripresa dopo guasto.
  * @param {string} causa
  * @param {Date} [now]
- * @returns {{ ok: true, patch: { stato: 'sospeso', sospensioneCausa: string, sospensioneIl: Date, aggiornatoIl: Date } } | { ok: false, error: string, patch: null }}
+ * @param {string|null|undefined} [statoPrecedente]
+ * @returns {{ ok: true, patch: object } | { ok: false, error: string, patch: null }}
  */
-export function buildSospendiLavoroPatch(causa, now = new Date()) {
+export function buildSospendiLavoroPatch(causa, now = new Date(), statoPrecedente = null) {
   const causaTesto = String(causa || '').trim();
   if (!causaTesto) {
     return { ok: false, error: 'Motivo della sospensione obbligatorio', patch: null };
   }
-  return {
-    ok: true,
-    patch: {
-      stato: 'sospeso',
-      sospensioneCausa: causaTesto,
-      sospensioneIl: now,
-      aggiornatoIl: now
-    }
+  const patch = {
+    stato: 'sospeso',
+    sospensioneCausa: causaTesto,
+    sospensioneIl: now,
+    aggiornatoIl: now
   };
+  const prima = normalizzaStatoPrimaSospensione(statoPrecedente);
+  if (prima) patch.statoPrimaSospensione = prima;
+  return { ok: true, patch };
 }
 
 /**

@@ -214,10 +214,12 @@ import { formatDateTimeItalianReadable } from '../../../core/js/date-format-it.j
                 await updateDoc(lavoroRef, patchRipresaPerFirestore(patch, deleteField));
                 lavoriById.set(lavoro.id, {
                     ...lavoro,
-                    stato: statoDopoRipresa(lavoro),
+                    stato: patch.stato,
                     sospensioneCausa: null,
-                    sospensioneIl: null
+                    sospensioneIl: null,
+                    statoPrimaSospensione: null
                 });
+                return patch;
             }
 
             function guastiPerDecisione(guastoId) {
@@ -242,8 +244,8 @@ import { formatDateTimeItalianReadable } from '../../../core/js/date-format-it.j
                     return { tipo: 'altro', lavoro };
                 }
                 try {
-                    await scriviRipresaLavoro(lavoro, lavoroRef);
-                    return { tipo: 'ripreso', lavoro };
+                    const patch = await scriviRipresaLavoro(lavoro, lavoroRef);
+                    return { tipo: 'ripreso', lavoro, stato: patch.stato };
                 } catch (err) {
                     console.warn('[guasti] ripresa lavoro:', err);
                     lavoriById.set(lavoro.id, lavoro);
@@ -254,7 +256,7 @@ import { formatDateTimeItalianReadable } from '../../../core/js/date-format-it.j
             function messaggioDaEsitoRipresa(esito) {
                 if (!esito || esito.tipo === 'nessuno') return 'Guasto segnato come risolto.';
                 const nome = (esito.lavoro && esito.lavoro.nome) || '';
-                if (esito.tipo === 'ripreso') return testoToastRipresa(nome, { ripreso: true });
+                if (esito.tipo === 'ripreso') return testoToastRipresa(nome, { ripreso: true, stato: esito.stato });
                 if (esito.tipo === 'altro') return testoToastRipresa(nome, { altroGuasto: true });
                 return testoToastRipresa(nome, { fallita: true });
             }

@@ -2309,7 +2309,7 @@
                                 console.info('[segnalazione-guasti] sospensione lavoro non tentata: ruolo', ruolo);
                                 secondarie.push({ nome: 'lavoro', ok: false, errore: 'non-tentata' });
                             } else {
-                                const built = buildSospendiLavoroPatch(causaSospensione);
+                                const built = buildSospendiLavoroPatch(causaSospensione, new Date(), lavoro.stato);
                                 if (!built.ok) throw new Error(built.error || 'Sospensione non valida');
                                 await updateDoc(lavoroRef, built.patch);
                             }
@@ -2478,7 +2478,7 @@
                             if (esitoRipresa.riprendi) {
                                 const patch = buildRiprendiLavoroPatch(lavoro, new Date());
                                 await updateDoc(lavoroRef, patchRipresaPerFirestore(patch, deleteField));
-                                showAlert(testoToastRipresa(lavoro.nome, { ripreso: true }), 'success');
+                                showAlert(testoToastRipresa(lavoro.nome, { ripreso: true, stato: patch.stato }), 'success');
                             } else if (esitoRipresa.motivo === 'altro-guasto') {
                                 showAlert(testoToastRipresa(lavoro.nome, { altroGuasto: true }), 'warning');
                             }
