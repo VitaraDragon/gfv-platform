@@ -67,8 +67,8 @@ Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone
 
 ## Piani (`SUBSCRIPTION_PLANS`)
 
-- `free`: `maxTerreni` 5, `maxAttivitaMese` 30, `maxModules: 0` → nessun modulo **acquistabile**; **trial 30gg** un modulo alla volta (`canStartModuleTrial` / Abbonamento UI); Tony bloccato (`applyTonyFreemiumGate` in `main.js`); meteo dashboard nascosto.
-- `base`: terreni/attività illimitati; moduli pay-per-use (`calculateTotalPrice`, `canActivateModule`) + stesso trial; **Tony Guida** (widget + `tonyAsk`); consigli moduli (`tony-module-recommendations.js`, solo Base, non Free/Avanzato).
+- `free`: `maxTerreni` 5, `maxAttivitaMese` 30, `maxModules: 0` → nessun modulo **acquistabile** e **nessuna prova moduli** (serve Base; `canStartModuleTrial` / `resolveModuleToggleIntent` → `require_base`); Tony bloccato fuori onboarding 7gg (`applyTonyFreemiumGate` in `main.js`); meteo dashboard nascosto.
+- `base`: terreni/attività illimitati; moduli pay-per-use (`calculateTotalPrice`, `canActivateModule`) + **prova 30gg** un modulo alla volta; **Tony Guida** (widget + `tonyAsk`); consigli moduli (`tony-module-recommendations.js`, solo Base, non Free/Avanzato).
 - Modulo `tony` in `AVAILABLE_MODULES`: **Tony Avanzato** (automazioni), separato da Tony Guida del Base.
 
 ### Billing backend (Stripe)

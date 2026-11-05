@@ -66,6 +66,13 @@ describe('statoDopoRipresa', () => {
     expect(statoDopoRipresa({ percentualeCompletamento: 0 })).toBe('assegnato');
     expect(statoDopoRipresa({})).toBe('assegnato');
   });
+
+  it('preferisce statoPrimaSospensione se valido; senza campo usa la ricostruzione', () => {
+    expect(statoDopoRipresa({ statoPrimaSospensione: 'in_corso' })).toBe('in_corso');
+    expect(statoDopoRipresa({ statoPrimaSospensione: 'assegnato', percentualeCompletamento: 50 })).toBe('assegnato');
+    expect(statoDopoRipresa({ statoPrimaSospensione: 'completato' })).toBe('assegnato');
+    expect(statoDopoRipresa({ statoPrimaSospensione: 'completato', oreRegistrate: 3 })).toBe('in_corso');
+  });
 });
 
 describe('buildRiprendiLavoroPatch', () => {
@@ -76,11 +83,17 @@ describe('buildRiprendiLavoroPatch', () => {
     expect(patch.stato).not.toBe('attivo');
     expect(patch.sospensioneCausa).toBe(AZZERA_CAMPO);
     expect(patch.sospensioneIl).toBe(AZZERA_CAMPO);
+    expect(patch.statoPrimaSospensione).toBe(AZZERA_CAMPO);
     expect(patch.aggiornatoIl).toBe(now);
     expect(JSON.stringify(patch)).not.toContain('attivo');
 
     const vuoto = buildRiprendiLavoroPatch({}, now);
     expect(vuoto.stato).toBe('assegnato');
+
+    const daSalvato = buildRiprendiLavoroPatch({ statoPrimaSospensione: 'assegnato' }, now);
+    expect(daSalvato.stato).toBe('assegnato');
+    const daInCorsoSenzaOre = buildRiprendiLavoroPatch({ statoPrimaSospensione: 'in_corso' }, now);
+    expect(daInCorsoSenzaOre.stato).toBe('in_corso');
   });
 
   it('converte il marcatore nel valore di deleteField', () => {
@@ -89,6 +102,7 @@ describe('buildRiprendiLavoroPatch', () => {
     expect(pronto.stato).toBe('assegnato');
     expect(pronto.sospensioneCausa).toBe('DELETE');
     expect(pronto.sospensioneIl).toBe('DELETE');
+    expect(pronto.statoPrimaSospensione).toBe('DELETE');
   });
 });
 
@@ -135,6 +149,10 @@ describe('altri guasti aperti sullo stesso lavoro', () => {
     expect(esitoRipresaDopoGuasto({ lavoro, guasti: solo, guastoId: 'g1' }).riprendi).toBe(true);
     expect(testoToastRipresa('Controllo ristagni', { ripreso: true }))
       .toBe('Guasto risolto. Il lavoro "Controllo ristagni" è ripreso.');
+    expect(testoToastRipresa('Controllo ristagni', { ripreso: true, stato: 'in_corso' }))
+      .toBe('Guasto risolto. Il lavoro "Controllo ristagni" è ripreso (In corso).');
+    expect(testoToastRipresa('Controllo ristagni', { ripreso: true, stato: 'assegnato' }))
+      .toBe('Guasto risolto. Il lavoro "Controllo ristagni" è ripreso (Assegnato).');
     expect(testoToastRipresa('Controllo ristagni', { fallita: true }))
       .toContain('Gestione lavori');
   });

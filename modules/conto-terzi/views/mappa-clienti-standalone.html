@@ -239,6 +239,7 @@
 
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, query, where, orderBy } from '../../../core/services/firebase-service.js';
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -1012,6 +1013,9 @@
                             const { setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
                             if (currentTenantId) setCurrentTenantId(currentTenantId);
                         } catch (_) { /* Tony publish opzionale */ }
+
+                        const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                        if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'contoTerzi')) return;
                         
                         await loadClienti();
                         await loadGoogleMapsAPI();

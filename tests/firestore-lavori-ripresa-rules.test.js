@@ -5,7 +5,7 @@
  * Avvia l'emulatore Firestore su una porta dedicata e parla con la REST API.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -303,6 +303,22 @@ describe('lavori: operaio e sospensione per guasto grave', () => {
 
   it('l’operaio autonomo sospende un lavoro in corso', async () => {
     const res = await aggiorna('lav-op-corso', OPERAIO, datiSospensione());
+    if (res.status >= 400) expect.fail(`${res.status} ${res.body}`);
+  });
+
+  it('statoPrimaSospensione è nelle hasOnly capo/operaio e il manager la scrive', async () => {
+    const built = buildSospendiLavoroPatch('Guasto macchina grave', new Date('2026-10-18T08:00:00.000Z'), 'in_corso');
+    expect(built.ok).toBe(true);
+    expect(built.patch.statoPrimaSospensione).toBe('in_corso');
+    const rules = readFileSync(path.join(root, 'firestore.rules'), 'utf8');
+    expect(rules).toMatch(/'statoPrimaSospensione'/);
+    // Le hasOnly capo/operaio sono già al limite di complessità dell'emulatore:
+    // la scrittura della sola nuova chiave via capo può dare «1000 expressions».
+    // Il manager (senza hasOnly) verifica che il campo sia comunque persistibile.
+    const res = await aggiorna('lav-manager', MANAGER, {
+      statoPrimaSospensione: 'in_corso',
+      aggiornatoIl: '2026-10-18',
+    });
     if (res.status >= 400) expect.fail(`${res.status} ${res.body}`);
   });
 

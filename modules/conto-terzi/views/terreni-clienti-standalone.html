@@ -798,7 +798,8 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'terreniClienti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { buildVignetoDetectionContext, isTerrenoVignetoCliente } from '../../vendemmia-meccanica/services/piano-stagione-utils.js';
@@ -977,6 +978,9 @@
                             return;
                         }
 
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'contoTerzi')) return;
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');

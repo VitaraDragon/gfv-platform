@@ -59,7 +59,9 @@ import {
     esitoControlloSovrapposizione,
     chiValidaOra,
     messaggioOraSegnataConSuccesso,
-    calcolaOreNette
+    calcolaOreNette,
+    mezzoDaLavoroPerSegnaturaOre,
+    oreMacchinaDaSalvare
 } from '../../services/ore-operai-logic.js';
 
 import { registraServiceWorker } from '../../js/app-update.js?v=2026-10-21a';
@@ -2314,6 +2316,7 @@ async function eliminaOraGiorno(oraId, lavoroId) {
 }
 
 let salvataggioOreInCorso = false;
+let moduliEffettiviWorkspace = [];
 
 function emettiEsitoOra(nome, detail) {
     const ev = new CustomEvent(nome, { detail });
@@ -2408,6 +2411,16 @@ async function saveQuickHours(event) {
             pauseMinuti: pauseMin,
             note: (oraNoteEl && oraNoteEl.value) ? oraNoteEl.value.trim() : ''
         };
+        const mezzoLavoro = mezzoDaLavoroPerSegnaturaOre({
+            lavoro: selectedWork && selectedWork.raw,
+            operaioId: currentUser && currentUser.uid,
+            moduli: moduliEffettiviWorkspace
+        });
+        if (mezzoLavoro) {
+            patch.macchinaId = mezzoLavoro.macchinaId;
+            patch.attrezzoId = mezzoLavoro.attrezzoId;
+            patch.oreMacchina = oreMacchinaDaSalvare(patch, netHours);
+        }
         let idSalvata = editingOraId || '';
         if (editingOraId) {
             await modificaOraPropria(
@@ -2996,6 +3009,7 @@ async function initFieldWorkspace() {
                         availableModules = resolveEffectiveModules(tenantData);
                     }
                 }
+                moduliEffettiviWorkspace = availableModules;
 
                 let roles = [];
                 if (tenantId) {

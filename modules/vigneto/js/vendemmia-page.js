@@ -13,6 +13,7 @@ import { getVendemmie, getVendemmia, createVendemmia, updateVendemmia, deleteVen
 import { getAllVigneti } from '../services/vigneti-service.js';
 import { getAllMacchine } from '../../../modules/parco-macchine/services/macchine-service.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
@@ -111,11 +112,7 @@ async function init() {
                         // Salva stato modulo manodopera globalmente
                         window.hasManodoperaModule = modules.includes('manodopera');
                     }
-                    if (!modules.includes('vigneto')) {
-                        alert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.');
-                        window.location.href = '../../../core/admin/abbonamento-standalone.html';
-                        return;
-                    }
+                    if (!richiediModulo(tenant, 'vigneto')) return;
                 }
 
                 // 5. Carica dati

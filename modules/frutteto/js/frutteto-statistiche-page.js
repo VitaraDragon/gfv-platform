@@ -7,6 +7,7 @@
 
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
 try {
@@ -106,12 +107,8 @@ onAuthStateChanged(auth, async (user) => {
             setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
             return;
         }
-        const modules = resolveEffectiveModules(tenant).map(m => (m || '').toLowerCase());
-        if (!modules.includes('frutteto')) {
-            showAlert('Modulo Frutteto non attivo', 'error');
-            setTimeout(() => { window.location.href = '../../../core/admin/abbonamento-standalone.html'; }, 3000);
-            return;
-        }
+        if (!richiediModulo(tenant, 'frutteto')) return;
+        const modules = resolveEffectiveModules(tenant);
         await initFilters();
         await loadCharts();
     } catch (err) {

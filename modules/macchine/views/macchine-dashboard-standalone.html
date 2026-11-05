@@ -306,6 +306,11 @@
                         <span class="action-title">Scadenze</span>
                         <span class="action-description">Controlla scadenze manutenzioni e revisioni</span>
                     </a>
+                    <a href="../../../core/statistiche-standalone.html#statistiche-macchine-section" class="action-card" aria-label="Statistiche macchine">
+                        <span class="action-icon">📊</span>
+                        <span class="action-title">Statistiche macchine</span>
+                        <span class="action-description">Utilizzo e ore dei mezzi</span>
+                    </a>
                     <a href="guasti-list-standalone.html" class="action-card" aria-label="Officina e guasti">
                         <span class="action-icon">⚠️</span>
                         <span class="action-title">Officina & Guasti</span>
@@ -318,7 +323,8 @@
 
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
         (async function() {
@@ -450,6 +456,8 @@
                     renderDashboard([], []);
                     return;
                 }
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'parcoMacchine')) return;
                 try {
                     const { getAllMacchine } = await import('../../parco-macchine/services/macchine-service.js');
                     const { getCollectionData } = await import('../../../core/services/firebase-service.js');
@@ -473,7 +481,6 @@
                         const modules = tenantDoc.exists()
                             ? resolveEffectiveModules(tenantDoc.data() || {}).slice()
                             : [];
-                        if (!modules.includes('parcoMacchine')) modules.push('parcoMacchine');
                         if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                             window.Tony.initContextWithModules(modules, {
                                 tenantId: tenantId,

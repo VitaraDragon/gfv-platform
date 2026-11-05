@@ -28,6 +28,7 @@ import {
   assicuraVoceRifiuto,
   pianoRettificaOreMacchina,
   oreMacchinaDaSalvare,
+  mezzoDaLavoroInValidazione,
   deveRichiedereRefreshSkill
 } from './ore-operai-logic.js';
 
@@ -784,9 +785,10 @@ async function applicaDeltaMacchine(tenantId, operazioni) {
   }
 }
 
-async function contabilizzaAllaValidazione(tenantId, oraData) {
-  const macchinaId = oraData.macchinaId || null;
-  const attrezzoId = oraData.attrezzoId || null;
+async function contabilizzaAllaValidazione(tenantId, oraData, lavoro) {
+  const mezzo = mezzoDaLavoroInValidazione(oraData, lavoro);
+  const macchinaId = mezzo.macchinaId;
+  const attrezzoId = mezzo.attrezzoId;
   const ore = Number(oraData.oreMacchina != null ? oraData.oreMacchina : oraData.oreNette) || 0;
   if ((!macchinaId && !attrezzoId) || ore <= 0) return { contabilizzate: null, avviso: '' };
   try {
@@ -844,7 +846,7 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
     isCaposquadra,
     isManager
   });
-  const macchina = await contabilizzaAllaValidazione(tenantId, ora);
+  const macchina = await contabilizzaAllaValidazione(tenantId, ora, lavoro);
   const ilValidazione = Timestamp.now();
   const dopoValidazione = { ...snapshotCampiOra(ora), stato: 'validate' };
   const update = {

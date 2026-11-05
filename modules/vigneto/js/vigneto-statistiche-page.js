@@ -8,6 +8,7 @@
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -85,16 +86,8 @@ onAuthStateChanged(auth, async (user) => {
                         return;
                     }
                     
+                    if (!richiediModulo(tenant, 'vigneto')) return;
                     const modules = resolveEffectiveModules(tenant);
-                    const hasVignetoModule = modules.some(m => m && m.toLowerCase() === 'vigneto');
-                    
-                    if (!hasVignetoModule) {
-                        showAlert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.', 'error');
-                        setTimeout(() => {
-                            window.location.href = '../../../core/admin/abbonamento-standalone.html';
-                        }, 3000);
-                        return;
-                    }
                 } else {
                     showAlert('Nessun tenant disponibile', 'error');
                     setTimeout(() => {

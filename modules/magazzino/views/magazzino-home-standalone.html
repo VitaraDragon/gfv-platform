@@ -180,7 +180,8 @@
 
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, limit, Timestamp, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, limit, Timestamp, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
@@ -219,6 +220,9 @@
                     setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
                     return;
                 }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'magazzino')) return;
                 await loadStats();
                 try {
                     const userRoles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
@@ -226,7 +230,7 @@
                     const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
                     const modules = tenantDoc.exists()
                         ? resolveEffectiveModules(tenantDoc.data() || {})
-                        : ['magazzino'];
+                        : [];
                     if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                         window.Tony.initContextWithModules(modules, {
                             tenantId: currentTenantId,
@@ -261,7 +265,7 @@
                         hubId: 'magazzino',
                         tenantId: currentTenantId,
                         roles: userRoles,
-                        availableModules: modules.includes('magazzino') ? modules : modules.concat(['magazzino']),
+                        availableModules: modules,
                         counts: {
                             sottoScorta: sottoScorta,
                             prodottiDaCompletare: countProdottiDaCompletare(rows),
