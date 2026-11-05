@@ -445,6 +445,8 @@ async function loadPotature() {
             let tipoDisplay = p.tipo;
             let ceppiDisplay = p.ceppiPotati;
             let costoDisplay = p.costoTotale;
+            let oreDisplay = p.oreImpiegate;
+            let oreDaValidate = false;
             if (p.lavoroId || p.attivitaId) {
                 try {
                     const prefill = await getDatiPrecompilazionePotatura(p.vignetoId, p);
@@ -453,11 +455,15 @@ async function loadPotature() {
                     if (prefill.costoManodopera != null || prefill.costoMacchina != null) {
                         costoDisplay = (prefill.costoManodopera || 0) + (prefill.costoMacchina || 0);
                     }
+                    if (prefill.oreDaValidate && Number.isFinite(Number(prefill.oreImpiegate))) {
+                        oreDisplay = prefill.oreImpiegate;
+                        oreDaValidate = true;
+                    }
                 } catch (e) {
                     console.warn('[Potatura lista] prefill per', p.id, e);
                 }
             }
-            return { ...p, tipoDisplay, ceppiDisplay, costoDisplay };
+            return { ...p, tipoDisplay, ceppiDisplay, costoDisplay, oreDisplay, oreDaValidate };
         }));
 
         empty.style.display = 'none';
@@ -469,7 +475,17 @@ async function loadPotature() {
             const vignetoNome = vigneti.find(v => v.id === p.vignetoId);
             const vignetoLabel = vignetoNome ? (vignetoNome.varieta || vignetoNome.nome || p.vignetoId) : p.vignetoId || '-';
             const tipoLabel = tipoLabels[p.tipoDisplay] || p.tipoDisplay || '-';
-            const costo = (p.costoDisplay != null && p.costoDisplay !== '') ? Number(p.costoDisplay).toFixed(2) : '-';
+            const costoNum = (p.costoDisplay != null && p.costoDisplay !== '') ? Number(p.costoDisplay) : NaN;
+            // Da lavoro senza ore validate il costo non è noto (0 = non ancora calcolabile): '-'
+            const costo = Number.isFinite(costoNum) && !(p.lavoroId && !p.oreDaValidate && costoNum === 0)
+                ? costoNum.toFixed(2)
+                : '-';
+            const oreNum = (p.oreDisplay != null && p.oreDisplay !== '') ? Number(p.oreDisplay) : NaN;
+            const oreCell = Number.isFinite(oreNum)
+                ? (p.lavoroId && !p.oreDaValidate ? `${Number(oreNum.toFixed(2))} (stima)` : String(Number(oreNum.toFixed(2))))
+                : '-';
+            const ceppiNum = (p.ceppiDisplay != null && p.ceppiDisplay !== '') ? Number(p.ceppiDisplay) : NaN;
+            const ceppiCell = Number.isFinite(ceppiNum) ? String(ceppiNum) : '-';
             let lavoroCell = '-';
             if (p.lavoroId) {
                 lavoroCell = `<a href="${gestioneLavoriUrl}?lavoroId=${encodeURIComponent(p.lavoroId)}" target="_blank" class="link-lavoro">🔗 Vedi Lavoro</a>`;
@@ -481,8 +497,8 @@ async function loadPotature() {
                 <td>${formatDate(p.data)}</td>
                 <td>${vignetoLabel}</td>
                 <td>${tipoLabel}</td>
-                <td>${(p.ceppiDisplay != null && p.ceppiDisplay !== '') ? Number(p.ceppiDisplay) : '-'}</td>
-                <td>${p.oreImpiegate != null ? p.oreImpiegate : '-'}</td>
+                <td>${ceppiCell}</td>
+                <td>${oreCell}</td>
                 <td>${costo}</td>
                 <td>${lavoroCell}</td>
                 <td>
@@ -614,6 +630,9 @@ async function openModalEdit(vignetoId, potaturaId) {
         const prefill = await getDatiPrecompilazionePotatura(vignetoId, p, { hasManodoperaModule });
         if (prefill.tipoPotatura) document.getElementById('potatura-tipo').value = prefill.tipoPotatura;
         if (prefill.ceppiPotati != null) document.getElementById('potatura-ceppi').value = prefill.ceppiPotati;
+        if (prefill.oreDaValidate && Number.isFinite(Number(prefill.oreImpiegate))) {
+            document.getElementById('potatura-ore').value = prefill.oreImpiegate;
+        }
         document.getElementById('potatura-costo-mano').value = prefill.costoManodopera ?? 0;
         document.getElementById('potatura-costo-macchina').value = prefill.costoMacchina ?? 0;
     } catch (e) { console.warn('Precompilazione potatura:', e); }

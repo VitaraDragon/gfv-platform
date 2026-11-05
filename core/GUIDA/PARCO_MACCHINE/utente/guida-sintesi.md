@@ -4,7 +4,7 @@ Modulo **Parco macchine** attivo nell’**abbonamento** (scheda moduli per l’a
 
 ## In sintesi
 
-- **Moduli** → **Parco Macchine** → hub con statistiche e **azioni rapide** (trattori, attrezzi, flotta, gestione macchine, scadenze, officina/guasti). Ingresso anche da **I miei accessi** o alert **Richiede attenzione** (scadenze/guasti); riquadro in fondo dashboard solo **senza** Manodopera. Panoramica flotta: conteggio mezzi e **km totali** (non ore).
+- **Moduli** → **Parco Macchine** → hub con statistiche e **azioni rapide** (trattori, attrezzi, flotta, gestione macchine, scadenze, officina/guasti; con **Magazzino** attivo anche **⛽ Pieno**). Ingresso anche da **I miei accessi** o alert **Richiede attenzione** (scadenze/guasti); riquadro in fondo dashboard solo **senza** Manodopera. Panoramica flotta: conteggio mezzi e **km totali** (non ore). **Manager senza Manodopera**: pieno anche da quick bar e Diario attività (riga con trattore), non serve il workspace di campo.
 - **Liste rapide** (Trattori / Attrezzi / Flotta): solo **creazione** rapida (**Nuovo** → campi minimi → **Salva**); **modifica / elimina / stato completo** da **Gestione macchine**.
 - **Trattori:** nome + **CV** obbligatori alla creazione rapida; colonna **Ore** e **Stato** (Disponibile, In uso, Manutenzione, Guasto); manutenzione per **ore** e/o **data**; revisione e assicurazione opzionali.
 - **Attrezzi:** nome, **categoria** (elenco), **CV minimi** obbligatori — servono per **compatibilità** con il trattore (CV trattore ≥ CV minimi attrezzo); contatore **ore**; Stato spesso Disponibile / In uso.

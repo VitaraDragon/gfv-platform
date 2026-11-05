@@ -5,6 +5,37 @@
  */
 
 /**
+ * «Tutti» / «Tutte» è una voce da FILTRO (valore vuoto = nessun filtro), mai una scelta valida
+ * nei select del FORM terreno (categoria/coltura). Usato per non inquinare il form.
+ * @param {unknown} nome
+ * @returns {boolean}
+ */
+export function isVoceTutti(nome) {
+  if (nome == null) return false;
+  const n = (typeof nome === 'object' ? nome.nome : nome);
+  return /^(tutti|tutte)$/i.test(String(n == null ? '' : n).trim());
+}
+
+/**
+ * Rimuove da un select FORM le option «Tutti» (testo) che non devono esistere lì.
+ * Non toccare i select dei filtri.
+ * @param {{ options?: ArrayLike<{ text?: string, textContent?: string, remove?: Function }> }|null|undefined} selectEl
+ * @returns {number} option rimosse
+ */
+export function rimuoviOpzioniTuttiDaSelectForm(selectEl) {
+  if (!selectEl || !selectEl.options) return 0;
+  let rimosse = 0;
+  const opts = Array.prototype.slice.call(selectEl.options);
+  for (const opt of opts) {
+    if (isVoceTutti(opt.text != null ? opt.text : opt.textContent) && typeof opt.remove === 'function') {
+      opt.remove();
+      rimosse += 1;
+    }
+  }
+  return rimosse;
+}
+
+/**
  * Chiave di dedupe: codice normalizzato, altrimenti nome normalizzato.
  * @param {{ codice?: string, nome?: string, id?: string }|null|undefined} cat
  * @returns {string}
@@ -73,6 +104,7 @@ export function dedupeCategorieColture(categorie, colturePerCategoria) {
   const migliori = new Map();
   for (const cat of categorie) {
     if (!cat || typeof cat !== 'object') continue;
+    if (isVoceTutti(cat.nome)) continue;
     const chiave = chiaveDedupeCategoria(cat);
     if (!chiave) continue;
     const attuale = migliori.get(chiave);
@@ -170,6 +202,7 @@ export function popolaSelectCategorieColture(selectEl, categorie, colturePerCate
     );
   }
 
+  rimuoviOpzioniTuttiDaSelectForm(selectEl);
   const ancoraPresente = deduped.some((c) => c.id != null && String(c.id) === previous);
   selectEl.value = ancoraPresente ? previous : '';
   return deduped;

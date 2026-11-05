@@ -74,6 +74,10 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
             pulisciIndizioIngresso();
         } catch (e) { /* ignore */ }
         
+        try {
+            const { segnaLogoutVolontario } = await import('./login-motivo-helpers.js');
+            segnaLogoutVolontario();
+        } catch (e) { /* ignore */ }
         await signOut(auth);
         window.location.href = './auth/login-standalone.html';
     } catch (error) {

@@ -136,7 +136,7 @@
       alertScript.src = (base ? base + sep : '') + 'js/standalone-alert-global.js';
       document.head.appendChild(alertScript);
       var tonyLoader = document.createElement('script');
-      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-11-02b';
+      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-11-05a';
       document.head.appendChild(tonyLoader);
     })();
     </script>
@@ -223,7 +223,11 @@
         } from './config/tony-proactive-signals.js';
         import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
         import { leggiUtenteETenantAvvio, leggiTenantDocAvvio, aziendePerSwitch } from './js/dashboard-avvio-letture.js';
-        import { tryAutoSaveSedePinOnFirstAccess } from './js/sede-auto-pin.js';
+        import {
+            tryAutoSaveSedePinOnFirstAccess,
+            esponiAutoPinPromise,
+            unisciTenantDataMantenendoSede
+        } from './js/sede-auto-pin.js';
         import { initDashboardQuickBar } from './js/dashboard-quick-bar.js';
         import {
             dashboardPerfBegin,
@@ -265,6 +269,7 @@
             handleSendComunicazioneRapida as handleSendComunicazioneRapidaModule,
             showRapidaMessage as showRapidaMessageModule
         } from './js/dashboard-events.js';
+        import { segnaLogoutVolontario, loginPathDopoUtenteNullo } from './js/login-motivo-helpers.js';
 
         function setupDashboardTourModule() { /* tour disattivato: modulo resta in repo */ }
 
@@ -1240,8 +1245,12 @@
                 const ruoli = (userDataNormalized && userDataNormalized.ruoli) || [];
                 const ruoloPin = ruoli.map(function (r) { return String(r || '').toLowerCase(); })
                     .find(function (r) { return r === 'admin' || r === 'amministratore' || r === 'manager'; });
+                if (!ruoloPin || !currentTenantId) {
+                    // Nessun auto-pin per questo utente: Tony non deve aspettare.
+                    esponiAutoPinPromise(Promise.resolve({ saved: false, reason: 'ruolo' }));
+                }
                 if (ruoloPin && currentTenantId) {
-                    void tryAutoSaveSedePinOnFirstAccess({
+                    esponiAutoPinPromise(tryAutoSaveSedePinOnFirstAccess({
                         tenantId: currentTenantId,
                         tenantData: td,
                         ruolo: ruoloPin,
@@ -1271,7 +1280,7 @@
                                 hub.insertBefore(el, hub.firstChild);
                             } catch (eAv) { console.warn('[sede-auto-pin]', msg); }
                         }
-                    });
+                    }));
                 }
             } catch (eAutoPin) {
                 console.warn('[sede-auto-pin]', eAutoPin);
@@ -1405,7 +1414,8 @@
             if (!user) user = await resolveAuthUser(auth);
             if (!user) {
                 sessionStorage.removeItem('gfv_expected_user_id');
-                window.location.href = await loginPageUrl('./auth/login-standalone.html?motivo=sessione-persa');
+                // Logout volontario → login pulito; sessione davvero persa → motivo=sessione-persa
+                window.location.href = await loginPageUrl(loginPathDopoUtenteNullo('./auth/login-standalone.html'));
                 return;
             }
             
@@ -1519,14 +1529,22 @@
                                 }
                             }
                             const planNormalized = normalizeGfvPlanId(tenantDataSnapshot ? (tenantDataSnapshot.plan || tenantDataSnapshot.piano) : 'base');
-                            window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, {
+                            // G1: merge, non replace — non perdere sedeCoordinate già scritto dall'auto-pin.
+                            window.__gfvTenantData = unisciTenantDataMantenendoSede(tenantDataSnapshot, {
                                 modules: availableModules,
                                 plan: planNormalized,
                                 piano: planNormalized
-                            });
+                            }, window.__gfvTenantData);
                             window.__gfvSubscriptionPlanId = planNormalized;
                             try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
                             await attendiAccettazioneLegaleSeServe(userDataNormalized, tenantDataSnapshot && tenantDataSnapshot.nome);
+                            updateDoc(userDocRef, {
+                                ultimoAccesso: serverTimestamp(),
+                                isOnline: true,
+                                lastSeen: serverTimestamp()
+                            }).catch((error) => {
+                                console.warn('Errore aggiornamento ultimo accesso:', error);
+                            });
                             const ingressoNuovo = applicaIngressoDopoLogin(userDataNormalized, availableModules);
                             if (ingressoNuovo !== 'dashboard') return;
 
@@ -1578,14 +1596,24 @@
                         }
                     }
                     const planNormalized = normalizeGfvPlanId(tenantDataSnapshot ? (tenantDataSnapshot.plan || tenantDataSnapshot.piano) : 'base');
-                    window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, {
+                    // G1: merge, non replace — non perdere sedeCoordinate già scritto dall'auto-pin.
+                    window.__gfvTenantData = unisciTenantDataMantenendoSede(tenantDataSnapshot, {
                         modules: availableModules,
                         plan: planNormalized,
                         piano: planNormalized
-                    });
+                    }, window.__gfvTenantData);
                     window.__gfvSubscriptionPlanId = planNormalized;
                     try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
                     await attendiAccettazioneLegaleSeServe(userDataNormalized, tenantDataSnapshot && tenantDataSnapshot.nome);
+                    // Ultimo accesso PRIMA del possibile ingresso nel workspace (return sotto), altrimenti
+                    // chi entra sempre dal campo risulta «Mai». Scrittura in background.
+                    updateDoc(userDocRef, {
+                        ultimoAccesso: serverTimestamp(),
+                        isOnline: true,
+                        lastSeen: serverTimestamp()
+                    }).catch((error) => {
+                        console.warn('Errore aggiornamento ultimo accesso:', error);
+                    });
                     const ingresso = applicaIngressoDopoLogin(userDataNormalized, availableModules);
                     if (ingresso !== 'dashboard') return;
 
@@ -1601,14 +1629,7 @@
                     ).join(' ');
                     document.getElementById('user-roles').innerHTML = rolesHTML || '<span class="role-badge">Nessun ruolo</span>';
                     
-                    // Scrittura in background: non serve attenderla per disegnare la dashboard.
-                    updateDoc(userDocRef, {
-                        ultimoAccesso: serverTimestamp(),
-                        isOnline: true,
-                        lastSeen: serverTimestamp()
-                    }).catch((error) => {
-                        console.warn('Errore aggiornamento ultimo accesso:', error);
-                    });
+                    // (ultimoAccesso/isOnline sono già stati scritti prima di applicaIngressoDopoLogin)
                     
                     if (window.gfvOnlineInterval) {
                         clearInterval(window.gfvOnlineInterval);
@@ -1750,6 +1771,8 @@
                 sessionStorage.removeItem('gfv_expected_user_id');
                 sessionStorage.removeItem('gfv_user_just_registered');
                 pulisciIndizioIngresso();
+                // Flag PRIMA di signOut: onAuthStateChanged(null) non deve diventare «sessione-persa»
+                segnaLogoutVolontario();
                 await signOut(auth);
                 window.location.href = await loginPageUrl('./auth/login-standalone.html');
             } catch (error) {

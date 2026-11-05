@@ -176,3 +176,88 @@ export function haPinSede(sedeCoordinate) {
   const lng = typeof c.lng === 'number' ? c.lng : Number(c.lng);
   return Number.isFinite(lat) && Number.isFinite(lng);
 }
+
+/** Attesa massima del pin sede (auto-pin dashboard) prima di scegliere la frase del saluto. */
+export const ATTESA_PIN_SEDE_MS = 3500;
+
+/**
+ * Se il pin sede manca, attende (max `maxMs`) che l'auto-pin della dashboard finisca
+ * (`window.__gfvSedeAutoPinPromise`) prima di decidere la frase del saluto.
+ * Non rilancia mai: gli errori della promise equivalgono a 'nessun pin'.
+ *
+ * @param {() => object|null|undefined} leggiTenant  es. () => window.__gfvTenantData
+ * @param {() => Promise<any>|undefined} leggiPromise  es. () => window.__gfvSedeAutoPinPromise
+ * @param {{ maxMs?: number, pollMs?: number, adesso?: () => number }} [opzioni]
+ * @returns {Promise<{ haPin: boolean, atteso: boolean, scaduto: boolean, promessa: Promise<any>|null }>}
+ *   `promessa`: auto-pin ancora in volo allo scadere dell'attesa (per la riga 'pin tardivo').
+ */
+export async function attendiPinSedeAutoPin(leggiTenant, leggiPromise, opzioni) {
+  const o = opzioni && typeof opzioni === 'object' ? opzioni : {};
+  const maxMs = typeof o.maxMs === 'number' ? o.maxMs : ATTESA_PIN_SEDE_MS;
+  const pollMs = typeof o.pollMs === 'number' ? o.pollMs : 100;
+  const adesso = typeof o.adesso === 'function' ? o.adesso : Date.now;
+  const pinPresente = () => {
+    try {
+      const t = leggiTenant ? leggiTenant() : null;
+      return haPinSede(t && t.sedeCoordinate);
+    } catch (e) {
+      return false;
+    }
+  };
+  if (pinPresente()) return { haPin: true, atteso: false, scaduto: false, promessa: null };
+
+  const fine = adesso() + maxMs;
+  let atteso = false;
+  let promessaVista = null;
+  const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  while (adesso() < fine) {
+    let p = null;
+    try {
+      p = leggiPromise ? leggiPromise() : null;
+    } catch (e) {
+      p = null;
+    }
+    if (p && typeof p.then === 'function') {
+      promessaVista = p;
+      atteso = true;
+      const resto = Math.max(0, fine - adesso());
+      let finita = false;
+      await Promise.race([
+        Promise.resolve(p).then(
+          () => {
+            finita = true;
+          },
+          () => {
+            finita = true;
+          }
+        ),
+        pausa(resto),
+      ]);
+      if (pinPresente()) return { haPin: true, atteso: true, scaduto: false, promessa: null };
+      if (finita) return { haPin: false, atteso: true, scaduto: false, promessa: null };
+      break;
+    }
+    atteso = true;
+    await pausa(Math.min(pollMs, Math.max(0, fine - adesso())));
+    if (pinPresente()) return { haPin: true, atteso: true, scaduto: false, promessa: null };
+  }
+  return {
+    haPin: pinPresente(),
+    atteso,
+    scaduto: true,
+    promessa: promessaVista,
+  };
+}
+
+/**
+ * Unica riga mostrata se il pin arriva dopo il saluto.
+ * @param {string} [mode]  'civico' | 'centro'
+ * @returns {string}
+ */
+export function costruisciMessaggioPinTardivo(mode) {
+  if (mode === 'centro') {
+    return 'Ho messo il pin della sede al centro del comune: spostalo sull\u2019indirizzo preciso in Impostazioni.';
+  }
+  return 'Ho messo il pin della sede sulla mappa: puoi ritoccarlo in Impostazioni.';
+}

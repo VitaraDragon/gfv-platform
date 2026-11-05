@@ -316,6 +316,11 @@
                         <span class="action-title">Officina & Guasti</span>
                         <span class="action-description">Elenco guasti e segna come risolto</span>
                     </a>
+                    <a id="azione-pieno-carburante" href="../../magazzino/views/movimenti-standalone.html?categoria=carburante&tipo=uscita&pieno=1" class="action-card" aria-label="Pieno carburante" style="display:none;">
+                        <span class="action-icon">⛽</span>
+                        <span class="action-title">Pieno</span>
+                        <span class="action-description">Registra pieno al mezzo (serve anche Magazzino)</span>
+                    </a>
                 </div>
             </section>
         </div>
@@ -481,6 +486,11 @@ import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
                         const modules = tenantDoc.exists()
                             ? resolveEffectiveModules(tenantDoc.data() || {}).slice()
                             : [];
+                        // B7: Pieno raggiungibile da hub Parco Macchine se Magazzino è attivo
+                        const pienoCard = document.getElementById('azione-pieno-carburante');
+                        if (pienoCard) {
+                            pienoCard.style.display = modules.includes('magazzino') ? '' : 'none';
+                        }
                         if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                             window.Tony.initContextWithModules(modules, {
                                 tenantId: tenantId,

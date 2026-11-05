@@ -394,6 +394,17 @@ export async function createRaccoltaFromLavoro(lavoroId) {
       ? lavoro.dataInizio
       : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date());
 
+    // Ore: validate se presenti, altrimenti stima durataPrevista × 8
+    let costiLavoro = null;
+    try {
+      const { calcolaCostiLavoro } = await import('./lavori-frutteto-service.js');
+      costiLavoro = await calcolaCostiLavoro(lavoroId, lavoro);
+    } catch (e) {
+      console.warn('[RACCOLTA-FRUTTA-SERVICE] calcolo ore validate da lavoro:', e);
+    }
+    const { risolviOreCostiLavoro } = await import('../../../shared/js/ore-lavoro-validate.js');
+    const oreCosti = risolviOreCostiLavoro(lavoro, costiLavoro);
+
     const raccoltaData = {
       fruttetoId: frutteto.id,
       lavoroId: lavoroId,
@@ -404,7 +415,7 @@ export async function createRaccoltaFromLavoro(lavoroId) {
       quantitaEttari: null,
       operai: [],
       macchine: [],
-      oreImpiegate: lavoro.durataPrevista ? lavoro.durataPrevista * 8 : null,
+      oreImpiegate: oreCosti.oreImpiegate,
       note: `Raccolta creata automaticamente dal lavoro: ${lavoro.nome || lavoroId}`
     };
 

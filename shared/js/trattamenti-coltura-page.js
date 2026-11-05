@@ -32,6 +32,8 @@ import {
     scriviEsitoScheda
 } from './registro-trattamenti-form.js';
 import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
+import { quantitaRigaProdotto, formattaQuantita } from './quantita-dose.js';
+import { applyScaricoMagazzinoUi as applyScaricoMagazzinoUiShared } from './scarico-magazzino-ui.js';
 
 export async function mountTrattamentiColturaPage(cfg) {
     try {
@@ -261,7 +263,7 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
     const superficie = parseFloat(document.getElementById('trattamento-superficie')?.value) || 0;
     prodottiAnagrafica = prodottiAnagrafica || listProdottiAnagrafica;
     tbody.innerHTML = rows.map((r, idx) => {
-        const qta = (r.dosaggio != null && !isNaN(r.dosaggio) && superficie > 0) ? (r.dosaggio * superficie) : (r.quantita != null ? r.quantita : null);
+        const qta = quantitaRigaProdotto(r, superficie);
         const prezzoUnit = r.prezzoUnitario != null ? r.prezzoUnitario : (prodottiAnagrafica.find(p => p.id === r.prodottoId)?.prezzoUnitario);
         const costo = (qta != null && prezzoUnit != null && prezzoUnit > 0) ? (qta * prezzoUnit) : (r.costo != null ? r.costo : 0);
         const unita = r.unitaDosaggio || prodottiAnagrafica.find(p => p.id === r.prodottoId)?.unitaMisura || '-';
@@ -275,9 +277,9 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
                 <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${isAltro ? (r.prodotto || '').replace(/"/g, '&quot;') : ''}" style="margin-top: 4px; width: 100%; max-width: 180px; display: ${isAltro ? 'block' : 'none'};">
                 ${htmlMetaRegistro(r)}
             </td>
-            <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
+            <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
             <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
-            <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${qta != null ? qta.toFixed(2) : '-'}</span></td>
+            <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${formattaQuantita(qta)}</span></td>
             <td style="padding: 6px 8px;"><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" style="width: 100px; min-width: 100px; box-sizing: border-box;" ${r.prodottoId && prezzoUnit ? 'readonly' : ''} title="${r.prodottoId ? 'Calcolato da anagrafica' : 'Inserisci manuale'}"></td>
             <td style="padding: 6px 8px;"><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
         </tr>`;
@@ -524,7 +526,7 @@ function ricalcolaQuantitaCostoProdotti() {
         const idx = tr.getAttribute('data-idx');
         const r = rows[i];
         if (!r) return;
-        const qta = (r.dosaggio != null && superficie > 0) ? r.dosaggio * superficie : null;
+        const qta = quantitaRigaProdotto(r, superficie);
         const prodAnag = listProdottiAnagrafica.find(p => p.id === r.prodottoId);
         const prezzoUnit = prodAnag?.prezzoUnitario;
         const costoCalc = (qta != null && prezzoUnit != null && prezzoUnit > 0) ? qta * prezzoUnit : r.costo;
@@ -532,7 +534,7 @@ function ricalcolaQuantitaCostoProdotti() {
         const quantitaSpan = tr.querySelector('.prodotto-quantita');
         const costoInp = tr.querySelector('.prodotto-costo');
         if (unitaSpan) unitaSpan.textContent = prodAnag?.unitaMisura || '-';
-        if (quantitaSpan) quantitaSpan.textContent = qta != null ? qta.toFixed(2) : '-';
+        if (quantitaSpan) quantitaSpan.textContent = formattaQuantita(qta);
         if (costoInp) {
             costoInp.value = (Number(costoCalc) || 0).toFixed(2);
             costoInp.readOnly = !!(r.prodottoId && prezzoUnit != null);
@@ -1294,7 +1296,7 @@ async function openModalCompleta(idx) {
         }
         const poligonoInfo = document.getElementById('poligono-info-trattamento');
         if (poligonoInfo) poligonoInfo.style.display = (!t.superficieDaAnagrafeTerreno && poligonoCoordsTrattamento.length >= 3) ? 'block' : 'none';
-        applyScaricoMagazzinoUi(t);
+        await applyScaricoMagazzinoUi(t);
         document.getElementById('modal-trattamento').classList.add('active');
         suggestTrattamentoMeteoIfAvailable();
     } catch (err) {
@@ -1303,15 +1305,9 @@ async function openModalCompleta(idx) {
     }
 }
 
-function applyScaricoMagazzinoUi(t) {
-    const scaricoGrp = document.getElementById('trattamento-scarico-magazzino-group');
-    const scaricoCb = document.getElementById('trattamento-registra-scarico-magazzino');
-    if (!scaricoGrp || !scaricoCb) return;
-    scaricoGrp.style.display = hasMagazzinoModule ? 'block' : 'none';
-    if (hasMagazzinoModule) {
-        const ids = t && t.magazzinoMovimentoIds;
-        scaricoCb.checked = Array.isArray(ids) && ids.length > 0;
-    }
+/** Checkbox derivato dai movimenti esistenti (non solo dagli ID): vedi scarico-magazzino-ui.js. */
+async function applyScaricoMagazzinoUi(t) {
+    await applyScaricoMagazzinoUiShared(t, { hasMagazzinoModule });
 }
 
 async function openModalEditRow(idx) {
@@ -1400,7 +1396,7 @@ async function openModalEditRow(idx) {
     }
     const poligonoInfo = document.getElementById('poligono-info-trattamento');
     if (poligonoInfo) poligonoInfo.style.display = (!t.superficieDaAnagrafeTerreno && poligonoCoordsTrattamento.length >= 3) ? 'block' : 'none';
-    applyScaricoMagazzinoUi(t);
+    await applyScaricoMagazzinoUi(t);
     document.getElementById('modal-trattamento').classList.add('active');
     suggestTrattamentoMeteoIfAvailable();
 }
@@ -1637,7 +1633,7 @@ async function saveTrattamento(e) {
 async function deleteTrattamentoConfirmRow(idx) {
     const row = listRows[idx];
     if (!row || !row.trattamento) return;
-    const verdict = valutaCancellazioneRegistro(row.trattamento);
+    const verdict = valutaCancellazioneRegistro(row.trattamento, { scaricoMagazzinoStornato: true });
     const domanda = verdict.messaggio + '\n\nEliminare i dati trattamento? Il lavoro o l\'attività resta.';
     if (!verdict.consentita) {
         if (!confirm(domanda + '\n\nConfermo di avere già esportato il registro.')) return;

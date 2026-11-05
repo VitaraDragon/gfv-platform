@@ -24,6 +24,14 @@ import {
 
 import { filterAttrezziDropdownCompatibili } from '../../js/macchine-cv-compat.js';
 import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../../js/macchina-selezionabile.js';
+import {
+    etichettaOpzioneMezzo,
+    isMezzoInUso,
+    mezzoGiaDellEntitaInModifica,
+    trovaUtilizzoMezzo,
+    aggiornaAvvisoSottoTendina,
+    confermaSalvataggioMezzoInUso
+} from '../../js/mezzo-in-uso-avviso.js';
 import { computeWorkedAreaHaAsync } from '../../services/zone-lavorate-area.js?v=2026-10-20a';
 import {
     ETICHETTA_COMPLETATO_SENZA_ZONE,
@@ -1680,16 +1688,15 @@ export function populateTrattoriDropdown(trattoriList, selectedMacchinaId) {
         option.value = trattore.id;
         const nome = trattore.nome || 'Trattore senza nome';
         const cavalli = trattore.cavalli ? ` (${trattore.cavalli} CV)` : '';
-        const stato = trattore.stato === 'disponibile' ? '✅' : trattore.stato === 'in_uso' ? '🔄' : '⚠️';
-        option.textContent = `${stato} ${nome}${cavalli}`;
         const isCurrent = selectedMacchinaId && String(trattore.id) === String(selectedMacchinaId);
         const sel = macchinaSelezionabile(trattore, {
             contesto: 'nuovo-lavoro',
             giaAssegnataAlLavoro: !!isCurrent
         });
-        const inUso = String(trattore.stato || '').toLowerCase().replace(/_/g, '-') === 'in-uso';
-        option.disabled = !isCurrent && (!sel.ok || inUso);
-        option.textContent += suffissoMacchinaNonSelezionabile(sel);
+        // B6 (decisione Pier): mezzo in_uso resta selezionabile — etichetta «— in uso», non disabled.
+        const base = `${nome}${cavalli}${suffissoMacchinaNonSelezionabile(sel)}`;
+        option.textContent = etichettaOpzioneMezzo(base, trattore);
+        option.disabled = !isCurrent && !sel.ok;
         select.appendChild(option);
     });
 
@@ -2638,9 +2645,8 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         const categoriaRef = attrezzo.categoriaId || attrezzo.categoriaFunzione;
         const categoriaNome = getNomeCategoria ? getNomeCategoria(categoriaRef) : 'Senza categoria';
         const cvMin = attrezzo.cavalliMinimiRichiesti ? ` (min ${attrezzo.cavalliMinimiRichiesti} CV)` : '';
-        const stato = attrezzo.stato === 'disponibile' ? '✅' : attrezzo.stato === 'in_uso' ? '🔄' : '⚠️';
-        option.textContent = `${stato} ${nome} - ${categoriaNome}${cvMin}`;
-        // Come diario attività: non disabilitare — altrimenti select.value / iniezione Tony non possono selezionare; il salvataggio gestisce conflitti.
+        // B6: in uso selezionabile, etichetta «— in uso»
+        option.textContent = etichettaOpzioneMezzo(`${nome} - ${categoriaNome}${cvMin}`, attrezzo);
         option.disabled = false;
         select.appendChild(option);
     });
@@ -2649,6 +2655,47 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         ensureMacchinaOptionInSelect(select, selectedAttrezzoId, attrezziList, 'Attrezzo assegnato');
         select.value = String(selectedAttrezzoId);
     }
+}
+
+/**
+ * Avviso sotto tendina trattore/attrezzo in Gestione lavori (B6).
+ */
+export function refreshAvvisoMezzoInUsoLavoro(tipoMezzo, mezzoId, macchineList = [], ctx = {}) {
+    const selectId = tipoMezzo === 'attrezzo' ? 'lavoro-attrezzo' : 'lavoro-trattore';
+    const select = typeof document !== 'undefined' ? document.getElementById(selectId) : null;
+    const macchina = (macchineList || []).find((x) => String(x.id) === String(mezzoId || ''));
+    const silenzioso = !mezzoId || !isMezzoInUso(macchina)
+        || mezzoGiaDellEntitaInModifica(mezzoId, ctx);
+    const utilizzo = silenzioso ? null : trovaUtilizzoMezzo(mezzoId, ctx);
+    aggiornaAvvisoSottoTendina(select, macchina, {
+        utilizzo,
+        tipoMezzo,
+        silenzioso,
+        avvisoId: `${selectId}-in-uso-avviso`
+    });
+}
+
+/**
+ * Conferma salvataggio lavoro se mezzo in uso altrove.
+ * @returns {boolean}
+ */
+export function confermaMezziInUsoAlSalvataggioLavoro({
+    macchinaId,
+    attrezzoId,
+    macchineList = [],
+    ctx = {},
+    confirmFn
+} = {}) {
+    const list = macchineList || [];
+    const check = (id, tipoMezzo) => {
+        if (!id) return true;
+        if (mezzoGiaDellEntitaInModifica(id, ctx)) return true;
+        const macchina = list.find((x) => String(x.id) === String(id));
+        return confermaSalvataggioMezzoInUso(macchina, { tipoMezzo, confirmFn });
+    };
+    if (!check(macchinaId, 'trattore')) return false;
+    if (!check(attrezzoId, 'attrezzo')) return false;
+    return true;
 }
 
 /**

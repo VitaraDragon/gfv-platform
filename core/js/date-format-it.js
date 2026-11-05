@@ -45,6 +45,27 @@ export function formatIsoDateToItalianLong(isoDateStr) {
 }
 
 /**
+ * Qualsiasi valore data (Timestamp Firestore, Date, ISO, millis, {seconds}/{_seconds} da callable) → Date oppure null.
+ * @param {*} val
+ * @returns {Date|null}
+ */
+export function dateLikeToDate(val) {
+  if (val == null || val === '') return null;
+  let d = null;
+  if (val instanceof Date) {
+    d = val;
+  } else if (typeof val === 'object' && typeof val.toDate === 'function') {
+    try { d = val.toDate(); } catch (e) { return null; }
+  } else if (typeof val === 'object') {
+    const secs = val.seconds != null ? val.seconds : val._seconds;
+    if (typeof secs === 'number') d = new Date(secs * 1000);
+  } else {
+    d = new Date(val);
+  }
+  return d && !isNaN(d.getTime()) ? d : null;
+}
+
+/**
  * Timestamp Firestore, Date, ISO string, ecc. → YYYY-MM-DD (UTC via toISOString, come nel resto del progetto).
  * @param {*} val
  * @returns {string}

@@ -54,17 +54,17 @@ export class TrattamentoVigneto extends Base {
       this.prodotti = data.prodotti.map(r => ({
         prodottoId: r.prodottoId || null,
         prodotto: r.prodotto != null ? String(r.prodotto) : '',
-        dosaggio: r.dosaggio !== undefined && r.dosaggio !== '' ? parseFloat(r.dosaggio) : null,
+        dosaggio: numeroFinito(r.dosaggio),
         unitaDosaggio: r.unitaDosaggio || null,
-        quantita: r.quantita !== undefined && r.quantita !== '' ? parseFloat(r.quantita) : null,
-        costo: r.costo !== undefined && r.costo !== '' ? parseFloat(r.costo) : null,
+        quantita: numeroFinito(r.quantita),
+        costo: numeroFinito(r.costo),
         principioAttivo: r.principioAttivo || null,
         fonteScheda: r.fonteScheda || null,
         dataLetturaScheda: r.dataLetturaScheda || null,
         ...campiConfermaRiga(r)
       }));
     } else {
-      const costoProdottoVal = data.costoProdotto !== undefined ? parseFloat(data.costoProdotto) : null;
+      const costoProdottoVal = numeroFinito(data.costoProdotto);
       this.prodotti = [{
         prodottoId: null,
         prodotto: data.prodotto || '',
@@ -116,6 +116,8 @@ export class TrattamentoVigneto extends Base {
     this.magazzinoMovimentoIds = Array.isArray(data.magazzinoMovimentoIds)
       ? data.magazzinoMovimentoIds.filter(Boolean)
       : [];
+    /** Impostata quando lo scarico viene eliminato da Magazzino → Movimenti (nota «Scarico stornato da Movimenti») */
+    this.magazzinoScaricoStornatoIl = data.magazzinoScaricoStornatoIl || null;
   }
   
   /**

@@ -10,7 +10,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMa
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
-import { decidiSalutoLanding, costruisciMessaggioSaluto, leggiStatoPercorsoLocale, salvaStatoPercorsoLocale, messaggioRiprendi, haPinSede } from './tony-landing-saluto.js?v=2026-11-02b';
+import { decidiSalutoLanding, costruisciMessaggioSaluto, leggiStatoPercorsoLocale, salvaStatoPercorsoLocale, messaggioRiprendi, haPinSede, attendiPinSedeAutoPin, costruisciMessaggioPinTardivo } from './tony-landing-saluto.js?v=2026-11-05a';
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
@@ -33,7 +33,7 @@ import {
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
     togliConfermeSalvataggioVecchie,
-} from './tony-segna-ora-local-engine.js?v=2026-11-02b';
+} from './tony-segna-ora-local-engine.js?v=2026-11-05a';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -50,14 +50,14 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-11-02b';
+} from './tony-ora-lavoro-match.js?v=2026-11-05a';
 import {
     accodaInvio,
     prossimoDaInviare,
     testoDaRimettereNelCampo,
     unisciChatRipristinata,
     LIMITE_ATTESA_MS,
-} from './tony-invio-coda.js?v=2026-11-02b';
+} from './tony-invio-coda.js?v=2026-11-05a';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -105,7 +105,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-11-02b';
+    export const TONY_CLIENT_BUILD = '2026-11-05a';
     /** Kill switch: false = come prima, il messaggio prima del pronto viene scartato. */
     var TONY_QUEUE_ENABLED = true;
 if (typeof window !== 'undefined') {
@@ -10016,6 +10016,22 @@ if (typeof window !== 'undefined') {
             saveTonyState();
             return true;
         };
+        /**
+         * Pin sede arrivato DOPO il saluto: al massimo UNA riga locale («Ho messo il pin della sede…»).
+         * @param {string} testo
+         */
+        window.__tonyLandingPinTardivoShow = function(testo) {
+            if (window.__tonyLandingPinTardivoDetto) return false;
+            testo = String(testo || '').trim();
+            if (!testo || !messagesEl) return false;
+            window.__tonyLandingPinTardivoDetto = true;
+            appendMessage(testo, 'tony');
+            if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
+                window.Tony.chatHistory.push({ role: 'model', parts: [{ text: testo }] });
+            }
+            saveTonyState();
+            return true;
+        };
         window.__tonyPromptLavoroSaveLocal = function() {
             promptTonyFormSaveLocal('lavoro-form', tonyFormSaveLocalDeps());
         };
@@ -10757,7 +10773,9 @@ if (typeof window !== 'undefined') {
                             
                             var elapsedSinceInit = now - _tonyWidgetInitTime;
                             if (!Array.isArray(dashModsRaw) && elapsedSinceInit > 5000) {
-                                console.warn('[Tony] ATTENZIONE: moduli_attivi non ancora nel contesto dashboard. La pagina potrebbe non aver inizializzato Tony correttamente.');
+                                // Non è un bug della dashboard: su pagine lente / senza modulo il contesto arriva dopo i 5s.
+                                // Solo diagnostica (tonyDebugLog), niente rumore in console utente.
+                                tonyDebugLog('[Tony] moduli_attivi non ancora nel contesto dashboard (pagina ancora in init o senza modulo).');
                             }
                         } catch (e) {
                             console.warn('[Tony] Errore recupero stato modulo:', e);
@@ -11035,14 +11053,31 @@ window.addEventListener('tony-module-updated', function(e) {
                                     statoLocale: stato
                                 });
                                 if (dec.tipo !== 'saluto' && dec.tipo !== 'riprendi') return;
+                                // G1: pin mancante → attende l'auto-pin (max ~3,5 s) prima di scegliere la frase.
+                                var attesaPin = await attendiPinSedeAutoPin(
+                                    function() { return window.__gfvTenantData; },
+                                    function() { return window.__gfvSedeAutoPinPromise; }
+                                );
+                                td = window.__gfvTenantData || td;
                                 var nomeSaluto = String(td.titolareNome || td.nomeTitolare || td.ownerName || '').trim().split(/\s+/)[0] || '';
+                                var pinAlSaluto = haPinSede(td.sedeCoordinate);
                                 window.__tonyLandingSalutoShow({
                                     tipo: dec.tipo,
                                     tenantId: tenantId,
                                     stato: stato,
                                     nome: nomeSaluto,
-                                    pinSede: haPinSede(td.sedeCoordinate)
+                                    pinSede: pinAlSaluto
                                 });
+                                // Pin arrivato dopo il saluto: al massimo una riga.
+                                if (!pinAlSaluto && attesaPin.promessa) {
+                                    attesaPin.promessa.then(function(esito) {
+                                        var tdDopo = window.__gfvTenantData || {};
+                                        if (!haPinSede(tdDopo.sedeCoordinate)) return;
+                                        window.__tonyLandingPinTardivoShow(
+                                            costruisciMessaggioPinTardivo(esito && esito.mode)
+                                        );
+                                    }).catch(function() { /* ignore */ });
+                                }
                             } catch (eLs) {
                                 console.warn('[Tony] saluto landing non mostrato:', eLs);
                             }
