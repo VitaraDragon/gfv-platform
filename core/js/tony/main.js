@@ -10,7 +10,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMa
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
-import { decidiSalutoLanding, costruisciMessaggioSaluto, leggiStatoPercorsoLocale, salvaStatoPercorsoLocale, messaggioRiprendi, haPinSede, attendiPinSedeAutoPin, costruisciMessaggioPinTardivo } from './tony-landing-saluto.js?v=2026-11-02b';
+import { decidiSalutoLanding, costruisciMessaggioSaluto, leggiStatoPercorsoLocale, salvaStatoPercorsoLocale, messaggioRiprendi, haPinSede, attendiPinSedeAutoPin, costruisciMessaggioPinTardivo } from './tony-landing-saluto.js?v=2026-11-05a';
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
@@ -33,7 +33,7 @@ import {
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
     togliConfermeSalvataggioVecchie,
-} from './tony-segna-ora-local-engine.js?v=2026-11-02b';
+} from './tony-segna-ora-local-engine.js?v=2026-11-05a';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -50,14 +50,14 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-11-02b';
+} from './tony-ora-lavoro-match.js?v=2026-11-05a';
 import {
     accodaInvio,
     prossimoDaInviare,
     testoDaRimettereNelCampo,
     unisciChatRipristinata,
     LIMITE_ATTESA_MS,
-} from './tony-invio-coda.js?v=2026-11-02b';
+} from './tony-invio-coda.js?v=2026-11-05a';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -105,7 +105,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-11-02b';
+    export const TONY_CLIENT_BUILD = '2026-11-05a';
     /** Kill switch: false = come prima, il messaggio prima del pronto viene scartato. */
     var TONY_QUEUE_ENABLED = true;
 if (typeof window !== 'undefined') {

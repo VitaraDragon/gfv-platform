@@ -79,7 +79,7 @@ const GUIDA_LOAD_ENTRIES = [
 function guidaFetchCacheBust() {
   const v =
     (typeof window !== 'undefined' && window.__TONY_CLIENT_BUILD) ||
-    '2026-11-02b';
+    '2026-11-05a';
   return encodeURIComponent(String(v));
 }
 
