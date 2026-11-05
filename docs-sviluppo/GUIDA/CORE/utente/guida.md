@@ -89,6 +89,7 @@ Oltre al titolo dell’azienda, di solito trovi:
 - **Guide** — apre la documentazione utente nel browser (moduli attivi + Core).
 - **Mappa** — collegamento rapido alla **mappa satellitare** terreni (e lavori, se i moduli lo prevedono).
 - **Invita collaboratore** — compare con il **modulo Manodopera** attivo e permessi da manager/amministratore.
+- **Gestisci utenti** — nel menu **ingranaggio** (accanto a Impostazioni) per **manager e amministratore**, anche **senza** il modulo Manodopera: da lì invitate collaboratori e impostate i ruoli.
 
 ### Panoramica (tre sezioni)
 
@@ -124,7 +125,7 @@ Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è i
 3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
 Nell’elenco trovi sempre almeno **Home** (torna alla dashboard), **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
-**Per tornare alla dashboard:** graffetta in alto a sinistra → **Home**. Su molte pagine c’è anche «← Dashboard» in alto se lo vedi.  
+**Per tornare alla dashboard:** graffetta in alto a sinistra → **Home**. **Oppure**, su molte pagine, il pulsante «← Dashboard» **in alto a destra** (se lo vedi).  
 Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**.
 
 **Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal pannello — ed è normale.
@@ -347,7 +348,8 @@ Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può 
 ### Login
 1. Aprite la pagina di **accesso** dell’app.  
 2. Inserite **email** e **password** dell’account.  
-3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).
+3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).  
+4. Se email o password non sono corrette, l’app lo dice in italiano («Email o password errati»); con troppi tentativi o rete assente vi indica di riprovare più tardi o di controllare la connessione. Con **Esci** (Logout) tornate al login senza messaggi di sessione persa.
 
 ### Nuova azienda vs invito
 - **Registrazione** (nuovo account + nuova azienda): usatela solo se state creando l’azienda da zero.  

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-05 — QA 3 nov blocco B (B1–B5) su PR #335.**
+**Ultimo aggiornamento documentazione: 2026-11-05 — QA 3 nov resto B6–G su `fix/qa-03nov-3-resto-b6g`.**
+
+## 2026-11-05 — QA 3 nov resto B6–G (trattore in uso, pieno, registri, diario, login, sede/Tony)
+
+Su `fix/qa-03nov-3-resto-b6g` (PR verso develop, dopo #335/#336): **B6** mezzo `in_uso` resta selezionabile con etichetta/avviso/conferma; **B7** ⛽ Pieno per manager senza Manodopera (quick bar, hub PM, Diario + `macchinaId`); **C1–C5** potatura/ore validate, miscela→trattamento, NaN quantità, scarico magazzino idempotente + storno, dose a 3 decimali; **C6** guide scarico/casella/flusso reale; **D1–D5** Diario prefill tipo, titoli CT, coltura leggibile, form senza «Tutti», VM sync con moduli effettivi; **E1–E5** errori auth IT, novalidate, logout senza sessione-persa, ultimo accesso, Gestisci utenti nel menu; **G1–G5** gara pin sede, geocode civico, «← Dashboard» a destra, F5 terreni landing, rumore console. **F1** non riprodotto. Deploy dopo merge+promote: `elencaUtentiTenant`; function che chiama `syncPreventivoAccettatoToPianoAdmin`; eventuali configs Tony. Nessun deploy in questo giro.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 3 nov blocco B (B1–B5) su PR #335.**
 
 ## 2026-11-05 — QA 3 nov blocco B (B1–B5): guasti, ripresa, ore macchina, statistiche, NaN
 

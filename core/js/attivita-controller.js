@@ -38,6 +38,14 @@ import {
     terrenoHaColturaVite,
 } from './lavoro-cascade-filters.js';
 import { raggruppaCategorie, unisciColturePerCategoria } from './catalogo-dedupe.js';
+import {
+    etichettaOpzioneMezzo,
+    isMezzoInUso,
+    mezzoGiaDellEntitaInModifica,
+    trovaUtilizzoMezzo,
+    aggiornaAvvisoSottoTendina,
+    confermaSalvataggioMezzoInUso
+} from './mezzo-in-uso-avviso.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -510,7 +518,7 @@ export function populateTrattoriDropdown(macchineList = [], selectedTrattoreId =
     if (!macchineList || macchineList.length === 0) {
         return;
     }
-    
+
     const trattori = macchineList
         .filter(m => {
             const tipo = m.tipoMacchina || m.tipo;
@@ -527,11 +535,9 @@ export function populateTrattoriDropdown(macchineList = [], selectedTrattoreId =
         option.value = trattore.id;
         const nome = trattore.nome || 'Trattore senza nome';
         const cavalli = trattore.cavalli ? ` (${trattore.cavalli} CV)` : '';
-        const stato = trattore.stato === 'disponibile' ? '✅' : 
-                     trattore.stato === 'in_uso' ? '🔄' : 
-                     trattore.stato === 'in_manutenzione' ? '🔧' : 
-                     trattore.stato === 'guasto' ? '❌' : '';
-        option.textContent = `${stato} ${nome}${cavalli}`;
+        // Mezzo in uso resta selezionabile (B6): etichetta «— in uso», non disabled.
+        option.textContent = etichettaOpzioneMezzo(`${nome}${cavalli}`, trattore);
+        option.disabled = false;
         if (trattore.id === selectedTrattoreId) {
             option.selected = true;
         }
@@ -584,24 +590,63 @@ export function populateAttrezziDropdown(trattoreId, macchineList = [], selected
             return nomeA.localeCompare(nomeB);
         });
     
-    // Aggiungi attrezzi compatibili al dropdown
+    // Aggiungi attrezzi compatibili al dropdown (in uso resta selezionabile, B6)
     attrezziCompatibili.forEach(macchina => {
         const option = document.createElement('option');
         option.value = macchina.id;
         const nome = macchina.nome || 'Attrezzo senza nome';
-        const stato = macchina.stato === 'disponibile' ? '✅' : 
-                     macchina.stato === 'in_uso' ? '🔄' : 
-                     macchina.stato === 'in_manutenzione' ? '🔧' : 
-                     macchina.stato === 'guasto' ? '❌' : '';
-        option.textContent = `${stato} ${nome}`;
-        // NON disabilitiamo gli attrezzi: il controllo di conflitto al salvataggio gestirà tutto
-        // Questo permette di selezionare attrezzi anche se sono in_uso per altre attività in orari diversi
+        option.textContent = etichettaOpzioneMezzo(nome, macchina);
         option.disabled = false;
         if (macchina.id === selectedAttrezzoId) {
             option.selected = true;
         }
         select.appendChild(option);
     });
+}
+
+/**
+ * Aggiorna avviso sotto tendina trattore/attrezzo se il mezzo è in uso altrove.
+ * @param {'trattore'|'attrezzo'} tipoMezzo
+ * @param {string|null} mezzoId
+ * @param {Array} macchineList
+ * @param {{ attivita?: Array, lavori?: Array, escludiAttivitaId?: string|null, escludiLavoroId?: string|null, macchinaIdCorrente?: string|null, attrezzoIdCorrente?: string|null }} [ctx]
+ */
+export function refreshAvvisoMezzoInUsoAttivita(tipoMezzo, mezzoId, macchineList = [], ctx = {}) {
+    const selectId = tipoMezzo === 'attrezzo' ? 'attivita-attrezzo' : 'attivita-macchina';
+    const select = typeof document !== 'undefined' ? document.getElementById(selectId) : null;
+    const macchina = (macchineList || []).find((x) => String(x.id) === String(mezzoId || ''));
+    const silenzioso = !mezzoId || !isMezzoInUso(macchina)
+        || mezzoGiaDellEntitaInModifica(mezzoId, ctx);
+    const utilizzo = silenzioso ? null : trovaUtilizzoMezzo(mezzoId, ctx);
+    aggiornaAvvisoSottoTendina(select, macchina, {
+        utilizzo,
+        tipoMezzo,
+        silenzioso,
+        avvisoId: `${selectId}-in-uso-avviso`
+    });
+}
+
+/**
+ * Conferma salvataggio se trattore/attrezzo sono in uso altrove.
+ * @returns {boolean} false se l'utente annulla
+ */
+export function confermaMezziInUsoAlSalvataggioAttivita({
+    macchinaId,
+    attrezzoId,
+    macchineList = [],
+    ctx = {},
+    confirmFn
+} = {}) {
+    const list = macchineList || [];
+    const check = (id, tipoMezzo) => {
+        if (!id) return true;
+        if (mezzoGiaDellEntitaInModifica(id, ctx)) return true;
+        const macchina = list.find((x) => String(x.id) === String(id));
+        return confermaSalvataggioMezzoInUso(macchina, { tipoMezzo, confirmFn });
+    };
+    if (!check(macchinaId, 'trattore')) return false;
+    if (!check(attrezzoId, 'attrezzo')) return false;
+    return true;
 }
 
 /**
@@ -1344,12 +1389,14 @@ export async function renderAttivita(params) {
         isContoTerziMode,
         hasParcoMacchineModule,
         hasManodoperaModule,
+        hasMagazzinoModule = false,
         escapeHtml,
         formatOreNette,
         populateTrattoriRapido,
         initCalcoloOreNetteRapido,
         caricaDettagliLavoriCompletati
     } = params;
+    const mostraPienoAttivita = !!(hasParcoMacchineModule && hasMagazzinoModule);
 
     const container = document.getElementById('attivita-container');
     if (!container) return;
@@ -1771,6 +1818,7 @@ export async function renderAttivita(params) {
                     </div>
                     ` : ''}
                     <div class="col-azioni" data-label="Azioni">
+                        ${mostraPienoAttivita && att.macchinaId ? `<a href="../modules/magazzino/views/movimenti-standalone.html?categoria=carburante&tipo=uscita&pieno=1&macchinaId=${encodeURIComponent(att.macchinaId)}" class="btn-edit-small" title="Pieno carburante" style="text-decoration:none;">⛽ Pieno</a> ` : ''}
                         ${hasManodoperaModule ? '' : (isAttivitaSolaLettura(att, (terreni || []).find((t) => t.id === att.terrenoId), att.lavoroId ? (lavoriList || []).find((l) => l.id === att.lavoroId) : null) ? '<span title="Solo consultazione">Solo consultazione</span>' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
                         <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`)}
                     </div>

@@ -791,10 +791,13 @@
         import { showAlert, escapeHtml } from '../js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
         import {
-            scegliGeocodeNelComune,
-            scegliCentroComune,
-            buildQueryCentroComune,
-        } from '../js/sede-geocode-match.js';
+            creaControlloRicercaSede,
+            risolviRicercaSede,
+            MSG_CARICO_MAPPA,
+        } from '../js/sede-ricerca-indirizzo.js';
+
+        // Una sola ricerca valida alla volta; proposta automatica mai dopo un click su Cerca.
+        const sedeRicerca = creaControlloRicercaSede();
 
         try {
             await window.GFVStandaloneReady;
@@ -841,7 +844,7 @@
                 const script = document.createElement('script');
                 script.async = true;
                 script.defer = true;
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry&loading=async&callback=initGoogleMapsPodere`;
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry&loading=async&language=it&region=IT&callback=initGoogleMapsPodere`;
                 document.head.appendChild(script);
                 
                 window.initGoogleMapsPodere = function() {
@@ -1420,6 +1423,11 @@
 
             if (window.google && window.google.maps && window.googleMapsReadyPodere) {
                 initSedeMap(pendingSedeCoordinate);
+                // Ricerca richiesta mentre la mappa si caricava («Carico la mappa…»): ora parte.
+                if (sedeRicerca.haCoda()) {
+                    const inCoda = sedeRicerca.prendiCoda();
+                    geocodeSedeQuery(inCoda.query, inCoda.opzioni);
+                }
                 return;
             }
 
@@ -1499,6 +1507,8 @@
 
         function maybeProposeSedePinFromAddress() {
             if (pendingSedeCoordinate || getSedeCoordinateForSave()) return;
+            // Se l'utente ha già premuto Cerca (o la proposta è già partita) niente seconda ricerca.
+            if (!sedeRicerca.puoProporreAutomatica()) return;
             const indirizzo = document.getElementById('azienda-indirizzo')?.value.trim() || '';
             const citta = document.getElementById('azienda-citta')?.value.trim() || '';
             if (!indirizzo && !citta) return;
@@ -1508,7 +1518,14 @@
             if (searchInput && !searchInput.value.trim()) {
                 searchInput.value = query.replace(/, Italia$/, '');
             }
-            geocodeSedeQuery(query, { messaggioOk: 'Controlla il pin e salva' });
+            sedeRicerca.segnaAutoProposta();
+            geocodeSedeQuery(query, { origine: 'auto', messaggioOk: 'Controlla il pin e salva' });
+        }
+
+        /** Un solo avviso per esito (niente doppi toast da richieste sovrapposte). */
+        function mostraAvvisoSede(messaggio, tipo) {
+            if (!sedeRicerca.daNotificare(messaggio)) return;
+            showAlert(messaggio, tipo);
         }
 
         function setSedeMarker(position, options) {
@@ -1590,15 +1607,10 @@
             if (searchInput) {
                 searchInput.value = query.replace(/, Italia$/, '');
             }
-            geocodeSedeQuery(query);
+            geocodeSedeQuery(query, { origine: 'utente' });
         }
 
         function searchSedeAddress() {
-            if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
-                showAlert('Mappa non ancora caricata. Attendi qualche secondo.', 'error');
-                return;
-            }
-
             const searchInput = document.getElementById('sede-map-search');
             let query = searchInput ? searchInput.value.trim() : '';
             if (!query) {
@@ -1610,15 +1622,26 @@
                 return;
             }
 
-            geocodeSedeQuery(query);
+            // Mappa non pronta: la ricerca resta in coda e parte da sola (initGoogleMapsPodere).
+            geocodeSedeQuery(query, { origine: 'utente' });
         }
 
         function geocodeSedeQuery(query, options) {
             options = options || {};
+            const origine = options.origine === 'auto' ? 'auto' : 'utente';
+
             if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
-                showAlert('Mappa non ancora caricata. Attendi qualche secondo.', 'error');
+                sedeRicerca.accoda(query, { origine: origine, messaggioOk: options.messaggioOk });
+                mostraAvvisoSede(MSG_CARICO_MAPPA, 'info');
                 return;
             }
+
+            // La proposta automatica non deve scavalcare una ricerca dell'utente.
+            if (origine === 'auto' && sedeRicerca.utenteHaCercato()) return;
+
+            // Nuova richiesta = tutte le precedenti diventano «vecchie» e vengono ignorate.
+            // (Prima di initSedeMap: così la proposta automatica non parte dopo un click su Cerca.)
+            const token = sedeRicerca.nuovaRichiesta(origine);
 
             if (!sedeMap) {
                 initSedeMap();
@@ -1627,91 +1650,37 @@
             const comuneAtteso = (document.getElementById('azienda-citta')?.value || '').trim();
             const provincia = (document.getElementById('azienda-provincia')?.value || '').trim();
             const geocoder = new google.maps.Geocoder();
-            const address = query.indexOf('Italia') === -1 ? query + ', Italia' : query;
 
-            function applicaPinDaResult(chosen, messaggio) {
-                const location = chosen.geometry.location;
-                setSedeMarker(location);
-                const searchInput = document.getElementById('sede-map-search');
-                if (searchInput && chosen.formatted_address) {
-                    searchInput.value = chosen.formatted_address;
-                }
-                showAlert(messaggio, 'success');
-            }
-
-            function provaCentroComune() {
-                if (!comuneAtteso) {
-                    showAlert(
-                        'Non trovo questo indirizzo a ' + (comuneAtteso || 'questo comune') +
-                        ': metti il pin a mano sulla mappa.',
-                        'error'
-                    );
-                    return;
-                }
-                const queryCentro = buildQueryCentroComune(comuneAtteso, provincia);
-                geocoder.geocode({
-                    address: queryCentro,
-                    componentRestrictions: { country: 'it', locality: comuneAtteso }
-                }, function(centroResults, centroStatus) {
-                    let centro = null;
-                    if (centroStatus === 'OK' && centroResults && centroResults.length) {
-                        centro = scegliCentroComune(centroResults, comuneAtteso);
-                    }
-                    if (!centro) {
-                        geocoder.geocode({
-                            address: queryCentro,
-                            componentRestrictions: { country: 'it' }
-                        }, function(fallbackResults, fallbackStatus) {
-                            if (fallbackStatus === 'OK' && fallbackResults && fallbackResults.length) {
-                                centro = scegliCentroComune(fallbackResults, comuneAtteso);
-                            }
-                            if (centro) {
-                                applicaPinDaResult(
-                                    centro,
-                                    'Ho messo il pin al centro di ' + comuneAtteso +
-                                    ': spostalo sulla sede in Impostazioni'
-                                );
-                            } else {
-                                showAlert(
-                                    'Non trovo questo indirizzo a ' + comuneAtteso +
-                                    ': metti il pin a mano sulla mappa.',
-                                    'error'
-                                );
-                            }
-                        });
-                        return;
-                    }
-                    applicaPinDaResult(
-                        centro,
-                        'Ho messo il pin al centro di ' + comuneAtteso +
-                        ': spostalo sulla sede in Impostazioni'
-                    );
+            function geocodeAsync(req) {
+                return new Promise(function(resolve) {
+                    geocoder.geocode(req, function(res, status) {
+                        resolve(status === 'OK' && Array.isArray(res) ? res : []);
+                    });
                 });
             }
 
-            geocoder.geocode({
-                address: address,
-                componentRestrictions: { country: 'it' }
-            }, function(results, status) {
-                if (status === 'OK' && results && results.length) {
-                    const chosen = scegliGeocodeNelComune(results, comuneAtteso);
-                    if (!chosen) {
-                        // Non cancellare il pin esistente: ripiego al centro del comune.
-                        provaCentroComune();
-                        return;
-                    }
-                    applicaPinDaResult(
-                        chosen,
-                        options.messaggioOk || 'Sede trovata. Verifica il pin e salva le impostazioni azienda.'
-                    );
-                } else {
-                    // Indirizzo non trovato: ripiego al centro senza togliere il pin.
-                    if (comuneAtteso) {
-                        provaCentroComune();
-                    } else {
-                        showAlert('Indirizzo non trovato. Prova con più dettagli o posiziona il pin manualmente sulla mappa.', 'error');
+            risolviRicercaSede({
+                geocode: geocodeAsync,
+                query: query,
+                comune: comuneAtteso,
+                provincia: provincia,
+                messaggioOk: options.messaggioOk
+            }).then(function(esito) {
+                if (!sedeRicerca.attuale(token)) return; // risposta vecchia: ignorata
+                // Proposta automatica: se nel frattempo l'utente ha già messo un pin, non toccarlo.
+                if (origine === 'auto' && getSedeCoordinateForSave()) return;
+                if (esito.chosen) {
+                    setSedeMarker(esito.chosen.geometry.location);
+                    const searchInput = document.getElementById('sede-map-search');
+                    if (esito.aggiornaTestoRicerca && searchInput && esito.chosen.formatted_address) {
+                        searchInput.value = esito.chosen.formatted_address;
                     }
                 }
+                mostraAvvisoSede(esito.messaggio, esito.tipoToast);
+            }).catch(function(err) {
+                if (!sedeRicerca.attuale(token)) return;
+                console.warn('[sede] ricerca indirizzo:', err);
+                mostraAvvisoSede('Ricerca non riuscita. Riprova o posiziona il pin sulla mappa.', 'error');
             });
         }
 

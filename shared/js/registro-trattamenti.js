@@ -239,11 +239,109 @@ export function calcolaMiscela(input = {}) {
   };
 }
 
-function stessoProdotto(a, b) {
+export function stessoProdotto(a, b) {
+  if (!a || !b) return false;
   if (a.prodottoId && b.prodottoId) return String(a.prodottoId) === String(b.prodottoId);
   const na = String(a.nome || a.prodotto || '').trim().toLowerCase();
   const nb = String(b.nome || b.prodotto || '').trim().toLowerCase();
   return !!na && na === nb;
+}
+
+/** Toglie i messaggi uguali, mantenendo l'ordine. */
+export function messaggiUnici(messaggi) {
+  const visti = new Set();
+  const out = [];
+  (messaggi || []).forEach((m) => {
+    const t = String(m == null ? '' : m).trim();
+    if (!t || visti.has(t)) return;
+    visti.add(t);
+    out.push(m);
+  });
+  return out;
+}
+
+/**
+ * Dalla miscela prevista sul lavoro alle righe del trattamento (vigneto, frutteto).
+ * Lo stesso prodotto compare una volta sola: vale la prima riga.
+ * La quantità è dose per ettaro × superficie; senza superficie resta vuota, non si inventa.
+ * @returns {{ prodotti: Array, acquaEttolitriPerEttaro: number|null, acquaEttolitriTotali: number|null }}
+ */
+export function righeTrattamentoDaMiscela(miscela, superficieHa) {
+  const m = miscela && typeof miscela === 'object' ? miscela : {};
+  const sup = numeroFinito(superficieHa);
+  const haSuperficie = sup != null && sup > 0;
+  const prodotti = [];
+  (Array.isArray(m.prodotti) ? m.prodotti : []).forEach((p) => {
+    if (!p || typeof p !== 'object') return;
+    const nome = String(p.nome != null ? p.nome : (p.prodotto != null ? p.prodotto : '')).trim();
+    const prodottoId = p.prodottoId ? String(p.prodottoId) : null;
+    if (!nome && !prodottoId) return;
+    const dosaggio = numeroFinito(p.dosePerEttaro != null ? p.dosePerEttaro : p.dosaggio);
+    const riga = {
+      prodottoId,
+      prodotto: nome,
+      dosaggio,
+      unitaDosaggio: p.unita ? String(p.unita) : (p.unitaDosaggio ? String(p.unitaDosaggio) : null),
+      quantita: dosaggio != null && haSuperficie ? arrotonda(dosaggio * sup, 4) : null,
+      dosePerEttolitroScheda: numeroFinito(p.dosePerEttolitro != null ? p.dosePerEttolitro : p.dosePerEttolitroScheda)
+    };
+    if (prodotti.some((r) => stessoProdotto(r, riga))) return;
+    prodotti.push(riga);
+  });
+  return {
+    prodotti,
+    acquaEttolitriPerEttaro: numeroFinito(m.ettolitriPerEttaro),
+    acquaEttolitriTotali: numeroFinito(m.ettolitriTotali)
+  };
+}
+
+/**
+ * Costo riga = quantità × prezzo unitario dell'anagrafica prodotti, se il prezzo c'è.
+ * Senza prezzo il costo resta quello già scritto (o vuoto).
+ * @returns {{ prodotti: Array, costoProdotto: number }}
+ */
+export function applicaCostiDaAnagrafica(prodotti, anagrafica) {
+  const anag = Array.isArray(anagrafica) ? anagrafica : [];
+  const righe = (Array.isArray(prodotti) ? prodotti : []).map((r) => {
+    const a = r && r.prodottoId ? anag.find((x) => x && x.id === r.prodottoId) : null;
+    const prezzo = numeroFinito(a && a.prezzoUnitario);
+    const q = numeroFinito(r && r.quantita);
+    if (prezzo != null && prezzo > 0 && q != null) return { ...r, costo: arrotonda(q * prezzo, 2) };
+    return { ...r, costo: numeroFinito(r && r.costo) };
+  });
+  const costoProdotto = righe.reduce((s, r) => s + (numeroFinito(r.costo) || 0), 0);
+  return { prodotti: righe, costoProdotto: arrotonda(costoProdotto, 2) || 0 };
+}
+
+/**
+ * Toglie dalle righe i campi null, così un costruttore che fa parseFloat sui campi presenti
+ * non trasforma «vuoto» in NaN.
+ */
+export function righeSenzaCampiVuoti(prodotti) {
+  return (Array.isArray(prodotti) ? prodotti : []).map((r) => {
+    const out = {};
+    Object.keys(r || {}).forEach((k) => {
+      if (r[k] !== null && r[k] !== undefined) out[k] = r[k];
+    });
+    return out;
+  });
+}
+
+/** Vero se il trattamento ha ancora solo la riga prodotto vuota (nessun dato reale da proteggere). */
+export function trattamentoHaSoloRigaVuota(trattamento) {
+  if (!trattamento) return false;
+  const righe = Array.isArray(trattamento.prodotti) ? trattamento.prodotti : [];
+  if (righe.length > 1) return false;
+  if (String(trattamento.prodotto || '').trim()) return false;
+  if (!righe.length) return true;
+  const r = righe[0] || {};
+  const vuoto = (v) => v == null || v === '' || (typeof v === 'number' && !Number.isFinite(v));
+  return !r.prodottoId
+    && !String(r.prodotto || '').trim()
+    && vuoto(r.dosaggio)
+    && vuoto(r.quantita)
+    && (vuoto(r.costo) || Number(r.costo) === 0)
+    && !rigaHaConferma(r);
 }
 
 function stessoCampo(a, b) {
@@ -343,11 +441,14 @@ export function avvisiRegistrazione(input = {}) {
     });
     if (dil) messaggi.push(dil);
   });
-  return { avvisi: messaggi, blocca: false };
+  return { avvisi: messaggiUnici(messaggi), blocca: false };
 }
 
 export function valutaCancellazioneRegistro(trattamento, opzioni = {}) {
-  const notaMagazzino = 'I movimenti di magazzino collegati restano: non si tolgono insieme al registro.';
+  // `scaricoMagazzinoStornato`: vigneto/frutteto eliminano anche le uscite collegate (giacenza ripristinata).
+  const notaMagazzino = opzioni.scaricoMagazzinoStornato === true
+    ? 'Gli scarichi di magazzino collegati vengono stornati e la giacenza dei prodotti ripristinata.'
+    : 'I movimenti di magazzino collegati restano: non si tolgono insieme al registro.';
   if (!trattamentoHaConferma(trattamento)) {
     return { consentita: true, messaggio: notaMagazzino };
   }

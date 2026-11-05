@@ -13,7 +13,7 @@ export function normalizzaComunePerMatch(s) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[''`´]/g, '')
+    .replace(/[\u2018\u2019'`\u00b4]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -125,6 +125,8 @@ export function scegliGeocodeNelComune(results, comuneAtteso) {
   if (!atteso || !Array.isArray(results) || !results.length) return null;
   let best = null;
   let bestScore = -Infinity;
+  let bestCivico = null;
+  let bestCivicoScore = -Infinity;
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     if (!risultatoNelComune(r, atteso)) continue;
@@ -133,8 +135,47 @@ export function scegliGeocodeNelComune(results, comuneAtteso) {
       bestScore = score;
       best = r;
     }
+    // Civico (street_address / premise / subpremise) nel comune: vince sempre su route/centro,
+    // anche se Google lo marca partial_match o lo elenca dopo un risultato meno preciso.
+    if (isCivicoGeocodeResult(r) && score > bestCivicoScore) {
+      bestCivicoScore = score;
+      bestCivico = r;
+    }
   }
-  return best;
+  return bestCivico || best;
+}
+
+/**
+ * True se il risultato Geocoder è un civico preciso.
+ * @param {object|null|undefined} result
+ * @returns {boolean}
+ */
+export function isCivicoGeocodeResult(result) {
+  const types = (result && result.types) || [];
+  return (
+    types.indexOf('street_address') >= 0 ||
+    types.indexOf('premise') >= 0 ||
+    types.indexOf('subpremise') >= 0
+  );
+}
+
+/**
+ * Componente con il tipo indicato che coincide (normalizzato) col comune atteso.
+ * @param {object|null|undefined} result
+ * @param {string} tipo
+ * @param {string} comuneAttesoNorm
+ * @returns {boolean}
+ */
+function componenteTipoNelComune(result, tipo, comuneAttesoNorm) {
+  const comps = result && Array.isArray(result.address_components) ? result.address_components : [];
+  for (let i = 0; i < comps.length; i++) {
+    const c = comps[i];
+    const types = (c && c.types) || [];
+    if (types.indexOf(tipo) < 0) continue;
+    const name = String((c && (c.long_name || c.short_name)) || '').trim();
+    if (name && normalizzaComunePerMatch(name) === comuneAttesoNorm) return true;
+  }
+  return false;
 }
 
 /**
@@ -146,20 +187,24 @@ export function scegliGeocodeNelComune(results, comuneAtteso) {
 export function scegliCentroComune(results, comuneAtteso) {
   const atteso = normalizzaComunePerMatch(comuneAtteso);
   if (!atteso || !Array.isArray(results) || !results.length) return null;
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    if (!risultatoNelComune(r, atteso)) continue;
+  // Mai un CAP (postal_code): il suo centroide non è il centro del comune.
+  const candidati = results.filter((r) => {
     const types = (r && r.types) || [];
-    if (
-      types.indexOf('locality') >= 0 ||
-      types.indexOf('administrative_area_level_3') >= 0 ||
-      types.indexOf('postal_town') >= 0 ||
-      types.indexOf('political') >= 0
-    ) {
-      return r;
+    return types.indexOf('postal_code') < 0 && types.indexOf('postal_code_prefix') < 0;
+  });
+  // 1) locality col nome del comune; 2) administrative_area_level_3 col nome del comune.
+  // Nessun altro ripiego (né postal_code, né civico/route): meglio nessun pin che un pin sbagliato.
+  const ordine = ['locality', 'administrative_area_level_3'];
+  for (let k = 0; k < ordine.length; k++) {
+    const tipo = ordine[k];
+    for (let i = 0; i < candidati.length; i++) {
+      const r = candidati[i];
+      const types = (r && r.types) || [];
+      if (types.indexOf(tipo) < 0) continue;
+      if (componenteTipoNelComune(r, tipo, atteso)) return r;
     }
   }
-  return scegliGeocodeNelComune(results, comuneAtteso);
+  return null;
 }
 
 /**

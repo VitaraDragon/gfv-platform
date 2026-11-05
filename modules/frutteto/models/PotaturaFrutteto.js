@@ -44,7 +44,11 @@ export class PotaturaFrutteto extends Base {
     if (Number.isNaN(this.piantePotate)) this.piantePotate = null;
 
     this.operai = Array.isArray(data.operai) ? data.operai : [];
-    this.oreImpiegate = data.oreImpiegate !== undefined ? parseFloat(data.oreImpiegate) : null;
+    this.oreImpiegate =
+      data.oreImpiegate != null && data.oreImpiegate !== ''
+        ? parseFloat(data.oreImpiegate)
+        : null;
+    if (Number.isNaN(this.oreImpiegate)) this.oreImpiegate = null;
 
     this.costoManodopera = data.costoManodopera !== undefined ? parseFloat(data.costoManodopera) : 0;
     this.macchinaId = data.macchinaId || null;

@@ -828,6 +828,28 @@ async function chiediRefreshSkill(tenantId, operaioId, userId, isManager) {
 }
 
 /**
+ * Dopo una validazione: riallinea ore/costi dei registri coltura collegati al lavoro
+ * (potatura vigneto/frutteto, vendemmia). Best-effort: ogni helper è un no-op se non c'è
+ * un registro collegato; gli errori non bloccano la validazione.
+ * @param {string} lavoroId
+ */
+async function sincronizzaRegistriColturaDaLavoro(lavoroId) {
+  const sync = [
+    ['syncPotaturaFromLavoro (vigneto)', async () => (await import('../../modules/vigneto/services/potatura-vigneto-service.js')).syncPotaturaFromLavoro],
+    ['syncPotaturaFromLavoro (frutteto)', async () => (await import('../../modules/frutteto/services/potatura-frutteto-service.js')).syncPotaturaFromLavoro],
+    ['syncVendemmiaFromLavoro', async () => (await import('../../modules/vigneto/services/vendemmia-service.js')).syncVendemmiaFromLavoro]
+  ];
+  await Promise.allSettled(sync.map(async ([nome, carica]) => {
+    try {
+      const fn = await carica();
+      if (typeof fn === 'function') await fn(lavoroId);
+    } catch (error) {
+      console.warn(`Sync registro coltura dopo validazione non riuscito (${nome}):`, error);
+    }
+  }));
+}
+
+/**
  * Valida una riga in coda. Permessi: assertUtentePuoValidareOra (capo o manager, come la coda).
  * Se le ore macchina vengono davvero aggiunte, salva oreMacchinaContabilizzate.
  * @returns {Promise<{ avvisi: string[] }>}
@@ -870,6 +892,7 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
   if (macchina.contabilizzate) update.oreMacchinaContabilizzate = macchina.contabilizzate;
   await updateDoc(ora.ref, update);
   await chiediRefreshSkill(tenantId, ora.operaioId, userId, isManager);
+  await sincronizzaRegistriColturaDaLavoro(lavoroId);
   return { avvisi: macchina.avviso ? [macchina.avviso] : [] };
 }
 

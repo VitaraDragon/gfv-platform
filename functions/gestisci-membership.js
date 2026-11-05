@@ -99,6 +99,31 @@ function ensureTenantMembershipMap(targetData, tenantId) {
   return memberships;
 }
 
+/**
+ * Timestamp Firestore (o Date / {seconds}) → stringa ISO serializzabile dalla callable.
+ * Senza questo il client riceve {_seconds,_nanoseconds} e «Ultimo accesso» resta «Mai».
+ * @param {*} value
+ * @returns {string|null}
+ */
+function serializeTimestamp(value) {
+  if (value == null) return null;
+  let date = null;
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value.toDate === "function") {
+    date = value.toDate();
+  } else if (typeof value === "object") {
+    const secs = value.seconds != null ? value.seconds : value._seconds;
+    if (typeof secs === "number") date = new Date(secs * 1000);
+  } else if (typeof value === "number") {
+    date = new Date(value);
+  } else if (typeof value === "string") {
+    date = new Date(value);
+  }
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 function serializeUserForTenant(id, data, tenantId) {
   let ruoli = [];
   let stato = "attivo";
@@ -117,9 +142,9 @@ function serializeUserForTenant(id, data, tenantId) {
     cognome: typeof data.cognome === "string" ? data.cognome : "",
     ruoli,
     stato,
-    ultimoAccesso: data.ultimoAccesso || null,
+    ultimoAccesso: serializeTimestamp(data.ultimoAccesso),
     isOnline: data.isOnline === true,
-    lastSeen: data.lastSeen || null,
+    lastSeen: serializeTimestamp(data.lastSeen),
     viaMembership: hasMembershipKey(data, tenantId),
   };
 }
@@ -397,6 +422,7 @@ module.exports = {
   handleElencaUtentiTenant,
   handleGestisciMembershipUtente,
   serializeUserForTenant,
+  serializeTimestamp,
   targetBelongs,
   targetHadAdminRole,
   countActiveAdminsInTx,

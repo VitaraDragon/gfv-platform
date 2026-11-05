@@ -242,6 +242,29 @@ export function calcolaStatoProgresso(lavoro, terreno) {
 // ============================================
 
 /**
+ * Titolo header Gestione Lavori in modalità Conto Terzi, in base a `?stato=` dell'URL.
+ * @param {string|URLSearchParams|null} [statoOrSearch] stato (es. 'in_corso') oppure query string/URLSearchParams
+ * @returns {string}
+ */
+export function getTitoloLavoriContoTerzi(statoOrSearch) {
+    let stato = statoOrSearch;
+    if (statoOrSearch && typeof statoOrSearch === 'object' && typeof statoOrSearch.get === 'function') {
+        stato = statoOrSearch.get('stato');
+    } else if (typeof statoOrSearch === 'string' && statoOrSearch.indexOf('stato=') !== -1) {
+        stato = new URLSearchParams(statoOrSearch.charAt(0) === '?' ? statoOrSearch.slice(1) : statoOrSearch).get('stato');
+    }
+    switch (stato) {
+        case 'in_corso':
+            return '📋 Lavori in corso – Conto Terzi';
+        case 'completato':
+            return '📋 Lavori completati – Conto Terzi';
+        case 'da_pianificare':
+        default:
+            return '📋 Lavori da pianificare – Conto Terzi';
+    }
+}
+
+/**
  * Applica stili per modalità Conto Terzi
  */
 export function applyContoTerziStyles() {
@@ -259,7 +282,7 @@ export function applyContoTerziStyles() {
     // Aggiorna titolo se necessario
     const headerTitle = header?.querySelector('h1');
     if (headerTitle && headerTitle.textContent.includes('Gestione Lavori')) {
-        headerTitle.textContent = '📋 Lavori da Pianificare - Conto Terzi';
+        headerTitle.textContent = getTitoloLavoriContoTerzi(typeof window !== 'undefined' ? window.location.search : null);
     }
     
     // Aggiorna stili bottoni primari

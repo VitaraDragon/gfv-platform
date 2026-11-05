@@ -270,9 +270,9 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
                 </select>
                 <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${isAltro ? (r.prodotto || '').replace(/"/g, '&quot;') : ''}" style="margin-top: 4px; width: 100%; max-width: 180px; display: ${isAltro ? 'block' : 'none'};">
             </td>
-            <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
+            <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
             <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
-            <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${qta != null ? qta.toFixed(2) : '-'}</span></td>
+            <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '-'}</span></td>
             <td style="padding: 6px 8px;"><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" style="width: 100px; min-width: 100px; box-sizing: border-box;" ${r.prodottoId && prezzoUnit ? 'readonly' : ''} title="${r.prodottoId ? 'Calcolato da anagrafica' : 'Inserisci manuale'}"></td>
             <td style="padding: 6px 8px;"><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
         </tr>`;
@@ -389,7 +389,7 @@ function ricalcolaQuantitaCostoProdotti() {
         const quantitaSpan = tr.querySelector('.prodotto-quantita');
         const costoInp = tr.querySelector('.prodotto-costo');
         if (unitaSpan) unitaSpan.textContent = prodAnag?.unitaMisura || '-';
-        if (quantitaSpan) quantitaSpan.textContent = qta != null ? qta.toFixed(2) : '-';
+        if (quantitaSpan) quantitaSpan.textContent = qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '-';
         if (costoInp) {
             costoInp.value = (Number(costoCalc) || 0).toFixed(2);
             costoInp.readOnly = !!(r.prodottoId && prezzoUnit != null);

@@ -19,6 +19,23 @@ import { TrattamentoFrutteto } from '../models/TrattamentoFrutteto.js';
 import { getFrutteto, updateFrutteto } from './frutteti-service.js';
 import { inferTipoTrattamentoColturaFromTipoLavoroNome } from '../../../core/config/trattamenti-lavoro-defaults.js';
 import { TIPO_LAVORO_CATEGORIA_CODICE } from '../../../core/config/app-catalog-seed-data.js';
+import {
+  righeTrattamentoDaMiscela,
+  applicaCostiDaAnagrafica,
+  righeSenzaCampiVuoti,
+  trattamentoHaSoloRigaVuota
+} from '../../../shared/js/registro-trattamenti.js';
+
+/** Anagrafica prodotti per il prezzo. Se il magazzino non risponde, il costo resta vuoto. */
+async function caricaAnagraficaProdotti() {
+  try {
+    const { getAllProdotti } = await import('../../magazzino/services/prodotti-service.js');
+    return (await getAllProdotti({ soloAttivi: true })) || [];
+  } catch (error) {
+    console.warn('[TRATTAMENTI-FRUTTETO] anagrafica prodotti non disponibile:', error);
+    return [];
+  }
+}
 
 const SUB_COLLECTION_NAME = 'trattamenti';
 
@@ -186,7 +203,10 @@ export async function updateTrattamento(fruttetoId, trattamentoId, updates, opti
       await updateDocument(
         collectionPath,
         trattamentoId,
-        { magazzinoMovimentoIds: movimentoIds.length ? movimentoIds : [] },
+        {
+          magazzinoMovimentoIds: movimentoIds.length ? movimentoIds : [],
+          ...(movimentoIds.length ? { magazzinoScaricoStornatoIl: null } : {})
+        },
         tenantId
       );
     }
@@ -212,6 +232,13 @@ export async function deleteTrattamento(fruttetoId, trattamentoId, opzioni = {})
     }
     const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
     await assertRegistroImpiantoModificabile(existing, 'frutteti', fruttetoId);
+
+    // Prima le uscite di magazzino: se lo storno fallisce il trattamento resta e l'errore arriva all'utente.
+    const idsScarico = existing && Array.isArray(existing.magazzinoMovimentoIds) ? existing.magazzinoMovimentoIds : [];
+    if (idsScarico.length) {
+      const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
+      await rimuoviMovimentiTrattamento(idsScarico);
+    }
 
     const collectionPath = getTrattamentiPath(fruttetoId);
     await deleteDocument(collectionPath, trattamentoId, tenantId);
@@ -681,6 +708,17 @@ export async function createTrattamentoFromLavoro(lavoroId) {
       costoProdotto: 0,
       note: `Trattamento creato da lavoro: ${lavoro.nome || lavoroId}`
     };
+    if (trattamentoData.superficieTrattata == null || !Number.isFinite(trattamentoData.superficieTrattata)) {
+      delete trattamentoData.superficieTrattata;
+    }
+    const daMiscela = righeTrattamentoDaMiscela(lavoro.miscelaPrevista, trattamentoData.superficieTrattata);
+    if (daMiscela.prodotti.length) {
+      const conCosti = applicaCostiDaAnagrafica(daMiscela.prodotti, await caricaAnagraficaProdotti());
+      trattamentoData.prodotti = righeSenzaCampiVuoti(conCosti.prodotti);
+      trattamentoData.costoProdotto = conCosti.costoProdotto;
+      trattamentoData.acquaEttolitriPerEttaro = daMiscela.acquaEttolitriPerEttaro;
+      trattamentoData.acquaEttolitriTotali = daMiscela.acquaEttolitriTotali;
+    }
     const trattamento = new TrattamentoFrutteto(trattamentoData);
     trattamento.aggiornaCalcoli();
     const collectionPath = getTrattamentiPath(frutteto.id);
@@ -754,6 +792,18 @@ export async function syncTrattamentoFromLavoro(lavoroId) {
     const updates = { data: dataTrattamento, operatore };
     if (found.trattamento.superficieDaAnagrafeTerreno) {
       updates.superficieTrattata = superficieTrattata;
+    }
+    // Miscela del lavoro → righe solo se il trattamento ha ancora la sola riga vuota: i dati reali non si toccano.
+    if (trattamentoHaSoloRigaVuota(found.trattamento) && lavoro.miscelaPrevista) {
+      const supRighe = updates.superficieTrattata != null ? updates.superficieTrattata : found.trattamento.superficieTrattata;
+      const daMiscela = righeTrattamentoDaMiscela(lavoro.miscelaPrevista, Number.isFinite(supRighe) ? supRighe : superficieTrattata);
+      if (daMiscela.prodotti.length) {
+        const conCosti = applicaCostiDaAnagrafica(daMiscela.prodotti, await caricaAnagraficaProdotti());
+        updates.prodotti = conCosti.prodotti;
+        updates.costoProdotto = conCosti.costoProdotto;
+        if (found.trattamento.acquaEttolitriPerEttaro == null) updates.acquaEttolitriPerEttaro = daMiscela.acquaEttolitriPerEttaro;
+        if (found.trattamento.acquaEttolitriTotali == null) updates.acquaEttolitriTotali = daMiscela.acquaEttolitriTotali;
+      }
     }
     await updateTrattamento(found.fruttetoId, found.trattamentoId, updates);
     return found.trattamentoId;

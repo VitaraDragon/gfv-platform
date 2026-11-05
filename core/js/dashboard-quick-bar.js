@@ -633,6 +633,16 @@ export const QUICK_BAR_CATALOG = {
         requireManodopera: false,
         section: 'magazzino'
     },
+    pienoCarburante: {
+        label: 'Pieno',
+        desc: 'Registra pieno carburante al mezzo',
+        icon: '⛽',
+        href: '../modules/magazzino/views/movimenti-standalone.html?categoria=carburante&tipo=uscita&pieno=1',
+        modules: ['magazzino', 'parcoMacchine'],
+        requireManodopera: false,
+        visibleForRoles: ['manager', 'amministratore'],
+        section: 'magazzino'
+    },
     magazzinoTracciabilita: {
         label: 'Tracciabilità consumi',
         desc: 'Uscite per categoria (lettura)',

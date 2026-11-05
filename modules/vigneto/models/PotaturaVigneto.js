@@ -38,11 +38,19 @@ export class PotaturaVigneto extends Base {
     this.data = data.data || null;
     this.tipo = data.tipo || '';
     this.parcella = data.parcella || null;
-    this.ceppiPotati = data.ceppiPotati !== undefined ? parseInt(data.ceppiPotati) : null;
+    this.ceppiPotati =
+      data.ceppiPotati != null && data.ceppiPotati !== ''
+        ? parseInt(data.ceppiPotati, 10)
+        : null;
+    if (Number.isNaN(this.ceppiPotati)) this.ceppiPotati = null;
     
     // Operazioni
     this.operai = Array.isArray(data.operai) ? data.operai : [];
-    this.oreImpiegate = data.oreImpiegate !== undefined ? parseFloat(data.oreImpiegate) : null;
+    this.oreImpiegate =
+      data.oreImpiegate != null && data.oreImpiegate !== ''
+        ? parseFloat(data.oreImpiegate)
+        : null;
+    if (Number.isNaN(this.oreImpiegate)) this.oreImpiegate = null;
     
     // Costi (calcolati)
     this.costoManodopera = data.costoManodopera !== undefined ? parseFloat(data.costoManodopera) : 0;

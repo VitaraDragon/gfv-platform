@@ -12,6 +12,9 @@ const ROOT = process.cwd();
 const ALLOWLIST = [
   /module-access-resolver\.js$/,
   /getPaidModuleIds/,
+  // functions/: il resolver server-side (getPaidModuleIds) e la fatturazione leggono i moduli PAGATI di proposito
+  /functions[\\/]module-trial\.js$/,
+  /functions[\\/]stripe-billing\.js$/,
 ];
 
 const RAW_PATTERNS = [
@@ -44,6 +47,23 @@ function cartelleViewsModuli() {
   return out;
 }
 
+function cartelleServicesModuli() {
+  const root = join(ROOT, 'modules');
+  const out = [];
+  for (const name of readdirSync(root)) {
+    const services = join(root, name, 'services');
+    try {
+      if (statSync(services).isDirectory()) out.push(services);
+    } catch (e) { /* modulo senza services */ }
+  }
+  return out;
+}
+
+/** functions/ senza node_modules (walk salta già node_modules). */
+function functionsDir() {
+  return join(ROOT, 'functions');
+}
+
 function lineeGrezze(filePath) {
   const src = readFileSync(filePath, 'utf8');
   const lines = src.split(/\r?\n/);
@@ -68,10 +88,18 @@ describe('nessun gate grezzo su tenant.modules (#23/#31)', () => {
     join(ROOT, 'core', 'mobile'),
     join(ROOT, 'core', 'js'),
     join(ROOT, 'modules', 'vigneto', 'js'),
+    join(ROOT, 'modules', 'frutteto', 'js'),
+    join(ROOT, 'modules', 'seminativo', 'js'),
+    join(ROOT, 'modules', 'vendemmia-meccanica', 'js'),
+    join(ROOT, 'core', 'admin'),
+    functionsDir(),
+    ...cartelleServicesModuli(),
     ...cartelleViewsModuli(),
   ];
   const files = [
     join(ROOT, 'core', 'terreni-standalone.html'),
+    join(ROOT, 'core', 'statistiche-standalone.html'),
+    join(ROOT, 'core', 'segnatura-ore-standalone.html'),
     ...dirs.flatMap((d) => walk(d)),
   ];
 

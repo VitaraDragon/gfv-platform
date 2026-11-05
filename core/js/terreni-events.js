@@ -8,6 +8,7 @@
 // IMPORTS
 // ============================================
 import { showAlert } from './terreni-utils.js';
+import { isVoceTutti } from './terreni-categorie-colture.js';
 import { raggruppaCategorie, trovaCategoriaPerColtura, dedupePerNome } from './catalogo-dedupe.js';
 
 // ============================================
@@ -617,7 +618,9 @@ export function updateColtureDropdownTerreni(state, updateState, getColturaColor
     }
     
     // Popola con le colture della categoria selezionata
-    const coltureCategoria = dedupePerNome(state.colturePerCategoriaTerreni?.[categoriaId] || []);
+    // «Tutti» è solo da filtro: mai come scelta nel form terreno
+    const coltureCategoria = dedupePerNome(state.colturePerCategoriaTerreni?.[categoriaId] || [])
+        .filter((c) => !isVoceTutti(c && c.nome != null ? c.nome : c));
     
     if (coltureCategoria.length === 0) {
         colturaSelect.innerHTML = '<option value="">-- Nessuna coltura disponibile per questa categoria --</option>';
