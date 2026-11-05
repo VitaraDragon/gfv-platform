@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-05 — QA 3 nov blocco A (abbonamento, bundle, guard moduli).**
+**Ultimo aggiornamento documentazione: 2026-11-05 — QA 3 nov blocco B (B1–B5) su PR #335.**
+
+## 2026-11-05 — QA 3 nov blocco B (B1–B5): guasti, ripresa, ore macchina, statistiche, NaN
+
+Su `fix/qa-03nov-3-resto` (PR #335): **B1** manager/admin aprono «Segnala guasto» con tutti i mezzi non dismessi; **B2** alla sospensione si salva `statoPrimaSospensione` e alla ripresa si ripristina (rules: chiave in hasOnly capo/operaio — **da deployare**); **B3** il workspace mobile copia trattore/attrezzo sull’ora se operatore macchina o lavoro autonomo, e in validazione c’è ripiego sul lavoro solo per l’operatore macchina; **B4** voce «Statistiche macchine» in quick bar, menu moduli e dashboard Parco Macchine; **B5** `numeroFinito` in Macchina evita NaN ore/km in Scadenze. Restano **B6–B7** e i blocchi **C–G**.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 3 nov blocco A (abbonamento, bundle, guard moduli).**
 
 ## 2026-11-05 — QA 3 nov blocco A: bundle Seminativo, riepilogo prove, guard pagine
 
