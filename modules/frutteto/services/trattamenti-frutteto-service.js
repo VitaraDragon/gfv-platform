@@ -705,6 +705,7 @@ export async function createTrattamentoFromLavoro(lavoroId) {
       tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(lavoro.tipoLavoro || ''),
       operatore,
       superficieTrattata: terreno.superficie ? parseFloat(terreno.superficie) : null,
+      superficieDaAnagrafeTerreno: Number.isFinite(parseFloat(terreno.superficie)),
       costoProdotto: 0,
       note: `Trattamento creato da lavoro: ${lavoro.nome || lavoroId}`
     };

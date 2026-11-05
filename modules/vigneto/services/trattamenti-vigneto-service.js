@@ -810,6 +810,7 @@ export async function createTrattamentoFromLavoro(lavoroId) {
       tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(lavoro.tipoLavoro || ''),
       operatore,
       superficieTrattata,
+      superficieDaAnagrafeTerreno: Number.isFinite(superficieTrattata),
       costoProdotto: 0,
       note: `Trattamento creato da lavoro: ${lavoro.nome || lavoroId}`
     };

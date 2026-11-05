@@ -1139,7 +1139,7 @@ async function loadTrattamenti() {
     tbody.innerHTML = listRows.map((row, idx) => {
         const t = row.trattamento;
         const costo = t && t.costoTotale != null ? t.costoTotale.toFixed(2) : '-';
-        const sup = t && t.superficieTrattata != null ? t.superficieTrattata.toFixed(2) : '-';
+        const sup = t && Number.isFinite(Number(t.superficieTrattata)) ? Number(t.superficieTrattata).toFixed(2) : '-';
         let refCell = '-';
         if (row.lavoroId) {
             refCell = `<a href="${gestioneLavoriUrl}?lavoroId=${encodeURIComponent(row.lavoroId)}" target="_blank" class="link-lavoro">🔗 Vedi Lavoro</a>`;
@@ -1233,7 +1233,9 @@ async function openModalCompleta(idx) {
         const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
         document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
         document.getElementById('trattamento-operatore').value = t.operatore || '';
-        document.getElementById('trattamento-superficie').value = (t.superficieTrattata != null && t.superficieTrattata !== '') ? Number(t.superficieTrattata).toFixed(2) : '';
+        document.getElementById('trattamento-superficie').value = Number.isFinite(Number(t.superficieTrattata)) && t.superficieTrattata !== ''
+            ? Number(t.superficieTrattata).toFixed(2)
+            : '';
         await syncSuperficieAnagrafeCheckboxUi(t, row[cfg.idKey]);
         document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
         document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
@@ -1325,7 +1327,9 @@ async function openModalEditRow(idx) {
     const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
     document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
     document.getElementById('trattamento-operatore').value = t.operatore || '';
-    document.getElementById('trattamento-superficie').value = (t.superficieTrattata != null && t.superficieTrattata !== '') ? Number(t.superficieTrattata).toFixed(2) : '';
+    document.getElementById('trattamento-superficie').value = Number.isFinite(Number(t.superficieTrattata)) && t.superficieTrattata !== ''
+        ? Number(t.superficieTrattata).toFixed(2)
+        : '';
     await syncSuperficieAnagrafeCheckboxUi(t, colturaId);
     document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
     document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
