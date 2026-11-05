@@ -45,6 +45,23 @@ describe('isLavoroSolaLettura', () => {
     expect(isLavoroSolaLettura({ stato: 'in_corso', dataInizio: '2026-07-01' }, terrenoCambio)).toBe(false);
   });
 
+  it('chiusoPerCambioColtura è sempre sola lettura, anche con data successiva a colturaDal', () => {
+    expect(isLavoroSolaLettura({
+      stato: 'completato',
+      dataInizio: '2026-07-01',
+      chiusoPerCambioColtura: true
+    }, terrenoCambio)).toBe(true);
+    expect(isLavoroSolaLettura({
+      stato: 'annullato',
+      dataInizio: '2026-11-05',
+      motivoChiusura: 'cambio_coltura'
+    }, terrenoCambio)).toBe(true);
+  });
+
+  it('lavoro aperto normale non è sola lettura', () => {
+    expect(isLavoroSolaLettura({ stato: 'assegnato', dataInizio: '2026-11-05' }, terrenoAttivo)).toBe(false);
+  });
+
   it('terreno attivo senza colturaDal: un lavoro di tre anni fa resta modificabile', () => {
     expect(isLavoroSolaLettura({ stato: 'completato', dataInizio: '2023-04-01' }, terrenoAttivo)).toBe(false);
   });
@@ -148,12 +165,12 @@ describe('tendina frutteto', () => {
 describe('effetti del salvataggio terreno', () => {
   const oggi = new Date('2026-11-03T12:00:00');
 
-  it('categoria vuota e coltura invariata non propone la chiusura', () => {
+  it('categoria vuota e coltura invariata non propone la chiusura', async () => {
     expect(testoCategoriaColtura({
       value: '',
       selectedOptions: [{ textContent: '-- Seleziona categoria --' }]
     })).toBeNull();
-    const effetti = preparaEffettiSalvataggioTerreno({
+    const effetti = await preparaEffettiSalvataggioTerreno({
       esistente: { coltura: 'Vite', colturaCategoria: 'Vite', superficie: 2 },
       nuovo: { coltura: 'Vite', colturaCategoria: null, superficie: 2 },
       vigneti: [{ id: 'v1', nome: 'Sangiovese', statoImpianto: 'attivo' }],
@@ -164,10 +181,11 @@ describe('effetti del salvataggio terreno', () => {
     });
     expect(effetti.procedi).toBe(true);
     expect(effetti.chiudi).toEqual([]);
+    expect(effetti.chiudiLavori).toEqual([]);
   });
 
-  it('cambio coltura con vigneto attivo chiede conferma e lo chiude', () => {
-    const effetti = preparaEffettiSalvataggioTerreno({
+  it('cambio coltura con vigneto attivo chiede conferma e lo chiude', async () => {
+    const effetti = await preparaEffettiSalvataggioTerreno({
       esistente: { coltura: 'Vite', colturaCategoria: 'vite', superficie: 2 },
       nuovo: { coltura: 'Melo', colturaCategoria: 'frutteto', superficie: 2 },
       vigneti: [{ id: 'v1', nome: 'Sangiovese', statoImpianto: 'attivo' }],
@@ -175,7 +193,7 @@ describe('effetti del salvataggio terreno', () => {
       lavori: [],
       campagne: [],
       conferma: (messaggio) => {
-        expect(messaggio).toMatch(/chiud/i);
+        expect(messaggio).toMatch(/chius/i);
         return true;
       },
       now: '2026-11-03T12:00:00.000Z',
@@ -187,9 +205,67 @@ describe('effetti del salvataggio terreno', () => {
     expect(effetti.storico.colturaDal).toBe('2026-11-03T12:00:00.000Z');
   });
 
-  it('con lavori aperti il messaggio li elenca e il salvataggio procede se si conferma', () => {
+  it('Vite→Melo con 2 aperti, 1 chiuso e 1 vigneto: messaggio e chiudiLavori', async () => {
     let visto = '';
-    const effetti = preparaEffettiSalvataggioTerreno({
+    const effetti = await preparaEffettiSalvataggioTerreno({
+      esistente: { coltura: 'Vite', colturaCategoria: 'vite', superficie: 1 },
+      nuovo: { coltura: 'Melo', colturaCategoria: 'frutteto', superficie: 1 },
+      vigneti: [{ id: 'v1', nome: 'Sangiovese', statoImpianto: 'attivo' }],
+      lavori: [
+        { id: 'l1', nome: 'Potatura QACC-A', stato: 'assegnato', dataInizio: '2026-11-05' },
+        { id: 'l2', nome: 'Trattamento QACC-A', stato: 'assegnato', dataInizio: '2026-11-06', percentualeCompletamento: 20 },
+        { id: 'l3', nome: 'Vecchio', stato: 'completato', dataInizio: '2026-01-01' }
+      ],
+      conferma: (messaggio) => { visto = messaggio; return true; },
+      now: '2026-11-04T12:00:00.000Z',
+      oggi
+    });
+    expect(effetti.procedi).toBe(true);
+    expect(visto).toMatch(/2 lavor/i);
+    expect(visto).toMatch(/Potatura QACC-A/);
+    expect(visto).toMatch(/Trattamento QACC-A/);
+    expect(visto).not.toMatch(/Restano modificabili/i);
+    expect(effetti.chiudiLavori).toHaveLength(2);
+    expect(effetti.chiudiLavori.map((l) => l.id).sort()).toEqual(['l1', 'l2']);
+    expect(effetti.chiudiLavori.find((l) => l.id === 'l1').patch.stato).toBe('annullato');
+    expect(effetti.chiudiLavori.find((l) => l.id === 'l2').patch.stato).toBe('completato');
+    expect(effetti.chiudiLavori[0].patch.chiusoPerCambioColtura).toBe(true);
+    expect(effetti.chiudi).toEqual([expect.objectContaining({ id: 'v1', tipo: 'vigneto' })]);
+    expect(effetti.messaggioToast).toMatch(/Chiusi 2 lavori/);
+  });
+
+  it('Annulla: procedi false e liste vuote', async () => {
+    const effetti = await preparaEffettiSalvataggioTerreno({
+      esistente: { coltura: 'Vite', superficie: 1 },
+      nuovo: { coltura: 'Melo', superficie: 1 },
+      vigneti: [{ id: 'v1', nome: 'Sangiovese', statoImpianto: 'attivo' }],
+      lavori: [{ id: 'l1', nome: 'Potatura', stato: 'assegnato', dataInizio: '2026-11-05' }],
+      conferma: () => false,
+      now: '2026-11-04',
+      oggi
+    });
+    expect(effetti.procedi).toBe(false);
+    expect(effetti.chiudi).toEqual([]);
+    expect(effetti.chiudiLavori).toEqual([]);
+  });
+
+  it('cambio nella stessa famiglia (Grano→Mais) non apre dialogo', async () => {
+    const effetti = await preparaEffettiSalvataggioTerreno({
+      esistente: { coltura: 'Grano', colturaCategoria: 'seminativo', superficie: 1 },
+      nuovo: { coltura: 'Mais', colturaCategoria: 'seminativo', superficie: 1 },
+      lavori: [{ id: 'l1', nome: 'Aratura', stato: 'assegnato' }],
+      conferma: () => {
+        throw new Error('non doveva chiedere conferma');
+      },
+      oggi
+    });
+    expect(effetti.procedi).toBe(true);
+    expect(effetti.chiudiLavori).toEqual([]);
+  });
+
+  it('con lavori aperti il messaggio li elenca e il salvataggio procede se si conferma', async () => {
+    let visto = '';
+    const effetti = await preparaEffettiSalvataggioTerreno({
       esistente: { coltura: 'Vite', superficie: 1 },
       nuovo: { coltura: 'Melo', superficie: 1 },
       vigneti: [{ id: 'v1', nome: 'Vigna', statoImpianto: 'attivo' }],
@@ -201,11 +277,12 @@ describe('effetti del salvataggio terreno', () => {
     expect(effetti.procedi).toBe(true);
     expect(visto).toMatch(/Potatura/);
     expect(visto).toMatch(/02\/03/);
+    expect(effetti.chiudiLavori).toHaveLength(1);
   });
 
-  it('senza lavori aperti l\'avviso sui lavori non c\'è', () => {
+  it('senza lavori aperti l\'avviso sui lavori non c\'è', async () => {
     let visto = '';
-    preparaEffettiSalvataggioTerreno({
+    await preparaEffettiSalvataggioTerreno({
       esistente: { coltura: 'Vite', superficie: 1 },
       nuovo: { coltura: 'Melo', superficie: 1 },
       vigneti: [{ id: 'v1', nome: 'Vigna', statoImpianto: 'attivo' }],
@@ -214,11 +291,11 @@ describe('effetti del salvataggio terreno', () => {
       now: '2026-11-03',
       oggi
     });
-    expect(visto).not.toMatch(/lavori ancora aperti/i);
+    expect(visto).not.toMatch(/lavori aperti/i);
   });
 
-  it('superficie: aggiorna il vigneto attivo, non il chiuso e non la campagna passata', () => {
-    const effetti = preparaEffettiSalvataggioTerreno({
+  it('superficie: aggiorna il vigneto attivo, non il chiuso e non la campagna passata', async () => {
+    const effetti = await preparaEffettiSalvataggioTerreno({
       esistente: { coltura: 'Vite', superficie: 2 },
       nuovo: { coltura: 'Vite', superficie: 3 },
       vigneti: [
@@ -236,10 +313,10 @@ describe('effetti del salvataggio terreno', () => {
     expect(effetti.messaggioSuperficie).toMatch(/Sangiovese/);
   });
 
-  it('superficie invariata non scrive nulla', () => {
+  it('superficie invariata non scrive nulla', async () => {
     expect(superficieCambiata(2, 2)).toBe(false);
     expect(superficieCambiata(2, null)).toBe(false);
-    const effetti = preparaEffettiSalvataggioTerreno({
+    const effetti = await preparaEffettiSalvataggioTerreno({
       esistente: { coltura: 'Vite', superficie: 2 },
       nuovo: { coltura: 'Vite', superficie: 2 },
       vigneti: [{ id: 'aperto', nome: 'Sangiovese', statoImpianto: 'attivo' }],

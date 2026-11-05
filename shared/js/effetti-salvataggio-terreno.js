@@ -35,6 +35,65 @@ function formattaDataBreve(value) {
   return `${g}/${m}`;
 }
 
+function etichettaColtura(terrenoOColtura) {
+  if (!terrenoOColtura) return '—';
+  if (typeof terrenoOColtura === 'string') return terrenoOColtura || '—';
+  return terrenoOColtura.coltura || terrenoOColtura.colturaCategoria || '—';
+}
+
+function numeroPositivo(value) {
+  const n = typeof value === 'number' ? value : parseFloat(String(value == null ? '' : value).replace(',', '.'));
+  return Number.isFinite(n) && n > 0;
+}
+
+/**
+ * Completato se c'è avanzamento o ore (resta nelle statistiche CT come lavoro fatto);
+ * altrimenti annullato (non gonfia i completati Conto Terzi / report).
+ * @param {object|null|undefined} lavoro
+ * @returns {'completato'|'annullato'}
+ */
+export function statoChiusuraPerCambioColtura(lavoro) {
+  const lav = lavoro || {};
+  if (
+    numeroPositivo(lav.percentualeCompletamento) ||
+    numeroPositivo(lav.superficieTotaleLavorata) ||
+    numeroPositivo(lav.superficieLavorata) ||
+    numeroPositivo(lav.oreLavorate) ||
+    numeroPositivo(lav.oreNette) ||
+    numeroPositivo(lav.totaleOre) ||
+    numeroPositivo(lav.oreValidate)
+  ) {
+    return 'completato';
+  }
+  return 'annullato';
+}
+
+/**
+ * Payload di chiusura di un lavoro aperto al cambio coltura.
+ * @param {object} lavoro
+ * @param {string} now
+ */
+export function payloadChiusuraLavoroCambioColtura(lavoro, now) {
+  const statoPrima = lavoro && lavoro.stato != null ? String(lavoro.stato) : null;
+  const stato = statoChiusuraPerCambioColtura(lavoro);
+  return {
+    id: lavoro.id,
+    nome: lavoro.nome || 'Lavoro',
+    dataInizio: lavoro.dataInizio || null,
+    macchinaId: lavoro.macchinaId || null,
+    attrezzoId: lavoro.attrezzoId || null,
+    stato,
+    patch: {
+      chiusoPerCambioColtura: true,
+      motivoChiusura: 'cambio_coltura',
+      dataChiusura: now,
+      statoPrimaChiusura: statoPrima,
+      stato,
+      aggiornatoIl: now
+    }
+  };
+}
+
 export function aggiornaStoricoColture(esistente, nuovo, now) {
   const storico = Array.isArray(esistente && esistente.storicoColture)
     ? esistente.storicoColture.slice()
@@ -81,9 +140,61 @@ export function superficieCambiata(prima, dopo) {
 }
 
 /**
- * @param {Function} conferma - riceve il messaggio e restituisce true/false
+ * Testo del dialogo di cambio coltura (numero lavori reale, senza limit).
  */
-export function preparaEffettiSalvataggioTerreno({
+export function buildMessaggioCambioColtura({ da, a, impianti = [], aperti = [] } = {}) {
+  const daLabel = etichettaColtura(da);
+  const aLabel = etichettaColtura(a);
+  const parti = [`Cambi la coltura da ${daLabel} a ${aLabel}.`];
+
+  if (aperti.length) {
+    const voci = aperti.map((l) => {
+      const quando = formattaDataBreve(l.dataInizio);
+      const nome = l.nome || 'Lavoro';
+      return quando ? `«${nome}» (dal ${quando})` : `«${nome}»`;
+    });
+    parti.push(
+      `Verranno chiusi ${aperti.length} lavor${aperti.length === 1 ? 'o aperto' : 'i aperti'} della coltura precedente: ${voci.join(', ')}. ` +
+        'Resteranno nello storico in sola lettura, con ore, potature e trattamenti.'
+    );
+  }
+
+  if (impianti.length) {
+    const nomi = impianti.map((i) => {
+      const tipo = i._tipo === 'frutteto' ? 'il frutteto' : 'il vigneto';
+      return `${tipo} «${nomeImpianto(i, i._tipo)}»`;
+    });
+    if (impianti.length === 1) {
+      parti.push(`Verrà chiuso anche ${nomi[0]} (resta nello storico).`);
+    } else {
+      parti.push(`Verranno chiusi anche ${nomi.join(', ')} (restano nello storico).`);
+    }
+  }
+
+  parti.push('Continuare?');
+  return parti.join(' ');
+}
+
+export function buildMessaggioToastCambioColtura({ chiudiLavori = [], chiudi = [] } = {}) {
+  const pezzi = [];
+  if (chiudiLavori.length) {
+    pezzi.push(`${chiudiLavori.length} lavor${chiudiLavori.length === 1 ? 'o' : 'i'}`);
+  }
+  if (chiudi.length) {
+    const nomi = chiudi.map((i) => {
+      const tipo = i.tipo === 'frutteto' ? 'il frutteto' : 'il vigneto';
+      return `${tipo} «${i.nome}»`;
+    });
+    pezzi.push(nomi.join(' e '));
+  }
+  if (!pezzi.length) return 'Terreno aggiornato con successo!';
+  return `Terreno aggiornato. Chiusi ${pezzi.join(' e ')}: restano nello storico.`;
+}
+
+/**
+ * @param {Function} conferma - riceve il messaggio e restituisce true/false (anche Promise)
+ */
+export async function preparaEffettiSalvataggioTerreno({
   esistente,
   nuovo,
   vigneti = [],
@@ -98,39 +209,39 @@ export function preparaEffettiSalvataggioTerreno({
     procedi: true,
     storico: null,
     chiudi: [],
+    chiudiLavori: [],
     superfici: [],
-    messaggioSuperficie: ''
+    messaggioSuperficie: '',
+    messaggioToast: '',
+    messaggioConferma: ''
   };
   if (!esistente) return effetti;
 
-  const cambia = cambioCategoriaColtura(esistente, {
+  const nuovoPerFamiglia = {
     coltura: nuovo.coltura,
     colturaCategoria: nuovo.colturaCategoria || esistente.colturaCategoria
-  });
+  };
+  const cambia = cambioCategoriaColtura(esistente, nuovoPerFamiglia);
   const impianti = []
     .concat((vigneti || []).filter((v) => v.statoImpianto !== 'chiuso').map((v) => ({ ...v, _tipo: 'vigneto' })))
     .concat((frutteti || []).filter((f) => f.statoImpianto !== 'chiuso').map((f) => ({ ...f, _tipo: 'frutteto' })));
   const aperti = (lavori || []).filter((l) => !isLavoroChiuso(l));
 
   if (cambia && (impianti.length || aperti.length)) {
-    const parti = [];
-    if (impianti.length) {
-      const nomi = impianti.map((i) => `${i._tipo === 'frutteto' ? 'il frutteto' : 'il vigneto'} «${nomeImpianto(i, i._tipo)}»`);
-      parti.push(`Su questo terreno c'è ${nomi.join(', ')}. Cambiando coltura lo chiudo: resta nello storico con potature, trattamenti e vendemmie, ma non è più modificabile.`);
-    }
-    if (aperti.length) {
-      const voci = aperti.map((l) => {
-        const quando = formattaDataBreve(l.dataInizio);
-        return quando ? `«${l.nome || 'Lavoro'}» (dal ${quando})` : `«${l.nome || 'Lavoro'}»`;
-      });
-      parti.push(`Su questo terreno ci sono ${aperti.length} lavori ancora aperti: ${voci.join(', ')}. Restano modificabili finché non li completi o li annulli; poi diventano storico, in sola lettura.`);
-    }
-    const ok = typeof conferma === 'function' ? conferma(parti.join('\n\n')) : false;
+    const messaggio = buildMessaggioCambioColtura({
+      da: esistente,
+      a: nuovoPerFamiglia,
+      impianti,
+      aperti
+    });
+    effetti.messaggioConferma = messaggio;
+    const ok = typeof conferma === 'function' ? await Promise.resolve(conferma(messaggio)) : false;
     if (!ok) {
       effetti.procedi = false;
       return effetti;
     }
     effetti.chiudi = impianti.map((i) => ({ id: i.id, tipo: i._tipo, nome: nomeImpianto(i, i._tipo) }));
+    effetti.chiudiLavori = aperti.map((l) => payloadChiusuraLavoroCambioColtura(l, now));
   }
 
   if (cambia) {
@@ -155,6 +266,13 @@ export function preparaEffettiSalvataggioTerreno({
       }
       effetti.messaggioSuperficie += '.';
     }
+  }
+
+  if (cambia && (effetti.chiudi.length || effetti.chiudiLavori.length)) {
+    effetti.messaggioToast = buildMessaggioToastCambioColtura({
+      chiudiLavori: effetti.chiudiLavori,
+      chiudi: effetti.chiudi
+    });
   }
 
   return effetti;
