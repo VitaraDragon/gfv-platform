@@ -748,7 +748,12 @@
                     // Aggiorna titolo header
                     const headerTitle = document.querySelector('.header h1');
                     if (headerTitle && headerTitle.textContent.includes('Gestione Lavori')) {
-                        headerTitle.textContent = '📋 Lavori da Pianificare - Conto Terzi';
+                        // Titolo condiviso (gestione-lavori-utils.js) in base a ?stato=
+                        import('./js/gestione-lavori-utils.js').then(function(m) {
+                            headerTitle.textContent = m.getTitoloLavoriContoTerzi(statoFromUrl);
+                        }).catch(function() {
+                            headerTitle.textContent = '📋 Lavori da pianificare – Conto Terzi';
+                        });
                     }
                 });
                 

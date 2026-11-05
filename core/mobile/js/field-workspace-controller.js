@@ -2767,6 +2767,12 @@ async function logoutFieldWorkspace() {
             /* ignore */
         }
         pulisciIndizioIngresso();
+        try {
+            const { segnaLogoutVolontario } = await import('../../js/login-motivo-helpers.js');
+            segnaLogoutVolontario();
+        } catch (error) {
+            /* ignore */
+        }
         await signOut(auth);
         window.location.href = await loginPageUrl('../auth/login-standalone.html');
     } catch (error) {
@@ -3051,6 +3057,14 @@ async function initFieldWorkspace() {
                     rimandaDashboardTemporanea(guardia.motivo);
                     return;
                 }
+                // Ultimo accesso anche per chi entra solo dal workspace (dopo la guardia: niente scrittura se rimbalza).
+                updateDoc(doc(db, 'users', user.uid), {
+                    ultimoAccesso: serverTimestamp(),
+                    isOnline: true,
+                    lastSeen: serverTimestamp()
+                }).catch((accessoErr) => {
+                    console.warn('[workspace] ultimo accesso:', accessoErr);
+                });
                 pulisciPreferenzaClassicCampo();
                 scriviIndizioIngresso('workspace');
                 azzeraRimbalziIngresso();

@@ -10,7 +10,8 @@ import {
   getDocumentData,
   getCollectionData,
   updateDocument,
-  deleteDocument
+  deleteDocument,
+  setDocument
 } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { MovimentoMagazzino } from '../models/MovimentoMagazzino.js';
@@ -18,6 +19,9 @@ import { getProdotto, aggiornaGiacenzaProdotto, getAllProdotti } from './prodott
 import { movimentoGiacenzaDelta } from './giacenza-utils.js';
 
 const COLLECTION_NAME = 'movimentiMagazzino';
+
+/** `error.code` di deleteMovimento quando il documento non esiste più (già eliminato). */
+export const MOVIMENTO_NON_TROVATO = 'MOVIMENTO_NON_TROVATO';
 
 /**
  * Ottieni tutti i movimenti del tenant
@@ -189,7 +193,9 @@ export async function deleteMovimento(movimentoId) {
 
     const movimento = await getMovimento(movimentoId);
     if (!movimento) {
-      throw new Error('Movimento non trovato');
+      const nonTrovato = new Error('Movimento non trovato');
+      nonTrovato.code = MOVIMENTO_NON_TROVATO;
+      throw nonTrovato;
     }
 
     // Ripristina giacenza: inverti il delta atomico (entrata -quantita, uscita +quantita)
@@ -200,8 +206,70 @@ export async function deleteMovimento(movimentoId) {
 
     await deleteDocument(COLLECTION_NAME, movimentoId, tenantId);
   } catch (error) {
-    console.error('Errore eliminazione movimento:', error);
-    throw new Error(`Errore eliminazione movimento: ${error.message}`);
+    if (!error || error.code !== MOVIMENTO_NON_TROVATO) {
+      console.error('Errore eliminazione movimento:', error);
+    }
+    const wrapped = new Error(`Errore eliminazione movimento: ${error.message}`);
+    if (error && error.code === MOVIMENTO_NON_TROVATO) wrapped.code = MOVIMENTO_NON_TROVATO;
+    throw wrapped;
+  }
+}
+
+/**
+ * Crea o riscrive un movimento con ID deterministico (setDoc) e allinea la giacenza.
+ * Giacenza: delta = effetto del nuovo movimento − effetto di quello già presente con lo stesso ID
+ * (stesso ID + stessa quantità = nessuna variazione, quindi salvataggi ripetuti non scaricano due volte).
+ * @param {string} movimentoId - ID deterministico
+ * @param {Object} movimentoData - Stessi campi di createMovimento
+ * @returns {Promise<{ movimentoId: string, created: boolean, delta: number }>}
+ */
+export async function setMovimentoConId(movimentoId, movimentoData) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) {
+      throw new Error('Nessun tenant corrente disponibile');
+    }
+    if (!movimentoId) {
+      throw new Error('ID movimento obbligatorio');
+    }
+
+    const movimento = new MovimentoMagazzino(movimentoData);
+    const validation = movimento.validate();
+    if (!validation.valid) {
+      throw new Error(`Validazione fallita: ${validation.errors.join(', ')}`);
+    }
+
+    const existing = await getMovimento(movimentoId);
+    const nuovoEffetto = movimentoGiacenzaDelta(movimento.tipo, movimento.quantita);
+    let delta = nuovoEffetto;
+    /** @type {{ prodottoId: string, delta: number }|null} */
+    let ripristinoVecchioProdotto = null;
+    if (existing) {
+      const vecchioEffetto = movimentoGiacenzaDelta(existing.tipo, existing.quantita);
+      if (existing.prodottoId === movimento.prodottoId) {
+        delta = nuovoEffetto - vecchioEffetto;
+      } else {
+        ripristinoVecchioProdotto = { prodottoId: existing.prodottoId, delta: -vecchioEffetto };
+      }
+    }
+
+    // createdAt/updatedAt li gestisce setDocument: un null qui sovrascriverebbe createdAt esistente.
+    const payload = movimento.toFirestore();
+    delete payload.createdAt;
+    delete payload.updatedAt;
+    await setDocument(COLLECTION_NAME, movimentoId, payload, tenantId);
+
+    if (ripristinoVecchioProdotto) {
+      await aggiornaGiacenzaProdotto(ripristinoVecchioProdotto.prodottoId, ripristinoVecchioProdotto.delta);
+    }
+    if (delta !== 0) {
+      await aggiornaGiacenzaProdotto(movimento.prodottoId, delta);
+    }
+
+    return { movimentoId, created: !existing, delta };
+  } catch (error) {
+    console.error('Errore scrittura movimento con ID:', error);
+    throw new Error(`Errore scrittura movimento: ${error.message}`);
   }
 }
 

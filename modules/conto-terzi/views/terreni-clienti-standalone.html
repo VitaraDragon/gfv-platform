@@ -803,6 +803,8 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { buildVignetoDetectionContext, isTerrenoVignetoCliente } from '../../vendemmia-meccanica/services/piano-stagione-utils.js';
+        import { getTerrenoColturaLabel } from '../services/terreno-coltura-label.js';
+        import { isVoceTutti } from '../../../core/js/terreni-categorie-colture.js';
         import {
             initMap as initMapModule,
             searchLocation as searchLocationModule,
@@ -1191,7 +1193,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                 summary: summaryParts.join(' ').trim() + (summaryParts.length ? '.' : ''),
                 items: terreniList.map(t => {
                     const cliente = clienti.find(c => c.id === t.clienteId);
-                    const coltura = (t.colturaSottocategoria || t.coltura || '').trim() || '-';
+                    const coltura = getTerrenoColturaLabel(t, categorieColture);
                     return {
                         nome: t.nome || '-',
                         cliente: cliente ? (cliente.ragioneSociale || '-') : '-',
@@ -1227,14 +1229,8 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                 if (terrenoObj.superficie) {
                     html += `<div class="info"><strong>Superficie:</strong> ${terrenoObj.superficie.toFixed(2)} ha</div>`;
                 }
-                // Mostra coltura (solo nome, non ID categoria)
-                if (terrenoObj.colturaSottocategoria) {
-                    // Mostra solo il nome della coltura (sottocategoria contiene il nome)
-                    html += `<div class="info"><strong>Coltura:</strong> ${escapeHtml(terrenoObj.colturaSottocategoria)}</div>`;
-                } else if (terrenoObj.coltura) {
-                    // Retrocompatibilità: mostra coltura se presente
-                    html += `<div class="info"><strong>Coltura:</strong> ${escapeHtml(terrenoObj.coltura)}</div>`;
-                }
+                // Mostra coltura (solo nome leggibile, mai ID categoria tipo seed_seminativo; «—» se assente)
+                html += `<div class="info"><strong>Coltura:</strong> ${escapeHtml(getTerrenoColturaLabel(terreno, categorieColture))}</div>`;
                 if (terrenoObj.podere) {
                     html += `<div class="info"><strong>Podere:</strong> ${escapeHtml(terrenoObj.podere)}</div>`;
                 }
@@ -1873,7 +1869,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                 const selectCategoria = document.getElementById('terreno-coltura-categoria');
                 if (selectCategoria) {
                     selectCategoria.innerHTML = '<option value="">-- Seleziona categoria --</option>';
-                    categorieColture.forEach(categoria => {
+                    categorieColture.filter(categoria => !isVoceTutti(categoria && categoria.nome)).forEach(categoria => {
                         const option = document.createElement('option');
                         option.value = categoria.id;
                         option.textContent = categoria.nome;
@@ -1917,7 +1913,8 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             // Popola colture per la categoria selezionata
             sottocategoriaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
             
-            const colture = coltureGerarchiche[categoriaId] || [];
+            // «Tutti» è solo da filtro: mai come scelta nel form terreno
+            const colture = (coltureGerarchiche[categoriaId] || []).filter(c => !isVoceTutti(c && c.nome));
             if (colture.length > 0) {
                 colture.forEach(coltura => {
                     const option = document.createElement('option');

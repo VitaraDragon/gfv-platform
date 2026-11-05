@@ -235,8 +235,11 @@ function linkHtml(e) {
 function logoutFromPelle() {
   Promise.all([
     import('../services/auth-service.js'),
-    import('./simulator-standalone-page.js')
+    import('./simulator-standalone-page.js'),
+    import('./login-motivo-helpers.js')
   ]).then((mods) => {
+    // Flag PRIMA di signOut: non è una «sessione persa»
+    mods[2].segnaLogoutVolontario();
     return mods[0].signOutUser().then(() => mods[1].loginPageUrl(absHref('auth/login-standalone.html')));
   }).then((url) => {
     try {
@@ -251,9 +254,9 @@ function logoutFromPelle() {
 
 function mountShell(entries) {
   const modules = moduleMenuEntries(entries);
-  const account = accountMenuEntries(entries);
+  const account = accountMenuEntries(entries, indizioPelleCampo().ruoli);
   const mapHref = absHref((mapMenuEntries()[0] || {}).href || 'mappa-aziendale-standalone.html');
-  const sig = modules.map((e) => e.id + '\t' + e.href).join('|');
+  const sig = modules.map((e) => e.id + '\t' + e.href).join('|') + '#' + account.map((e) => e.id).join(',');
   let root = document.getElementById('gfv-pelle-shell');
   if (root && shellSig === sig) {
     markCurrent(root);

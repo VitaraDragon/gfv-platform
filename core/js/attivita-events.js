@@ -18,6 +18,7 @@ import {
     geolocationErrorMessage
 } from './geo-capture.js';
 import { listedSelectValue } from './lavoro-cascade-filters.js';
+import { pickTipoLavoroByNome } from './attivita-tipo-lavoro-pick.js';
 import { risolviColturaDaTerreno, isAttivitaSolaLettura, MESSAGGIO_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
 import {
     confermaSalvataggioMezzoInUso,
@@ -782,7 +783,25 @@ export async function openAttivitaModal(params) {
             
             // Gestione tipo lavoro (sempre struttura gerarchica)
             // Cerca il tipo lavoro nella struttura gerarchica
-            const tipoLavoroObj = tipiLavoroList.find(t => t.nome === attivita.tipoLavoro);
+            // Più tipi con lo stesso nome (es. Generale / Tra le File): preferisci sottocategoria salvata
+            // o, per terreni arborei, «Tra le File», così la Modifica non perde il tipo.
+            const terrenoModifica = (terreni || []).find(t => t.id === attivita.terrenoId);
+            const colturaModifica = String(
+                (terrenoModifica && (terrenoModifica.coltura_categoria || terrenoModifica.coltura)) || attivita.coltura || ''
+            ).toLowerCase();
+            const nomeSottocatPerId = function (id) {
+                if (!id) return '';
+                for (const sottocat of sottocategorieLavoriMap.values()) {
+                    const sub = sottocat.find(sc => sc.id === id);
+                    if (sub) return sub.nome || '';
+                }
+                return '';
+            };
+            const tipoLavoroObj = pickTipoLavoroByNome(tipiLavoroList, attivita.tipoLavoro, {
+                preferCategoriaIds: [attivita.sottocategoriaId, attivita.categoriaLavoroId, attivita.categoriaId],
+                preferSottocategoriaNome: /vite|vigneto|frutteto|oliveto|arboreo/.test(colturaModifica) ? 'tra le file' : '',
+                getNomeCategoria: nomeSottocatPerId
+            });
             if (tipoLavoroObj && tipoLavoroObj.categoriaId) {
                 let categoriaPrincipaleId = tipoLavoroObj.categoriaId;
                 let sottocategoriaId = tipoLavoroObj.sottocategoriaId || null;

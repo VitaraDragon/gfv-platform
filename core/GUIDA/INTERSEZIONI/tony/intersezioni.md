@@ -84,8 +84,8 @@ Ruoli: manager/amministratore per preventivi e pianificazione; caposquadra/opera
 
 1. Creare prima **lavoro** (**Gestione lavori** / **Manodopera**) o **attività Diario** sul terreno con categoria **Trattamenti** / **Concimazione** / **Potatura**.
 2. Pulsante moduli → **Vigneto** o **Frutteto** → pagina registro (**Trattamenti**, **Concimazioni**, **Potatura**) → riga in elenco → **Azioni** → completare prodotti, superficie, dosaggi.
-3. Se modulo **Magazzino** attivo: spuntare **Registra scarico in magazzino** (se previsto) al salvataggio.
-4. Pulsante moduli → **Magazzino** → **Movimenti** (verifica uscita) e **Tracciabilità consumi** (filtri prodotto/terreno).
+3. Scarico **non** automatico: solo se spuntate **Registra scarico in magazzino** (Magazzino attivo). Dose fino a 3 decimali; miscela del lavoro precompilata e modificabile.
+4. Pulsante moduli → **Magazzino** → **Movimenti** (verifica / eventuale storno) e **Tracciabilità consumi**.
 
 Ruoli: principalmente manager/amministratore.
 

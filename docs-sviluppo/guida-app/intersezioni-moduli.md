@@ -49,6 +49,58 @@ Ruoli coinvolti: principalmente manager/amministratore.
 4. Tracciamento area lavorata nei moduli specialistici.
 5. Chiusura lavoro e consolidamento ore/attivita.
 
+## 2.4 Flusso ore tra ruoli (da campo a controllo)
+
+1. Operaio esegue il lavoro e registra ore.
+2. Caposquadra controlla avanzamento squadra.
+3. Manager verifica andamento complessivo e priorita.
+4. I dati confluiscono in riepiloghi e controllo operativo.
+
+### Procedura guidata: da preventivo a lavoro chiuso
+
+**Quando usarla**  
+Quando un cliente conto terzi accetta un preventivo e vuoi arrivare a chiusura lavoro senza passaggi persi.
+
+**Percorso schermata**  
+`Conto terzi` -> `Preventivi` -> `Lavori e attivita` -> `Validazione ore`.
+
+**Dove cliccare**
+- in `Preventivi`: riga preventivo, azione `Pianifica lavoro` (colonna azioni a destra);
+- in `Lavori`: pulsante stato nella scheda lavoro;
+- in `Validazione ore`: pulsante `Approva`/`Rifiuta` sulla singola riga ore.
+
+**Passi operativi**
+1. Apri il preventivo accettato e pianifica il lavoro.
+2. Assegna caposquadra/operaio.
+3. Fai registrare le ore giornaliere.
+4. Valida le ore.
+5. Chiudi il lavoro.
+
+**Controllo finale riuscita**
+- lavoro presente nello storico;
+- ore validate;
+- attività visibile nei riepiloghi.
+
+### Procedura guidata: intervento coltura con scarico magazzino
+
+**Percorso schermata**  
+`Vigneto` o `Frutteto` → lista Trattamenti/Concimazioni (la riga nasce dal **lavoro** o dall’**attività**, non da un pulsante «Nuovo trattamento» / «Nuova concimazione»).
+
+**Dove cliccare**
+- sulla riga: **Modifica** → **Modifica dati trattamento** (o concimazione);
+- prodotti e dosaggi nel form (se il lavoro aveva una miscela, arriva precompilata e si può modificare);
+- casella **Registra scarico in magazzino** (solo se Magazzino è attivo): lo scarico **non** è automatico, serve la spunta;
+- in Magazzino: **Movimenti** o **Tracciabilità consumi** per controllare l’uscita; da Movimenti si può stornare lo scarico collegato.
+
+**Passi operativi**
+1. Completa o correggi l’intervento (terreno, data, prodotti; dose fino a 3 decimali).
+2. Se vuoi scaricare le giacenze, spunta **Registra scarico in magazzino** e salva.
+3. Controlla in Movimenti / Tracciabilità; se elimini lo scarico da Movimenti, il trattamento segna lo storno.
+
+**Controllo finale riuscita**
+- con casella spuntata: movimento di uscita in magazzino;
+- intervento visibile nel registro coltura.
+
 ---
 
 ## 3. Ruoli nelle intersezioni
@@ -77,6 +129,6 @@ Punto chiave: la stessa funzione puo comportarsi in modo diverso in base al ruol
 
 ### Esempi pratici con Tony
 
-- "Portami dal preventivo accettato al lavoro operativo": Tony guida descrive il percorso completo.
-- "Ho registrato trattamento, come verifico lo scarico?": Tony guida indica dove filtrare la tracciabilita.
+- "Portami dal preventivo accettato al lavoro operativo": Tony guida ti elenca il percorso completo; Tony operativo puo aprire i passaggi consentiti.
+- "Ho registrato trattamento, controlla se ha scaricato magazzino": Tony guida ti indica dove verificare tracciabilita e filtri.
 

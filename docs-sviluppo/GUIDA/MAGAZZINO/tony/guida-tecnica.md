@@ -42,7 +42,7 @@ Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtra
 ## Giacenza e accessi
 
 - Aggiornamento giacenza movimenti: atomico con `FieldValue.increment` (`modules/magazzino/services/giacenza-utils.js` / `movimenti-service.js`) — evita race su carichi/scarichi concorrenti.
-- Accesso modulo = pagato **o** trial attivo (`hasModuleAccessFromTenant` / `module-access-resolver.js`). Scarico da trattamenti/concimazioni (Vigneto/Frutteto) usa lo stesso gate: funziona anche con Magazzino **in prova**, non solo se già in abbonamento pagato (`trattamento-scarico-magazzino-service.js`).
+- Accesso modulo = pagato **o** trial attivo (`hasModuleAccessFromTenant` / `module-access-resolver.js`). Scarico da trattamenti/concimazioni (Vigneto/Frutteto) **solo con casella «Registra scarico»** spuntata (non automatico). Gate stesso in prova. Sync idempotente id `trattamento_<modulo>_…` + delta giacenza; storno da Movimenti → `magazzinoScaricoStornatoIl` (`trattamento-scarico-magazzino-service.js`). Dose UI a 3 decimali; quantità scaricata `arrotonda(…, 4)`.
 
 ## Permessi
 

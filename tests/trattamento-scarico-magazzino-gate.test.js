@@ -19,12 +19,13 @@ vi.mock('../modules/magazzino/services/prodotti-service.js', () => ({
 }));
 vi.mock('../modules/magazzino/services/movimenti-service.js', () => ({
   createMovimento: vi.fn(async () => 'mov-1'),
+  setMovimentoConId: vi.fn(async (id) => ({ movimentoId: id, created: true, delta: -1 })),
   deleteMovimento: vi.fn(async () => undefined),
 }));
 
 import { getDocumentData } from '../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../core/services/tenant-service.js';
-import { createMovimento } from '../modules/magazzino/services/movimenti-service.js';
+import { setMovimentoConId } from '../modules/magazzino/services/movimenti-service.js';
 import {
   tenantHasMagazzinoModule,
   syncScarichiMagazzinoTrattamento,
@@ -99,7 +100,7 @@ describe('syncScarichiMagazzinoTrattamento — trial', () => {
       previousMovimentoIds: [],
     });
     expect(out.movimentoIds).toEqual([]);
-    expect(createMovimento).not.toHaveBeenCalled();
+    expect(setMovimentoConId).not.toHaveBeenCalled();
   });
 
   it('crea movimenti se magazzino è in prova e lo scarico è richiesto', async () => {
@@ -116,8 +117,8 @@ describe('syncScarichiMagazzinoTrattamento — trial', () => {
       registraScaricoMagazzino: true,
       previousMovimentoIds: [],
     });
-    expect(out.movimentoIds).toEqual(['mov-1']);
-    expect(createMovimento).toHaveBeenCalledTimes(1);
+    expect(out.movimentoIds).toEqual(['trattamento_vigneto_v1_tr1_p1']);
+    expect(setMovimentoConId).toHaveBeenCalledTimes(1);
   });
 });
 

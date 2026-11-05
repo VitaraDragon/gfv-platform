@@ -1289,6 +1289,7 @@
             updateOreNetteContoTerzi as updateOreNetteContoTerziUtil,
             initCalcoloOreNetteRapido as initCalcoloOreNetteRapidoUtil
         } from './js/attivita-utils.js';
+        import { shouldAutoSwitchGeneraleToTraLeFile } from './js/attivita-tipo-lavoro-pick.js';
 
         import {
             applyFilters as applyFiltersModule,
@@ -2776,8 +2777,13 @@
         });
         
         // Listener per precompilare coltura quando si seleziona un terreno
-        document.getElementById('attivita-terreno').addEventListener('change', async function() {
+        document.getElementById('attivita-terreno').addEventListener('change', async function(ev) {
             const terrenoId = this.value;
+            // Generale → Tra le File solo per NUOVA attività (non in Modifica / prefill)
+            const autoSwitchTraLeFile = shouldAutoSwitchGeneraleToTraLeFile({
+                currentAttivitaId: currentAttivitaId,
+                detail: ev && ev.detail
+            });
             
             // Aggiorna terreniList globale (preserva coltura_categoria per Tony/injector)
             if (window.attivitaState) {
@@ -2821,7 +2827,7 @@
                     const cat = terreno.coltura_categoria || (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(terreno.coltura || '') : null);
                     const colturaStr = (cat || terreno.coltura || '').toLowerCase();
                     const isVigneto = /vite|vigneto|frutteto|oliveto|arboreo/.test(colturaStr);
-                    if (isVigneto) {
+                    if (isVigneto && autoSwitchTraLeFile) {
                         const subSelect = document.getElementById('attivita-sottocategoria');
                         const subOpt = subSelect && Array.from(subSelect.options).find(o => (o.text || '').toLowerCase().includes('generale'));
                         if (subSelect && subOpt && subSelect.value === subOpt.value) {
