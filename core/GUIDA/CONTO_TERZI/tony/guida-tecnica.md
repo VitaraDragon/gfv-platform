@@ -57,4 +57,4 @@ Stesso motore dei Terreni aziendali: `core/js/terreni-maps.js` + `terreni-draw-h
 
 ## Pianifica senza Manodopera
 
-`modules/conto-terzi/js/lavoro-da-preventivo.js`: `lavoroDaPreventivo(preventivo, { hasManodopera })` — senza Manodopera il lavoro nasce con `stato: 'in_corso'` (riga 24), `toastMessage` «Lavoro creato: registra le giornate nel Diario Conto Terzi» (riga 61). Con Manodopera nasce `'da_pianificare'` con toast «Lavoro creato con successo! Ora puoi completare la pianificazione dalla pagina Gestione Lavori.» **In verifica con Pier, non è un difetto:** il lavoro senza Manodopera nasce già in corso, senza un avviso separato che lo metta in corso.
+`modules/conto-terzi/js/lavoro-da-preventivo.js`: `lavoroDaPreventivo(preventivo, { hasManodopera })` — senza Manodopera il lavoro nasce con `stato: 'in_corso'` (riga 24), `toastMessage` «Lavoro creato: registra le giornate nel Diario Conto Terzi» (riga 61). Con Manodopera nasce `'da_pianificare'` con toast «Lavoro creato con successo! Ora puoi completare la pianificazione dalla pagina Gestione Lavori.» **È voluto:** il lavoro senza Manodopera nasce già in corso, senza un avviso separato che lo metta in corso.
