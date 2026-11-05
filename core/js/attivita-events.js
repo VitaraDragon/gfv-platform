@@ -738,7 +738,20 @@ export async function openAttivitaModal(params) {
         const attivita = filteredAttivita.find(a => a.id === attivitaId);
         if (attivita) {
             document.getElementById('attivita-data').value = attivita.data || '';
-            document.getElementById('attivita-terreno').value = attivita.terrenoId || '';
+            {
+                const terrenoSelectEdit = document.getElementById('attivita-terreno');
+                if (terrenoSelectEdit && attivita.terrenoId) {
+                    const esiste = Array.from(terrenoSelectEdit.options).some((o) => o.value === attivita.terrenoId);
+                    if (!esiste) {
+                        const opt = document.createElement('option');
+                        opt.value = attivita.terrenoId;
+                        const nome = attivita.terrenoNome || (terreni || []).find((t) => t.id === attivita.terrenoId)?.nome || 'Terreno';
+                        opt.textContent = attivita.clienteId ? `${nome} (cliente)` : nome;
+                        terrenoSelectEdit.appendChild(opt);
+                    }
+                    terrenoSelectEdit.value = attivita.terrenoId;
+                }
+            }
             document.getElementById('attivita-coltura').value = attivita.coltura || '';
             document.getElementById('attivita-orario-inizio').value = attivita.orarioInizio || '';
             document.getElementById('attivita-orario-fine').value = attivita.orarioFine || '';

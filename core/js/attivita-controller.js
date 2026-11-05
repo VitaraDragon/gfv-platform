@@ -697,34 +697,30 @@ export async function loadTerreni(
         // Aggiungi terreni aziendali
         terreni.push(...terreniAziendali);
         
-        // Se in modalità Conto Terzi, dobbiamo anche caricare terreni clienti
-        // Per ora manteniamo compatibilità: se il servizio non supporta "tutti i clienti",
-        // carichiamo anche direttamente i terreni clienti (fallback)
-        if (isContoTerziMode) {
-            try {
-                const { collection, getDocs } = await import('../services/firebase-service.js');
-                const terreniCollection = await getTerreniCollection(currentTenantId, db);
-                const querySnapshot = await getDocs(terreniCollection);
-                
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    // Aggiungi solo terreni clienti (con clienteId)
-                    if (data.clienteId && data.clienteId !== '') {
-                        terreni.push({
-                            id: docSnap.id,
-                            nome: data.nome || '',
-                            coltura: data.coltura || null,
-                            clienteId: data.clienteId,
-                            stato: data.stato || 'attivo',
-                            superficie: data.superficie || 0,
-                            coordinate: data.coordinate || null,
-                            polygonCoords: data.polygonCoords || null
-                        });
-                    }
-                });
-            } catch (error) {
-                console.warn('Errore caricamento terreni clienti:', error);
-            }
+        // Terreni clienti: servono in CT e in Modifica di attività migrate (clienteId + terreno cliente)
+        try {
+            const { collection, getDocs } = await import('../services/firebase-service.js');
+            const terreniCollection = await getTerreniCollection(currentTenantId, db);
+            const querySnapshot = await getDocs(terreniCollection);
+            const gia = new Set(terreni.map((t) => t && t.id).filter(Boolean));
+
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.clienteId && data.clienteId !== '' && !gia.has(docSnap.id)) {
+                    terreni.push({
+                        id: docSnap.id,
+                        nome: data.nome || '',
+                        coltura: data.coltura || null,
+                        clienteId: data.clienteId,
+                        stato: data.stato || 'attivo',
+                        superficie: data.superficie || 0,
+                        coordinate: data.coordinate || null,
+                        polygonCoords: data.polygonCoords || null
+                    });
+                }
+            });
+        } catch (error) {
+            console.warn('Errore caricamento terreni clienti:', error);
         }
         
         // Ordina client-side per nome
@@ -989,7 +985,7 @@ export function lavoriDiarioContoTerziVisibili(lavoriList = [], hasManodopera = 
 /**
  * Popola dropdown lavori nel form (lavori CT in corso; senza Manodopera anche da_pianificare)
  * @param {Array} lavoriList - Array lavori disponibili
- * @param {{ hasManodopera?: boolean }} [opts]
+ * @param {{ hasManodopera?: boolean, clienteId?: string|null, keepLavoroId?: string|null }} [opts]
  */
 export function populateLavoriDropdown(lavoriList = [], opts = {}) {
     const select = document.getElementById('attivita-lavoro');
@@ -998,16 +994,29 @@ export function populateLavoriDropdown(lavoriList = [], opts = {}) {
     const urlParams = new URLSearchParams(window.location.search);
     const statoFiltro = urlParams.get('stato');
     const hasManodopera = opts.hasManodopera === true;
-    const lavoriFiltrati = filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera, statoFiltro });
+    const clienteFiltro = opts.clienteId != null && opts.clienteId !== ''
+        ? String(opts.clienteId)
+        : (document.getElementById('attivita-cliente')?.value || '');
+    const keepLavoroId = opts.keepLavoroId || null;
+    let lavoriFiltrati = filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera, statoFiltro });
+    if (clienteFiltro) {
+        lavoriFiltrati = lavoriFiltrati.filter((l) => String(l.clienteId || '') === clienteFiltro);
+    }
+    if (keepLavoroId && !lavoriFiltrati.some((l) => l.id === keepLavoroId)) {
+        const storico = (lavoriList || []).find((l) => l && l.id === keepLavoroId);
+        if (storico) lavoriFiltrati = [storico, ...lavoriFiltrati];
+    }
 
     select.innerHTML = '<option value="">-- Seleziona lavoro --</option>';
     lavoriFiltrati.forEach(lavoro => {
         const option = document.createElement('option');
         option.value = lavoro.id;
-        // Badge Conto Terzi se presente
         const isContoTerzi = lavoro.clienteId != null && lavoro.clienteId !== '';
+        const chiuso = ['completato', 'annullato', 'completato_da_approvare'].includes(String(lavoro.stato || '').toLowerCase());
         const nomeLavoro = lavoro.nome || 'Lavoro senza nome';
-        option.textContent = isContoTerzi ? `${nomeLavoro} 💼 Conto Terzi` : nomeLavoro;
+        let label = isContoTerzi ? `${nomeLavoro} 💼 Conto Terzi` : nomeLavoro;
+        if (chiuso) label += ' (storico)';
+        option.textContent = label;
         option.dataset.terrenoId = lavoro.terrenoId || '';
         option.dataset.clienteId = lavoro.clienteId || '';
         select.appendChild(option);
