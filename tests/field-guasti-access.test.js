@@ -12,6 +12,7 @@ import {
     vistaSegnalazionePerModuli,
     scegliLavoroPredefinitoGuasto,
     mezziDaLavoroGuasto,
+    macchinePerSegnalazioneGuasto,
 } from '../core/js/field-guasti-access.js';
 import {
     voceCambiaAziendaVisibile,
@@ -21,17 +22,30 @@ import {
 } from '../core/mobile/js/field-menu-visibility.js';
 
 describe('segnalazione guasti — profilo campo', () => {
-    it('operaio e caposquadra possono aprire la pagina', () => {
+    it('operaio, caposquadra, manager e amministratore possono aprire la pagina', () => {
         expect(puoAprireSegnalazioneGuasti(['operaio'])).toBe(true);
         expect(puoAprireSegnalazioneGuasti(['caposquadra'])).toBe(true);
         expect(puoAprireSegnalazioneGuasti(['manager', 'caposquadra'])).toBe(true);
+        expect(puoAprireSegnalazioneGuasti(['manager'])).toBe(true);
+        expect(puoAprireSegnalazioneGuasti(['amministratore'])).toBe(true);
     });
 
-    it('manager e admin, anche con ruolo campo, non sono profilo campo puro', () => {
-        expect(puoAprireSegnalazioneGuasti(['manager'])).toBe(false);
+    it('manager e admin non sono profilo campo puro; contabile non apre la pagina', () => {
         expect(ritornoWorkspaceCampoDaGuasti(['manager', 'operaio'])).toBe(false);
         expect(puoAprireSegnalazioneGuasti([])).toBe(false);
         expect(puoAprireSegnalazioneGuasti(['contabile'])).toBe(false);
+    });
+
+    it('tendina mezzi: tutti i non dismessi, anche per il manager', () => {
+        const elenco = macchinePerSegnalazioneGuasto([
+            { id: 't1', nome: 'Trattore 1', stato: 'disponibile', tipoMacchina: 'trattore' },
+            { id: 't2', nome: 'Trattore 2', stato: 'in_uso', tipoMacchina: 'trattore' },
+            { id: 't3', nome: 'Vecchio', stato: 'dismesso', tipoMacchina: 'trattore' },
+            { id: 'a1', nome: 'Erpice', stato: 'disponibile', tipoMacchina: 'attrezzo' },
+            { id: '', nome: 'senza-id' },
+            null,
+        ]);
+        expect(elenco.map((m) => m.id)).toEqual(['t1', 't2', 'a1']);
     });
 
     it('capo dal desktop torna in dashboard', () => {

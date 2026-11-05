@@ -685,7 +685,8 @@
             ritornoWorkspaceCampoDaGuasti,
             vistaSegnalazionePerModuli,
             scegliLavoroPredefinitoGuasto,
-            mezziDaLavoroGuasto
+            mezziDaLavoroGuasto,
+            macchinePerSegnalazioneGuasto
         } from '../js/field-guasti-access.js?v=2026-10-19a';
         import { buildSospendiLavoroPatch } from '../services/lavoro-sospensione.js';
         import {
@@ -903,7 +904,7 @@
                             console.warn('Impossibile impostare Firebase instances nel servizio:', error);
                         }
                         
-                        // Operaio o caposquadra (anche capo-only). Il manager resta sull'elenco ufficio.
+                        // Operaio, caposquadra, manager, amministratore. Altri ruoli: messaggio e ritorno.
                         if (!puoAprireSegnalazioneGuasti(userData.ruoli, userData.ruolo)) {
                             showAlert(t('guasto.onlyField', linguaGuasto()), 'error');
                             setTimeout(() => {
@@ -1086,19 +1087,24 @@
                     macchinaSelect.innerHTML = '<option value="">' + t('guasto.loadingMachines', linguaGuasto()) + '</option>';
                     attrezzoSelect.innerHTML = '<option value="">' + t('guasto.loadingMachines', linguaGuasto()) + '</option>';
 
+                    function popolaTendinaDaElenco(elenco) {
+                        macchineList = macchinePerSegnalazioneGuasto(elenco);
+                        macchinaSelect.innerHTML = '<option value="">' + t('guasto.loadingMachines', linguaGuasto()) + '</option>';
+                        attrezzoSelect.innerHTML = '<option value="">' + t('guasto.loadingMachines', linguaGuasto()) + '</option>';
+                        macchineList.forEach((macchina) => {
+                            popolaOpzionePerTipo(macchina, macchinaSelect, attrezzoSelect);
+                        });
+                    }
+
                     if (isFileProtocol) {
                         // Fallback per ambiente file://
                         const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
                         const snapshot = await getDocs(macchineRef);
-                        
-                        macchineList = [];
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            if (String(data.stato || '').toLowerCase() !== 'dismesso') {
-                                macchineList.push({ id: doc.id, ...data });
-                                popolaOpzionePerTipo({ id: doc.id, ...data }, macchinaSelect, attrezzoSelect);
-                            }
+                        const grezze = [];
+                        snapshot.forEach(docSnap => {
+                            grezze.push({ id: docSnap.id, ...docSnap.data() });
                         });
+                        popolaTendinaDaElenco(grezze);
                     } else {
                         // Usa servizio centralizzato
                         try {
@@ -1115,7 +1121,7 @@
                             // Usa servizio centralizzato
                             const { getAllMacchine } = await import('../../modules/parco-macchine/services/macchine-service.js');
                             const tGetMacchine = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-                            let macchine = await getAllMacchine({
+                            const macchine = await getAllMacchine({
                                 // Non usiamo soloAttive per evitare problemi con indice Firestore
                                 // Filtriamo lato client invece
                                 orderBy: 'nome',
@@ -1123,11 +1129,8 @@
                             });
                             console.info('[segnalazione-guasti] getAllMacchine ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tGetMacchine));
                             
-                            // Filtra lato client: solo macchine non dismesse
-                            macchine = macchine.filter(m => String(m.stato || '').toLowerCase() !== 'dismesso');
-                            
-                            // Converti in formato compatibile con codice esistente
-                            macchineList = macchine.map(m => ({
+                            // Tutti i mezzi non dismessi del tenant (anche per manager/admin)
+                            popolaTendinaDaElenco(macchine.map(m => ({
                                 id: m.id,
                                 nome: m.nome,
                                 tipoMacchina: m.tipoMacchina || m.tipo,
@@ -1137,25 +1140,17 @@
                                 cavalliMinimiRichiesti: m.cavalliMinimiRichiesti,
                                 categoriaFunzione: m.categoriaFunzione,
                                 ...(m.toFirestore ? m.toFirestore() : m)
-                            }));
-                            
-                            // Popola dropdown
-                            macchineList.forEach(macchina => {
-                                popolaOpzionePerTipo(macchina, macchinaSelect, attrezzoSelect);
-                            });
+                            })));
                         } catch (error) {
                             console.error('Errore caricamento macchine dal servizio:', error);
                             // Fallback: carica direttamente da Firestore
                             const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
                             const snapshot = await getDocs(macchineRef);
-                            macchineList = [];
-                            snapshot.forEach(doc => {
-                                const data = doc.data();
-                                if (String(data.stato || '').toLowerCase() !== 'dismesso') {
-                                    macchineList.push({ id: doc.id, ...data });
-                                    popolaOpzionePerTipo({ id: doc.id, ...data }, macchinaSelect, attrezzoSelect);
-                                }
+                            const grezze = [];
+                            snapshot.forEach(docSnap => {
+                                grezze.push({ id: docSnap.id, ...docSnap.data() });
                             });
+                            popolaTendinaDaElenco(grezze);
                         }
                     }
                     aggiornaTestoSelectTrattore(macchinaSelect);
@@ -1235,11 +1230,13 @@
                         console.warn('Errore caricamento dati utente:', e);
                     }
                     const userData = userDoc?.exists() ? userDoc.data() : null;
-                    const isCaposquadra = normalizzaRuoliGuasti(userData?.ruoli, userData?.ruolo).includes('caposquadra');
+                    const ruoliNorm = normalizzaRuoliGuasti(userData?.ruoli, userData?.ruolo);
+                    const isCaposquadra = ruoliNorm.includes('caposquadra');
+                    const isManagerOAdmin = ruoliNorm.includes('manager') || ruoliNorm.includes('amministratore');
 
                     // Trova il caposquadra dell'operaio (se è operaio)
                     let caposquadraId = null;
-                    if (!isCaposquadra) {
+                    if (!isCaposquadra && !isManagerOAdmin) {
                         try {
                             const squadreRef = collection(db, `tenants/${currentTenantId}/squadre`);
                             const squadreSnapshot = await getDocs(squadreRef);
@@ -1270,8 +1267,11 @@
                         
                         // Se è caposquadra, mostra anche i lavori assegnati direttamente a lui
                         const isLavoroCaposquadra = isCaposquadra && lavoro.caposquadraId === currentUser.uid && !lavoro.operaioId;
+
+                        // Manager/admin: tutti i lavori attivi del tenant
+                        const isLavoroManager = isManagerOAdmin;
                         
-                        if (isLavoroAttivo && (isAssegnatoDirettamente || isAssegnatoTramiteCaposquadra || isLavoroCaposquadra)) {
+                        if (isLavoroAttivo && (isAssegnatoDirettamente || isAssegnatoTramiteCaposquadra || isLavoroCaposquadra || isLavoroManager)) {
                             const lavoroData = { id: doc.id, ...lavoro };
                             lavoriList.push(lavoroData);
                             
