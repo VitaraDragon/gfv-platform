@@ -1095,16 +1095,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                     }
                 });
                 
-                const { getCollegamentiTerreno } = await import('../../../core/services/terreni-service.js');
-                const { haCollegamenti, isTerrenoArchiviato } = await import('../../../shared/js/terreno-archivio.js');
-                await Promise.all(terreniList.map(async (terreno) => {
-                    if (isTerrenoArchiviato(terreno)) return;
-                    try {
-                        terreno._haCollegamenti = haCollegamenti(await getCollegamentiTerreno(terreno.id));
-                    } catch (e) {
-                        terreno._verificaCollegamentiErrore = true;
-                    }
-                }));
+                const { isTerrenoArchiviato } = await import('../../../shared/js/terreno-archivio.js');
                 terreni = terreniList;
                 mapsState.terreni = terreni;
                 const mostraArchiviati = !!document.getElementById('filter-mostra-archiviati')?.checked;
@@ -1248,7 +1239,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                     <button class="btn btn-sm btn-primary" onclick="window.editTerreno('${escapeHtml(terrenoObj.id)}')">✏️ Modifica</button>
                     ${terrenoObj.stato === 'archiviato'
                         ? `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.ripristinaTerrenoCliente('${escapeHtml(terrenoObj.id)}')">Ripristina</button>`
-                        : `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">${terreno._haCollegamenti ? 'Archivia' : '🗑️ Elimina'}</button>`
+                        : `<button class="btn btn-sm btn-danger" title="Elimina, oppure archivia se ci sono dati collegati" onclick="event.stopPropagation(); window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">🗑️ Elimina / Archivia</button>`
                     }
                 </div>`;
                 html += '</div>';
