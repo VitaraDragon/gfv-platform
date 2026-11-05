@@ -51,7 +51,7 @@ const RECOMMENDATIONS = {
     {
       id: "seminativo",
       label: "Seminativo",
-      available: false,
+      available: true,
       triggers: [
         { type: "categoryShare", category: "Seminativo", minCount: 3, minShare: 0.35, weight: 80 },
       ],
@@ -140,6 +140,23 @@ const RECOMMENDATIONS = {
   ],
 };
 
+/**
+ * Allinea `available` delle raccomandazioni Tony al catalogo client
+ * (evita duplicare a mano flag come Seminativo).
+ * @param {Array<{ id: string, available?: boolean }>} availableModules
+ * @param {typeof RECOMMENDATIONS} recommendations
+ */
+function syncRecommendationsAvailable(availableModules, recommendations) {
+  const byId = new Map(
+    (availableModules || []).map((m) => [m.id, !!m.available])
+  );
+  const modules = (recommendations.modules || []).map((entry) => {
+    if (!byId.has(entry.id)) return entry;
+    return Object.assign({}, entry, { available: byId.get(entry.id) });
+  });
+  return Object.assign({}, recommendations, { modules });
+}
+
 async function main() {
   const plansPath = path.join(__dirname, "..", "..", "core", "config", "subscription-plans.js");
   const { BUNDLES, AVAILABLE_MODULES, STRIPE_PRICE_IDS } = await import(pathToFileURL(plansPath).href);
@@ -162,6 +179,8 @@ async function main() {
     BUNDLES.map((bundle) => [bundle.id, { modules: bundle.modules }])
   );
 
+  const recommendations = syncRecommendationsAvailable(AVAILABLE_MODULES, RECOMMENDATIONS);
+
   const targets = [
     path.join(__dirname, "..", "config", "bundles-catalog.json"),
     path.join(__dirname, "..", "config", "stripe-prices.json"),
@@ -173,7 +192,7 @@ async function main() {
 
   for (const target of targets) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    let payload = RECOMMENDATIONS;
+    let payload = recommendations;
     if (target.endsWith("bundles-catalog.json") && !target.includes("tony-")) {
       payload = bundlesCatalogStripe;
     } else if (target.endsWith("stripe-prices.json")) {
@@ -188,7 +207,11 @@ async function main() {
   targets.forEach((p) => console.log(`  ${p}`));
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+module.exports = { syncRecommendationsAvailable, BUNDLE_LABELS, RECOMMENDATIONS };
+
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

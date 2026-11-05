@@ -60,6 +60,13 @@ describe('sospensione operativa vs standby assenza', () => {
     expect(built.patch.standbyNota).toBeUndefined();
     expect(built.patch.standbyGiornoKey).toBeUndefined();
     expect(JSON.stringify(built.patch)).not.toContain('in_standby');
+
+    const daInCorso = buildSospendiLavoroPatch('Guasto', now, 'in_corso');
+    expect(daInCorso.patch.statoPrimaSospensione).toBe('in_corso');
+    const daAttivo = buildSospendiLavoroPatch('Guasto', now, 'attivo');
+    expect(daAttivo.patch.statoPrimaSospensione).toBe('in_corso');
+    const daAssegnato = buildSospendiLavoroPatch('Guasto', now, 'assegnato');
+    expect(daAssegnato.patch.statoPrimaSospensione).toBe('assegnato');
   });
 
   it('Modifica: passaggio a sospeso scrive la causa e il timestamp', () => {

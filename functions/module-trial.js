@@ -97,7 +97,8 @@ function getActiveTrialModuleIds(moduleTrials, now = new Date()) {
 function resolveEffectiveModules(tenant, now = new Date()) {
   const paid = getPaidModuleIds(tenant);
   const trialIds = getActiveTrialModuleIds(tenant?.moduleTrials, now);
-  return Array.from(new Set([...paid, ...trialIds]));
+  const covered = getModulesCoveredByActiveBundles(tenant);
+  return Array.from(new Set([...paid, ...trialIds, ...covered]));
 }
 
 function canStartModuleTrial(tenant, moduleId, now = new Date()) {

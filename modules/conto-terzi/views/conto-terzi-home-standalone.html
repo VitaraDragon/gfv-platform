@@ -288,7 +288,8 @@
 
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -333,11 +334,14 @@
                             return;
                         }
 
+
                         // Carica statistiche
+                        const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                        if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'contoTerzi')) return;
+
                         await loadStats();
 
                         try {
-                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
                             const modules = tenantDoc.exists()
                                 ? resolveEffectiveModules(tenantDoc.data())
@@ -353,7 +357,7 @@
 
                             // §15.6 hub entry Conto terzi
                             const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
-                            const mods = modules.includes('contoTerzi') ? modules : modules.concat(['contoTerzi']);
+                            const mods = modules;
                             if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                                 window.Tony.initContextWithModules(mods, {
                                     tenantId: currentTenantId,

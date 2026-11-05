@@ -110,6 +110,13 @@ describe('tony-guida-onboarding — messaggi server', () => {
     expect(serverMod.buildTonyGuidaOnboardingPromptNote({ active: true, daysLeft: 1 })).toMatch(/mancano 1 giorno\./);
   });
 
+  it('nota prompt Free: prova moduli solo dopo Base, non propone prova senza Base', () => {
+    const note = serverMod.buildTonyGuidaOnboardingPromptNote({ active: true, daysLeft: 5 });
+    expect(note).toMatch(/passare al piano Base/i);
+    expect(note).toMatch(/sul Free la prova moduli non è disponibile/i);
+    expect(note).not.toMatch(/i moduli si possono provare gratis 30 giorni/i);
+  });
+
   it('benvenuto client cita giorni rimanenti e limite', () => {
     const msg = clientMod.tonyGuidaOnboardingWelcomeMessage({ active: true, daysLeft: 5 });
     expect(msg).toMatch(/ancora per 5 giorni/);

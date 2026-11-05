@@ -246,7 +246,8 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { suggestMovPrezzoInDom } from '../../../core/js/movimento-prezzo-catalogo.js';
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp, increment } from '../../../core/services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -314,6 +315,9 @@
                     setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
                     return;
                 }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'magazzino')) return;
                 document.getElementById('btn-nuovo-movimento').onclick = openModal;
                 document.getElementById('btn-elimina-selezionati').onclick = function () {
                     window.eliminaMovimentiSelezionati();

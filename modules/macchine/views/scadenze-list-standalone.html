@@ -87,7 +87,8 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'scadenze', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         (async function() {
             try {
                 await window.GFVStandaloneReady;
@@ -203,7 +204,7 @@
                             rowScaduto: stato.rowScaduto,
                             statoTesto: stato.statoTesto
                         });
-                    } else if (!flotta && m.oreProssimaManutenzione != null) {
+                    } else if (!flotta && Number.isFinite(m.oreProssimaManutenzione)) {
                         const stato = calcolaStatoScadenza('ore', null, m.oreAttuali, m.oreProssimaManutenzione);
                         out.push({
                             macchinaId: id,
@@ -251,9 +252,15 @@
             }
 
             function formatValore(s, tipoValore) {
-                if (s == null) return '—';
-                if (tipoValore === 'km') return Number(s).toLocaleString('it-IT') + ' km';
-                if (tipoValore === 'ore') return Number(s).toLocaleString('it-IT') + ' ore';
+                if (s == null || (typeof s === 'number' && !Number.isFinite(s))) return '—';
+                if (tipoValore === 'km') {
+                    const n = Number(s);
+                    return Number.isFinite(n) ? n.toLocaleString('it-IT') + ' km' : '—';
+                }
+                if (tipoValore === 'ore') {
+                    const n = Number(s);
+                    return Number.isFinite(n) ? n.toLocaleString('it-IT') + ' ore' : '—';
+                }
                 const d = toDate(s);
                 return d ? formatDateLikeToItalianLongLocal(d) : '—';
             }
@@ -389,6 +396,9 @@
                     if (ud.exists() && ud.data().tenantId) { tenantId = ud.data().tenantId; setCurrentTenantId(tenantId); }
                 }
                 if (!tenantId) { document.getElementById('table-container').innerHTML = '<div class="empty-state">Nessun tenant</div>'; return; }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'parcoMacchine')) return;
                 document.getElementById('filter-stato').onchange = renderTable;
                 document.getElementById('btn-close-modal').onclick = closeModal;
                 document.getElementById('btn-annulla').onclick = closeModal;

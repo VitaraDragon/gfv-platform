@@ -261,6 +261,15 @@ export const QUICK_BAR_CATALOG = {
         requireManodopera: false,
         section: 'parcoMacchine'
     },
+    statisticheMacchine: {
+        label: 'Statistiche macchine',
+        desc: 'Utilizzo e ore dei mezzi',
+        icon: '📊',
+        href: 'statistiche-standalone.html#statistiche-macchine-section',
+        modules: ['parcoMacchine'],
+        requireManodopera: false,
+        section: 'parcoMacchine'
+    },
     contoTerziHome: {
         label: 'Conto Terzi',
         desc: 'Home modulo conto terzi',
@@ -720,6 +729,7 @@ function defaultSlots(ctx) {
         'preventivi',
         'vigneto',
         'guasti',
+        'statisticheMacchine',
         'magazzino',
         'amministrazione'
     ];

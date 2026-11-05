@@ -455,8 +455,6 @@ function puoSospendereLavoro(user, lavoro) {
 export async function sospendiLavoro(lavoroId, causa = '', options = {}) {
   const tenantId = options.tenantId ?? getCurrentTenantId();
   if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
-  const built = buildSospendiLavoroPatch(causa);
-  if (!built.ok) throw new Error(built.error);
 
   const lavoro = await getDocumentData(COLLECTION_NAME, lavoroId, tenantId);
   if (!lavoro) throw new Error('Lavoro non trovato');
@@ -467,6 +465,9 @@ export async function sospendiLavoro(lavoroId, causa = '', options = {}) {
   if (!puoSospendereLavoro(user, lavoro)) {
     throw new Error('Non hai i permessi per sospendere questo lavoro');
   }
+
+  const built = buildSospendiLavoroPatch(causa, new Date(), lavoro.stato);
+  if (!built.ok) throw new Error(built.error);
 
   await updateDocument(COLLECTION_NAME, lavoroId, {
     ...built.patch,

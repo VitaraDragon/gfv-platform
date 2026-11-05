@@ -1,7 +1,7 @@
 /**
- * Accesso alla segnalazione guasti dal profilo campo.
- * Stesso form della pagina desktop: operaio e caposquadra (anche capo-only).
- * Manager/admin, anche con ruolo campo, tornano in dashboard (niente loop col workspace).
+ * Accesso alla segnalazione guasti.
+ * Operaio, caposquadra, manager e amministratore. Il ritorno al workspace
+ * resta solo per il profilo campo puro (niente loop col workspace).
  */
 
 export function normalizzaRuoliGuasti(ruoli, ruoloSingolo) {
@@ -30,10 +30,26 @@ export function vistaSegnalazionePerModuli(modules) {
     };
 }
 
-/** Operaio o caposquadra, anche se ha anche manager/admin. */
+/** Operaio, caposquadra, manager o amministratore. */
 export function puoAprireSegnalazioneGuasti(ruoli, ruoloSingolo) {
     const n = normalizzaRuoliGuasti(ruoli, ruoloSingolo);
-    return n.includes('operaio') || n.includes('caposquadra');
+    return n.includes('operaio')
+        || n.includes('caposquadra')
+        || n.includes('manager')
+        || n.includes('amministratore');
+}
+
+/**
+ * Mezzi da mostrare nella tendina «Segnala guasto»: tutti i non dismessi del tenant.
+ * Nessun filtro sui lavori dell'utente (manager e campo vedono lo stesso elenco).
+ * @param {Array<object>} macchine
+ * @returns {Array<object>}
+ */
+export function macchinePerSegnalazioneGuasto(macchine) {
+    return (Array.isArray(macchine) ? macchine : []).filter((m) => {
+        if (!m || m.id == null || String(m.id) === '') return false;
+        return String(m.stato || '').toLowerCase() !== 'dismesso';
+    });
 }
 
 /**

@@ -253,6 +253,16 @@ describe('guasti: chi segnala, finché il manager non decide', () => {
     expect(res.status).toBeLessThan(400);
   });
 
+  it('il manager crea un guasto in attesa', async () => {
+    const res = await crea('g-crea-manager', MANAGER, {
+      segnalatoDa: MANAGER,
+      stato: 'in-attesa',
+      risolto: false,
+      dettagli: 'segnale dal manager',
+    });
+    expect(res.status).toBeLessThan(400);
+  });
+
   it('un utente di tenant-b non legge un guasto di tenant-a', async () => {
     const res = await richiesta('GET', `tenants/${TENANT}/guasti/g-lettura`, { auth: ALTRO });
     expect(res.status).toBe(403);
