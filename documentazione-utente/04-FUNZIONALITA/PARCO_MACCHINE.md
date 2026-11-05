@@ -17,7 +17,7 @@ Traccia trattori, attrezzi, manutenzioni e guasti integrando il modulo Parco Mac
 ## 🧭 Percorsi principali
 
 - Dashboard → **Gestione Macchine**
-- Dashboard → **Segnalazione Guasti** (per operai/capisquadra)
+- Versione mobile → scheda **⚠️ Segnala un problema** (per operai/capisquadra)
 - Gestione Lavori → assegnazione trattori/attrezzi
 
 ---
@@ -90,24 +90,30 @@ Per aggiornare le ore:
 
 ### Operai/Capisquadra
 
-1. Vai su **Segnalazione Guasti**
-2. Campi precompilati:
-   - Trattore/attrezzo dal lavoro in corso
-   - Lavoro associato
-3. Compila:
-   - Gravità (grave/non grave)
-   - Dettagli guasto
-4. Invia
+1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
+2. Scegli **🔧 Guasto Macchina/Attrezzo** oppure **🌍 Segnalazione Generica**
+3. Proposti in automatico (da controllare): in **Lavoro corrente** il lavoro della scheda **Lavoro** del campo (scelto o, se mai scelto, quello che la scheda propone da sola, prima il lavoro in corso; altrimenti quello già in corso) e, se quel lavoro li ha, il suo trattore e attrezzo con il **Componente**
+4. Compila:
+   - Trattore e **Componente con guasto** (Trattore, Attrezzo o Entrambi)
+   - **Gravità**: Non grave - Posso finire il lavoro / Grave - Sospendere subito
+   - **Dettagli** del problema
+   - Facoltativi: lavoro corrente, posizione GPS
+5. Tocca **🚨 Segnala**
+
+**Cosa succede dopo l’invio**
+- La segnalazione resta **in attesa** e la trovi in **I Miei Guasti Segnalati**. Non manda avvisi o notifiche a nessuno, nemmeno se **Grave**: il manager la vede tra i guasti aperti (contatore in **Richiede attenzione** e **Officina & Guasti**).
+- **Guasto a macchina/attrezzo:** il mezzo indicato dal **componente** passa in stato di guasto (con **Non grave** il lavoro può continuare, con **Grave** il mezzo risulta **Guasto**). Finché resta così non si può scegliere per un nuovo lavoro né per una nuova segnalazione: in elenco compare «(già in guasto)».
+- **Grave con un lavoro collegato:** il lavoro viene **sospeso** se segnala il manager, il **caposquadra** di quel lavoro di squadra o l’**operaio** sul proprio lavoro autonomo. Se segnala un operaio su un lavoro di squadra, o un caposquadra su un lavoro tutto suo, il mezzo va in guasto ma il lavoro non cambia e dopo l’invio si legge «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: la segnalazione è registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.
+
+Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le sue note si vedono nello **storico guasti** della scheda del mezzo, non in **Officina & Guasti**) o ritirarlo con **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se è stato un errore, si fa una nuova segnalazione.
 
 ### Manager
 
-1. Vai su **Gestione Guasti**
-2. Visualizza guasti aperti e storici
-3. Azioni disponibili:
-   - Approvare continuazione lavoro
-   - Sospendere lavoro
-   - Risolvere/Riaprire guasto
-   - Inserire costi/Note
+1. Vai su **Parco Macchine** → **Officina & Guasti**
+2. Filtro **Solo aperti** / **Tutti**
+3. Per chiudere un guasto: **Segna risolto** → note di risoluzione (facoltative) → **Segna risolto**. Il mezzo torna allo stato di prima
+4. I guasti ritirati da chi li ha segnalati compaiono con il badge **Annullato**, senza pulsanti
+5. Per fermare un lavoro: **Sospendi / Rinvia** in **Gestione Lavori**
 
 ---
 

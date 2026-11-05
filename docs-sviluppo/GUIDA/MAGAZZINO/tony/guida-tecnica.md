@@ -29,10 +29,17 @@ Target utili: `magazzino` (home), `carburante` (hub carburante), `prodotti`, `mo
 - **`prodotto-form`** / **`movimento-form`**: mapping in `core/config/tony-form-mapping.js`, injector in `core/js/tony-form-injector.js`; comandi **INJECT_FORM_DATA**, **OPEN_MODAL** `prodotto-modal` / `movimento-modal`; regole magazzino in `functions/index.js` (SAVE solo su conferma esplicita).
 - **Carburante (movimenti)**: categoria `carburante`, origine `carico_cisterna` (entrata) o `pieno` (uscita + `macchinaId`). Validazione: `modules/magazzino/lib/carburante-movimento.js` (`validateMovimentoCarburante`, `parseCarburanteMovimentoQuery`). Query da hub: `?categoria=carburante&tipo=entrata` (carico) o `?categoria=carburante&tipo=uscita&pieno=1` (pieno).
 - **Pieno in campo (versione mobile)**: `core/mobile/js/pieno-campo-ui.js` (scheda in field-workspace solo se `lavoroRichiedeRifornimento(lavoro)` — mezzo presente, non solo attrezzo). Cloud Function `registraPienoCampo` (`functions/registra-pieno-campo.js` + core in `functions/lib/registra-pieno-campo-core.js`): tenant, lavoroId, prodotto carburante, quantità, data → crea movimento uscita con origine `pieno` + `macchinaId` dal lavoro.
+- **Pieno dopo carico (Tony, stesso form)**: `core/js/tony-movimento-create-local.js` — se il form movimento è già aperto dopo un carico cisterna, un «pieno» successivo azzera quantità, tipo e prodotto del gesto precedente e usa solo la quantità detta nel messaggio (non riusa i litri della cisterna). Mapping in `core/config/tony-form-mapping.js`.
 
 ## Acquisizione documenti (foto → magazzino)
 
 Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtractDocument`: due passate Gemini sui numeri; XML FatturaPA solo extra se il file è già quello. Save: `document-register.js` (bolla / fattura / scontrino). Originali: Storage + `documentiAcquisiti`. Vedi `GUIDA/TONY/tony/guida-tecnica.md` (stesso flusso, incluso HEIC/HEIF handling foto galleria iPhone).
+
+## Scheda pubblica fitofarmaci (#208/#210)
+
+- `prodotti-standalone.html`: semaforo `htmlSemaforoLetturaScheda` / `testoStatoLetturaScheda` (`shared/js/registro-trattamenti.js`, CSS `core/styles/manodopera-semaforo.css`) prima del nome, solo categoria `fitofarmaci`: `in_corso` / assente → giallo, `pronta` → verde, `da_riprovare` → rosso (`letturaSchedaMotivo` `nome_non_univoco` | `non_trovato`). Campi sola lettura `prodotto-numero-registrazione`, `prodotto-principio-attivo`, `prodotto-fonte-scheda`, `prodotto-data-lettura`.
+- `prodotti-service.js`: `CAMPI_SCHEDA_SOLO_SERVER` (`letturaSchedaStato`, `letturaSchedaMotivo`, `numeroRegistrazione`, `principioAttivo`, `fonteScheda`, `dataLetturaScheda`, `statoAmministrativoScheda`, …) tolti da create/update: li scrive solo il server. Modello `Prodotto.js` con i campi scheda e `confermeSpecie`.
+- Server (`functions/registro-trattamenti-lettura.js`): trigger `onProdottoSchedaScritto` (`tenants/{tenantId}/prodotti/{prodottoId}`) mette in coda; `leggiSchedeRegistroInCoda` ogni 5 minuti legge un fitofarmaco alla volta (open data CSV, pagina impieghi SIAN, avversità, etichetta), controllo leggero settimanale e rilettura oltre sei mesi o su `letturaSchedaRichiestaAt`. Regole e indici in `firestore.rules` / `firestore.indexes.json`. Al merge su develop non pubblicati su Firebase.
 
 ## Riassunto Tony
 

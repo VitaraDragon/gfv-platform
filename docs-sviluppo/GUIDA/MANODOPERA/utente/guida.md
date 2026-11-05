@@ -7,7 +7,9 @@ Benvenuto. Questa guida spiega come usare il **modulo Manodopera** di GFV: ore i
 ## Cos’è il modulo Manodopera
 
 Serve a organizzare il **lavoro in campo** con ruoli chiari: chi pianifica e configura (**manager** o **amministratore**), chi coordina la squadra (**caposquadra**), chi esegue (**operaio**).  
-Quando il modulo è **attivo per la vostra azienda**, compaiono le funzioni dedicate (versione mobile per chi è in campo, pagine di gestione per l’ufficio). Se non è attivo, molte di queste voci **non esistono** nel menu: in quel caso va attivato il modulo (di solito da **Abbonamento** o da chi gestisce il contratto).
+Quando il modulo è **attivo per la vostra azienda**, compaiono le funzioni dedicate (versione mobile per chi è in campo, pagine di gestione per l’ufficio). Se non è attivo, molte di queste voci **non esistono** nel menu: in quel caso va attivato il modulo (di solito da **Abbonamento** o da chi gestisce il contratto). Anche con Manodopera **in prova gratuita di 30 giorni** (possibile solo con il piano **Base**) la **home Manodopera** e **Gestione lavori** funzionano per intero, come con il modulo pagato.
+
+**Diario e Gestione lavori.** Con Manodopera attivo le giornate nuove si registrano in **Gestione lavori**; il **Diario attività** resta solo **storico in sola lettura** (via link, fuori dal menu). All’**attivazione** o allo **spegnimento** da **Abbonamento** i dati si copiano una volta sola (allo spegnimento i lavori tornano nel Diario come **attività modificabili**). Dettaglio nella guida **Manager** e nella guida **Core** sul Diario.
 
 ---
 
@@ -29,14 +31,29 @@ Se stai leggendo una **stampa** o un **PDF** generato da questa documentazione, 
 
 Oltre alla **guida Manager** (pulsante omonimo nella documentazione online), questi passaggi valgono per quasi tutte le aziende:
 
-1. **Entrare in Manodopera** — Dalla **dashboard** apri **Moduli** e tocca **Manodopera** (👷), oppure usa **Per te oggi** → «Manodopera: lavori, squadre e ore». Si apre la **home del modulo**: numeri in alto (programmati oggi, in corso, ore da validare) e tre **sezioni** con le funzioni principali.  
+1. **Entrare in Manodopera** — Dalla **dashboard** apri il **pulsante moduli** (graffetta in alto a sinistra) e tocca **Manodopera** (👷), oppure usa **Per te oggi** → «Manodopera: lavori, squadre e ore». Si apre la **home del modulo**: numeri in alto (programmati oggi, in corso, ore da validare) e tre **sezioni** con le funzioni principali.  
 2. **Invita collaboratore** — In alto sulla dashboard può comparire **Invita collaboratore** (con modulo attivo e permessi giusti). Porta al percorso **Gestisci utenti** per inviti e ruoli.  
-3. **Amministrazione** — Da **Moduli** → **Amministrazione** (👑) raggiungi utenti, abbonamento e altre voci amministrative; dalla **home Manodopera**, sezione **Persone**, hai scorciatoie dirette a squadre, operai e utenti.  
+3. **Persone e abbonamento** — Dalla **home Manodopera**, sezione **Persone**, raggiungi **Gestisci utenti**, squadre, operai e compensi; **Abbonamento** è nell’**ingranaggio** in alto a destra. **Gestisci utenti** lo aprono sia l’amministratore sia il manager.  
 4. **Poi** crei **lavori** e controlli **validazione ore** e **statistiche**, come nella guida Manager. Dalle pagine interne il link **← Dashboard** riporta alla home del modulo.
 
-Con **Manodopera** attivo la dashboard **non** mostra più grandi card sparse (Gestione lavori, Validazione ore, …): tutto passa da **Moduli**, dalla **home Manodopera** o da **I miei accessi** se l’hai configurata.
+Con **Manodopera** attivo la dashboard **non** mostra più grandi card sparse (Gestione lavori, Validazione ore, …): tutto passa dal **pulsante moduli** (graffetta in alto a sinistra), dalla **home Manodopera**, da **Per te oggi** o dagli avvisi in **Richiede attenzione**.
 
 Il **caposquadra** non crea le squadre da zero: le configuri **tu** in **Gestione squadre**.
+
+---
+
+## Lavoro fermo: sospensione o standby per assenza
+
+Sono due cose diverse, anche se in entrambi i casi il lavoro si ferma.
+
+- **Sospensione (meteo, guasto o altro motivo esterno).** Il manager, in **Gestione lavori**, usa **⏳ Sospendi / Rinvia** sulla riga di un lavoro **assegnato** o **in corso**:  
+  1. sceglie il motivo **Maltempo**, **Guasto** o **Altro** (per **Altro** la nota è obbligatoria);  
+  2. se indica una **data di ripresa**, l’app crea subito il **lavoro di ripresa**;  
+  3. senza data il lavoro resta **Sospeso** e la ripresa si crea dopo con **🔁 Crea ripresa** sulla riga.  
+  Anche il **caposquadra** può sospendere, dalla versione mobile o da **I miei lavori**, con **⏸️ Sospendi lavoro**: scrive il motivo a parole sue (testo libero). La ripresa la crea sempre il manager.
+- **Standby per assenza (manca qualcuno della squadra).** Il caposquadra usa **Segnala assenza**; il manager conferma da **Gestione lavori** con **Conferma e standby** e sceglie quali lavori di quel giorno fermare (il lavoro autonomo dell’assente è già spuntato, quelli di squadra no e proseguono senza chi manca), oppure ferma un singolo lavoro con **⏸️ Standby assenza** (operaio assente, tipo di assenza, giorno). Il lavoro passa in **Standby (assenza)** finché il manager non **assegna un sostituto** o non **ripristina** il lavoro: non si crea un lavoro di ripresa.
+
+I passi completi sono nelle guide **Manager** e **Caposquadra**.
 
 ---
 
@@ -44,7 +61,7 @@ Il **caposquadra** non crea le squadre da zero: le configuri **tu** in **Gestion
 
 - **Azienda**: il profilo aziendale che state usando nell’app dopo il login.  
 - **Versione mobile**: schermata semplificata sul **telefono** per operaio e caposquadra (lavoro scelto, ore, messaggi, mappa dove serve).  
-- **Versione desktop**: uso da **computer** con menu **Moduli** e **home Manodopera** per il manager. Operaio e caposquadra restano sulla schermata del lavoro, anche dal computer: non c’è un passaggio alla dashboard.
+- **Versione desktop**: uso da **computer** con il **pulsante moduli** e la **home Manodopera** per il manager. Operaio e caposquadra restano sulla schermata del lavoro, anche dal computer: non c’è un passaggio alla dashboard.
 
 ---
 

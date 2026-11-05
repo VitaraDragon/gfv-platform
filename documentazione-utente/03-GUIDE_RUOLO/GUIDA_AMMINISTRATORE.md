@@ -195,7 +195,7 @@ Vedi [Guida Manager - Parco Macchine](GUIDA_MANAGER.md#parco-macchine) per detta
 
 Come Amministratore hai accesso completo a:
 - Gestione trattori e attrezzi
-- Gestione guasti
+- Officina & Guasti (chiusura dei guasti con **Segna risolto**)
 - Statistiche utilizzo macchine
 
 ## 🗺️ Mappa Aziendale

@@ -50,3 +50,11 @@ Form Tony `tony-form-injector.js`: quando compila un preventivo con **cliente** 
 ## Terreni clienti — disegno confini (Fase 1b)
 
 Stesso motore dei Terreni aziendali: `core/js/terreni-maps.js` + `terreni-draw-helpers.js`. Vicini = terreni **già salvati del cliente** selezionato (non i campi aziendali). Tony non disegna; spiega gli stessi gesti (chiusura sul primo punto / doppio tap / Togli ultimo / aggancio). `pageType` lista: `terreniClienti`.
+
+## Link registro lavori (gate Manodopera)
+
+- Home Conto Terzi: card/azioni con `data-gfv-registro` (`in_corso`, `completato`, `da_pianificare`) riscritte da `applyRegistroLavoriLinks` (`core/config/manodopera-diario-gate.js`). Con Manodopera → `core/admin/gestione-lavori-standalone.html?contoTerzi=true&stato=…` (filtro tipo `conto_terzi`); senza → `core/attivita-standalone.html?contoTerzi=true&stato=…`; `da_pianificare` nascosto senza Manodopera. `body[data-gfv-registro]` = `lavori` | `diario`.
+
+## Pianifica senza Manodopera
+
+`modules/conto-terzi/js/lavoro-da-preventivo.js`: `lavoroDaPreventivo(preventivo, { hasManodopera })` — senza Manodopera il lavoro nasce con `stato: 'in_corso'` (riga 24), `toastMessage` «Lavoro creato: registra le giornate nel Diario Conto Terzi» (riga 61). Con Manodopera nasce `'da_pianificare'` con toast «Lavoro creato con successo! Ora puoi completare la pianificazione dalla pagina Gestione Lavori.» **È voluto:** il lavoro senza Manodopera nasce già in corso, senza un avviso separato che lo metta in corso.

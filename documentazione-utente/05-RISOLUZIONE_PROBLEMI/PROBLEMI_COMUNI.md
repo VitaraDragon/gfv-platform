@@ -79,7 +79,8 @@ Elenco dei problemi più frequenti riscontrati dagli utenti e relative soluzioni
 
 ### Guasti non appaiono al Manager
 - Controlla che il modulo Parco Macchine sia attivo
-- Verifica che l’operaio abbia inviato la segnalazione dalla pagina corretta
+- Verifica che l’operaio abbia inviato la segnalazione dalla scheda **⚠️ Segnala un problema** della versione mobile (deve leggere «Segnalazione inviata. Grazie.»)
+- Il manager vede i guasti in **Parco Macchine** → **Officina & Guasti**
 
 ---
 

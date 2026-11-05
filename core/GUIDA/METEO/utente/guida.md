@@ -10,9 +10,9 @@ Un terreno **archiviato** non riceve avvisi meteo e non occupa un posto tra i ca
 
 | | **Piano Base** (senza modulo Meteo) | **Modulo Meteo** attivo |
 |---|-------------------------------------|-------------------------|
-| **Dove** | Riga **Meteo sede** in dashboard, sotto **Moduli** | Stessa riga arricchita + pagina **Meteo** dedicata |
+| **Dove** | Riga **Meteo sede** in dashboard, sotto l’intestazione | Stessa riga arricchita + pagina **Meteo** dedicata |
 | **Cosa mostra** | Tempo attuale e sintesi per l’**indirizzo sede** in **Impostazioni** | Previsioni **per ogni terreno** sulla mappa, alert, ore e giorni estesi |
-| **Piano Free** | Meteo **non** disponibile | Meteo **non** disponibile |
+| **Piano Free** | Al posto del meteo: «Meteo sede disponibile con il piano Base» e **Vai ad Abbonamento →** | Meteo **non** disponibile |
 
 Il modulo Meteo si **attiva a parte** in **Abbonamento** (costo mensile simbolico). Con il Base avete già il meteo compatto in dashboard; il modulo serve soprattutto a chi vuole **confrontare i campi** e aprire il dettaglio per appezzamento.
 
@@ -22,7 +22,7 @@ Il modulo Meteo si **attiva a parte** in **Abbonamento** (costo mensile simbolic
 
 1. Verificare **sede aziendale** in **Impostazioni** (indirizzo completo). **[Impara qui](#imposta-la-sede-aziendale)**
 2. Leggere **Meteo sede** in dashboard (piano Base). **[Impara qui](#meteo-sede-in-dashboard)**
-3. Se avete il **modulo Meteo**: **Moduli** → **Meteo** → mappa + dettaglio campo. **[Impara qui](#da-dove-si-entra-modulo-meteo)**
+3. Se avete il **modulo Meteo**: **pulsante moduli** → **Meteo** → mappa + dettaglio campo. **[Impara qui](#da-dove-si-entra-modulo-meteo)**
 4. Usare alert e probabilità pioggia per **pianificare lavori** (con **Manodopera** o **Diario**). **[Impara qui](#alert-e-consigli-operativi)**
 
 ---
@@ -43,7 +43,7 @@ Il modulo Meteo si **attiva a parte** in **Abbonamento** (costo mensile simbolic
 
 ## Imposta la sede aziendale
 
-1. **Moduli** → **Impostazioni** (o percorso **Amministrazione** se usate **Manodopera**).
+1. **Ingranaggio** in alto a destra → **Impostazioni**.
 2. Compilate l’**indirizzo sede** dell’azienda (via, CAP, comune — come richiesto in schermata).
 3. **Salva**.
 
@@ -55,7 +55,7 @@ I **terreni** in anagrafe hanno coordinate o perimetro sulla **Mappa aziendale**
 
 ## Meteo sede in dashboard
 
-Disponibile con **piano Base** (a pagamento), subito sotto il pulsante **Moduli**.
+Disponibile con **piano Base** (a pagamento), subito sotto l’intestazione della dashboard.
 
 ### Cosa vedete
 
@@ -68,7 +68,7 @@ Disponibile con **piano Base** (a pagamento), subito sotto il pulsante **Moduli*
 
 ### Piano Free
 
-La riga meteo **non compare**: passate al piano Base per il meteo sede.
+Al posto delle previsioni la riga mostra «Meteo sede disponibile con il piano Base» con il collegamento **Vai ad Abbonamento →**: passate al piano Base per il meteo sede.
 
 ---
 
@@ -76,7 +76,7 @@ La riga meteo **non compare**: passate al piano Base per il meteo sede.
 
 Serve **piano Base** + **modulo Meteo** attivo in **Abbonamento**.
 
-1. **Moduli** → **Meteo** (🌦️). Opzionale: **I miei accessi** se l’avete configurato.
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Meteo** (🌦️).
 2. **Senza Manodopera**, in fondo alla dashboard può esserci un **riquadro** **Meteo** (stessa voce del menu): scorciatoia opzionale.
 3. Dalla dashboard, con modulo attivo, il link **Modulo Meteo →** nel widget meteo apre la stessa pagina.
 4. **← Dashboard Principale** in alto riporta alla home generale.
@@ -130,11 +130,11 @@ Dati forniti da **OpenWeather** (citati in pagina).
 
 ## Tony e briefing
 
-- **Tony Guida** (piano Base): spiega dove trovare meteo (**dashboard** vs **Moduli** → **Meteo**) e come leggere probabilità pioggia; non apre pagine da solo.
+- **Tony Guida** (piano Base): spiega dove trovare meteo (**dashboard** vs **pulsante moduli** → **Meteo**) e come leggere probabilità pioggia; non apre pagine da solo.
 - **Tony Avanzato**: può **aprire Meteo** o rispondere sul **briefing** in dashboard (desktop: a volte **voce**; mobile spesso apre la **chat**).
 - Sulla **pagina Meteo**, con modulo attivo, Tony può usare l’**elenco campi** visibile (stesso riepilogo della pagina) per domande tipo «quali campi hanno pioggia domani?».
 
-Il **briefing** mattutino in dashboard può includere meteo e operatività se avete **Tony Avanzato** e moduli pertinenti.
+Il **briefing** mattutino in dashboard può includere meteo e operatività se avete **Tony Avanzato** e moduli pertinenti. Se le previsioni tardano più di qualche secondo, il messaggio parte senza la frase sul meteo; quando arrivano, potete chiederle a Tony o rispondere «Sì» al riassunto.
 
 ---
 
@@ -142,8 +142,12 @@ Il **briefing** mattutino in dashboard può includere meteo e operatività se av
 
 | Problema | Cosa controllare |
 |----------|------------------|
-| Nessuna riga meteo in dashboard | **Piano Free** → serve **Base**; oppure non siete loggati con tenant aziendale. |
-| «Sede non impostata» | **Impostazioni** → indirizzo sede → **Salva**. |
+| «Meteo sede disponibile con il piano Base» | **Piano Free** → **Vai ad Abbonamento →** e passate a **Base**. |
+| Nessuna riga meteo in dashboard | Non siete entrati con un’azienda, oppure la pagina è ancora in caricamento: ricaricate. |
+| «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).» in cima alla dashboard | Al primo accesso l’app ha provato a mettere il pin da sola ma non ha trovato il comune: **Apri Impostazioni** → cliccate il punto sulla mappa → **Salva Impostazioni Azienda**. |
+| «Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni» in cima alla dashboard | Al primo accesso l'app ha trovato il comune ma non il civico: ha messo il pin al centro del comune. **Apri Impostazioni** → spostate il pin sulla sede esatta → **Salva Impostazioni Azienda**. |
+| «Imposta il pin della sede in Impostazioni per vedere il meteo.» | **Impostazioni** → **Sede aziendale sulla mappa**: se indirizzo e città sono già scritti l’app propone il punto («Controlla il pin e salva»), altrimenti **🔍 Cerca**; poi **Salva Impostazioni Azienda**. |
+| «Meteo non disponibile al momento. Riprova più tardi.» | Il servizio non ha risposto in tempo: ricaricate la dashboard più tardi. |
 | Pagina Meteo bloccata | Modulo **non** attivo → **Abbonamento**; oppure piano **Free**. |
 | Campo assente sulla mappa | Terreno senza perimetro/coordinate → **Terreni**. |
 | Dettaglio campo vuoto | Cliccare un perimetro/punto; attendere caricamento. |

@@ -53,7 +53,7 @@ Tony è il **capocantiere digitale** dell’app: parla in modo **semplice e dire
 
 ### Le «anime» in linguaggio utente
 
-1. **Operativo** — «Ho potato sei ore nel Sangiovese» → Tony può aiutarti ad aprire il **Diario** o la **segna ore** e a compilare, dove previsto, senza rifare tutti i clic a mano (serve **Tony Avanzato**).  
+1. **Operativo** — «Ho potato sei ore nel Sangiovese» / «ho trinciato otto ore nel campo X» → **senza Manodopera** Tony ti porta al **Diario** e, dove previsto, **compila** i campi (serve **Tony Avanzato**). **Con Manodopera**: operaio e caposquadra seguono il flusso **Segna ore** del loro ruolo; se sei **manager**, Tony ti risponde con un messaggio che inizia con «Ho capito: …» (ripete cosa ha capito) e ti spiega che le ore le segnano operai e caposquadra, che tu le controlli in **Validazione ore** e organizzi i lavori in **Gestione lavori**.  
 2. **Navigatore** — «Portami ai preventivi» o «Apri Manodopera» → con Tony Avanzato Tony può **aprire la pagina** giusta (se il modulo c’è e il tuo ruolo lo consente).  
 3. **Consulente sui dati** — «Quanti terreni in affitto?» o «Cosa c’è in questa lista?» → Tony usa i **dati** che l’app gli passa (elenchi visibili, riepiloghi, dati azienda per i manager), senza inventare numeri.  
 4. **Consigliere moduli** (solo **piano Base**, **Tony Guida**) — «Quali moduli mi servono?» → Tony suggerisce **uno o due moduli** in base a terreni, colture e uso reale dell’app; ti indica **Abbonamento** per attivarli. **Non** promuove Tony Avanzato e **non** interrompe le domande su una lista già aperta.
@@ -68,13 +68,15 @@ Non tutte le funzioni sono al **massimo livello** in ogni versione: conta il **p
 
 Di solito trovi un **pulsante flottante** (icona / bolla) sul bordo dello schermo: è il **widget Tony**. Toccandolo si apre il **pannello chat**.
 
-- Se **non vedi** il pulsante, può dipendere dal **piano** (es. piano gratuito senza accesso al widget), dal **browser** o dal fatto che la pagina non carichi ancora il widget: aggiorna la pagina o verifica **Abbonamento** con l’amministratore.
+- Se **non vedi** il pulsante, può dipendere dal **piano** (es. piano gratuito dopo i primi 7 giorni dalla registrazione), dal **browser** o dal fatto che la pagina non carichi ancora il widget: aggiorna la pagina o verifica **Abbonamento** con l’amministratore.
 
 ### Chat
 
 1. Apri il widget.  
 2. Scrivi una **frase chiara** (meglio una richiesta alla volta).  
-3. Leggi la risposta: spesso Tony conclude con una **domanda** («Vuoi che apra…?») o un **passo successivo**.
+3. Leggi la risposta: spesso Tony conclude con una **domanda** («Vuoi che apra…?») o un **passo successivo**. Le parole che Tony vuole evidenziare (nomi di pulsanti, campi) compaiono in **grassetto**, senza asterischi.
+
+Se scrivi appena aperta la pagina, quando Tony non è ancora pronto, il messaggio non si perde: resta in chat con la scritta «In attesa che Tony sia pronto…» e parte da solo appena Tony è pronto. Se ne scrivi più di uno, partono uno alla volta, nell’ordine. Se Tony non si prepara in tempo leggi «Tony non è pronto. Riprova tra poco.»: riscrivi il messaggio dopo qualche secondo.
 
 ### Voce (TTS e microfono)
 
@@ -83,6 +85,10 @@ Su molte pagine Tony può **leggere ad alta voce** le risposte (sintesi vocale):
 - Il **microfono** (quando presente) serve a **dettare** o parlare invece di scrivere: in ambienti rumorosi può essere comodo **scrivere**.  
 - In **modalità continua** (auto), dopo che Tony ha parlato il microfono può **riaprirsi** da solo per il turno successivo — aspetta che finisca il messaggio prima di parlare di nuovo.  
 - Se l’audio è occupato dalla lettura, il microfono può restare **in pausa**: è normale.
+
+### Chiudere la conversazione
+
+Quando hai finito, saluta Tony con una frase breve: «grazie», «a posto così», «basta così», «a dopo», «buon lavoro». Tony risponde «Va bene, a presto!» e, se stavi parlando con il microfono sempre acceso, lo spegne. «Ciao» da solo chiude solo dopo che Tony ti ha già risposto. Se nella stessa frase c’è anche una domanda o una richiesta («grazie, mi apri i terreni?»), Tony non chiude e risponde alla richiesta.
 
 ---
 
@@ -114,7 +120,11 @@ Se chiedi un’azione automatica e Tony risponde che serve il **modulo Tony** / 
 
 ### Piano gratuito
 
-Sul **piano gratuito** **non** è disponibile Tony: il **pulsante chat non compare** e il servizio non risponde. Per usare Tony serve il **piano Base** (Tony Guida) e, per le automazioni, il **modulo Tony Avanzato**.
+Sul **piano gratuito** Tony Guida c’è **solo nei primi 7 giorni** dalla registrazione, con un massimo di **30 domande al giorno**; oltre il limite Tony risponde «Hai raggiunto il limite giornaliero di 30 domande del periodo di prova di Tony Guida. Riprova domani, oppure passa al piano Base per usare Tony senza limiti.». Dopo i 7 giorni il **pulsante chat non compare** più. Per usare Tony sempre serve il **piano Base** (Tony Guida) e, per le automazioni, il **modulo Tony Avanzato**.
+
+### I primi 7 giorni: il percorso guidato
+
+Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore) con «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» e tre pulsanti: **1) Mappa / sede**, **2) Terreni (coltura e confini)**, **3) Primo lavoro / attività nel Diario**, più **Chiudi percorso**. Il passo 3 porta al **Diario attività** senza Manodopera; con **Manodopera** porta a **Gestione lavori** e **Segnatura ore**. Ogni pulsante apre la pagina con qualsiasi piano, anche gratuito o Base. Se manca il pin della sede lo dice («lo mettiamo al passo 1»). Nei giorni dopo, una volta al giorno, riprende dal passo che non avete ancora aperto. Il percorso resta salvato nell’azienda e vale su tutti i telefoni e computer. Dettaglio nella guida Core, sezione Tony.
 
 ---
 
@@ -141,7 +151,7 @@ Tony risponde con **al massimo uno o due moduli** per volta, spiegando **perché
 
 ### Cosa fare dopo
 
-Apri **Abbonamento** (dal **pannello moduli** in alto → **Amministrazione**, o dal percorso indicato da Tony) e attiva il modulo che ti serve. I prezzi mensili sono quelli mostrati in pagina.
+Apri **Abbonamento** (dall’**ingranaggio** in alto a destra → **Abbonamento**, o dal percorso indicato da Tony) e attiva il modulo che ti serve. I prezzi mensili sono quelli mostrati in pagina.
 
 ---
 
@@ -151,7 +161,9 @@ Apri **Abbonamento** (dal **pannello moduli** in alto → **Amministrazione**, o
 
 | Tu dici (esempio) | Cosa può succedere |
 |-------------------|-------------------|
-| «Ho trinciato otto ore oggi nel campo X» | Tony apre il **Diario attività** (o il flusso ore previsto per il tuo ruolo) e inizia a **compilare** tipo lavoro, ore, terreno se li riconosce; può chiederti cosa manca. |
+| «Ho trinciato otto ore oggi nel campo X» / «Ho potato sei ore nel Sangiovese» | **Senza Manodopera** → **Diario attività** (+ scheda): compila tipo lavoro, ore, terreno se li riconosce; può chiederti cosa manca. **Con Manodopera**, mai il Diario: operaio e caposquadra → flusso **Segna ore** del ruolo; **manager** → messaggio che inizia con «Ho capito: …» (per esempio «Ho capito: potatura, 4 ore.») e spiega che le ore le segnano operai e caposquadra, che tu le controlli in **Validazione ore** e organizzi in **Gestione lavori**. |
+| «Segna le mie ore» / «devo segnare le ore lavorate» (da manager, con **Manodopera**) | Tony non apre un lavoro nuovo: ti spiega che le ore le segnano operai e caposquadra in campo, che tu le validi in **Validazione ore** e pianifichi in **Gestione lavori**, e ti chiede quale aprire. Se hai detto anche cosa e quante ore (per esempio «ho fatto 4 ore di potatura»), il messaggio inizia con «Ho capito: …» e ripete quello che ha capito. Segnare ore tue con Tony non è ancora previsto. |
+| «Ho fatto la vigna» / «Ho finito in vigna» (anche «o' fatto la vigna») | Stesso percorso: **Diario** senza Manodopera, **Gestione lavori** con Manodopera, e apre la scheda. Non inventa terreno né tipo di lavoro: se non li hai detti, li scegli tu o te li chiede. |
 | «Crea un preventivo per erpicatura al cliente Rossi» | Tony avvia il **Nuovo preventivo** e può proporre **cliente** e **tipo lavoro**; se ci sono più terreni per quel cliente, chiede **quale terreno**. |
 | «Portami alla gestione lavori» / «Apri Manodopera» | Tony **apre** la pagina prevista per il tuo ruolo (es. home **Manodopera** o gestione lavori). |
 | «Crea un lavoro per l’operaio Rossi nel Sangiovese» | Tony avvia un’**intervista** passo passo (chi, terreno, tipo, date…) e poi apre o compila la scheda lavoro. |
@@ -235,6 +247,8 @@ Le **notifiche push** sul telefono (ciclo lavoro, assenze) si configurano in **I
 | **Telefono / tablet** (touch) | Di solito **niente voce automatica**: si **apre il pannello chat** con lo stesso messaggio scritto. |
 | **Base** con Tony Guida, **senza** Tony Avanzato | I dati restano in dashboard (**Richiede attenzione**, KPI…), ma **non** parte il messaggio proattivo di Tony. |
 
+Il saluto del messaggio segue l’ora: **«Buongiorno!»** al mattino (dalle 5 alle 12), **«Buon pomeriggio!»** dalle 12 alle 18, **«Buonasera!»** dalla sera fino alle 5. Se le previsioni meteo tardano più di qualche secondo, Tony parte lo stesso senza la frase sul meteo; quando il meteo arriva, potete chiederlo a Tony o rispondere «Sì» al riassunto.
+
 ### Riassunto dettagliato
 
 Se Tony chiede «vuoi un **riassunto**?» e rispondi **«Sì»**, **«Ok»** o simile, espande il punto con operatività (scorte, guasti, scadenze) e, se previsto, **meteo** per oggi/domani.
@@ -300,7 +314,8 @@ In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizi
 
 | Problema | Cosa controllare |
 |----------|------------------|
-| **Non vedo** il pulsante Tony | Piano **Free** — Tony non incluso; pagina in caricamento; chiedere all’**amministratore** di passare a **Base**. |
+| **Non vedo** il pulsante Tony | Piano **Free** dopo i primi 7 giorni dalla registrazione; pagina in caricamento; chiedere all’**amministratore** di passare a **Base**. |
+| «Hai raggiunto il limite giornaliero di 30 domande…» | Piano **Free** nei primi 7 giorni: riprova domani oppure passa a **Base**. |
 | Tony dice che serve **Tony Avanzato** | Automazioni (apri pagina, compila, filtri, intervista vocale) richiedono il **modulo Tony** attivo in **Abbonamento**. |
 | **Nessun consiglio moduli** | Consigliere attivo solo su **piano Base**; chiedi esplicitamente («quali moduli…»); servono abbastanza dati azienda (terreni, uso app). |
 | «**Non ho i dati** della lista» | Sei sulla pagina giusta? La tabella è caricata? Prova a **rifare la domanda** dopo che i dati compaiono. |
@@ -308,6 +323,7 @@ In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizi
 | **Voce** assente o microfono muto | Permessi browser; altoparlante; su mobile spesso solo **testo**; aspetta fine messaggio; prova a **scrivere**. |
 | Intervista lavoro **si ferma** | Ripeti l’ultima risposta; specifica terreno/lavoro con nome **completo**; conferma con «sì» esplicito. |
 | **Fotocamera** assente o acquisizione fallita | Servono **Tony Avanzato** + **Magazzino** e ruolo manager/admin. Rifai la foto: un foglio, luce uniforme, testo leggibile. Se selezioni foto dalla galleria e ottieni errore su formato (HEIC), **scatta in-app** o converti a JPEG. |
+| Il messaggio finisce con «La risposta si è interrotta: chiedimi di continuare.» | La risposta era troppo lunga: chiedi a Tony di continuare (per esempio scrivi «continua»). Se stavi facendo compilare una scheda e leggi «Non sono riuscito a completare la compilazione del form in una sola risposta.», Tony non ha toccato la scheda: rifai la richiesta con meno dati alla volta. In chat non devono mai comparire pezzi di codice o parentesi graffe: se succede, segnalalo. |
 | Risposta **generica** | Riformula con **contesto** («sono nella lista preventivi, …») o una richiesta alla volta. |
 
 ---
