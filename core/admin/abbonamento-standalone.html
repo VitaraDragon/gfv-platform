@@ -724,6 +724,7 @@
             formatTrialEndDate,
             resolveModuleToggleIntent
         } from '../utils/module-access-resolver.js';
+        import { buildAbbonamentoSummaryTrialState } from '../utils/abbonamento-summary.js';
         import {
             allineaDatiManodopera,
             contaLavoriApertiTenant,
@@ -1298,7 +1299,7 @@
                 `;
             }
             
-            // Moduli singoli attivi
+            // Moduli singoli attivi (solo pagati: il prezzo non include le prove)
             if (singleModules.length > 0) {
                 html += `
                     <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #ff9800;">
@@ -1307,9 +1308,34 @@
                     </div>
                 `;
             }
+
+            // Prove attive (non cambiano il prezzo)
+            const trialLines = trialModuleIds.map(function(modId) {
+                const mod = getModuleConfig(modId);
+                const label = mod && mod.name ? mod.name : modId;
+                const endsLabel = formatTrialEndDate(
+                    currentTenantData && currentTenantData.moduleTrials
+                        ? currentTenantData.moduleTrials[modId]
+                        : null
+                );
+                return endsLabel ? (label + ' fino al ' + endsLabel) : label;
+            });
+            const trialState = buildAbbonamentoSummaryTrialState({
+                effectiveModules: effectiveModules,
+                trialModuleIds: trialModuleIds,
+                trialLabels: trialLines
+            });
+            if (trialState.trialBlockText) {
+                html += `
+                    <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #17a2b8;">
+                        <div style="font-size: 12px; font-weight: bold; color: #17a2b8; margin-bottom: 5px;">In prova (${trialModuleIds.length})</div>
+                        <div style="font-size: 13px; color: #333;">${trialLines.join('; ')}</div>
+                    </div>
+                `;
+            }
             
-            // Se non ci sono bundle né moduli
-            if (activeBundlesList.length === 0 && singleModules.length === 0) {
+            // «Nessun modulo attivo» solo se non c'è nulla di effettivo (pagati, bundle, prove)
+            if (trialState.showNessunModuloAttivo) {
                 html += `
                     <div style="background: #fff3cd; padding: 10px; border-radius: 6px; border: 1px solid #ffc107; text-align: center; font-size: 12px; color: #856404;">
                         ⚠️ Nessun modulo attivo
