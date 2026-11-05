@@ -252,9 +252,15 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
             }
 
             function formatValore(s, tipoValore) {
-                if (s == null) return '—';
-                if (tipoValore === 'km') return Number(s).toLocaleString('it-IT') + ' km';
-                if (tipoValore === 'ore') return Number(s).toLocaleString('it-IT') + ' ore';
+                if (s == null || (typeof s === 'number' && !Number.isFinite(s))) return '—';
+                if (tipoValore === 'km') {
+                    const n = Number(s);
+                    return Number.isFinite(n) ? n.toLocaleString('it-IT') + ' km' : '—';
+                }
+                if (tipoValore === 'ore') {
+                    const n = Number(s);
+                    return Number.isFinite(n) ? n.toLocaleString('it-IT') + ' ore' : '—';
+                }
                 const d = toDate(s);
                 return d ? formatDateLikeToItalianLongLocal(d) : '—';
             }
