@@ -404,7 +404,10 @@ export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno, 
       buildIndiceTrattamentiPerTerreno(frutteto.terrenoId)
     ]);
     const { byLavoro, byAttivita } = indiceTrattamenti;
-    const terrenoLabel = terreno ? (terreno.nome || frutteto.terrenoId) : frutteto.terrenoId;
+    const { nomeTerrenoPerStorico } = await import('../../../shared/js/terreno-archivio.js');
+    const terrenoLabel = terreno
+      ? nomeTerrenoPerStorico(terreno, frutteto.terrenoId || '-')
+      : (frutteto.terrenoId || '-');
 
     const attivitaRaw = attivitaRawAll.filter(att => {
       const dataStr = typeof att.data === 'string'

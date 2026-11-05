@@ -147,7 +147,8 @@ async function initFilters() {
     try {
         // Popola dropdown vigneti
         const { getAllVigneti } = await import('../services/vigneti-service.js');
-        const vigneti = await getAllVigneti();
+        const { impiantiAperti } = await import('../../../shared/js/impianto-aperto.js');
+        const vigneti = impiantiAperti(await getAllVigneti());
         
         const vignetoSelect = document.getElementById('filtro-vigneto');
         vignetoSelect.innerHTML = '<option value="">Tutti i vigneti</option>';

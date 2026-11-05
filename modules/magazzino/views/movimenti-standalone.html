@@ -257,6 +257,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
         import { getCurrentTenantId, setCurrentTenantId } from '../../../core/services/tenant-service.js';
         import { eliminaMovimentoConStornoTrattamento } from '../services/trattamento-scarico-magazzino-service.js';
         import * as CarburanteMovimento from '../lib/carburante-movimento.js';
+        import { etichettaAttivitaMovimento, etichettaLavoroMovimento } from '../../../shared/js/magazzino-etichette.js';
 
         window.GFVCarburanteMovimento = CarburanteMovimento;
 
@@ -625,6 +626,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
                 const snapshot = await getDocs(q);
                 movimenti = [];
                 snapshot.forEach(d => movimenti.push({ id: d.id, ...d.data() }));
+                await ensureEtichetteMovimenti(movimenti);
                 renderMovimenti();
             } catch (err) {
                 console.error(err);
@@ -745,18 +747,52 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
             return p && p.unitaMisura ? p.unitaMisura : '';
         }
 
+        const lavoriMissing = new Set();
+        const attivitaMissing = new Set();
+
         function getLavoroNome(id) {
             if (!id) return '-';
             const l = lavori.find(x => x.id === id);
-            return l ? (l.nome || l.id) : id;
+            if (!l && !lavoriMissing.has(id)) {
+                // fetch lazy: mark for batch resolve next render
+            }
+            return etichettaLavoroMovimento(l, id);
         }
 
         function getAttivitaLabel(id) {
             if (!id) return '-';
             const a = attivita.find(x => x.id === id);
-            if (!a) return id;
-            const parts = [a.data, a.tipoLavoro, a.terrenoNome].filter(Boolean);
-            return parts.length ? parts.join(' – ') : a.id;
+            return etichettaAttivitaMovimento(a, id);
+        }
+
+        async function ensureEtichetteMovimenti(lista) {
+            if (!currentTenantId || !Array.isArray(lista)) return;
+            const missingAtt = [];
+            const missingLav = [];
+            lista.forEach((m) => {
+                if (m.attivitaId && !attivita.some((a) => a.id === m.attivitaId) && !attivitaMissing.has(m.attivitaId)) {
+                    missingAtt.push(m.attivitaId);
+                }
+                if (m.lavoroId && !lavori.some((l) => l.id === m.lavoroId) && !lavoriMissing.has(m.lavoroId)) {
+                    missingLav.push(m.lavoroId);
+                }
+            });
+            const chunk = async (ids, collezione, target, missingSet) => {
+                for (let i = 0; i < ids.length; i += 10) {
+                    const slice = ids.slice(i, i + 10);
+                    await Promise.all(slice.map(async (id) => {
+                        try {
+                            const snap = await getDoc(doc(db, 'tenants', currentTenantId, collezione, id));
+                            if (snap.exists()) target.push({ id: snap.id, ...snap.data() });
+                            else missingSet.add(id);
+                        } catch (_) {
+                            missingSet.add(id);
+                        }
+                    }));
+                }
+            };
+            if (missingAtt.length) await chunk(missingAtt, 'attivita', attivita, attivitaMissing);
+            if (missingLav.length) await chunk(missingLav, 'lavori', lavori, lavoriMissing);
         }
 
         function updateQuantitaLabel() {

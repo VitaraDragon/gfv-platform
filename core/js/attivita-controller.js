@@ -37,6 +37,7 @@ import {
     resolvePreserveCascadeSelection,
     terrenoHaColturaVite,
 } from './lavoro-cascade-filters.js';
+import { oreNetteVisualizzate } from './attivita-utils.js';
 import { raggruppaCategorie, unisciColturePerCategoria } from './catalogo-dedupe.js';
 import {
     etichettaOpzioneMezzo,
@@ -1742,7 +1743,8 @@ export async function renderAttivita(params) {
             ${filteredAttivita.map(att => {
                 const dataFormatted = att.data ? formatDateLikeToItalianLongLocal(att.data) : '';
                 const pauseFormatted = `${att.pauseMinuti} min`;
-                const oreFormatted = formatOreNette(att.oreNette || 0);
+                const oreVis = oreNetteVisualizzate(att);
+                const oreFormatted = formatOreNette(oreVis.ore) + (oreVis.corretta ? ' <span title="Ore ricalcolate dagli orari">↺</span>' : '');
                 
                 // Badge Conto Terzi se presente (sempre se ha clienteId)
                 const isContoTerzi = att.clienteId != null && att.clienteId !== '';

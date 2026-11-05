@@ -105,6 +105,33 @@ export function formatOreNette(oreNette) {
 }
 
 /**
+ * Ore da mostrare in lista: se ci sono orari validi, ricalcola (ignora oreNette incoerenti).
+ * @returns {{ ore: number, daOrari: boolean, corretta: boolean }}
+ */
+export function oreNetteVisualizzate(attivita) {
+    const row = attivita || {};
+    const inizio = String(row.orarioInizio || '').trim();
+    const fine = String(row.orarioFine || '').trim();
+    const pause = parseInt(row.pauseMinuti, 10) || 0;
+    const salvate = Number(row.oreNette);
+    const timeRe = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (timeRe.test(inizio) && timeRe.test(fine)) {
+        const [ih, im] = inizio.split(':').map(Number);
+        const [fh, fm] = fine.split(':').map(Number);
+        let minuti = (fh * 60 + fm) - (ih * 60 + im) - pause;
+        if (minuti < 0) minuti = 0;
+        const daOrari = parseFloat((minuti / 60).toFixed(2));
+        const corretta = Number.isFinite(salvate) && Math.abs(salvate - daOrari) > 0.05;
+        return { ore: daOrari, daOrari: true, corretta };
+    }
+    return {
+        ore: Number.isFinite(salvate) ? salvate : 0,
+        daOrari: false,
+        corretta: false
+    };
+}
+
+/**
  * Aggiorna display ore nette nel form
  */
 export function updateOreNette() {
