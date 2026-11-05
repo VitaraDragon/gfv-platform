@@ -6,6 +6,7 @@
  */
 
 import { Base } from '../../../core/models/Base.js';
+import { normalizzaDestinazioneVendemmia } from '../../../shared/js/destinazione-vendemmia.js';
 
 export class Vendemmia extends Base {
   /**
@@ -58,7 +59,7 @@ export class Vendemmia extends Base {
     this.ph = data.ph !== undefined ? parseFloat(data.ph) : null;
     
     // Destinazione
-    this.destinazione = data.destinazione || null;
+    this.destinazione = normalizzaDestinazioneVendemmia(data.destinazione);
     
     // Operazioni
     // operai può essere:

@@ -204,6 +204,8 @@ describe('createTrattamentoFromLavoro con miscela', () => {
     expect(doc.acquaEttolitriTotali).toBe(8);
     expect(doc.costoProdotto).toBe(50);
     expect(doc.costoTotale).toBe(50);
+    expect(doc.superficieTrattata).toBe(2);
+    expect(doc.superficieDaAnagrafeTerreno).toBe(true);
   });
 
   it('vigneto: se il magazzino non risponde il trattamento nasce lo stesso, senza costo', async () => {
@@ -244,6 +246,8 @@ describe('createTrattamentoFromLavoro con miscela', () => {
     expect(doc.prodotti.map((p) => p.prodotto)).toEqual(['Folpan', 'Karathane']);
     expect(doc.prodotti[1].quantita).toBe(1);
     expect(doc.acquaEttolitriTotali).toBe(8);
+    expect(doc.superficieTrattata).toBe(2);
+    expect(doc.superficieDaAnagrafeTerreno).toBe(true);
   });
 
   it('frutteto: miscela vuota → riga vuota', async () => {

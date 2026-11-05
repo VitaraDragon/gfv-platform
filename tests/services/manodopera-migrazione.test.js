@@ -147,7 +147,7 @@ describe('manodopera migrazione — mapping', () => {
     expect(messaggioLavoriAperti(3)).toBe('Hai 3 lavori ancora aperti: chiudili o li vedrai solo in storico.');
   });
 
-  it('un lavoro annullato diventa attività di storico con nota esplicita e orari di default', () => {
+  it('un lavoro annullato senza ore resta nello storico (mai-eseguito), senza inventare orari', () => {
     const piano = costruisciAttivitaDaLavoro({
       id: 'lav-1',
       nome: 'Potatura vecchia',
@@ -157,13 +157,41 @@ describe('manodopera migrazione — mapping', () => {
       stato: 'annullato',
       note: 'Pioggia'
     }, { terreno: { id: 'ter-1', nome: 'Vigna Nord', coltura: 'Sangiovese' } });
+    expect(piano.solaLettura).toBe(true);
+    expect(piano.motivo).toBe('mai-eseguito');
+  });
+
+  it('da_pianificare 0 ore → nessuna attività (mai-eseguito)', () => {
+    const piano = costruisciAttivitaDaLavoro({
+      id: 'lav-0',
+      stato: 'da_pianificare',
+      terrenoId: 'ter-1',
+      dataInizio: '2026-11-10',
+      oreLavorate: 0,
+      percentualeCompletamento: 0
+    });
+    expect(piano).toMatchObject({ solaLettura: true, motivo: 'mai-eseguito' });
+  });
+
+  it('lavoro con 4 h validate senza orari → attività con oreNette=4 e orari vuoti', () => {
+    const piano = costruisciAttivitaDaLavoro({
+      id: 'lav-4',
+      nome: 'Potatura',
+      terrenoId: 'ter-1',
+      tipoLavoro: 'Potatura',
+      dataInizio: '2024-04-02',
+      stato: 'completato',
+      oreNette: 4,
+      clienteId: 'cli-1'
+    }, { terreno: { id: 'ter-1', nome: 'Vigna Nord', coltura: 'Sangiovese' } });
     expect(piano.solaLettura).toBe(false);
     expect(piano.attivita.origineMigrazione).toBe(ORIGINE_LAVORO_VERSO_ATTIVITA);
-    expect(piano.attivita.lavoroId).toBe('lav-1');
-    expect(piano.attivita.coltura).toBe('Sangiovese');
-    expect(piano.attivita.orarioInizio).toBe('08:00');
-    expect(piano.attivita.note).toContain('Lavoro annullato');
-    expect(piano.attivita.note).toContain('impostati di default');
+    expect(piano.attivita.lavoroId).toBe('lav-4');
+    expect(piano.attivita.clienteId).toBe('cli-1');
+    expect(piano.attivita.oreNette).toBe(4);
+    expect(piano.attivita.orarioInizio).toBeFalsy();
+    expect(piano.attivita.orarioFine).toBeFalsy();
+    expect(piano.attivita.note || '').not.toContain('impostati di default');
   });
 
   it('lo spinner scatta solo sopra la soglia', () => {
@@ -254,7 +282,10 @@ describe('manodopera migrazione — esecuzione', () => {
         terrenoId: 'ter-1',
         tipoLavoro: 'Potatura',
         dataInizio: '2026-10-06',
-        stato: 'in_corso'
+        stato: 'in_corso',
+        oreNette: 3,
+        orarioInizio: '08:00',
+        orarioFine: '11:00'
       }]
     });
     const fermo = await allineaDatiManodopera('tenant-a', false, ioOpts(io));
@@ -281,7 +312,7 @@ describe('manodopera migrazione — esecuzione', () => {
     expect(io.db.attivita).toHaveLength(1);
   });
 
-  it('copia anche un lavoro annullato e lascia operai e squadre', async () => {
+  it('lavoro annullato con ore reali diventa attività; senza ore resta mai-eseguito', async () => {
     const io = memoryIo({
       lavori: [{
         id: 'lav-ann',
@@ -289,7 +320,10 @@ describe('manodopera migrazione — esecuzione', () => {
         terrenoId: 'ter-1',
         tipoLavoro: 'Potatura',
         dataInizio: '2023-01-09',
-        stato: 'annullato'
+        stato: 'annullato',
+        oreNette: 2,
+        orarioInizio: '08:00',
+        orarioFine: '10:00'
       }]
     });
     const report = await migraLavoriVersoAttivita('tenant-a', ioOpts(io));

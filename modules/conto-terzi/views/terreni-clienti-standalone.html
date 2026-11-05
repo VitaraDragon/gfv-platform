@@ -1095,16 +1095,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                     }
                 });
                 
-                const { getCollegamentiTerreno } = await import('../../../core/services/terreni-service.js');
-                const { haCollegamenti, isTerrenoArchiviato } = await import('../../../shared/js/terreno-archivio.js');
-                await Promise.all(terreniList.map(async (terreno) => {
-                    if (isTerrenoArchiviato(terreno)) return;
-                    try {
-                        terreno._haCollegamenti = haCollegamenti(await getCollegamentiTerreno(terreno.id));
-                    } catch (e) {
-                        terreno._verificaCollegamentiErrore = true;
-                    }
-                }));
+                const { isTerrenoArchiviato } = await import('../../../shared/js/terreno-archivio.js');
                 terreni = terreniList;
                 mapsState.terreni = terreni;
                 const mostraArchiviati = !!document.getElementById('filter-mostra-archiviati')?.checked;
@@ -1248,7 +1239,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                     <button class="btn btn-sm btn-primary" onclick="window.editTerreno('${escapeHtml(terrenoObj.id)}')">✏️ Modifica</button>
                     ${terrenoObj.stato === 'archiviato'
                         ? `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.ripristinaTerrenoCliente('${escapeHtml(terrenoObj.id)}')">Ripristina</button>`
-                        : `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">${terreno._haCollegamenti ? 'Archivia' : '🗑️ Elimina'}</button>`
+                        : `<button class="btn btn-sm btn-danger" title="Elimina, oppure archivia se ci sono dati collegati" onclick="event.stopPropagation(); window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">🗑️ Elimina / Archivia</button>`
                     }
                 </div>`;
                 html += '</div>';
@@ -1685,8 +1676,109 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
 
             try {
                 if (terrenoId) {
+                    const esistente = (terreni || []).find((t) => t.id === terrenoId) || null;
+                    const { preparaEffettiSalvataggioTerreno, testoCategoriaColtura } = await import('../../../shared/js/effetti-salvataggio-terreno.js');
+                    const { showConfirmDialog } = await import('../../../shared/js/confirm-dialog.js');
+                    const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+                    const categoriaTesto = testoCategoriaColtura(categoriaSelect);
+                    const leggi = async (nome) => {
+                        const snap = await getDocs(query(
+                            collection(db, 'tenants', currentTenantId, nome),
+                            where('terrenoId', '==', terrenoId)
+                        ));
+                        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+                    };
+                    let vigneti = [];
+                    let frutteti = [];
+                    let lavori = [];
+                    let campagne = [];
+                    try {
+                        vigneti = await leggi('vigneti');
+                        frutteti = await leggi('frutteti');
+                        lavori = await leggi('lavori');
+                        campagne = await leggi('seminativi');
+                    } catch (erroreLettura) {
+                        console.warn('Lettura collegamenti terreno cliente:', erroreLettura);
+                        showAlert('Non riesco a controllare i dati collegati, riprova', 'error');
+                        return;
+                    }
+                    const effetti = await preparaEffettiSalvataggioTerreno({
+                        esistente,
+                        nuovo: {
+                            coltura: terrenoData.coltura || null,
+                            colturaCategoria: categoriaTesto || terrenoData.colturaCategoria || (esistente && esistente.colturaCategoria) || null,
+                            superficie: terrenoData.superficie
+                        },
+                        vigneti,
+                        frutteti,
+                        lavori,
+                        campagne,
+                        conferma: (messaggio) => showConfirmDialog({
+                            title: 'Cambio coltura',
+                            message: messaggio,
+                            confirmLabel: 'Continua',
+                            cancelLabel: 'Annulla'
+                        })
+                    });
+                    if (!effetti.procedi) return;
+                    if (effetti.storico) {
+                        terrenoData.colturaDal = effetti.storico.colturaDal;
+                        terrenoData.storicoColture = effetti.storico.storicoColture;
+                        if (effetti.storico.colturaCategoria) terrenoData.colturaCategoria = effetti.storico.colturaCategoria;
+                    }
                     await updateDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId), terrenoData);
-                    showAlert('Terreno aggiornato con successo', 'success');
+                    const quando = new Date().toISOString();
+                    for (const impianto of effetti.chiudi) {
+                        const collezione = impianto.tipo === 'frutteto' ? 'frutteti' : 'vigneti';
+                        await updateDoc(doc(db, 'tenants', currentTenantId, collezione, impianto.id), {
+                            statoImpianto: 'chiuso',
+                            dataChiusura: quando,
+                            motivoChiusura: 'cambio_coltura'
+                        });
+                    }
+                    let lavoriChiusiOk = 0;
+                    let lavoriChiusiKo = 0;
+                    if ((effetti.chiudiLavori || []).length) {
+                        const { liberaMacchineDaLavoro } = await import('../../../core/services/lavoro-macchine-lifecycle.js');
+                        for (const voce of effetti.chiudiLavori) {
+                            try {
+                                await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', voce.id), voce.patch);
+                                lavoriChiusiOk += 1;
+                                try {
+                                    await liberaMacchineDaLavoro(
+                                        {
+                                            id: voce.id,
+                                            macchinaId: voce.macchinaId,
+                                            attrezzoId: voce.attrezzoId,
+                                            stato: voce.patch.statoPrimaChiusura
+                                        },
+                                        { tenantId: currentTenantId, lavoriList: lavori }
+                                    );
+                                } catch (errMacchine) {
+                                    console.warn('Liberazione macchine dopo cambio coltura:', errMacchine);
+                                }
+                            } catch (errLavoro) {
+                                console.error('Chiusura lavoro al cambio coltura:', errLavoro);
+                                lavoriChiusiKo += 1;
+                            }
+                        }
+                    }
+                    for (const voce of effetti.superfici) {
+                        if (typeof terrenoData.superficie !== 'number') continue;
+                        await updateDoc(doc(db, 'tenants', currentTenantId, voce.collezione, voce.id), {
+                            superficieEttari: terrenoData.superficie
+                        });
+                    }
+                    if (lavoriChiusiKo > 0) {
+                        showAlert(
+                            `Terreno aggiornato, ma la chiusura lavori è incompleta: chiusi ${lavoriChiusiOk}, non chiusi ${lavoriChiusiKo}. Riprova o chiudili da Gestione lavori.`,
+                            'error'
+                        );
+                    } else {
+                        const base = effetti.messaggioToast || 'Terreno aggiornato con successo';
+                        const extra = effetti.messaggioSuperficie ? ' ' + effetti.messaggioSuperficie : '';
+                        showAlert(base + extra, 'success');
+                    }
                 } else {
                     terrenoData.createdAt = serverTimestamp();
                     await addDoc(collection(db, 'tenants', currentTenantId, 'terreni'), terrenoData);
@@ -1732,15 +1824,20 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             try {
                 const { getCollegamentiTerreno, archiviaTerreno } = await import('../../../core/services/terreni-service.js');
                 const { eseguiEliminazioneOArchiviazione } = await import('../../../core/js/azione-eliminazione-terreno.js');
+                const { showConfirmDialog, showArchiveTerrenoDialog } = await import('../../../shared/js/confirm-dialog.js');
                 const esito = await eseguiEliminazioneOArchiviazione(terreno, {
                     getCollegamentiTerreno,
                     archiviaTerreno,
                     eliminaTerreno: async (id) => {
                         await deleteDoc(doc(db, 'tenants', currentTenantId, 'terreni', id));
                     },
-                    confirm: (messaggio) => confirm(messaggio),
-                    chiediMotivo: (messaggio) => prompt(messaggio, '1'),
-                    chiediNota: (messaggio) => prompt(messaggio, ''),
+                    confirm: (messaggio) => showConfirmDialog({
+                        title: 'Elimina terreno',
+                        message: messaggio,
+                        confirmLabel: 'Elimina',
+                        cancelLabel: 'Annulla'
+                    }),
+                    chiediArchiviazione: showArchiveTerrenoDialog,
                     avvisa: (messaggio, tipo) => showAlert(messaggio, tipo || 'error')
                 });
                 if (esito.azione === 'eliminato') showAlert('Terreno eliminato con successo', 'success');

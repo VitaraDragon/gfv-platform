@@ -753,7 +753,7 @@ export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTou
                         ${isTerrenoArchiviato(terreno)
                             ? `<button onclick="ripristinaTerreno('${terreno.id}')" class="btn-edit-small" title="Ripristina">Ripristina</button>`
                             : `<button onclick="editTerreno('${terreno.id}')" class="btn-edit-small" title="Modifica">✏️</button>
-                        <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="${terreno._haCollegamenti ? 'Archivia' : 'Elimina'}">${terreno._verificaCollegamentiErrore ? 'Verifica' : (terreno._haCollegamenti ? 'Archivia' : '🗑️')}</button>`
+                        <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="Elimina, oppure archivia se ci sono dati collegati">🗑️ Elimina / Archivia</button>`
                         }
                         ${hasVignetoModule && escapedColtura && escapedColtura.toLowerCase().includes('vite') 
                             ? `<button onclick="gestisciVigneto('${terreno.id}')" class="btn-vigneto-small" title="Gestisci Vigneto">🍇</button>` 

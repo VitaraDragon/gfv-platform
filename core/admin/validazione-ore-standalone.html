@@ -598,6 +598,10 @@
             rifiutaOraValidata
         } from '../services/ore-service.js';
         import {
+            htmlAzioniRegistro,
+            isLavoroSolaLettura
+        } from '../../shared/js/storico-sola-lettura.js';
+        import {
             permessiOra,
             formattaOreMinuti,
             sommaOreNette,
@@ -941,18 +945,22 @@
                 oreTuttePerSovrapposizione = [];
                 oreTutteRighe = [];
                 const flags = flagValidazione();
+                const terreniMap = new Map();
+                const terreniSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'terreni'));
+                terreniSnap.forEach((terrenoDoc) => {
+                    terreniMap.set(terrenoDoc.id, { id: terrenoDoc.id, ...terrenoDoc.data() });
+                });
 
                 forEachOraInBundle(bundle, function (ctx) {
                     const data = normalizeOraRecordData(ctx.oraData);
+                    const lavoroCompleto = { id: ctx.lavoroId, ...ctx.lavoroData };
                     const record = {
                         id: ctx.oraDoc.id,
                         lavoroId: ctx.lavoroId,
                         lavoroNome: ctx.lavoroData.nome || 'N/A',
                         tipoLavoro: isLavoroAutonomo(ctx.lavoroData) ? 'autonomo' : 'squadra',
-                        lavoro: {
-                            caposquadraId: ctx.lavoroData.caposquadraId || null,
-                            operaioId: ctx.lavoroData.operaioId || null
-                        },
+                        lavoro: lavoroCompleto,
+                        terreno: terreniMap.get(ctx.lavoroData.terrenoId) || null,
                         ...data
                     };
                     oreTutteRighe.push(record);
@@ -1074,11 +1082,20 @@
                 const btnCorreggi = perm.puoCorreggere
                     ? `<button class="btn btn-secondary btn-sm" onclick="openCorreggiModal('${ora.lavoroId}', '${ora.id}')">Correggi</button>`
                     : '';
+                const solaLettura = isLavoroSolaLettura(ora.lavoro, ora.terreno);
+                const selezione = solaLettura
+                    ? ''
+                    : `<input type="checkbox" class="ora-checkbox" data-lavoro-id="${ora.lavoroId}" data-ora-id="${ora.id}" onchange="updateValidaSelezionateBtn()">`;
+                const azioni = htmlAzioniRegistro(solaLettura, `
+                    <button class="btn btn-success btn-sm" onclick="validaOra('${ora.lavoroId}', '${ora.id}')">✅ Valida</button>
+                    <button class="btn btn-danger btn-sm" onclick="openRifiutaModal('${ora.lavoroId}', '${ora.id}')">❌ Rifiuta</button>
+                    ${btnCorreggi}
+                `);
 
                 html += `
                     <tr>
                         <td>
-                            <input type="checkbox" class="ora-checkbox" data-lavoro-id="${ora.lavoroId}" data-ora-id="${ora.id}" onchange="updateValidaSelezionateBtn()">
+                            ${selezione}
                         </td>
                         <td>${data}</td>
                         <td>${escapeHtml(operaioNome)}</td>
@@ -1090,9 +1107,7 @@
                         <td>${traccia || 'In attesa'}</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-success btn-sm" onclick="validaOra('${ora.lavoroId}', '${ora.id}')">✅ Valida</button>
-                                <button class="btn btn-danger btn-sm" onclick="openRifiutaModal('${ora.lavoroId}', '${ora.id}')">❌ Rifiuta</button>
-                                ${btnCorreggi}
+                                ${azioni}
                             </div>
                         </td>
                     </tr>

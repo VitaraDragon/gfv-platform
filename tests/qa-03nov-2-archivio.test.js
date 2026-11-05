@@ -110,7 +110,9 @@ describe('getCollegamentiTerreno', () => {
     getDocumentData.mockResolvedValue({ id: 't1', nome: 'Campo' });
     const collegamenti = await getCollegamentiTerreno('t1');
     expect(collegamenti.lavori).toBe(2);
-    expect(collegamenti.vigneti).toBe(1);
+    // B3: fuori dai lavori il conteggio non è più limit=1 finto → flag presenza
+    expect(collegamenti.vigneti).toBe(0);
+    expect(collegamenti.vignetiPresenti).toBe(true);
     expect(collegamenti.lavoriAperti).toHaveLength(1);
     expect(collegamenti.lavoriAperti[0].nome).toBe('Potatura');
   });

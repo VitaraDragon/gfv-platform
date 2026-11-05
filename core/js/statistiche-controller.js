@@ -5,6 +5,10 @@
  */
 
 import { resolveEffectiveModules } from '../utils/module-access-resolver.js';
+import {
+    isTerrenoArchiviato,
+    nomeTerrenoPerStorico
+} from '../../shared/js/terreno-archivio.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -128,7 +132,7 @@ export async function loadMacchine(currentTenantId, state, updateState, dependen
  * @param {Function} getTenantIdCallback - Callback per ottenere tenant ID
  * @returns {Promise<Array>} Lista terreni
  */
-export async function getAllTerreni(currentTenantId, dependencies, getTenantIdCallback) {
+export async function getAllTerreni(currentTenantId, dependencies, getTenantIdCallback, options = {}) {
     let tenantId = currentTenantId;
     if (!tenantId) {
         const { auth } = dependencies;
@@ -150,11 +154,25 @@ export async function getAllTerreni(currentTenantId, dependencies, getTenantIdCa
             .filter(terreno => {
                 // Escludi terreni dei clienti (solo terreni aziendali)
                 return !terreno.clienteId || terreno.clienteId === '';
-            });
+            })
+            .filter((terreno) => options.includiArchiviati === true || !isTerrenoArchiviato(terreno));
     } catch (error) {
         console.error('Errore caricamento terreni:', error);
         return [];
     }
+}
+
+export function nomeTerrenoStatistiche(terreno, fallback = '-') {
+    return nomeTerrenoPerStorico(terreno, fallback);
+}
+
+export function superficieTerreniAttivi(terreni = []) {
+    return terreni
+        .filter((terreno) => !isTerrenoArchiviato(terreno))
+        .reduce((totale, terreno) => {
+            const superficie = Number(terreno && terreno.superficie);
+            return totale + (Number.isFinite(superficie) ? superficie : 0);
+        }, 0);
 }
 
 /**

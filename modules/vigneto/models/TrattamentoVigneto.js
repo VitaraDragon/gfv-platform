@@ -85,7 +85,7 @@ export class TrattamentoVigneto extends Base {
     // Operazioni
     this.operatore = data.operatore || null;
     this.macchinaId = data.macchinaId || null;
-    this.superficieTrattata = data.superficieTrattata !== undefined ? parseFloat(data.superficieTrattata) : null;
+    this.superficieTrattata = numeroFinito(data.superficieTrattata);
     this.superficieDaAnagrafeTerreno = data.superficieDaAnagrafeTerreno === true;
     this.poligonoTrattamento = Array.isArray(data.poligonoTrattamento) ? data.poligonoTrattamento : null;
     

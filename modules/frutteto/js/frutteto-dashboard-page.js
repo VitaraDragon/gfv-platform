@@ -40,8 +40,9 @@ async function initDashboard() {
         // Import servizi statistiche frutteto
         const { getStatisticheFrutteto, getRaccolteRecenti, getLavoriFrutteto } = await import('../services/frutteto-statistiche-service.js');
         const { getAllFrutteti } = await import('../services/frutteti-service.js');
+        const { impiantiAperti } = await import('../../../shared/js/impianto-aperto.js');
 
-        const frutteti = await getAllFrutteti();
+        const frutteti = impiantiAperti(await getAllFrutteti());
         frutteti.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.id;

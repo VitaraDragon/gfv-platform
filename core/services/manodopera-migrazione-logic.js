@@ -144,6 +144,11 @@ export function formatToastMigrazione(report) {
   const k = report.solaLettura || 0;
   if (n + m + k === 0 && !(report.errori > 0)) return '';
   let msg = `Migrazione dati: ${n} creati, ${m} già collegati, ${k} in sola lettura.`;
+  const motivi = Array.isArray(report.motivi) ? report.motivi : [];
+  const maiEseguiti = motivi.filter((x) => x === 'mai-eseguito').length;
+  if (maiEseguiti > 0) {
+    msg += ` ${maiEseguiti} lavor${maiEseguiti === 1 ? 'o' : 'i'} mai eseguit${maiEseguiti === 1 ? 'o' : 'i'} lasciat${maiEseguiti === 1 ? 'o' : 'i'} nello storico, senza ore.`;
+  }
   if (report.errori > 0) msg += ` ${report.errori} da riprovare.`;
   return msg;
 }
@@ -318,13 +323,57 @@ export function validateAttivitaMigrazione(attivita) {
   if (!testo(row.terrenoNome)) errors.push('Nome terreno obbligatorio');
   if (!testo(row.tipoLavoro)) errors.push('Tipo lavoro obbligatorio');
   if (!testo(row.coltura)) errors.push('Coltura obbligatoria');
-  if (!orariValidi(testo(row.orarioInizio), testo(row.orarioFine))) errors.push('Orari non validi');
+  const inizio = testo(row.orarioInizio);
+  const fine = testo(row.orarioFine);
+  const ore = Number(row.oreNette);
+  const migrataConOre = row.origineMigrazione === ORIGINE_LAVORO_VERSO_ATTIVITA && Number.isFinite(ore) && ore > 0;
+  if (inizio || fine) {
+    if (!orariValidi(inizio, fine)) errors.push('Orari non validi');
+  } else if (!migrataConOre) {
+    errors.push('Orari non validi');
+  }
   return { valid: errors.length === 0, errors };
 }
 
 /**
+ * True se il lavoro ha ore o avanzamento reale (non «mai eseguito»).
+ * @param {object|null|undefined} lavoro
+ * @param {{ oreRecords?: Array }} [ctx]
+ */
+export function lavoroHaOreReali(lavoro, ctx = {}) {
+  const row = lavoro || {};
+  const campi = [
+    row.oreLavorate,
+    row.oreNette,
+    row.totaleOre,
+    row.oreValidate,
+    row.percentualeCompletamento,
+    row.superficieTotaleLavorata,
+    row.superficieLavorata
+  ];
+  if (campi.some((v) => {
+    const n = typeof v === 'number' ? v : parseFloat(String(v == null ? '' : v).replace(',', '.'));
+    return Number.isFinite(n) && n > 0;
+  })) {
+    return true;
+  }
+  const records = Array.isArray(ctx.oreRecords) ? ctx.oreRecords : [];
+  return records.some((o) => {
+    const n = Number(o && (o.oreNette != null ? o.oreNette : o.ore));
+    return Number.isFinite(n) && n > 0;
+  });
+}
+
+function sommaOreDaRecords(records) {
+  return (records || []).reduce((acc, o) => {
+    const n = Number(o && (o.oreNette != null ? o.oreNette : o.ore));
+    return acc + (Number.isFinite(n) && n > 0 ? n : 0);
+  }, 0);
+}
+
+/**
  * @param {object} lavoro
- * @param {{ terreno?: object, adesso?: string }} [ctx]
+ * @param {{ terreno?: object, adesso?: string, oreRecords?: Array }} [ctx]
  * @returns {{ solaLettura: true, motivo: string, errori?: string[] }|{ solaLettura: false, attivita: object }}
  */
 export function costruisciAttivitaDaLavoro(lavoro, ctx = {}) {
@@ -332,17 +381,14 @@ export function costruisciAttivitaDaLavoro(lavoro, ctx = {}) {
   const dataIso = aIsoData(row.dataInizio);
   if (!dataIso) return { solaLettura: true, motivo: 'senza-data' };
   if (!testo(row.terrenoId)) return { solaLettura: true, motivo: 'senza-terreno' };
+  if (!lavoroHaOreReali(row, ctx)) {
+    return { solaLettura: true, motivo: 'mai-eseguito' };
+  }
   const terreno = ctx.terreno || null;
   const terrenoNome = testo(row.terrenoNome) || testo(terreno && terreno.nome) || 'Terreno';
   const tipo = testo(row.tipoLavoro) || testo(row.nome) || 'Lavoro migrato';
   let inizio = testo(row.orarioInizio);
   let fine = testo(row.orarioFine);
-  let orariDefault = false;
-  if (!orariValidi(inizio, fine)) {
-    inizio = ORARIO_DEFAULT_INIZIO;
-    fine = ORARIO_DEFAULT_FINE;
-    orariDefault = true;
-  }
   const pauseRaw = Number(row.pauseMinuti);
   const pause = Number.isFinite(pauseRaw) && pauseRaw >= 0 ? pauseRaw : 0;
   const notePezzi = [];
@@ -350,10 +396,16 @@ export function costruisciAttivitaDaLavoro(lavoro, ctx = {}) {
   if (testo(row.stato).toLowerCase() === 'annullato') {
     notePezzi.push('Lavoro annullato: copiato nello storico del Diario. Il lavoro non è stato cancellato.');
   }
-  if (orariDefault) {
-    notePezzi.push(
-      `Orari non presenti sul lavoro: impostati di default in migrazione (${ORARIO_DEFAULT_INIZIO}–${ORARIO_DEFAULT_FINE}).`
-    );
+  let oreNette = null;
+  if (orariValidi(inizio, fine)) {
+    oreNette = oreNetteDaOrari(inizio, fine, pause);
+  } else {
+    inizio = '';
+    fine = '';
+    const daDoc = [row.oreNette, row.oreLavorate, row.totaleOre, row.oreValidate]
+      .map((v) => Number(v))
+      .find((n) => Number.isFinite(n) && n > 0);
+    oreNette = daDoc != null ? daDoc : sommaOreDaRecords(ctx.oreRecords);
   }
   const attivita = {
     data: dataIso,
@@ -361,10 +413,10 @@ export function costruisciAttivitaDaLavoro(lavoro, ctx = {}) {
     terrenoNome,
     tipoLavoro: tipo,
     coltura: colturaDaLavoro(row, terreno),
-    orarioInizio: inizio,
-    orarioFine: fine,
+    orarioInizio: inizio || null,
+    orarioFine: fine || null,
     pauseMinuti: pause,
-    oreNette: oreNetteDaOrari(inizio, fine, pause),
+    oreNette: oreNette,
     note: notePezzi.join('\n'),
     clienteId: testo(row.clienteId) || null,
     macchinaId: testo(row.macchinaId) || null,

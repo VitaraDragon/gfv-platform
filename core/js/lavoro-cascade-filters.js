@@ -4,6 +4,10 @@
  */
 
 import { raggruppaCategorie, aliasMapDaCanoniche, canonicoDi, dedupeTipiLavoro } from './catalogo-dedupe.js';
+import {
+  filtraTipiLavoroPerColtura,
+  famigliaDaTerrenoOStringa
+} from '../../shared/js/tipi-lavoro-per-coltura.js';
 
 function sottocategorieMapEntries(sottocategorieLavoriMap) {
   if (!sottocategorieLavoriMap) return [];
@@ -308,8 +312,39 @@ export function terrenoHaColturaVite(terreno) {
 
 /** Filtro vendemmia: terreno vite + categoria raccolta → solo tipi vendemmia. */
 export function filterTipiLavoroVendemmia(tipiFiltrati, { isRaccolta, isTerrenoVite } = {}) {
-  if (!isRaccolta || !isTerrenoVite || !Array.isArray(tipiFiltrati) || tipiFiltrati.length === 0) {
+  if (!isRaccolta || !isTerrenoVite || !Array.isArray(tipiFiltrati)) {
     return tipiFiltrati || [];
   }
-  return tipiFiltrati.filter((tipo) => String(tipo.nome || '').toLowerCase().includes('vendemmia'));
+  const soloVendemmia = tipiFiltrati.filter((tipo) =>
+    String(tipo.nome || '').toLowerCase().includes('vendemmia')
+  );
+  return soloVendemmia;
+}
+
+/**
+ * Applica filtri coltura + regola vendemmia su vite/raccolta.
+ * Su Vite+Raccolta se la lista è vuota restituisce i due tipi vendemmia di ripiego.
+ */
+export function applyFiltriTipiPerColtura(tipiFiltrati, {
+  isRaccolta,
+  terreno,
+  keepNome,
+  keepId,
+  famiglia
+} = {}) {
+  const fam = famiglia || famigliaDaTerrenoOStringa(terreno);
+  let lista = filtraTipiLavoroPerColtura(tipiFiltrati || [], fam, { keepNome, keepId });
+  const isVite = fam === 'vigneto' || terrenoHaColturaVite(terreno);
+  if (isRaccolta && isVite) {
+    lista = filterTipiLavoroVendemmia(lista, { isRaccolta: true, isTerrenoVite: true });
+    if (!lista.length && !keepNome) {
+      lista = [
+        { nome: 'Vendemmia Manuale', colture: ['vigneto'] },
+        { nome: 'Vendemmia Meccanica', colture: ['vigneto'] }
+      ];
+    } else if (keepNome && !lista.some((t) => String(t.nome || '').toLowerCase() === String(keepNome).toLowerCase())) {
+      lista = [{ nome: keepNome }, ...lista];
+    }
+  }
+  return lista;
 }

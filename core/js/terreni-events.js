@@ -403,7 +403,8 @@ export async function handleSaveTerreno(
                 showAlert('Non riesco a controllare i dati collegati, riprova', 'error');
                 return;
             }
-            const effetti = preparaEffettiSalvataggioTerreno({
+            const { showConfirmDialog } = await import('../../shared/js/confirm-dialog.js');
+            const effetti = await preparaEffettiSalvataggioTerreno({
                 esistente,
                 nuovo: {
                     coltura: cleanedData.coltura || null,
@@ -414,7 +415,12 @@ export async function handleSaveTerreno(
                 frutteti,
                 lavori,
                 campagne,
-                conferma: (messaggio) => confirm(messaggio)
+                conferma: (messaggio) => showConfirmDialog({
+                    title: 'Cambio coltura',
+                    message: messaggio,
+                    confirmLabel: 'Continua',
+                    cancelLabel: 'Annulla'
+                })
             });
             if (!effetti.procedi) return;
             if (effetti.storico) {
@@ -433,14 +439,52 @@ export async function handleSaveTerreno(
                     motivoChiusura: 'cambio_coltura'
                 });
             }
+            let lavoriChiusiOk = 0;
+            let lavoriChiusiKo = 0;
+            if ((effetti.chiudiLavori || []).length) {
+                const { liberaMacchineDaLavoro } = await import('../services/lavoro-macchine-lifecycle.js');
+                for (const voce of effetti.chiudiLavori) {
+                    try {
+                        await updateDoc(
+                            doc(collection(db, 'tenants', state.currentTenantId, 'lavori'), voce.id),
+                            voce.patch
+                        );
+                        lavoriChiusiOk += 1;
+                        try {
+                            await liberaMacchineDaLavoro(
+                                {
+                                    id: voce.id,
+                                    macchinaId: voce.macchinaId,
+                                    attrezzoId: voce.attrezzoId,
+                                    stato: voce.patch.statoPrimaChiusura
+                                },
+                                { tenantId: state.currentTenantId, lavoriList: lavori }
+                            );
+                        } catch (errMacchine) {
+                            console.warn('Liberazione macchine dopo cambio coltura:', errMacchine);
+                        }
+                    } catch (errLavoro) {
+                        console.error('Chiusura lavoro al cambio coltura:', errLavoro);
+                        lavoriChiusiKo += 1;
+                    }
+                }
+            }
             for (const voce of effetti.superfici) {
                 if (typeof cleanedData.superficie !== 'number') continue;
                 await updateDoc(doc(collection(db, 'tenants', state.currentTenantId, voce.collezione), voce.id), {
                     superficieEttari: cleanedData.superficie
                 });
             }
-            const extra = effetti.messaggioSuperficie ? ' ' + effetti.messaggioSuperficie : '';
-            showAlert('Terreno aggiornato con successo!' + extra, 'success');
+            if (lavoriChiusiKo > 0) {
+                showAlert(
+                    `Terreno aggiornato, ma la chiusura lavori è incompleta: chiusi ${lavoriChiusiOk}, non chiusi ${lavoriChiusiKo}. Riprova o chiudili da Gestione lavori.`,
+                    'error'
+                );
+            } else {
+                const base = effetti.messaggioToast || 'Terreno aggiornato con successo!';
+                const extra = effetti.messaggioSuperficie ? ' ' + effetti.messaggioSuperficie : '';
+                showAlert(base + extra, 'success');
+            }
         } else {
             const { assertCanCreateTerreno } = await import('../services/plan-limits-service.js');
             const limitCheck = await assertCanCreateTerreno(state.currentTenantId);
@@ -503,6 +547,7 @@ export async function confirmDeleteTerreno(
         const { doc, deleteDoc } = await import('../services/firebase-service.js');
         const { getCollegamentiTerreno, archiviaTerreno } = await import('../services/terreni-service.js');
         const { eseguiEliminazioneOArchiviazione } = await import('./azione-eliminazione-terreno.js');
+        const { showConfirmDialog, showArchiveTerrenoDialog } = await import('../../shared/js/confirm-dialog.js');
 
         const esito = await eseguiEliminazioneOArchiviazione(terreno, {
             getCollegamentiTerreno,
@@ -514,9 +559,13 @@ export async function confirmDeleteTerreno(
                 }
                 await deleteDoc(doc(terreniCollection, id));
             },
-            confirm: (messaggio) => confirm(messaggio),
-            chiediMotivo: (messaggio) => prompt(messaggio, '1'),
-            chiediNota: (messaggio) => prompt(messaggio, ''),
+            confirm: (messaggio) => showConfirmDialog({
+                title: 'Elimina terreno',
+                message: messaggio,
+                confirmLabel: 'Elimina',
+                cancelLabel: 'Annulla'
+            }),
+            chiediArchiviazione: showArchiveTerrenoDialog,
             avvisa: (messaggio, tipo) => showAlert(messaggio, tipo || 'error')
         });
 

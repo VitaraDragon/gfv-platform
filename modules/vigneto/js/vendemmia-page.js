@@ -16,6 +16,7 @@ import { resolveEffectiveModules } from '../../../core/utils/module-access-resol
 import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
+import { getDestinazioneLabel } from '../../../shared/js/destinazione-vendemmia.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const lavoriServiceModule = await import(resolvePath('../../../core/services/lavori-service.js'));
@@ -396,8 +397,7 @@ function renderVendemmie() {
                            vendemmia.quantitaQli > 0 && 
                            vendemmia.quantitaEttari !== null && 
                            vendemmia.quantitaEttari > 0 && 
-                           vendemmia.destinazione !== null && 
-                           vendemmia.destinazione.trim().length > 0;
+                           getDestinazioneLabel(vendemmia.destinazione) !== '-';
         
         const statoBadge = isCompleta 
             ? '<span class="badge badge-completa">✓ Completa</span>'
@@ -444,14 +444,6 @@ function renderVendemmie() {
         tbody.innerHTML += row;
     });
     syncTonyTableDataVendemmia();
-}
-
-function getDestinazioneLabel(destinazione) {
-    const labels = {
-        'vino': '🍷 Vino',
-        'vendita_uva': '🍇 Vendita Uva'
-    };
-    return labels[destinazione] || destinazione;
 }
 
 window.onVignetoChange = function() {
