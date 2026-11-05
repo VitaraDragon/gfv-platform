@@ -6,6 +6,7 @@
  */
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { getAllVigneti, createVigneto, updateVigneto, deleteVigneto } from '../services/vigneti-service.js';
 
@@ -251,11 +252,7 @@ async function init() {
                         initTonyContext();
                     }
                     
-                    if (!modules.includes('vigneto')) {
-                        alert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.');
-                        window.location.href = '../../../core/admin/abbonamento-standalone.html';
-                        return;
-                    }
+                    if (!richiediModulo(tenant, 'vigneto')) return;
                 }
 
                 // 5. Carica dati

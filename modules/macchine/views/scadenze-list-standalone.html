@@ -87,7 +87,8 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'scadenze', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         (async function() {
             try {
                 await window.GFVStandaloneReady;
@@ -203,7 +204,7 @@
                             rowScaduto: stato.rowScaduto,
                             statoTesto: stato.statoTesto
                         });
-                    } else if (!flotta && m.oreProssimaManutenzione != null) {
+                    } else if (!flotta && Number.isFinite(m.oreProssimaManutenzione)) {
                         const stato = calcolaStatoScadenza('ore', null, m.oreAttuali, m.oreProssimaManutenzione);
                         out.push({
                             macchinaId: id,
@@ -389,6 +390,9 @@
                     if (ud.exists() && ud.data().tenantId) { tenantId = ud.data().tenantId; setCurrentTenantId(tenantId); }
                 }
                 if (!tenantId) { document.getElementById('table-container').innerHTML = '<div class="empty-state">Nessun tenant</div>'; return; }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'parcoMacchine')) return;
                 document.getElementById('filter-stato').onchange = renderTable;
                 document.getElementById('btn-close-modal').onclick = closeModal;
                 document.getElementById('btn-annulla').onclick = closeModal;

@@ -372,7 +372,8 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'preventivi', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { getAuthInstance, getDb, getHttpsCallable, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -435,6 +436,9 @@
                             return;
                         }
                         
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'contoTerzi')) return;
                         // Mostra link impostazioni (solo Manager/Amministratore, già verificato sopra)
                         const impostazioniLink = document.getElementById('impostazioni-link');
                         if (impostazioniLink) {

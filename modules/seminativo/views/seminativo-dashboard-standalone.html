@@ -95,6 +95,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { resolvePath } from '../../../core/js/gfv-path.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { publishSeminativoTableData, placeholderTableData } from '../js/seminativo-page-context.js';
         import { renderSeminativoHubCards, refreshSeminativoHub } from '../js/seminativo-hub-page.js';
@@ -141,10 +142,9 @@
                 return;
             }
             const tenant = await getCurrentTenant().catch(() => null);
+            if (!richiediModulo(tenant, 'seminativo')) return;
             const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
             const modules = resolveEffectiveModules(tenant);
-            if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
-            if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
             syncTonyModules(modules);
             try {
                 const includeLavori = modules.some((item) => String(item || '').toLowerCase() === 'manodopera');

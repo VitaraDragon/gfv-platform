@@ -7,6 +7,7 @@
 
 import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
 try {
@@ -137,11 +138,7 @@ async function init() {
                         initTonyContext();
                     }
                     
-                    if (!modules.includes('frutteto')) {
-                        alert('Il modulo Frutteto non è attivo. Attivalo dalla pagina Abbonamento.');
-                        window.location.href = resolvePath('../../../core/admin/abbonamento-standalone.html');
-                        return;
-                    }
+                    if (!richiediModulo(tenant, 'frutteto')) return;
                 }
 
                 await loadTerreni();

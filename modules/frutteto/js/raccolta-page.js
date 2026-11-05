@@ -7,6 +7,7 @@
 
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { getCurrentPositionGeo, geolocationErrorMessage } from '../../../core/js/geo-capture.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -333,11 +334,7 @@ async function init() {
                         initTonyContext();
                     }
                     
-                    if (!modules.includes('frutteto')) {
-                        alert('Il modulo Frutteto non è attivo. Attivalo dalla pagina Abbonamento.');
-                        window.location.href = resolvePath('../../../core/admin/abbonamento-standalone.html');
-                        return;
-                    }
+                    if (!richiediModulo(tenant, 'frutteto')) return;
                 }
 
                 await loadFrutteti();

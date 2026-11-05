@@ -144,7 +144,8 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'tracciabilita_consumi', summary: 'Caricamento dati in corso...', consumiAggregates: [], items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, query, orderBy } from '../../../core/services/firebase-service.js';
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -1184,6 +1185,9 @@
                     setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
                     return;
                 }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'magazzino')) return;
                 const onFilter = async () => {
                     try {
                         const v = document.getElementById('filter-categoria').value;

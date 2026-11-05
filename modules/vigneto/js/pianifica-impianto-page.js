@@ -8,6 +8,7 @@
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { createPianificazione, getPianificazione, updatePianificazione } from '../services/pianificazione-impianto-service.js';
 
 try {
@@ -125,11 +126,7 @@ async function init() {
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
                     const moduloRichiesto = config.moduloRequired;
-                    if (!tenant || !resolveEffectiveModules(tenant).includes(moduloRichiesto)) {
-                        alert('Il modulo ' + (moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto') + ' non è attivo. Attivalo dalla pagina Abbonamento.');
-                        window.location.href = '../../../../core/admin/abbonamento-standalone.html';
-                        return;
-                    }
+                    if (!tenant || !richiediModulo(tenant, moduloRichiesto)) return;
                 }
 
                 // 5. Leggi parametro URL per modifica pianificazione e precompilazione terreno
