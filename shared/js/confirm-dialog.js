@@ -139,3 +139,29 @@ export function showConfirmDialog(options = {}) {
     cancelBtn.focus();
   });
 }
+
+export async function showArchiveTerrenoDialog(message = '') {
+  const bodyHtml = `
+    ${messageToHtml(message)}
+    <label for="gfv-archive-reason" style="display:block;font-weight:600;margin-top:0.75rem;">Motivo</label>
+    <select id="gfv-archive-reason" style="width:100%;margin-top:0.3rem;padding:0.5rem;border:1px solid #cbd5e1;border-radius:8px;">
+      <option value="fine_affitto">Fine affitto</option>
+      <option value="vendita">Venduto</option>
+      <option value="altro">Altro</option>
+    </select>
+    <label for="gfv-archive-note" style="display:block;font-weight:600;margin-top:0.75rem;">Nota facoltativa</label>
+    <textarea id="gfv-archive-note" rows="3" style="width:100%;margin-top:0.3rem;padding:0.5rem;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
+  `;
+  const confermato = await showConfirmDialog({
+    title: 'Archivia terreno',
+    bodyHtml,
+    confirmLabel: 'Archivia',
+    cancelLabel: 'Annulla',
+    icon: '🗄️'
+  });
+  if (!confermato) return null;
+  return {
+    motivo: document.getElementById('gfv-archive-reason')?.value || 'altro',
+    nota: document.getElementById('gfv-archive-note')?.value?.trim() || null
+  };
+}

@@ -547,6 +547,7 @@ export async function confirmDeleteTerreno(
         const { doc, deleteDoc } = await import('../services/firebase-service.js');
         const { getCollegamentiTerreno, archiviaTerreno } = await import('../services/terreni-service.js');
         const { eseguiEliminazioneOArchiviazione } = await import('./azione-eliminazione-terreno.js');
+        const { showConfirmDialog, showArchiveTerrenoDialog } = await import('../../shared/js/confirm-dialog.js');
 
         const esito = await eseguiEliminazioneOArchiviazione(terreno, {
             getCollegamentiTerreno,
@@ -558,9 +559,13 @@ export async function confirmDeleteTerreno(
                 }
                 await deleteDoc(doc(terreniCollection, id));
             },
-            confirm: (messaggio) => confirm(messaggio),
-            chiediMotivo: (messaggio) => prompt(messaggio, '1'),
-            chiediNota: (messaggio) => prompt(messaggio, ''),
+            confirm: (messaggio) => showConfirmDialog({
+                title: 'Elimina terreno',
+                message: messaggio,
+                confirmLabel: 'Elimina',
+                cancelLabel: 'Annulla'
+            }),
+            chiediArchiviazione: showArchiveTerrenoDialog,
             avvisa: (messaggio, tipo) => showAlert(messaggio, tipo || 'error')
         });
 
