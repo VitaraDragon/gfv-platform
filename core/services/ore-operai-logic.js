@@ -358,6 +358,48 @@ export function oreMacchinaDaSalvare(oraData, oreNette) {
 }
 
 /**
+ * Mezzo da copiare sul salvataggio ore (workspace mobile / senza tendina).
+ * Solo con Parco Macchine effettivo e se chi segna è l'operatore macchina
+ * del lavoro oppure il lavoro è autonomo suo.
+ * @param {{ lavoro?: object, operaioId?: string, moduli?: string[] }} input
+ * @returns {{ macchinaId: string|null, attrezzoId: string|null, oreMacchina: null }|null}
+ */
+export function mezzoDaLavoroPerSegnaturaOre({ lavoro, operaioId, moduli } = {}) {
+  const list = Array.isArray(moduli) ? moduli : [];
+  if (!list.includes('parcoMacchine')) return null;
+  if (!lavoro || !operaioId) return null;
+  const uid = String(operaioId);
+  const isOperatore = String(lavoro.operatoreMacchinaId || '') === uid;
+  const isAutonomoSuo = String(lavoro.operaioId || '') === uid && !lavoro.caposquadraId;
+  if (!isOperatore && !isAutonomoSuo) return null;
+  const macchinaId = lavoro.macchinaId ? String(lavoro.macchinaId) : null;
+  const attrezzoId = lavoro.attrezzoId ? String(lavoro.attrezzoId) : null;
+  if (!macchinaId && !attrezzoId) return null;
+  return { macchinaId, attrezzoId, oreMacchina: null };
+}
+
+/**
+ * Mezzo da usare in validazione se la riga ore non ce l'ha.
+ * Solo se `ora.operaioId === lavoro.operatoreMacchinaId`.
+ * @param {object|null|undefined} ora
+ * @param {object|null|undefined} lavoro
+ * @returns {{ macchinaId: string|null, attrezzoId: string|null }}
+ */
+export function mezzoDaLavoroInValidazione(ora, lavoro) {
+  const macchinaId = ora && ora.macchinaId ? String(ora.macchinaId) : null;
+  const attrezzoId = ora && ora.attrezzoId ? String(ora.attrezzoId) : null;
+  if (macchinaId || attrezzoId) return { macchinaId, attrezzoId };
+  if (!lavoro || !ora) return { macchinaId: null, attrezzoId: null };
+  if (String(ora.operaioId || '') !== String(lavoro.operatoreMacchinaId || '')) {
+    return { macchinaId: null, attrezzoId: null };
+  }
+  return {
+    macchinaId: lavoro.macchinaId ? String(lavoro.macchinaId) : null,
+    attrezzoId: lavoro.attrezzoId ? String(lavoro.attrezzoId) : null
+  };
+}
+
+/**
  * Il validatore (R4) non è lo smistamento della coda.
  * Il manager può correggere qualunque riga del tenant.
  * Il caposquadra solo le ore dei suoi operai sui propri lavori di squadra.

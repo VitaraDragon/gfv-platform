@@ -58,6 +58,8 @@ Valori che trovate spesso (etichette e colori possono variare leggermente, ma il
 |---------------------------|---------------------|
 | **Disponibile** | Il mezzo è considerato **utilizzabile** e non segnalato come guasto o in riparazione programmata. |
 | **In uso** | Il mezzo risulta **già assegnato o in utilizzo** (non “libero” per un altro intervento simultaneo). |
+
+**Scelta in Diario e Gestione lavori (#337 B6):** un trattore o attrezzo **in uso** resta **selezionabile** nella tendina (etichetta tipo «Nome — in uso»), con un **avviso sotto** la tendina. Al **salvataggio** compare una **conferma** («…è già in uso in un’altra attività. Salvo lo stesso?»): OK salva, Annulla resta sul form. Non è disabilitato (`core/js/mezzo-in-uso-avviso.js`).
 | **In manutenzione** | **Fermo** per manutenzione pianificata o revisione; va gestito prima di riutilizzarlo. |
 | **Guasto** | **Non utilizzabile** finché non rimesso in sesto (può essere collegato a una segnalazione in officina). |
 | **Dismesso** | Mezzo **tolto dall’uso** in azienda (storico/conservazione dati); compare soprattutto in **Gestione macchine** con i filtri giusti. |

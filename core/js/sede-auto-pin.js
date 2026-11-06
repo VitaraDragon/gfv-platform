@@ -92,6 +92,7 @@ export function geocodeAddress(geocoder, address, restrictions) {
     address: String(address || '').indexOf('Italia') === -1
       ? String(address || '') + ', Italia'
       : String(address || ''),
+    region: 'it',
     componentRestrictions: Object.assign({ country: 'it' }, restrictions || {}),
   };
   return new Promise((resolve) => {
@@ -150,6 +151,43 @@ export async function risolviPinSedeConRipiego(opts) {
     return { coords: centroCoords, mode: 'centro', reason: 'ok-centro' };
   }
   return { coords: null, mode: null, reason: 'no-match' };
+}
+
+/**
+ * Espone l'auto-pin in corso come `window.__gfvSedeAutoPinPromise` (G1: Tony saluto attende il pin).
+ * La promise non rifiuta mai: risolve con l'esito di tryAutoSaveSedePinOnFirstAccess.
+ * @param {Promise<any>} promise
+ * @param {object} [target]  default: window
+ * @returns {Promise<any>}
+ */
+export function esponiAutoPinPromise(promise, target) {
+  const sicura = Promise.resolve(promise).catch(() => ({ saved: false, reason: 'error' }));
+  const t = target || (typeof window !== 'undefined' ? window : null);
+  if (t) t.__gfvSedeAutoPinPromise = sicura;
+  return sicura;
+}
+
+/**
+ * Fonde il documento tenant riletto con lo stato già in memoria SENZA perdere `sedeCoordinate`
+ * scritto dall'auto-pin (o da Impostazioni) nel frattempo: lo snapshot letto prima può non averlo ancora.
+ * Un pin valido in memoria vince su uno snapshot senza pin; un pin nello snapshot vince se la memoria non l'ha.
+ * @param {object|null|undefined} snapshot  dati tenant appena letti
+ * @param {object|null|undefined} extra  campi derivati (modules, plan, piano…)
+ * @param {object|null|undefined} corrente  window.__gfvTenantData già presente
+ * @returns {object}
+ */
+export function unisciTenantDataMantenendoSede(snapshot, extra, corrente) {
+  const merged = Object.assign({}, snapshot || {}, extra || {});
+  const haCoord = (c) =>
+    !!c &&
+    typeof c === 'object' &&
+    Number.isFinite(typeof c.lat === 'number' ? c.lat : Number(c.lat)) &&
+    Number.isFinite(typeof c.lng === 'number' ? c.lng : Number(c.lng));
+  const inMemoria = corrente && typeof corrente === 'object' ? corrente.sedeCoordinate : null;
+  if (!haCoord(merged.sedeCoordinate) && haCoord(inMemoria)) {
+    merged.sedeCoordinate = inMemoria;
+  }
+  return merged;
 }
 
 /**

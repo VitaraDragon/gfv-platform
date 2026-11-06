@@ -748,7 +748,12 @@
                     // Aggiorna titolo header
                     const headerTitle = document.querySelector('.header h1');
                     if (headerTitle && headerTitle.textContent.includes('Gestione Lavori')) {
-                        headerTitle.textContent = '📋 Lavori da Pianificare - Conto Terzi';
+                        // Titolo condiviso (gestione-lavori-utils.js) in base a ?stato=
+                        import('./js/gestione-lavori-utils.js').then(function(m) {
+                            headerTitle.textContent = m.getTitoloLavoriContoTerzi(statoFromUrl);
+                        }).catch(function() {
+                            headerTitle.textContent = '📋 Lavori da pianificare – Conto Terzi';
+                        });
                     }
                 });
                 
@@ -1376,14 +1381,14 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group" id="lavoro-miscela-prodotto-group">
                             <label for="lavoro-miscela-prodotto">Prodotto</label>
                             <select id="lavoro-miscela-prodotto">
                                 <option value="">— Nessun prodotto —</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="lavoro-miscela-nome">Nome se non è in magazzino</label>
+                            <label for="lavoro-miscela-nome" id="lavoro-miscela-nome-label">Nome se non è in magazzino</label>
                             <input type="text" id="lavoro-miscela-nome" placeholder="Nome prodotto">
                         </div>
                         <div class="form-group">
@@ -2926,7 +2931,24 @@
         function setupMacchineHandlersWrapper(populateAttrezziDropdownCallback, populateOperatoreMacchinaDropdownCallback) {
             setupMacchineHandlersModule(
                 populateAttrezziDropdownCallback || populateAttrezziDropdownWrapper,
-                populateOperatoreMacchinaDropdownCallback || populateOperatoreMacchinaDropdownWrapper
+                populateOperatoreMacchinaDropdownCallback || populateOperatoreMacchinaDropdownWrapper,
+                () => {
+                    const lavoroCorrente = lavoriState.currentLavoroId
+                        ? (lavoriState.lavoriList || []).find((l) => l.id === lavoriState.currentLavoroId)
+                        : null;
+                    return {
+                        macchineList: [
+                            ...(lavoriState.trattoriList || []),
+                            ...(lavoriState.attrezziList || [])
+                        ],
+                        ctx: {
+                            lavori: lavoriState.lavoriList || [],
+                            escludiLavoroId: lavoriState.currentLavoroId || null,
+                            macchinaIdCorrente: lavoroCorrente?.macchinaId || null,
+                            attrezzoIdCorrente: lavoroCorrente?.attrezzoId || null
+                        }
+                    };
+                }
             );
         }
 
@@ -3676,6 +3698,8 @@
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 hasContoTerziModule = modules.includes('contoTerzi');
                                 hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
+                                const { configuraMiscelaPerModuli } = await import('../../shared/js/registro-trattamenti-lavoro.js');
+                                configuraMiscelaPerModuli(modules);
                                 
                                 // Inizializza context Tony: moduli + ruoli manager (evita guard profilo campo errata)
                                 var tonyOptsLavori = {

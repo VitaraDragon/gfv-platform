@@ -286,7 +286,7 @@
             <span id="invite-name"></span>
         </div>
 
-        <form id="register-form" method="post" onsubmit="return false" style="display: none;">
+        <form id="register-form" method="post" onsubmit="return false" novalidate style="display: none;">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input 
@@ -383,6 +383,7 @@
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         import { resolveAuthUser } from '../js/simulator-standalone-page.js';
+        import { messaggioDaErrore } from '../js/auth-errors.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -684,7 +685,7 @@
             } catch (error) {
                 console.error('Errore caricamento invito:', error);
                 hideLoading();
-                showError(error.message || 'Errore durante il caricamento dell\'invito');
+                showError(messaggioDaErrore(error, 'Errore durante il caricamento dell\'invito'));
             }
         }
 
@@ -750,6 +751,15 @@
                     }
                 }
 
+                // Primo accesso = registrazione da invito: «Ultimo accesso» non deve restare «Mai».
+                if (auth.currentUser) {
+                    try {
+                        await updateDoc(doc(db, 'users', auth.currentUser.uid), { ultimoAccesso: serverTimestamp() });
+                    } catch (accessoErr) {
+                        console.warn('Aggiornamento ultimo accesso non riuscito:', accessoErr);
+                    }
+                }
+
                 if (userData._isNewUser === true || userData._isNewMembership !== true) {
                     sessionStorage.setItem('gfv_user_just_registered', 'true');
                     if (auth.currentUser) {
@@ -793,12 +803,12 @@
                     errorMessage = 'Password obbligatoria. Inserisci la password del tuo account esistente.';
                 } else if (error.code === 'auth/email-already-in-use') {
                     errorMessage = 'Questa email è già registrata. Se hai già un account, usa la password del tuo account esistente.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'Email non valida';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'Password troppo debole. Usa almeno 6 caratteri.';
-                } else if (error.message) {
-                    errorMessage = error.message;
+                } else if (['auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'].indexOf(error.code) !== -1) {
+                    errorMessage = inviteData && inviteData.isExistingUser === true
+                        ? 'Password errata. Inserisci la password del tuo account esistente per aggiungere questa azienda.'
+                        : 'Password errata. Se hai già un account, usa la password del tuo account esistente.';
+                } else {
+                    errorMessage = messaggioDaErrore(error, 'Errore durante la registrazione');
                 }
 
                 showError(errorMessage);

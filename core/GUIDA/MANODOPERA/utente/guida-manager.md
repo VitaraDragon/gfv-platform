@@ -234,7 +234,7 @@ Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di 
 
 1. **All’attivazione** le attività del Diario diventano lavori in questa pagina: quelle chiuse come **completati**, quella di oggi ancora aperta come **in corso**.
 2. Le attività che non si possono trasformare in lavoro compaiono in fondo alla lista, sezione **Attività precedenti**, in sola lettura con motivo leggibile tra parentesi: «Tipo Altro», «Conto terzi incompleto», «Campi obbligatori mancanti».
-3. **Allo spegnimento**, se hai lavori non ancora completati o annullati, compare «Hai N lavori ancora aperti: chiudili o li vedrai solo in storico.»: **Annulla** per chiuderli prima, **Continua** per procedere. I lavori tornano nel Diario come **attività modificabili** (non restano bloccati come storico).
+3. **Allo spegnimento**, se hai lavori non ancora completati o annullati, compare «Hai N lavori ancora aperti: chiudili o li vedrai solo in storico.»: **Annulla** per chiuderli prima, **Continua** per procedere. Si migrano in Diario **solo** i lavori con **ore reali** (come **attività modificabili**); i lavori **mai eseguiti** restano nello storico lavori in sola lettura, senza orari inventati.
 4. A fine copia leggi «Migrazione dati: N creati, M già collegati, K in sola lettura.» Se la copia non si completa, riapri **Abbonamento**: riparte senza doppioni.
 
 ### Passi tipici per un nuovo lavoro

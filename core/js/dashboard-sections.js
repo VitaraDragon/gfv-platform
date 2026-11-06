@@ -323,6 +323,24 @@ window.GFVDashboardSections.createStatisticheCard = function createStatisticheCa
 };
 
 /**
+ * Card Statistiche macchine — indipendente da Manodopera (ancora sulla sezione mezzi).
+ */
+window.GFVDashboardSections.createStatisticheMacchineCard = function createStatisticheMacchineCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section dashboard-section--module-tile';
+    section.innerHTML = `
+        <a href="statistiche-standalone.html#statistiche-macchine-section" class="dashboard-module-tile" data-module="parcoMacchine" style="--module-accent:#00838F;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">📊</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Statistiche macchine</span>
+                <span class="dashboard-module-tile__desc">Utilizzo e ore dei mezzi del Parco Macchine.</span>
+            </span>
+        </a>
+    `;
+    return section;
+};
+
+/**
  * Card Terreni (porta a pagina terreni)
  */
 window.GFVDashboardSections.createTerreniCard = function createTerreniCard() {
@@ -457,7 +475,10 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
         if (mods.includes('seminativo')) appendCard(S.createSeminativoCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
-        if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
+        if (mods.includes('parcoMacchine')) {
+            appendCard(S.createMacchineCard());
+            appendCard(S.createStatisticheMacchineCard());
+        }
         if (mods.includes('report')) appendCard(S.createReportCard());
         if (mods.includes('meteo')) appendCard(S.createMeteoCard());
     } else {
@@ -472,7 +493,10 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
         if (mods.includes('seminativo')) appendCard(S.createSeminativoCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
-        if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
+        if (mods.includes('parcoMacchine')) {
+            appendCard(S.createMacchineCard());
+            appendCard(S.createStatisticheMacchineCard());
+        }
         if (mods.includes('report')) appendCard(S.createReportCard());
         if (mods.includes('meteo')) appendCard(S.createMeteoCard());
     }
@@ -687,7 +711,10 @@ window.GFVDashboardSections.createDashboardModuleEntryTilesRow = function create
     if (mods.includes('frutteto')) appendTile(S.createFruttetoCard());
     if (mods.includes('seminativo')) appendTile(S.createSeminativoCard());
     if (mods.includes('magazzino')) appendTile(S.createMagazzinoCard(0));
-    if (mods.includes('parcoMacchine')) appendTile(S.createMacchineCard());
+    if (mods.includes('parcoMacchine')) {
+        appendTile(S.createMacchineCard());
+        appendTile(S.createStatisticheMacchineCard());
+    }
     if (mods.includes('report')) appendTile(S.createReportCard());
 
     return grid.children.length ? row : null;

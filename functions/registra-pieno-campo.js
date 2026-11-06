@@ -6,6 +6,7 @@ const admin = require("firebase-admin");
 const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { HttpsError } = require("firebase-functions/v2/https");
 const { validaPienoCampo } = require("./lib/registra-pieno-campo-core");
+const { resolveEffectiveModules } = require("./module-trial");
 
 function normId(value) {
   if (value == null) return "";
@@ -26,12 +27,7 @@ function userBelongsToTenant(userData, tenantId) {
 }
 
 function haModuloMagazzino(tenant) {
-  const modules = tenant && Array.isArray(tenant.modules) ? tenant.modules : [];
-  if (modules.indexOf("magazzino") >= 0) return true;
-  const trial = tenant && tenant.moduleTrials && tenant.moduleTrials.magazzino;
-  if (!trial || trial.status !== "active" || !trial.endsAt) return false;
-  const ends = trial.endsAt.toDate ? trial.endsAt.toDate() : new Date(trial.endsAt);
-  return ends > new Date();
+  return resolveEffectiveModules(tenant || {}).indexOf("magazzino") >= 0;
 }
 
 async function capoIdsSquadraPerUtente(db, tenantId, userIds) {

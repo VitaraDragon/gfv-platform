@@ -533,6 +533,7 @@ export async function calcolaCostiLavoro(lavoroId, lavoro = null, options = {}) 
     let costoManodopera = 0;
     let costoMacchine = 0;
     let costoProdotti = 0;
+    let oreValidate = 0;
     
     // Carica ore per questo lavoro
     const { collection, getDocs, query, where, doc } = await import('../../../core/services/firebase-service.js');
@@ -557,6 +558,7 @@ export async function calcolaCostiLavoro(lavoroId, lavoro = null, options = {}) 
       
       // Aggrega ore manodopera
       const oreNette = ora.oreNette || 0;
+      if (ora.stato !== 'da_validare') oreValidate += Number(oreNette) || 0;
       if (!orePerOperaio[operaioId]) {
         orePerOperaio[operaioId] = {
           operaioId: operaioId,
@@ -638,6 +640,7 @@ export async function calcolaCostiLavoro(lavoroId, lavoro = null, options = {}) 
             const attivita = attivitaDoc.data();
             const oreNette = attivita.oreNette || 0;
             oreTotaliProprietario += oreNette;
+            oreValidate += Number(oreNette) || 0;
             
             // Aggrega anche ore macchina dalle attività
             const oreMacchina = attivita.oreMacchina || 0;
@@ -716,7 +719,8 @@ export async function calcolaCostiLavoro(lavoroId, lavoro = null, options = {}) 
       costoManodopera: parseFloat(costoManodopera.toFixed(2)),
       costoMacchine: parseFloat(costoMacchine.toFixed(2)),
       costoProdotti: parseFloat(costoProdotti.toFixed(2)),
-      costoTotale: costoTotale
+      costoTotale: costoTotale,
+      oreValidate: parseFloat(oreValidate.toFixed(2))
     };
   } catch (error) {
     console.error('[LAVORI-FRUTTETO] Errore calcolo costi lavoro:', error);
@@ -725,7 +729,8 @@ export async function calcolaCostiLavoro(lavoroId, lavoro = null, options = {}) 
       costoManodopera: 0,
       costoMacchine: 0,
       costoProdotti: 0,
-      costoTotale: 0
+      costoTotale: 0,
+      oreValidate: 0
     };
   }
 }

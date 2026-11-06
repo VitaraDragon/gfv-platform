@@ -130,6 +130,7 @@ async function nelTenant(page, action, payload) {
     }
 
     if (action === 'lavoroAperto') {
+      // A1: solo lavori con ore reali diventano attività al passaggio off
       const lavoroId = await fb.createDocument('lavori', {
         nome: 'GFV e2e migrazione aperto',
         terrenoId: payload.terrenoId,
@@ -137,6 +138,10 @@ async function nelTenant(page, action, payload) {
         dataInizio: new Date(),
         durataPrevista: 1,
         stato: 'in_corso',
+        oreNette: 2,
+        orarioInizio: '08:00',
+        orarioFine: '10:00',
+        pauseMinuti: 0,
         caposquadraId: null,
         operaioId: null,
         note: NOTA_APERTO

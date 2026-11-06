@@ -122,7 +122,7 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 7. **Costo manodopera** e **Costo macchina:** facoltativi se non già coperti dal lavoro.
 8. **Giorni di carenza** e **Acqua usata:** vedi **Registro privato dei trattamenti** qui sotto; controllate sempre con le **etichette** e la normativa.
 9. **Note**, **Copertura del terreno** (tutto / parziale / non specificato) e, se serve, **Questo intervento prosegue un trattamento non completato** con scelta del **trattamento precedente** nello stesso frutteto (tracciabilità e magazzino).
-10. **Magazzino:** se il modulo è attivo (abbonamento **o** prova) e i prodotti sono collegati all’anagrafica, può comparire la spunta **Registra scarico in magazzino**: deselezionatela se non volete movimentare le giacenze.
+10. **Magazzino:** se il modulo è attivo (abbonamento **o** prova) e i prodotti sono collegati all’anagrafica, può comparire la spunta **Registra scarico in magazzino**: lo scarico avviene **solo** con casella spuntata (non automatico). Deselezionatela se non volete movimentare le giacenze; controllate in Movimenti / Tracciabilità.
 11. **Salva** per registrare; **Annulla** chiude senza salvare.
 
 ### Registro privato dei trattamenti
@@ -235,6 +235,6 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 
 ### Cambio coltura del terreno
 
-Se modificate la coltura di un terreno che ha un frutteto, prima del salvataggio vedete una conferma: «Su questo terreno c'è il frutteto «X». Cambiando coltura lo chiudo: resta nello storico con potature, trattamenti e vendemmie, ma non è più modificabile.» Se ci sono lavori ancora aperti su quel terreno, aggiunge: «Su questo terreno ci sono N lavori ancora aperti: {voci}. Restano modificabili finché non li completi o li annulli; poi diventano storico, in sola lettura.»
+Se modificate la coltura di un terreno con frutteto aperto o lavori aperti, prima del salvataggio compare il dialogo **Cambio coltura** (**Continua** / **Annulla**). Il messaggio elenca i lavori aperti che verranno chiusi e, se c’è un frutteto aperto, che verrà chiuso (resta nello storico). **Continua** chiude i lavori (storico sola lettura; libera le macchine) e il frutteto; **Annulla** non salva nulla.
 
-Un lavoro di un terreno archiviato o precedente al cambio coltura si apre in sola lettura: campi grigi, pulsanti Salva ed Elimina nascosti, e il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione». I lavori ancora aperti restano modificabili.
+Dopo la conferma, un lavoro chiuso per cambio coltura (o di un terreno archiviato) si apre in sola lettura: campi grigi, pulsanti Salva ed Elimina nascosti, e il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione».

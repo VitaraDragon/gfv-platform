@@ -30,13 +30,13 @@ import {
     vistaOreGiornoInAttesa
 } from './field-ore-riquadro.js?v=2026-10-18a';
 import { scegliSuggerimentoRapido } from '../../js/field-suggerimento-lavoro.js?v=2026-10-18a';
-import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js?v=2026-11-02b';
+import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js?v=2026-11-05a';
 import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso, decidiGuardiaWorkspace } from '../../js/tony/tony-ingresso-login.js?v=2026-11-03b';
-import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-11-02b';
+import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-11-05a';
 import {
     righeGiornoDopoEliminazione,
     righeGiornoDopoSalvataggio
-} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-11-02b';
+} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-11-05a';
 import {
     salvaNuovaOra,
     modificaOraPropria,
@@ -59,7 +59,9 @@ import {
     esitoControlloSovrapposizione,
     chiValidaOra,
     messaggioOraSegnataConSuccesso,
-    calcolaOreNette
+    calcolaOreNette,
+    mezzoDaLavoroPerSegnaturaOre,
+    oreMacchinaDaSalvare
 } from '../../services/ore-operai-logic.js';
 
 import { registraServiceWorker } from '../../js/app-update.js?v=2026-10-21a';
@@ -2314,6 +2316,7 @@ async function eliminaOraGiorno(oraId, lavoroId) {
 }
 
 let salvataggioOreInCorso = false;
+let moduliEffettiviWorkspace = [];
 
 function emettiEsitoOra(nome, detail) {
     const ev = new CustomEvent(nome, { detail });
@@ -2408,6 +2411,16 @@ async function saveQuickHours(event) {
             pauseMinuti: pauseMin,
             note: (oraNoteEl && oraNoteEl.value) ? oraNoteEl.value.trim() : ''
         };
+        const mezzoLavoro = mezzoDaLavoroPerSegnaturaOre({
+            lavoro: selectedWork && selectedWork.raw,
+            operaioId: currentUser && currentUser.uid,
+            moduli: moduliEffettiviWorkspace
+        });
+        if (mezzoLavoro) {
+            patch.macchinaId = mezzoLavoro.macchinaId;
+            patch.attrezzoId = mezzoLavoro.attrezzoId;
+            patch.oreMacchina = oreMacchinaDaSalvare(patch, netHours);
+        }
         let idSalvata = editingOraId || '';
         if (editingOraId) {
             await modificaOraPropria(
@@ -2754,6 +2767,12 @@ async function logoutFieldWorkspace() {
             /* ignore */
         }
         pulisciIndizioIngresso();
+        try {
+            const { segnaLogoutVolontario } = await import('../../js/login-motivo-helpers.js');
+            segnaLogoutVolontario();
+        } catch (error) {
+            /* ignore */
+        }
         await signOut(auth);
         window.location.href = await loginPageUrl('../auth/login-standalone.html');
     } catch (error) {
@@ -2996,6 +3015,7 @@ async function initFieldWorkspace() {
                         availableModules = resolveEffectiveModules(tenantData);
                     }
                 }
+                moduliEffettiviWorkspace = availableModules;
 
                 let roles = [];
                 if (tenantId) {
@@ -3037,6 +3057,14 @@ async function initFieldWorkspace() {
                     rimandaDashboardTemporanea(guardia.motivo);
                     return;
                 }
+                // Ultimo accesso anche per chi entra solo dal workspace (dopo la guardia: niente scrittura se rimbalza).
+                updateDoc(doc(db, 'users', user.uid), {
+                    ultimoAccesso: serverTimestamp(),
+                    isOnline: true,
+                    lastSeen: serverTimestamp()
+                }).catch((accessoErr) => {
+                    console.warn('[workspace] ultimo accesso:', accessoErr);
+                });
                 pulisciPreferenzaClassicCampo();
                 scriviIndizioIngresso('workspace');
                 azzeraRimbalziIngresso();

@@ -84,22 +84,21 @@ Quando un cliente conto terzi accetta un preventivo e vuoi arrivare a chiusura l
 ### Procedura guidata: intervento coltura con scarico magazzino
 
 **Percorso schermata**  
-`Vigneto` o `Frutteto` -> `Trattamenti`/`Concimazioni` -> `Magazzino`.
+`Vigneto` o `Frutteto` → lista Trattamenti/Concimazioni (la riga nasce dal **lavoro** o dall’**attività**, non da un pulsante «Nuovo trattamento» / «Nuova concimazione»).
 
 **Dove cliccare**
-- pulsante `Nuovo trattamento` o `Nuova concimazione` in alto;
-- campo prodotti nella parte centrale del form;
-- opzione scarico magazzino vicino a conferma intervento;
-- in `Magazzino`, scheda `Tracciabilita consumi` (filtro in alto).
+- sulla riga: **Modifica** → **Modifica dati trattamento** (o concimazione);
+- prodotti e dosaggi nel form (se il lavoro aveva una miscela, arriva precompilata e si può modificare);
+- casella **Registra scarico in magazzino** (solo se Magazzino è attivo): lo scarico **non** è automatico, serve la spunta;
+- in Magazzino: **Movimenti** o **Tracciabilità consumi** per controllare l’uscita; da Movimenti si può stornare lo scarico collegato.
 
 **Passi operativi**
-1. Inserisci intervento con terreno e data.
-2. Aggiungi prodotti e quantita.
-3. Conferma scarico magazzino.
-4. Apri tracciabilita e filtra per prodotto o terreno.
+1. Completa o correggi l’intervento (terreno, data, prodotti; dose fino a 3 decimali).
+2. Se vuoi scaricare le giacenze, spunta **Registra scarico in magazzino** e salva.
+3. Controlla in Movimenti / Tracciabilità; se elimini lo scarico da Movimenti, il trattamento segna lo storno.
 
 **Controllo finale riuscita**
-- movimento di uscita visibile in magazzino;
+- con casella spuntata: movimento di uscita in magazzino;
 - intervento visibile nel registro coltura.
 
 ---

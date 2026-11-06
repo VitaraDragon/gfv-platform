@@ -277,9 +277,9 @@ function renderProdottiTrattamento(rows) {
         <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${altro ? escapeHtml(row.prodotto) : ''}" style="margin-top:4px;display:${altro ? 'block' : 'none'};width:100%">
         ${registro.categoria === 'trattamenti' ? htmlMetaRegistro(row) : ''}
       </td>
-      <td><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${dose != null ? dose : ''}" style="width:75px"></td>
+      <td><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${dose != null ? dose : ''}" style="width:75px"></td>
       <td><span class="prodotto-unita">${escapeHtml(unita)}</span></td>
-      <td><span class="prodotto-quantita">${qta != null ? qta.toFixed(2) : '—'}</span></td>
+      <td><span class="prodotto-quantita">${qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '—'}</span></td>
       <td><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" ${row.prodottoId && prezzo > 0 ? 'readonly' : ''} style="width:100px"></td>
       <td><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
     </tr>`;
@@ -384,7 +384,7 @@ function ricalcolaQuantitaCostoProdotti() {
     const unita = tr.querySelector('.prodotto-unita');
     const quantita = tr.querySelector('.prodotto-quantita');
     if (unita) unita.textContent = (anag && anag.unitaMisura) || '—';
-    if (quantita) quantita.textContent = qta != null ? qta.toFixed(2) : '—';
+    if (quantita) quantita.textContent = qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '—';
     if (costoInput && prodottoId && prezzo > 0 && qta != null) {
       costoInput.value = (qta * prezzo).toFixed(2);
       costoInput.readOnly = true;

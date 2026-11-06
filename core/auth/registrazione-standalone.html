@@ -214,7 +214,7 @@
 
         <div class="success-message" id="success-message"></div>
 
-        <form id="register-form" method="post" onsubmit="return false">
+        <form id="register-form" method="post" onsubmit="return false" novalidate>
             <div class="form-group">
                 <label for="nome">Nome *</label>
                 <input 
@@ -315,6 +315,7 @@
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         import { resolveAuthUser } from '../js/simulator-standalone-page.js';
+        import { messaggioErroreAuth, messaggioDaErrore } from '../js/auth-errors.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -737,10 +738,10 @@
                     }
                     showError('email', errorMessage);
                 } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'Email non valida';
+                    errorMessage = messaggioErroreAuth(error);
                     showError('email', errorMessage);
                 } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'Password troppo debole';
+                    errorMessage = messaggioErroreAuth(error);
                     showError('password', errorMessage);
                 } else if (error.code === 'permission-denied' || (error.message && error.message.includes('permission'))) {
                     errorMessage = 'Permessi Firestore insufficienti. Se il problema persiste, contatta il supporto.';
@@ -751,7 +752,7 @@
                     console.error('❌ ERRORE TENANT - Mostro messaggio all\'utente');
                     showError('azienda-nome', errorMessage);
                 } else {
-                    errorMessage = error.message || 'Errore sconosciuto durante la registrazione';
+                    errorMessage = messaggioDaErrore(error, 'Errore durante la registrazione. Riprova.');
                     console.error('❌ ERRORE GENERICO - Mostro messaggio all\'utente');
                     showError('email', errorMessage);
                 }

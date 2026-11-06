@@ -1,5 +1,6 @@
 /**
  * Miscela prevista sul form lavoro. Visibile solo se il tipo è un trattamento.
+ * Senza Magazzino resta disponibile l'inserimento a testo libero.
  * @module shared/js/registro-trattamenti-lavoro
  */
 
@@ -7,7 +8,10 @@ import {
   calcolaMiscela,
   avvisoImpieghiEIntervallo,
   NOTA_REGISTRO_PRIVATO,
-  confermaSpecieSalvata
+  NOTA_PASSAGGIO_NON_REGISTRATO,
+  confermaSpecieSalvata,
+  stessoProdotto,
+  messaggiUnici
 } from './registro-trattamenti.js';
 
 function esc(value) {
@@ -22,6 +26,20 @@ export function tipoLavoroETrattamento(nome) {
   return String(nome || '').toLowerCase().includes('trattament');
 }
 
+export function configuraMiscelaPerModuli(moduli = []) {
+  const hasMagazzino = Array.isArray(moduli) && moduli.includes('magazzino');
+  const contenitore = document.getElementById('lavoro-miscela-prodotto-group');
+  const select = document.getElementById('lavoro-miscela-prodotto');
+  if (contenitore) contenitore.hidden = !hasMagazzino;
+  if (select) {
+    select.disabled = !hasMagazzino;
+    if (!hasMagazzino) select.value = '';
+  }
+  const nome = document.getElementById('lavoro-miscela-nome-label');
+  if (nome) nome.textContent = hasMagazzino ? 'Nome se non è in magazzino' : 'Nome prodotto';
+  return hasMagazzino;
+}
+
 export function aggiornaSezioneMiscelaLavoro() {
   const section = document.getElementById('lavoro-miscela-section');
   if (!section) return;
@@ -34,6 +52,10 @@ export function aggiornaSezioneMiscelaLavoro() {
 
 function leggiProdottiMiscelaDalForm() {
   const rows = [];
+  const aggiungi = (riga) => {
+    if (rows.some((r) => stessoProdotto(r, riga))) return;
+    rows.push(riga);
+  };
   const id = document.getElementById('lavoro-miscela-prodotto')?.value || '';
   const nomeSel = document.getElementById('lavoro-miscela-prodotto');
   const nomeOpt = nomeSel && nomeSel.selectedIndex >= 0 ? nomeSel.options[nomeSel.selectedIndex].text : '';
@@ -41,7 +63,7 @@ function leggiProdottiMiscelaDalForm() {
   const dose = document.getElementById('lavoro-miscela-dose-ha')?.value;
   const nome = id ? nomeOpt : nomeLibero;
   if (nome && nome !== '— Nessun prodotto —') {
-    rows.push({
+    aggiungi({
       prodottoId: id || null,
       nome,
       dosePerEttaro: dose,
@@ -54,7 +76,7 @@ function leggiProdottiMiscelaDalForm() {
     const extraNome = tr.getAttribute('data-nome') || '';
     const extraDose = tr.querySelector('.miscela-dose-extra')?.value;
     if (!extraNome) return;
-    rows.push({
+    aggiungi({
       prodottoId: extraId,
       nome: extraNome,
       dosePerEttaro: extraDose,
@@ -96,7 +118,7 @@ export function scriviMiscelaNelForm(miscela) {
   tbody.innerHTML = prodotti.slice(1).map((p) =>
     '<tr data-extra="1" data-prodotto-id="' + esc(p.prodottoId || '') + '" data-nome="' + esc(p.nome || '') + '" data-unita="' + esc(p.unita || '') + '" data-dose-hl="' + esc(p.dosePerEttolitro != null ? p.dosePerEttolitro : '') + '">'
     + '<td>' + esc(p.nome || '') + '</td>'
-    + '<td><input type="number" class="miscela-dose-extra" min="0" step="0.01" value="' + esc(p.dosePerEttaro != null ? p.dosePerEttaro : '') + '"></td>'
+    + '<td><input type="number" class="miscela-dose-extra" min="0" step="0.001" value="' + esc(p.dosePerEttaro != null ? p.dosePerEttaro : '') + '"></td>'
     + '<td><button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td></tr>'
   ).join('');
 }
@@ -126,7 +148,7 @@ export function testoAnteprimaMiscela(miscela) {
 
 export function avvisiMiscelaLavoro({ miscela, terrenoId, data, precedenti, prodottiAnagrafica, specie }) {
   const messaggi = [];
-  (miscela.prodotti || []).forEach((p) => {
+  ((miscela && miscela.prodotti) || []).forEach((p) => {
     const anag = (prodottiAnagrafica || []).find((a) => a.id === p.prodottoId);
     const conferma = confermaSpecieSalvata(anag, specie);
     const esito = avvisoImpieghiEIntervallo({
@@ -140,8 +162,19 @@ export function avvisiMiscelaLavoro({ miscela, terrenoId, data, precedenti, prod
     });
     messaggi.push(...esito.avvisi);
   });
-  if (messaggi.length) messaggi.push('Se un trattamento di ieri non è ancora stato registrato, questo avviso non lo vede.');
-  return messaggi;
+  const unici = messaggiUnici(messaggi);
+  if (unici.length) unici.push(NOTA_PASSAGGIO_NON_REGISTRATO);
+  return unici;
+}
+
+/** Dopo «Aggiungi» i campi di inserimento tornano vuoti: la riga è passata in tabella. */
+function puliscaCampiMiscela() {
+  const sel = document.getElementById('lavoro-miscela-prodotto');
+  const nome = document.getElementById('lavoro-miscela-nome');
+  const dose = document.getElementById('lavoro-miscela-dose-ha');
+  if (sel) sel.value = '';
+  if (nome) nome.value = '';
+  if (dose) dose.value = '';
 }
 
 export function installaMiscelaLavoro(opts = {}) {
@@ -167,14 +200,26 @@ export function installaMiscelaLavoro(opts = {}) {
       if (!nome) return;
       const tbody = document.getElementById('tbody-miscela-lavoro');
       if (!tbody) return;
+      const nuovo = { prodottoId: id || null, nome };
+      const giaPresente = Array.from(tbody.querySelectorAll('tr[data-extra]')).find((riga) => stessoProdotto({
+        prodottoId: riga.getAttribute('data-prodotto-id') || null,
+        nome: riga.getAttribute('data-nome') || ''
+      }, nuovo));
+      if (giaPresente) {
+        const inputDose = giaPresente.querySelector('.miscela-dose-extra');
+        if (inputDose && dose !== '') inputDose.value = dose;
+        puliscaCampiMiscela();
+        return;
+      }
       const tr = document.createElement('tr');
       tr.setAttribute('data-extra', '1');
       tr.setAttribute('data-prodotto-id', id);
       tr.setAttribute('data-nome', nome);
       tr.setAttribute('data-unita', (sel?.selectedOptions?.[0]?.getAttribute('data-unita')) || '');
       tr.setAttribute('data-dose-hl', (sel?.selectedOptions?.[0]?.getAttribute('data-dose-hl')) || '');
-      tr.innerHTML = '<td>' + esc(nome) + '</td><td><input type="number" class="miscela-dose-extra" min="0" step="0.01" value="' + esc(dose) + '"></td><td><button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td>';
+      tr.innerHTML = '<td>' + esc(nome) + '</td><td><input type="number" class="miscela-dose-extra" min="0" step="0.001" value="' + esc(dose) + '"></td><td><button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td>';
       tbody.appendChild(tr);
+      puliscaCampiMiscela();
     });
   }
   form.addEventListener('click', (e) => {

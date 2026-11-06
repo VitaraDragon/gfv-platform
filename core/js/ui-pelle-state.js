@@ -251,10 +251,28 @@ export function moduleMenuEntries(entries) {
   return (entries || []).filter((e) => e && e.id !== 'impostazioni' && e.menu !== 'opzioni');
 }
 
-export function accountMenuEntries(entries) {
+/**
+ * Chi può gestire utenti e inviti (manager / amministratore). Non dipende dal modulo Manodopera.
+ * @param {string[]|null|undefined} ruoli
+ */
+export function puoGestireUtenti(ruoli) {
+  const low = (Array.isArray(ruoli) ? ruoli : []).map((r) => String(r || '').toLowerCase());
+  return low.indexOf('manager') >= 0 || low.indexOf('amministratore') >= 0;
+}
+
+/**
+ * Menu ingranaggio: Impostazioni, (Gestisci utenti per manager/admin), voci «opzioni», Guide, Logout.
+ * @param {Array} entries
+ * @param {string[]} [ruoli] ruoli dell'utente nel tenant corrente
+ */
+export function accountMenuEntries(entries, ruoli) {
   const fromShell = (entries || []).filter((e) => e && e.menu === 'opzioni');
+  const gestisciUtenti = puoGestireUtenti(ruoli)
+    ? [{ id: 'gestisciUtenti', label: 'Gestisci utenti', hint: 'Inviti e permessi', href: 'admin/gestisci-utenti-standalone.html' }]
+    : [];
   return [
     { id: 'impostazioni', label: 'Impostazioni', hint: 'Azienda e account', href: 'admin/impostazioni-standalone.html' },
+    ...gestisciUtenti,
     ...fromShell,
     { id: 'guide', label: 'Guide', hint: 'Come si usa', href: '../documentazione-utente/index.html', blank: true },
     { id: 'logout', label: 'Logout', hint: 'Esci dall’account', action: 'logout' }

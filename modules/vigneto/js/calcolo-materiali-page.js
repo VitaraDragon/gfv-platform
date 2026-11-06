@@ -10,6 +10,7 @@ import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { getAllPianificazioni, deletePianificazione, confermaPianificazione } from '../services/pianificazione-impianto-service.js';
 
 try {
@@ -93,14 +94,7 @@ async function init() {
                         return;
                     }
                     const moduloRichiesto = currentConfig.moduloRequired;
-                    const modules = resolveEffectiveModules(tenant);
-                    const hasModule = modules.some(m => m && m.toLowerCase() === moduloRichiesto.toLowerCase());
-                    if (!hasModule) {
-                        const nomeModulo = moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto';
-                        showAlert('Il modulo ' + nomeModulo + ' non è attivo. Attivalo dalla pagina Abbonamento.', 'error');
-                        setTimeout(() => { window.location.href = '../../../core/admin/abbonamento-standalone.html'; }, 3000);
-                        return;
-                    }
+                    if (!richiediModulo(tenant, moduloRichiesto)) return;
                 } else {
                     showAlert('Nessun tenant disponibile', 'error');
                     setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);

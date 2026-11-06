@@ -1,6 +1,38 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-03 — Archiviazione terreni (QA 3 nov, punto 2).**
+**Ultimo aggiornamento documentazione: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
+
+## 2026-11-05 — QA 4 nov prompt 4 (37–56): cambio coltura, migrazione, archiviazione
+
+Su `fix/qa-04nov-4` (PR verso develop): **D1** al cambio coltura dialogo app con numero lavori, chiusura automatica e sola lettura permanente (`chiusoPerCambioColtura`); **D2** tipi/categorie filtrate per coltura (Vendemmia solo vigneto); **A1** migrazione Manodopera solo con ore reali; **A2–A4** miscela senza Magazzino, destinazione vendemmia, superficie trattamenti; **A5–A6** etichette movimenti e ore Diario coerenti; **A7** 404 dashboard vigneto non riprodotti (path ok); **B1–B3** validazione ore sola lettura, collegamenti solo al clic, conteggi veri; **C1–C6** statistiche senza archiviati, modale archiviazione, «(archiviato)» in trattamenti, vigneti chiusi esclusi dai totali, azioni sola lettura in Gestione lavori, card prova Abbonamento. Nessun deploy in questo giro (solo asset browser / Pages dopo merge+promote).
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 3 nov resto B6–G su `fix/qa-03nov-3-resto-b6g`.**
+
+## 2026-11-05 — QA 3 nov resto B6–G (trattore in uso, pieno, registri, diario, login, sede/Tony)
+
+Su `fix/qa-03nov-3-resto-b6g` (PR verso develop, dopo #335/#336): **B6** mezzo `in_uso` resta selezionabile con etichetta/avviso/conferma; **B7** ⛽ Pieno per manager senza Manodopera (quick bar, hub PM, Diario + `macchinaId`); **C1–C5** potatura/ore validate, miscela→trattamento, NaN quantità, scarico magazzino idempotente + storno, dose a 3 decimali; **C6** guide scarico/casella/flusso reale; **D1–D5** Diario prefill tipo, titoli CT, coltura leggibile, form senza «Tutti», VM sync con moduli effettivi; **E1–E5** errori auth IT, novalidate, logout senza sessione-persa, ultimo accesso, Gestisci utenti nel menu; **G1–G5** gara pin sede, geocode civico, «← Dashboard» a destra, F5 terreni landing, rumore console. **F1** non riprodotto. Deploy dopo merge+promote: `elencaUtentiTenant`; function che chiama `syncPreventivoAccettatoToPianoAdmin`; eventuali configs Tony. Nessun deploy in questo giro.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 3 nov blocco B (B1–B5) su PR #335.**
+
+## 2026-11-05 — QA 3 nov blocco B (B1–B5): guasti, ripresa, ore macchina, statistiche, NaN
+
+Su `fix/qa-03nov-3-resto` (PR #335): **B1** manager/admin aprono «Segnala guasto» con tutti i mezzi non dismessi; **B2** alla sospensione si salva `statoPrimaSospensione` e alla ripresa si ripristina (rules: chiave in hasOnly capo/operaio — **da deployare**); **B3** il workspace mobile copia trattore/attrezzo sull’ora se operatore macchina o lavoro autonomo, e in validazione c’è ripiego sul lavoro solo per l’operatore macchina; **B4** voce «Statistiche macchine» in quick bar, menu moduli e dashboard Parco Macchine; **B5** `numeroFinito` in Macchina evita NaN ore/km in Scadenze. Restano **B6–B7** e i blocchi **C–G**.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 3 nov blocco A (abbonamento, bundle, guard moduli).**
+
+## 2026-11-05 — QA 3 nov blocco A: bundle Seminativo, riepilogo prove, guard pagine
+
+GFV Completo include Seminativo nel generatore Tony (`available` allineato a `AVAILABLE_MODULES`); `resolveEffectiveModules` unisce anche i moduli dei bundle attivi. In Abbonamento il riepilogo mostra «In prova» e non «Nessun modulo attivo» se c’è una prova; niente prezzo flash prima del caricamento. Tony sul Free non propone più la prova moduli senza Base. Guard condiviso `module-page-guard.js` sulle pagine Magazzino, Parco Macchine, Conto Terzi, Vigneto, Frutteto e Seminativo. Prima del deploy functions: `cd functions && node scripts/generate-tony-configs.js`. Restano i blocchi B–G del prompt 3.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — Archiviazione terreni (QA 3 nov, punto 2).**
 
 ## 2026-11-03 — Terreni: archiviare invece di eliminare
 

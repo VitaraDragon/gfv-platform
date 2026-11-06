@@ -441,7 +441,7 @@
                 <h3 id="modal-title">Nuova Macchina</h3>
                 <button class="close-btn" onclick="closeMacchinaModal()">&times;</button>
             </div>
-            <form id="macchina-form" onsubmit="handleSalvaMacchina(event)">
+            <form id="macchina-form" onsubmit="handleSalvaMacchina(event)" novalidate>
                 <input type="hidden" id="macchina-id">
                 
                 <div class="form-group">
@@ -719,6 +719,7 @@
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { getDoc, doc, collection, getDocs, query, where, setDoc, addDoc, updateDoc, deleteDoc, Timestamp, orderBy, onSnapshot } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import { richiediModulo } from '../js/module-page-guard.js';
         
         // ============================================
         // IMPORTS MODULI
@@ -1011,41 +1012,28 @@
                         if (currentTenantId) {
                             try {
                                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                                if (tenantDoc.exists()) {
-                                    const tenantData = tenantDoc.data();
-                                    const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
-                                const modules = resolveEffectiveModules(tenantData);
-                                    const hasParcoMacchine = modules.includes('parcoMacchine');
-                                    
-                                    // Inizializza context Tony con i moduli attivi usando helper
-                                    if (window.Tony && window.Tony.initContextWithModules) {
-                                        window.Tony.initContextWithModules(modules);
-                                    } else {
-                                        // Fallback se helper non disponibile (retry manuale)
-                                        var initTonyContext = function(retries) {
-                                            retries = retries || 0;
-                                            if (window.Tony && typeof window.Tony.setContext === 'function') {
-                                                window.Tony.setContext('dashboard', {
-                                                    info_azienda: { moduli_attivi: modules },
-                                                    moduli_attivi: modules
-                                                });
-                                                console.log('[Gestione Macchine] Context Tony inizializzato con moduli:', modules);
-                                            } else if (retries < 10) {
-                                                setTimeout(function() {
-                                                    initTonyContext(retries + 1);
-                                                }, 500);
-                                            }
-                                        };
-                                        initTonyContext();
-                                    }
-                                    
-                                    if (!hasParcoMacchine) {
-                                        showAlert('Questa pagina è disponibile solo con il modulo Parco Macchine attivo.', 'error');
-                                        setTimeout(() => {
-                                            window.location.href = '../dashboard-standalone.html';
-                                        }, 3000);
-                                        return;
-                                    }
+                                const tenantData = tenantDoc.exists() ? tenantDoc.data() : null;
+                                if (!richiediModulo(tenantData, 'parcoMacchine')) return;
+                                const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData || {});
+                                if (window.Tony && window.Tony.initContextWithModules) {
+                                    window.Tony.initContextWithModules(modules);
+                                } else {
+                                    var initTonyContext = function(retries) {
+                                        retries = retries || 0;
+                                        if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                            window.Tony.setContext('dashboard', {
+                                                info_azienda: { moduli_attivi: modules },
+                                                moduli_attivi: modules
+                                            });
+                                            console.log('[Gestione Macchine] Context Tony inizializzato con moduli:', modules);
+                                        } else if (retries < 10) {
+                                            setTimeout(function() {
+                                                initTonyContext(retries + 1);
+                                            }, 500);
+                                        }
+                                    };
+                                    initTonyContext();
                                 }
                             } catch (error) {
                                 console.warn('Errore verifica modulo:', error);

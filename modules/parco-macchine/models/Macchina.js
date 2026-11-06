@@ -8,6 +8,7 @@
 import { Base } from '../../../core/models/Base.js';
 import { dateToTimestamp, timestampToDate } from '../../../core/services/firebase-service.js';
 import { isTipoFlotta } from '../lib/macchine-tipo-utils.js';
+import { numeroFinito } from '../../../shared/js/registro-trattamenti.js';
 
 export class Macchina extends Base {
   /**
@@ -63,8 +64,10 @@ export class Macchina extends Base {
     // Gestione dataAcquisto
     this.dataAcquisto = data.dataAcquisto ? timestampToDate(data.dataAcquisto) : null;
     
-    this.oreIniziali = data.oreIniziali !== undefined ? parseFloat(data.oreIniziali) : 0;
-    this.oreAttuali = data.oreAttuali !== undefined ? parseFloat(data.oreAttuali) : this.oreIniziali;
+    const oreInizialiN = numeroFinito(data.oreIniziali);
+    this.oreIniziali = oreInizialiN != null ? oreInizialiN : 0;
+    const oreAttualiN = numeroFinito(data.oreAttuali);
+    this.oreAttuali = oreAttualiN != null ? oreAttualiN : this.oreIniziali;
     
     // Stato macchina: "disponibile" | "in_uso" | "in_manutenzione" | "guasto" | "dismesso"
     this.stato = data.stato || 'disponibile';
@@ -79,19 +82,12 @@ export class Macchina extends Base {
       ? timestampToDate(data.prossimaManutenzione)
       : null;
     
-    this.oreProssimaManutenzione = data.oreProssimaManutenzione !== undefined 
-      ? parseFloat(data.oreProssimaManutenzione) 
-      : null;
+    this.oreProssimaManutenzione = numeroFinito(data.oreProssimaManutenzione);
 
-    this.kmIniziali = data.kmIniziali !== undefined && data.kmIniziali !== null
-      ? parseFloat(data.kmIniziali)
-      : null;
-    this.kmAttuali = data.kmAttuali !== undefined && data.kmAttuali !== null
-      ? parseFloat(data.kmAttuali)
-      : (this.kmIniziali != null ? this.kmIniziali : null);
-    this.kmProssimaManutenzione = data.kmProssimaManutenzione !== undefined && data.kmProssimaManutenzione !== null
-      ? parseFloat(data.kmProssimaManutenzione)
-      : null;
+    this.kmIniziali = numeroFinito(data.kmIniziali);
+    const kmAttualiN = numeroFinito(data.kmAttuali);
+    this.kmAttuali = kmAttualiN != null ? kmAttualiN : this.kmIniziali;
+    this.kmProssimaManutenzione = numeroFinito(data.kmProssimaManutenzione);
     
     this.prossimaRevisione = data.prossimaRevisione
       ? timestampToDate(data.prossimaRevisione)

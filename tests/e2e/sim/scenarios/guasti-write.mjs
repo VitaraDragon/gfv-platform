@@ -81,9 +81,10 @@ export async function createGuastoAsOperaio(page) {
   await page.locator('#guasto-dettagli').fill(E2E_GUASTO_WRITE_DETTAGLI);
   await page.locator('#segnala-guasto-form button[type="submit"]').click();
 
-  await page.locator('.alert-success').filter({
-    hasText: /Segnalazione inviata con successo/i,
-  }).waitFor({ state: 'attached', timeout: 90_000 });
+  // UI usa #banner-segnalazione (guasto.sentTitle), non .alert-success
+  await page.locator('#banner-segnalazione, .banner-segnalazione').filter({
+    hasText: /Segnalazione inviata/i,
+  }).waitFor({ state: 'visible', timeout: 90_000 });
 }
 
 /**

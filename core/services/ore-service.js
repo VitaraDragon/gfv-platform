@@ -12,6 +12,7 @@ import { getCurrentUserData } from './auth-service.js';
 import { isOraDelCaposquadraSuLavoroSquadra, assertUtentePuoValidareOra } from './manodopera-ore-validazione-scope.js';
 import { lavoroSelezionabilePerOre } from './ore-lavoro-selezionabile.js?v=2026-10-16a';
 import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
+import { assertOraLavoroModificabile } from './ore-sola-lettura.js';
 import {
   calcolaOreNette as calcolaOreNettePura,
   formattaOreMinuti,
@@ -28,6 +29,7 @@ import {
   assicuraVoceRifiuto,
   pianoRettificaOreMacchina,
   oreMacchinaDaSalvare,
+  mezzoDaLavoroInValidazione,
   deveRichiedereRefreshSkill
 } from './ore-operai-logic.js';
 
@@ -784,9 +786,10 @@ async function applicaDeltaMacchine(tenantId, operazioni) {
   }
 }
 
-async function contabilizzaAllaValidazione(tenantId, oraData) {
-  const macchinaId = oraData.macchinaId || null;
-  const attrezzoId = oraData.attrezzoId || null;
+async function contabilizzaAllaValidazione(tenantId, oraData, lavoro) {
+  const mezzo = mezzoDaLavoroInValidazione(oraData, lavoro);
+  const macchinaId = mezzo.macchinaId;
+  const attrezzoId = mezzo.attrezzoId;
   const ore = Number(oraData.oreMacchina != null ? oraData.oreMacchina : oraData.oreNette) || 0;
   if ((!macchinaId && !attrezzoId) || ore <= 0) return { contabilizzate: null, avviso: '' };
   try {
@@ -826,6 +829,28 @@ async function chiediRefreshSkill(tenantId, operaioId, userId, isManager) {
 }
 
 /**
+ * Dopo una validazione: riallinea ore/costi dei registri coltura collegati al lavoro
+ * (potatura vigneto/frutteto, vendemmia). Best-effort: ogni helper è un no-op se non c'è
+ * un registro collegato; gli errori non bloccano la validazione.
+ * @param {string} lavoroId
+ */
+async function sincronizzaRegistriColturaDaLavoro(lavoroId) {
+  const sync = [
+    ['syncPotaturaFromLavoro (vigneto)', async () => (await import('../../modules/vigneto/services/potatura-vigneto-service.js')).syncPotaturaFromLavoro],
+    ['syncPotaturaFromLavoro (frutteto)', async () => (await import('../../modules/frutteto/services/potatura-frutteto-service.js')).syncPotaturaFromLavoro],
+    ['syncVendemmiaFromLavoro', async () => (await import('../../modules/vigneto/services/vendemmia-service.js')).syncVendemmiaFromLavoro]
+  ];
+  await Promise.allSettled(sync.map(async ([nome, carica]) => {
+    try {
+      const fn = await carica();
+      if (typeof fn === 'function') await fn(lavoroId);
+    } catch (error) {
+      console.warn(`Sync registro coltura dopo validazione non riuscito (${nome}):`, error);
+    }
+  }));
+}
+
+/**
  * Valida una riga in coda. Permessi: assertUtentePuoValidareOra (capo o manager, come la coda).
  * Se le ore macchina vengono davvero aggiunte, salva oreMacchinaContabilizzate.
  * @returns {Promise<{ avvisi: string[] }>}
@@ -835,6 +860,8 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
   if (!lavoroId || !oraId) throw new Error('ID lavoro e ora obbligatori');
   const { doc, getDoc, updateDoc, Timestamp } = await firebaseOre();
   const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const terreno = await leggiTerrenoDelLavoro(db, doc, getDoc, tenantId, lavoro);
+  assertOraLavoroModificabile(lavoro, terreno);
   const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
   if (ora.stato !== 'da_validare') throw new Error('Questa ora è già stata validata o rifiutata');
   assertUtentePuoValidareOra({
@@ -844,7 +871,7 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
     isCaposquadra,
     isManager
   });
-  const macchina = await contabilizzaAllaValidazione(tenantId, ora);
+  const macchina = await contabilizzaAllaValidazione(tenantId, ora, lavoro);
   const ilValidazione = Timestamp.now();
   const dopoValidazione = { ...snapshotCampiOra(ora), stato: 'validate' };
   const update = {
@@ -868,6 +895,7 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
   if (macchina.contabilizzate) update.oreMacchinaContabilizzate = macchina.contabilizzate;
   await updateDoc(ora.ref, update);
   await chiediRefreshSkill(tenantId, ora.operaioId, userId, isManager);
+  await sincronizzaRegistriColturaDaLavoro(lavoroId);
   return { avvisi: macchina.avviso ? [macchina.avviso] : [] };
 }
 

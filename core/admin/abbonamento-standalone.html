@@ -550,8 +550,8 @@
                 <!-- Piano Corrente -->
                 <div class="card current-plan">
                     <h2>Piano Attuale</h2>
-                    <div class="plan-name" id="current-plan-name">Base</div>
-                    <div class="plan-price" id="current-plan-price">€9<span>/mese</span></div>
+                    <div class="plan-name" id="current-plan-name">…</div>
+                    <div class="plan-price" id="current-plan-price">…</div>
                     <div style="margin-top: 20px;">
                         <strong>Scadenza:</strong> <span id="current-plan-expiry">Caricamento...</span>
                     </div>
@@ -581,7 +581,7 @@
                         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2E8B57;">
                             <div style="font-size: 14px; color: #666; margin-bottom: 8px;"><strong>Con il Piano Base puoi:</strong></div>
                             <ul style="margin: 0; padding-left: 20px; color: #333; font-size: 14px; line-height: 1.8;">
-                                <li>Attivare <strong>qualsiasi modulo</strong> che ti serve (da €1/mese, fatturati annualmente)</li>
+                                <li>Attivare <strong>qualsiasi modulo</strong> che ti serve (<span id="upgrade-modules-from-price">…</span>, fatturati annualmente)</li>
                                 <li>Gestire <strong>terreni e attività illimitati</strong></li>
                                 <li>Risparmiare con i <strong>bundle ottimizzati</strong></li>
                                 <li>Personalizzare completamente la tua app in base alle tue esigenze</li>
@@ -590,8 +590,8 @@
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <div>
                                 <div style="font-size: 12px; color: #666;">A partire da</div>
-                                <div style="font-size: 32px; font-weight: bold; color: #2E8B57;">€5<span style="font-size: 18px; color: #666;">/mese</span></div>
-                                <div style="font-size: 13px; color: #555; margin-top: 4px;">Fatturato <strong>€60/anno</strong></div>
+                                <div style="font-size: 32px; font-weight: bold; color: #2E8B57;" id="upgrade-base-monthly">…</div>
+                                <div style="font-size: 13px; color: #555; margin-top: 4px;">Fatturato <strong id="upgrade-base-annual">…</strong></div>
                             </div>
                             <button class="btn btn-primary" onclick="selectPlan('base')" style="padding: 12px 30px; font-size: 16px; font-weight: bold;">
                                 ✨ Passa al Piano Base
@@ -724,6 +724,7 @@
             formatTrialEndDate,
             resolveModuleToggleIntent
         } from '../utils/module-access-resolver.js';
+        import { buildAbbonamentoSummaryTrialState } from '../utils/abbonamento-summary.js';
         import {
             allineaDatiManodopera,
             contaLavoriApertiTenant,
@@ -1298,7 +1299,7 @@
                 `;
             }
             
-            // Moduli singoli attivi
+            // Moduli singoli attivi (solo pagati: il prezzo non include le prove)
             if (singleModules.length > 0) {
                 html += `
                     <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #ff9800;">
@@ -1307,9 +1308,34 @@
                     </div>
                 `;
             }
+
+            // Prove attive (non cambiano il prezzo)
+            const trialLines = trialModuleIds.map(function(modId) {
+                const mod = getModuleConfig(modId);
+                const label = mod && mod.name ? mod.name : modId;
+                const endsLabel = formatTrialEndDate(
+                    currentTenantData && currentTenantData.moduleTrials
+                        ? currentTenantData.moduleTrials[modId]
+                        : null
+                );
+                return endsLabel ? (label + ' fino al ' + endsLabel) : label;
+            });
+            const trialState = buildAbbonamentoSummaryTrialState({
+                effectiveModules: effectiveModules,
+                trialModuleIds: trialModuleIds,
+                trialLabels: trialLines
+            });
+            if (trialState.trialBlockText) {
+                html += `
+                    <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #17a2b8;">
+                        <div style="font-size: 12px; font-weight: bold; color: #17a2b8; margin-bottom: 5px;">In prova (${trialModuleIds.length})</div>
+                        <div style="font-size: 13px; color: #333;">${trialLines.join('; ')}</div>
+                    </div>
+                `;
+            }
             
-            // Se non ci sono bundle né moduli
-            if (activeBundlesList.length === 0 && singleModules.length === 0) {
+            // «Nessun modulo attivo» solo se non c'è nulla di effettivo (pagati, bundle, prove)
+            if (trialState.showNessunModuloAttivo) {
                 html += `
                     <div style="background: #fff3cd; padding: 10px; border-radius: 6px; border: 1px solid #ffc107; text-align: center; font-size: 12px; color: #856404;">
                         ⚠️ Nessun modulo attivo
@@ -1585,9 +1611,26 @@
                         return dep ? dep.name : depId;
                       }).join(', ')
                     : '';
+                const soloProvaOccupata = !canTrial && canPurchase && /un solo modulo in prova/i.test(String(trialCheck.reason || ''));
+                let nomeModuloInProva = '';
+                if (soloProvaOccupata) {
+                    const trials = (currentTenantData && currentTenantData.moduleTrials) || {};
+                    const activeIds = typeof getActiveTrialModuleIds === 'function'
+                        ? getActiveTrialModuleIds(trials)
+                        : Object.keys(trials);
+                    const firstId = (activeIds || [])[0];
+                    if (firstId) {
+                        const dep = getModuleConfig(firstId);
+                        nomeModuloInProva = dep ? dep.name : firstId;
+                    }
+                }
                 const actionHint = canTrial
                     ? 'Clicca per prova 30 giorni'
-                    : (canPurchase ? 'Clicca per attivare' : (trialCheck.reason || canActivateModule(planConfig.id, module.id, effectiveModules).reason));
+                    : (canPurchase
+                        ? (soloProvaOccupata
+                            ? (`Prova non disponibile: puoi avere un solo modulo in prova alla volta` + (nomeModuloInProva ? ` (ora: ${nomeModuloInProva})` : ''))
+                            : (trialCheck.reason || 'Clicca per attivare'))
+                        : (trialCheck.reason || canActivateModule(planConfig.id, module.id, effectiveModules).reason));
                 
                 return `
                     <div class="module-card ${isDisabled ? 'disabled' : ''}" 
@@ -1605,7 +1648,7 @@
                         <div style="margin-top: 5px; font-size: 11px; color: #666;">
                             ${module.available ? `€${module.price}/mese · €${monthlyToAnnual(module.price)}/anno` : 'Prossimamente'}
                         </div>
-                        <div style="margin-top: 10px; font-size: 12px; color: ${canTrial ? '#2E8B57' : '#666'};">
+                        <div style="margin-top: 10px; font-size: 12px; color: ${canTrial ? '#2E8B57' : (soloProvaOccupata ? '#b45309' : '#666')};">
                             ${module.available ? actionHint : 'Prossimamente'}
                         </div>
                         ${module.previewHref ? `<button type="button" class="btn btn-secondary" style="margin-top: 10px; padding: 4px 10px; font-size: 11px; background: #C9A227; color: #1a1a1a; border: none;" onclick="event.stopPropagation(); window.location.href='${module.previewHref}'">Apri</button>` : ''}
@@ -1620,6 +1663,28 @@
         function renderUpgradeSection() {
             const upgradeSection = document.getElementById('upgrade-section');
             if (!upgradeSection) return;
+
+            const basePlan = getPlanConfig('base') || SUBSCRIPTION_PLANS.base;
+            const baseMonthly = basePlan && typeof basePlan.price === 'number' ? basePlan.price : 0;
+            const minModulePrice = getAllModules(true)
+                .filter(function(m) { return m.available; })
+                .reduce(function(min, m) {
+                    return typeof m.price === 'number' && m.price < min ? m.price : min;
+                }, Infinity);
+            const modulesFromEl = document.getElementById('upgrade-modules-from-price');
+            if (modulesFromEl) {
+                modulesFromEl.textContent = Number.isFinite(minModulePrice)
+                    ? ('da €' + minModulePrice + '/mese')
+                    : 'a pagamento';
+            }
+            const monthlyEl = document.getElementById('upgrade-base-monthly');
+            if (monthlyEl) {
+                monthlyEl.innerHTML = '€' + baseMonthly + '<span style="font-size: 18px; color: #666;">/mese</span>';
+            }
+            const annualEl = document.getElementById('upgrade-base-annual');
+            if (annualEl) {
+                annualEl.textContent = '€' + monthlyToAnnual(baseMonthly) + '/anno';
+            }
             
             // Retrocompatibilità: migra piani vecchi a 'base'
             const planId = resolvePlanIdFromTenant(currentTenantData);

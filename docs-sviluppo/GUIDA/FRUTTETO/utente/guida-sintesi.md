@@ -14,4 +14,4 @@ Modulo **Frutteto** attivo sull’azienda. Linguaggio allineato alla guida utent
 
 Senza modulo **non** dare istruzioni come se il frutteto esistesse nell’azienda.
 
-**Cambio coltura:** se il terreno ha un frutteto, prima del salvataggio conferma «Su questo terreno c'è il frutteto «X». Cambiando coltura lo chiudo…»; lavori aperti restano modificabili, quelli chiusi o di terreno archiviato vanno in sola lettura con il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione».
+**Cambio coltura:** dialogo **Cambio coltura** (**Continua** / **Annulla**) prima del salvataggio; **Continua** chiude i lavori aperti (storico sola lettura; libera macchine) e il frutteto aperto; **Annulla** non salva. I lavori chiusi o di terreno archiviato restano in sola lettura col banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione».

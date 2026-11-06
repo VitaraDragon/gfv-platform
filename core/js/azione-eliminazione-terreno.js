@@ -37,14 +37,27 @@ export async function eseguiEliminazioneOArchiviazione(terreno, deps) {
     if (deps.avvisa) deps.avvisa(decisione.messaggio, 'error');
     return decisione;
   }
-  const conferma = deps.confirm ? deps.confirm(decisione.messaggio) : false;
-  if (!conferma) return { azione: 'annullata' };
-
   if (decisione.azione === 'elimina') {
+    const conferma = deps.confirm ? await deps.confirm(decisione.messaggio) : false;
+    if (!conferma) return { azione: 'annullata' };
     await deps.eliminaTerreno(terreno.id);
     return { azione: 'eliminato' };
   }
 
+  if (typeof deps.chiediArchiviazione === 'function') {
+    const dati = await deps.chiediArchiviazione(decisione.messaggio);
+    if (!dati) return { azione: 'annullata' };
+    const motivo = motivoDaScelta(dati.motivo);
+    if (!motivo) {
+      if (deps.avvisa) deps.avvisa('Scegli un motivo: fine affitto, vendita o altro.', 'error');
+      return { azione: 'annullata' };
+    }
+    await deps.archiviaTerreno(terreno.id, { motivo, nota: dati.nota || null });
+    return { azione: 'archiviato', motivo };
+  }
+
+  const conferma = deps.confirm ? await deps.confirm(decisione.messaggio) : false;
+  if (!conferma) return { azione: 'annullata' };
   const scelta = deps.chiediMotivo ? deps.chiediMotivo(PROMPT_MOTIVO) : '3';
   const motivo = motivoDaScelta(scelta);
   if (!motivo) {

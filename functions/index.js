@@ -48,6 +48,7 @@ const { handleStripeWebhookRequest } = require("./stripe-webhooks");
 const {
   handleStartModuleTrial,
   handleSyncModuleTrials,
+  resolveEffectiveModules,
 } = require("./module-trial");
 const {
   handleGetMeteoSede,
@@ -164,7 +165,8 @@ async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
         tenantData = td;
         planId = resolveTenantPlanId(td, { fallbackRaw: rawFromClient });
         activeBundles = Array.isArray(td.activeBundles) ? td.activeBundles : [];
-        tenantModules = Array.isArray(td.modules) ? td.modules : [];
+        // Moduli effettivi (pagati + prova attiva + bundle), non `modules` grezzo
+        tenantModules = resolveEffectiveModules(td);
       }
     } catch (e) {
       console.warn("[Tony] resolveTenantSubscription:", e.message);

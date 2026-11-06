@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { richiediModulo } from '../../../core/js/module-page-guard.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -110,18 +111,7 @@ onAuthStateChanged(auth, async (user) => {
                     } else {
                         window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: modules } }));
                     }
-                    const hasVignetoModule = modules.some(m => m && m.toLowerCase() === 'vigneto');
-                    
-                    if (!hasVignetoModule) {
-                        console.warn('[VIGNETO-DASHBOARD] Modulo vigneto non trovato. Modules disponibili:', modules);
-                        showAlert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.', 'error');
-                        setTimeout(() => {
-                            window.location.href = '../../../core/admin/abbonamento-standalone.html';
-                        }, 3000);
-                        return;
-                    }
-                    
-                    console.log('[VIGNETO-DASHBOARD] Modulo vigneto verificato con successo');
+                    if (!richiediModulo(tenant, 'vigneto')) return;
                 } else {
                     console.error('[VIGNETO-DASHBOARD] Nessun tenant ID disponibile');
                     showAlert('Nessun tenant disponibile', 'error');
@@ -157,7 +147,8 @@ async function initFilters() {
     try {
         // Popola dropdown vigneti
         const { getAllVigneti } = await import('../services/vigneti-service.js');
-        const vigneti = await getAllVigneti();
+        const { impiantiAperti } = await import('../../../shared/js/impianto-aperto.js');
+        const vigneti = impiantiAperti(await getAllVigneti());
         
         const vignetoSelect = document.getElementById('filtro-vigneto');
         vignetoSelect.innerHTML = '<option value="">Tutti i vigneti</option>';

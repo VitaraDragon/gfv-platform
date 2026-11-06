@@ -4,7 +4,7 @@ Questa guida è per chi ha **attivato il modulo Vigneto** sull’azienda. Senza 
 
 Verificate **Abbonamento** o chiedete all’amministratore se il modulo non compare.
 
-Se cambiate la coltura del terreno e c'è un vigneto ancora aperto, l'app chiede conferma e lo chiude: potature, trattamenti e vendemmie restano consultabili, con il badge **Chiuso**. In elenco i chiusi si vedono spuntando **Mostra chiusi**. Un vigneto chiuso non compare nelle tendine dei nuovi registri. I lavori aperti prima del cambio restano modificabili finché non li completate. La coltura del lavoro è quella del terreno. Se cambiate gli ettari del terreno, si aggiorna anche la superficie del vigneto ancora aperto. Un terreno archiviato chiude i vigneti aperti e nello storico il nome ha la scritta **(archiviato)**.
+Se cambiate la coltura del terreno e ci sono lavori aperti o un vigneto ancora aperto, **prima del salvataggio** compare il dialogo **Cambio coltura** (**Continua** / **Annulla**): elenca i lavori aperti che verranno chiusi. **Continua** chiude i lavori (storico sola lettura; libera le macchine) e chiude il vigneto aperto (badge **Chiuso**; potature, trattamenti e vendemmie restano consultabili). **Annulla** non salva nulla. In elenco i chiusi si vedono spuntando **Mostra chiusi**. Un vigneto chiuso non compare nelle tendine dei nuovi registri. La coltura del lavoro è quella del terreno. Se cambiate gli ettari del terreno, si aggiorna anche la superficie del vigneto ancora aperto. Un terreno archiviato chiude i vigneti aperti e nello storico il nome ha la scritta **(archiviato)**.
 
 ---
 
@@ -282,6 +282,6 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** e usate
 
 ### Cambio coltura del terreno
 
-Se modificate la coltura di un terreno che ha un vigneto, prima del salvataggio vedete una conferma: «Su questo terreno c'è il vigneto «X». Cambiando coltura lo chiudo: resta nello storico con potature, trattamenti e vendemmie, ma non è più modificabile.» Se ci sono lavori ancora aperti su quel terreno, aggiunge: «Su questo terreno ci sono N lavori ancora aperti: {voci}. Restano modificabili finché non li completi o li annulli; poi diventano storico, in sola lettura.»
+Se modificate la coltura di un terreno con vigneto aperto o lavori aperti, prima del salvataggio compare il dialogo **Cambio coltura** (**Continua** / **Annulla**). Il messaggio dice quanti lavori aperti verranno chiusi (es. «Verranno chiusi N lavori aperti della coltura precedente: … Resteranno nello storico in sola lettura, con ore, potature e trattamenti.») e, se c’è un vigneto aperto, che verrà chiuso (resta nello storico). **Continua** chiude i lavori e il vigneto; **Annulla** non salva nulla.
 
-Un lavoro di un terreno archiviato o precedente al cambio coltura si apre in sola lettura: campi grigi, pulsanti Salva ed Elimina nascosti, e il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione». I lavori ancora aperti restano modificabili.
+Dopo la conferma, un lavoro chiuso per cambio coltura (o di un terreno archiviato) si apre in sola lettura: campi grigi, pulsanti Salva ed Elimina nascosti, e il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione».

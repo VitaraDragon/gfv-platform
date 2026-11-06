@@ -7,6 +7,7 @@
 
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { getAllVigneti, getVigneto } from './vigneti-service.js';
+import { impiantiAperti } from '../../../shared/js/impianto-aperto.js';
 import { getVendemmie } from './vendemmia-service.js';
 import { getLavoriPerTerreno, getAttivitaDirettePerTerreno, aggregaSpeseVignetoAnno } from './lavori-vigneto-service.js';
 import { 
@@ -45,7 +46,7 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
         vigneti = [vigneto];
       }
     } else {
-      vigneti = await getAllVigneti();
+      vigneti = impiantiAperti(await getAllVigneti());
     }
     
     if (vigneti.length === 0) {

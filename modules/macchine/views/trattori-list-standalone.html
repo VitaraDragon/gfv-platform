@@ -83,6 +83,7 @@
             const { getCurrentTenantId, setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
             const { getAllMacchine, createMacchina } = await import('../../parco-macchine/services/macchine-service.js');
             const { escapeHtml, showAlert } = await import('../../../core/js/gfv-page-utils.js');
+            const { richiediModulo } = await import('../../../core/js/module-page-guard.js');
             const auth = getAuthInstance();
             const db = getDb();
 
@@ -157,6 +158,9 @@
                     if (ud.exists() && ud.data().tenantId) { tenantId = ud.data().tenantId; setCurrentTenantId(tenantId); }
                 }
                 if (!tenantId) { document.getElementById('table-container').innerHTML = '<div class="empty-state">Nessun tenant</div>'; return; }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'parcoMacchine')) return;
                 document.getElementById('btn-nuovo').onclick = openModal;
                 document.getElementById('btn-close-modal').onclick = closeModal;
                 document.getElementById('btn-annulla').onclick = closeModal;

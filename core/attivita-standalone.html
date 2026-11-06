@@ -1260,6 +1260,7 @@
             loadMacchine as loadMacchineModule,
             populateTrattoriDropdown as populateTrattoriDropdownModule,
             populateAttrezziDropdown as populateAttrezziDropdownModule,
+            refreshAvvisoMezzoInUsoAttivita as refreshAvvisoMezzoInUsoAttivitaModule,
             loadTerreni as loadTerreniModule,
             loadLavoriContoTerzi as loadLavoriContoTerziModule,
             loadClienti as loadClientiModule,
@@ -1288,6 +1289,7 @@
             updateOreNetteContoTerzi as updateOreNetteContoTerziUtil,
             initCalcoloOreNetteRapido as initCalcoloOreNetteRapidoUtil
         } from './js/attivita-utils.js';
+        import { shouldAutoSwitchGeneraleToTraLeFile } from './js/attivita-tipo-lavoro-pick.js';
 
         import {
             applyFilters as applyFiltersModule,
@@ -1388,6 +1390,7 @@
         let filteredAttivita = [];
         let macchineList = [];
         let hasParcoMacchineModule = false;
+        let hasMagazzinoModule = false;
         let hasManodoperaModule = false;
         let hasContoTerziModule = false;
         let availableModules = [];
@@ -1585,6 +1588,7 @@
                         const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
                         availableModules = resolveEffectiveModules(tenantData);
                         hasParcoMacchineModule = availableModules.includes('parcoMacchine');
+                        hasMagazzinoModule = availableModules.includes('magazzino');
                         hasManodoperaModule = availableModules.includes('manodopera');
                         hasContoTerziModule = availableModules.includes('contoTerzi');
                         const addBtn = document.getElementById('btn-aggiungi-attivita');
@@ -2475,6 +2479,7 @@
                 isContoTerziMode,
                 hasParcoMacchineModule,
                 hasManodoperaModule,
+                hasMagazzinoModule,
                 escapeHtml: escapeHtmlUtil,
                 formatOreNette: formatOreNetteUtil,
                 populateTrattoriRapido: populateTrattoriRapido,
@@ -2700,7 +2705,9 @@
                 setupCategoriaLavoroHandler: setupCategoriaLavoroHandler,
                 updateOreNette,
                 updateOreMacchinaDisplay,
-                isContoTerziMode
+                isContoTerziMode,
+                attivita,
+                lavoriList
             });
         }
 
@@ -2770,8 +2777,13 @@
         });
         
         // Listener per precompilare coltura quando si seleziona un terreno
-        document.getElementById('attivita-terreno').addEventListener('change', async function() {
+        document.getElementById('attivita-terreno').addEventListener('change', async function(ev) {
             const terrenoId = this.value;
+            // Generale → Tra le File solo per NUOVA attività (non in Modifica / prefill)
+            const autoSwitchTraLeFile = shouldAutoSwitchGeneraleToTraLeFile({
+                currentAttivitaId: currentAttivitaId,
+                detail: ev && ev.detail
+            });
             
             // Aggiorna terreniList globale (preserva coltura_categoria per Tony/injector)
             if (window.attivitaState) {
@@ -2810,12 +2822,18 @@
             
             if (terrenoId) {
                 const terreno = terreni.find(t => t.id === terrenoId);
-                // Vigneto con filari: se sottocategoria è Generale, passa a Tra le File
+                // Solo Lavorazione del Terreno: Generale → Tra le File su colture a filari
+                // (non su Raccolta/Potatura: altrimenti il tipo resta vuoto)
                 if (terreno && (terreno.coltura_categoria || terreno.coltura)) {
                     const cat = terreno.coltura_categoria || (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(terreno.coltura || '') : null);
                     const colturaStr = (cat || terreno.coltura || '').toLowerCase();
                     const isVigneto = /vite|vigneto|frutteto|oliveto|arboreo/.test(colturaStr);
-                    if (isVigneto) {
+                    const catPrincSelect = document.getElementById('attivita-categoria-principale');
+                    const catPrincNome = catPrincSelect && catPrincSelect.selectedIndex >= 0
+                        ? (catPrincSelect.options[catPrincSelect.selectedIndex]?.text || '')
+                        : '';
+                    const isLavTerreno = /lavorazione/i.test(catPrincNome) && /terreno/i.test(catPrincNome);
+                    if (isVigneto && autoSwitchTraLeFile && isLavTerreno) {
                         const subSelect = document.getElementById('attivita-sottocategoria');
                         const subOpt = subSelect && Array.from(subSelect.options).find(o => (o.text || '').toLowerCase().includes('generale'));
                         if (subSelect && subOpt && subSelect.value === subOpt.value) {
@@ -2967,12 +2985,26 @@
             }
         });
 
+        function ctxMezzoAttivitaCorrente() {
+            const record = currentAttivitaId ? (attivita || []).find((a) => a.id === currentAttivitaId) : null;
+            return {
+                attivita,
+                lavori: lavoriList,
+                escludiAttivitaId: currentAttivitaId,
+                macchinaIdCorrente: record?.macchinaId || null,
+                attrezzoIdCorrente: record?.attrezzoId || null
+            };
+        }
+
         // Listener per gestire compatibilità attrezzi quando cambia trattore
         document.getElementById('attivita-macchina')?.addEventListener('change', function() {
             const trattoreId = this.value;
             const oreMacchinaGroup = document.getElementById('attivita-ore-macchina-group');
             
             populateAttrezziDropdown(trattoreId);
+            refreshAvvisoMezzoInUsoAttivitaModule('trattore', trattoreId, macchineList, ctxMezzoAttivitaCorrente());
+            const attrezzoId = document.getElementById('attivita-attrezzo')?.value || null;
+            refreshAvvisoMezzoInUsoAttivitaModule('attrezzo', attrezzoId, macchineList, ctxMezzoAttivitaCorrente());
             
             // Mostra/nascondi gruppo ore macchina
             if (trattoreId || document.getElementById('attivita-attrezzo').value) {
@@ -2988,6 +3020,7 @@
             const attrezzoId = this.value;
             const trattoreId = document.getElementById('attivita-macchina').value;
             const oreMacchinaGroup = document.getElementById('attivita-ore-macchina-group');
+            refreshAvvisoMezzoInUsoAttivitaModule('attrezzo', attrezzoId, macchineList, ctxMezzoAttivitaCorrente());
             
             // Mostra/nascondi gruppo ore macchina
             if (trattoreId || attrezzoId) {
@@ -3044,6 +3077,7 @@
                 clientiList,
                 terreni,
                 attivita,
+                macchineList,
                 showAlert: showAlertUtil,
                 app,
                 auth,

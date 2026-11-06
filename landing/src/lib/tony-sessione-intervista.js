@@ -17,9 +17,12 @@ const PASSI_VALIDI = ['invito', 'sede', 'poderi', 'terreni', 'scheda'];
 
 const RE_EMAIL = /[^\s@<>()]+@[^\s@<>()]+\.[^\s@<>()]+/g;
 
+/** «password: xyz», «pwd=xyz»: mai in sessionStorage. */
+const RE_PASSWORD = /\b(?:password|passwd|pwd)\s*[:=]\s*\S+/gi;
+
 function testoSicuro(valore, max) {
   let s = String(valore == null ? '' : valore);
-  s = s.replace(RE_EMAIL, '').replace(/\s{2,}/g, ' ').trim();
+  s = s.replace(RE_EMAIL, '').replace(RE_PASSWORD, '').replace(/\s{2,}/g, ' ').trim();
   return s.length > max ? s.slice(0, max) : s;
 }
 

@@ -35,6 +35,7 @@ export function creaPlayerVoce(deps = {}) {
   let timerRampa = 0;
   let playingArrivato = false;
 
+  /** Revoca il blob URL: SOLO dopo ended/error o dopo aver staccato l'audio dalla sorgente. */
   function revoca() {
     if (urlCorrente && revokeObjectURL) {
       try {
@@ -44,6 +45,24 @@ export function creaPlayerVoce(deps = {}) {
       }
     }
     urlCorrente = null;
+  }
+
+  /**
+   * Percorsi di insuccesso (timeout, play() rifiutato) e cambio traccia: prima stacca
+   * il src dall'elemento audio, poi revoca. Revocare con il src ancora attivo e il
+   * caricamento in corso produce errori di rete («blob: ERR_FILE_NOT_FOUND») in console.
+   */
+  function rilasciaSorgente() {
+    pulisciListener();
+    if (audio) {
+      try {
+        audio.removeAttribute('src');
+        audio.load();
+      } catch {
+        /* ignore */
+      }
+    }
+    revoca();
   }
 
   function fermaRampa() {
@@ -138,7 +157,7 @@ export function creaPlayerVoce(deps = {}) {
         return Promise.resolve('fallita');
       }
       this.ferma();
-      revoca();
+      rilasciaSorgente();
       playingArrivato = false;
       const onInizio = opts.onInizio;
       onFineCorrente = opts.onFine || null;
@@ -151,6 +170,7 @@ export function creaPlayerVoce(deps = {}) {
           urlCorrente = createObjectURL(blob);
           audio.src = urlCorrente;
         } catch {
+          rilasciaSorgente();
           termina('fallita');
           return;
         }
@@ -187,7 +207,7 @@ export function creaPlayerVoce(deps = {}) {
             } catch {
               /* ignore */
             }
-            revoca();
+            rilasciaSorgente();
             termina('fallita');
           }
         }, attesaMaxMs);
@@ -197,13 +217,13 @@ export function creaPlayerVoce(deps = {}) {
           try {
             playResult = audio.play();
           } catch {
-            revoca();
+            rilasciaSorgente();
             termina('fallita');
             return;
           }
           if (playResult && typeof playResult.then === 'function') {
             playResult.catch(() => {
-              revoca();
+              rilasciaSorgente();
               termina('fallita');
             });
           }
@@ -252,15 +272,7 @@ export function creaPlayerVoce(deps = {}) {
 
     libera() {
       this.ferma();
-      if (audio) {
-        try {
-          audio.removeAttribute('src');
-          audio.load();
-        } catch {
-          /* ignore */
-        }
-      }
-      revoca();
+      rilasciaSorgente();
     },
   };
 }

@@ -26,10 +26,10 @@ import {
     lavoroCompletatoSenzaZone
 } from './lavoro-progresso-display.js?v=2026-10-20a';
 import {
+    applyFiltriTipiPerColtura,
     coltureDisponibiliPerCategoria,
     extractColtureUnicheFromTerreni,
     filterTipiLavoroByCategoria,
-    filterTipiLavoroVendemmia,
     allCategorieFlat,
     buildLavoroCategorieIndex,
     getSottocategorieForParent,
@@ -37,7 +37,16 @@ import {
     resolvePreserveCascadeSelection,
     terrenoHaColturaVite,
 } from './lavoro-cascade-filters.js';
+import { oreNetteVisualizzate } from './attivita-utils.js';
 import { raggruppaCategorie, unisciColturePerCategoria } from './catalogo-dedupe.js';
+import {
+    etichettaOpzioneMezzo,
+    isMezzoInUso,
+    mezzoGiaDellEntitaInModifica,
+    trovaUtilizzoMezzo,
+    aggiornaAvvisoSottoTendina,
+    confermaSalvataggioMezzoInUso
+} from './mezzo-in-uso-avviso.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -510,7 +519,7 @@ export function populateTrattoriDropdown(macchineList = [], selectedTrattoreId =
     if (!macchineList || macchineList.length === 0) {
         return;
     }
-    
+
     const trattori = macchineList
         .filter(m => {
             const tipo = m.tipoMacchina || m.tipo;
@@ -527,11 +536,9 @@ export function populateTrattoriDropdown(macchineList = [], selectedTrattoreId =
         option.value = trattore.id;
         const nome = trattore.nome || 'Trattore senza nome';
         const cavalli = trattore.cavalli ? ` (${trattore.cavalli} CV)` : '';
-        const stato = trattore.stato === 'disponibile' ? '✅' : 
-                     trattore.stato === 'in_uso' ? '🔄' : 
-                     trattore.stato === 'in_manutenzione' ? '🔧' : 
-                     trattore.stato === 'guasto' ? '❌' : '';
-        option.textContent = `${stato} ${nome}${cavalli}`;
+        // Mezzo in uso resta selezionabile (B6): etichetta «— in uso», non disabled.
+        option.textContent = etichettaOpzioneMezzo(`${nome}${cavalli}`, trattore);
+        option.disabled = false;
         if (trattore.id === selectedTrattoreId) {
             option.selected = true;
         }
@@ -584,24 +591,63 @@ export function populateAttrezziDropdown(trattoreId, macchineList = [], selected
             return nomeA.localeCompare(nomeB);
         });
     
-    // Aggiungi attrezzi compatibili al dropdown
+    // Aggiungi attrezzi compatibili al dropdown (in uso resta selezionabile, B6)
     attrezziCompatibili.forEach(macchina => {
         const option = document.createElement('option');
         option.value = macchina.id;
         const nome = macchina.nome || 'Attrezzo senza nome';
-        const stato = macchina.stato === 'disponibile' ? '✅' : 
-                     macchina.stato === 'in_uso' ? '🔄' : 
-                     macchina.stato === 'in_manutenzione' ? '🔧' : 
-                     macchina.stato === 'guasto' ? '❌' : '';
-        option.textContent = `${stato} ${nome}`;
-        // NON disabilitiamo gli attrezzi: il controllo di conflitto al salvataggio gestirà tutto
-        // Questo permette di selezionare attrezzi anche se sono in_uso per altre attività in orari diversi
+        option.textContent = etichettaOpzioneMezzo(nome, macchina);
         option.disabled = false;
         if (macchina.id === selectedAttrezzoId) {
             option.selected = true;
         }
         select.appendChild(option);
     });
+}
+
+/**
+ * Aggiorna avviso sotto tendina trattore/attrezzo se il mezzo è in uso altrove.
+ * @param {'trattore'|'attrezzo'} tipoMezzo
+ * @param {string|null} mezzoId
+ * @param {Array} macchineList
+ * @param {{ attivita?: Array, lavori?: Array, escludiAttivitaId?: string|null, escludiLavoroId?: string|null, macchinaIdCorrente?: string|null, attrezzoIdCorrente?: string|null }} [ctx]
+ */
+export function refreshAvvisoMezzoInUsoAttivita(tipoMezzo, mezzoId, macchineList = [], ctx = {}) {
+    const selectId = tipoMezzo === 'attrezzo' ? 'attivita-attrezzo' : 'attivita-macchina';
+    const select = typeof document !== 'undefined' ? document.getElementById(selectId) : null;
+    const macchina = (macchineList || []).find((x) => String(x.id) === String(mezzoId || ''));
+    const silenzioso = !mezzoId || !isMezzoInUso(macchina)
+        || mezzoGiaDellEntitaInModifica(mezzoId, ctx);
+    const utilizzo = silenzioso ? null : trovaUtilizzoMezzo(mezzoId, ctx);
+    aggiornaAvvisoSottoTendina(select, macchina, {
+        utilizzo,
+        tipoMezzo,
+        silenzioso,
+        avvisoId: `${selectId}-in-uso-avviso`
+    });
+}
+
+/**
+ * Conferma salvataggio se trattore/attrezzo sono in uso altrove.
+ * @returns {boolean} false se l'utente annulla
+ */
+export function confermaMezziInUsoAlSalvataggioAttivita({
+    macchinaId,
+    attrezzoId,
+    macchineList = [],
+    ctx = {},
+    confirmFn
+} = {}) {
+    const list = macchineList || [];
+    const check = (id, tipoMezzo) => {
+        if (!id) return true;
+        if (mezzoGiaDellEntitaInModifica(id, ctx)) return true;
+        const macchina = list.find((x) => String(x.id) === String(id));
+        return confermaSalvataggioMezzoInUso(macchina, { tipoMezzo, confirmFn });
+    };
+    if (!check(macchinaId, 'trattore')) return false;
+    if (!check(attrezzoId, 'attrezzo')) return false;
+    return true;
 }
 
 /**
@@ -652,34 +698,30 @@ export async function loadTerreni(
         // Aggiungi terreni aziendali
         terreni.push(...terreniAziendali);
         
-        // Se in modalità Conto Terzi, dobbiamo anche caricare terreni clienti
-        // Per ora manteniamo compatibilità: se il servizio non supporta "tutti i clienti",
-        // carichiamo anche direttamente i terreni clienti (fallback)
-        if (isContoTerziMode) {
-            try {
-                const { collection, getDocs } = await import('../services/firebase-service.js');
-                const terreniCollection = await getTerreniCollection(currentTenantId, db);
-                const querySnapshot = await getDocs(terreniCollection);
-                
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    // Aggiungi solo terreni clienti (con clienteId)
-                    if (data.clienteId && data.clienteId !== '') {
-                        terreni.push({
-                            id: docSnap.id,
-                            nome: data.nome || '',
-                            coltura: data.coltura || null,
-                            clienteId: data.clienteId,
-                            stato: data.stato || 'attivo',
-                            superficie: data.superficie || 0,
-                            coordinate: data.coordinate || null,
-                            polygonCoords: data.polygonCoords || null
-                        });
-                    }
-                });
-            } catch (error) {
-                console.warn('Errore caricamento terreni clienti:', error);
-            }
+        // Terreni clienti: servono in CT e in Modifica di attività migrate (clienteId + terreno cliente)
+        try {
+            const { collection, getDocs } = await import('../services/firebase-service.js');
+            const terreniCollection = await getTerreniCollection(currentTenantId, db);
+            const querySnapshot = await getDocs(terreniCollection);
+            const gia = new Set(terreni.map((t) => t && t.id).filter(Boolean));
+
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.clienteId && data.clienteId !== '' && !gia.has(docSnap.id)) {
+                    terreni.push({
+                        id: docSnap.id,
+                        nome: data.nome || '',
+                        coltura: data.coltura || null,
+                        clienteId: data.clienteId,
+                        stato: data.stato || 'attivo',
+                        superficie: data.superficie || 0,
+                        coordinate: data.coordinate || null,
+                        polygonCoords: data.polygonCoords || null
+                    });
+                }
+            });
+        } catch (error) {
+            console.warn('Errore caricamento terreni clienti:', error);
         }
         
         // Ordina client-side per nome
@@ -944,7 +986,7 @@ export function lavoriDiarioContoTerziVisibili(lavoriList = [], hasManodopera = 
 /**
  * Popola dropdown lavori nel form (lavori CT in corso; senza Manodopera anche da_pianificare)
  * @param {Array} lavoriList - Array lavori disponibili
- * @param {{ hasManodopera?: boolean }} [opts]
+ * @param {{ hasManodopera?: boolean, clienteId?: string|null, keepLavoroId?: string|null }} [opts]
  */
 export function populateLavoriDropdown(lavoriList = [], opts = {}) {
     const select = document.getElementById('attivita-lavoro');
@@ -953,16 +995,29 @@ export function populateLavoriDropdown(lavoriList = [], opts = {}) {
     const urlParams = new URLSearchParams(window.location.search);
     const statoFiltro = urlParams.get('stato');
     const hasManodopera = opts.hasManodopera === true;
-    const lavoriFiltrati = filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera, statoFiltro });
+    const clienteFiltro = opts.clienteId != null && opts.clienteId !== ''
+        ? String(opts.clienteId)
+        : (document.getElementById('attivita-cliente')?.value || '');
+    const keepLavoroId = opts.keepLavoroId || null;
+    let lavoriFiltrati = filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera, statoFiltro });
+    if (clienteFiltro) {
+        lavoriFiltrati = lavoriFiltrati.filter((l) => String(l.clienteId || '') === clienteFiltro);
+    }
+    if (keepLavoroId && !lavoriFiltrati.some((l) => l.id === keepLavoroId)) {
+        const storico = (lavoriList || []).find((l) => l && l.id === keepLavoroId);
+        if (storico) lavoriFiltrati = [storico, ...lavoriFiltrati];
+    }
 
     select.innerHTML = '<option value="">-- Seleziona lavoro --</option>';
     lavoriFiltrati.forEach(lavoro => {
         const option = document.createElement('option');
         option.value = lavoro.id;
-        // Badge Conto Terzi se presente
         const isContoTerzi = lavoro.clienteId != null && lavoro.clienteId !== '';
+        const chiuso = ['completato', 'annullato', 'completato_da_approvare'].includes(String(lavoro.stato || '').toLowerCase());
         const nomeLavoro = lavoro.nome || 'Lavoro senza nome';
-        option.textContent = isContoTerzi ? `${nomeLavoro} 💼 Conto Terzi` : nomeLavoro;
+        let label = isContoTerzi ? `${nomeLavoro} 💼 Conto Terzi` : nomeLavoro;
+        if (chiuso) label += ' (storico)';
+        option.textContent = label;
         option.dataset.terrenoId = lavoro.terrenoId || '';
         option.dataset.clienteId = lavoro.clienteId || '';
         select.appendChild(option);
@@ -1203,43 +1258,24 @@ export function populateTipoLavoroDropdown(
         }
     }
     
-    // FILTRO VENDEMMIA: Se terreno è VITE e categoria è RACCOLTA, mostra solo tipi vendemmia
-    console.log('[ATTIVITA-CONTROLLER] Verifica filtro vendemmia - isTerrenoVite:', isTerrenoVite, 'isRaccolta:', isRaccolta, 'tipiFiltrati.length:', tipiFiltrati.length);
-    
-    if (isTerrenoVite && isRaccolta && tipiFiltrati.length > 0) {
-        console.log('[ATTIVITA-CONTROLLER] ✓✓✓ Applicando filtro vendemmia: mostro solo Vendemmia Manuale e Vendemmia Meccanica');
-        console.log('[ATTIVITA-CONTROLLER] Tipi prima del filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
-
-        tipiFiltrati = filterTipiLavoroVendemmia(tipiFiltrati, { isRaccolta: true, isTerrenoVite: true });
-
-        console.log('[ATTIVITA-CONTROLLER] Tipi dopo filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
-        
-        // Se non ci sono tipi vendemmia nella lista, aggiungi i predefiniti
-        if (tipiFiltrati.length === 0) {
-            console.log('[ATTIVITA-CONTROLLER] Nessun tipo vendemmia trovato, aggiungo predefiniti');
-            const tutteSottocategorie = allCategorieFlat([], sottocategorieLavoriMap);
-            const sottocatManuale = tutteSottocategorie.find(sc => 
-                sc.codice === 'raccolta_manuale' || sc.nome?.toLowerCase().includes('manuale')
-            );
-            const sottocatMeccanica = tutteSottocategorie.find(sc => 
-                sc.codice === 'raccolta_meccanica' || sc.nome?.toLowerCase().includes('meccanica')
-            );
-            
-            tipiFiltrati = [
-                { nome: 'Vendemmia Manuale', sottocategoriaId: sottocatManuale?.id || categoriaId, categoriaId: categoriaId },
-                { nome: 'Vendemmia Meccanica', sottocategoriaId: sottocatMeccanica?.id || categoriaId, categoriaId: categoriaId }
-            ];
+    // Filtro per coltura del terreno + ripiego vendemmia su Vite/Raccolta
+    {
+        let terrenoCorrente = null;
+        if (typeof window.attivitaState !== 'undefined' && window.attivitaState.terreniList) {
+            const terrenoSelect = document.getElementById('attivita-terreno');
+            const terrenoIdSel = terrenoSelect ? terrenoSelect.value : null;
+            if (terrenoIdSel) {
+                terrenoCorrente = window.attivitaState.terreniList.find((t) => t && t.id === terrenoIdSel) || null;
+            }
         }
-    } else {
-        if (!isTerrenoVite) {
-            console.log('[ATTIVITA-CONTROLLER] Filtro vendemmia NON applicato: terreno non è VITE');
+        if (!terrenoCorrente && isTerrenoVite) {
+            terrenoCorrente = { coltura: 'Vite' };
         }
-        if (!isRaccolta) {
-            console.log('[ATTIVITA-CONTROLLER] Filtro vendemmia NON applicato: categoria non è RACCOLTA');
-        }
-        if (tipiFiltrati.length === 0) {
-            console.log('[ATTIVITA-CONTROLLER] Filtro vendemmia NON applicato: nessun tipo disponibile');
-        }
+        tipiFiltrati = applyFiltriTipiPerColtura(tipiFiltrati, {
+            isRaccolta,
+            terreno: terrenoCorrente,
+            keepNome: selectedValue || previousTipo || null
+        });
     }
     
     if (tipiFiltrati.length === 0) {
@@ -1344,12 +1380,14 @@ export async function renderAttivita(params) {
         isContoTerziMode,
         hasParcoMacchineModule,
         hasManodoperaModule,
+        hasMagazzinoModule = false,
         escapeHtml,
         formatOreNette,
         populateTrattoriRapido,
         initCalcoloOreNetteRapido,
         caricaDettagliLavoriCompletati
     } = params;
+    const mostraPienoAttivita = !!(hasParcoMacchineModule && hasMagazzinoModule);
 
     const container = document.getElementById('attivita-container');
     if (!container) return;
@@ -1705,7 +1743,8 @@ export async function renderAttivita(params) {
             ${filteredAttivita.map(att => {
                 const dataFormatted = att.data ? formatDateLikeToItalianLongLocal(att.data) : '';
                 const pauseFormatted = `${att.pauseMinuti} min`;
-                const oreFormatted = formatOreNette(att.oreNette || 0);
+                const oreVis = oreNetteVisualizzate(att);
+                const oreFormatted = formatOreNette(oreVis.ore) + (oreVis.corretta ? ' <span title="Ore ricalcolate dagli orari">↺</span>' : '');
                 
                 // Badge Conto Terzi se presente (sempre se ha clienteId)
                 const isContoTerzi = att.clienteId != null && att.clienteId !== '';
@@ -1771,6 +1810,7 @@ export async function renderAttivita(params) {
                     </div>
                     ` : ''}
                     <div class="col-azioni" data-label="Azioni">
+                        ${mostraPienoAttivita && att.macchinaId ? `<a href="../modules/magazzino/views/movimenti-standalone.html?categoria=carburante&tipo=uscita&pieno=1&macchinaId=${encodeURIComponent(att.macchinaId)}" class="btn-edit-small" title="Pieno carburante" style="text-decoration:none;">⛽ Pieno</a> ` : ''}
                         ${hasManodoperaModule ? '' : (isAttivitaSolaLettura(att, (terreni || []).find((t) => t.id === att.terrenoId), att.lavoroId ? (lavoriList || []).find((l) => l.id === att.lavoroId) : null) ? '<span title="Solo consultazione">Solo consultazione</span>' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
                         <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`)}
                     </div>

@@ -1,0 +1,15 @@
+D5 - gate "nessun .modules grezzo" allargato (tests/module-access-no-raw-modules-gate.test.js)
+
+Nuove cartelle controllate: core/admin, core/statistiche-standalone.html,
+core/segnatura-ore-standalone.html, modules/{frutteto,seminativo,vendemmia-meccanica}/js,
+modules/*/services, functions/.
+
+Trovato SOLO in functions/ (tutto il resto era già pulito):
+- functions/vm-preventivo-piano-sync.js  -> CORRETTO: resolveEffectiveModules (era tenant.modules grezzo;
+  un tenant con VM in prova non sincronizzava il piano).
+- functions/registra-pieno-campo.js      -> CORRETTO: haModuloMagazzino usa resolveEffectiveModules
+  (prima logica trial a mano, senza bundle).
+- functions/index.js:167 (resolveTenantSubscription, tenantModules per Tony advisor) -> CORRETTO: resolveEffectiveModules.
+- functions/module-trial.js (getPaidModuleIds = il resolver stesso)       -> allowlist, legittimo.
+- functions/stripe-billing.js:728,840 (moduli PAGATI per addon/fatturazione) -> allowlist, legittimo:
+  la fatturazione deve vedere i moduli pagati, non quelli in prova.

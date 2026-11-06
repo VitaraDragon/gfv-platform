@@ -19,12 +19,13 @@ vi.mock('../modules/magazzino/services/prodotti-service.js', () => ({
 }));
 vi.mock('../modules/magazzino/services/movimenti-service.js', () => ({
   createMovimento: vi.fn(async () => 'mov-1'),
+  setMovimentoConId: vi.fn(async (id) => ({ movimentoId: id, created: true, delta: -1 })),
   deleteMovimento: vi.fn(async () => undefined),
 }));
 
 import { getDocumentData } from '../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../core/services/tenant-service.js';
-import { createMovimento } from '../modules/magazzino/services/movimenti-service.js';
+import { setMovimentoConId } from '../modules/magazzino/services/movimenti-service.js';
 import {
   tenantHasMagazzinoModule,
   syncScarichiMagazzinoTrattamento,
@@ -34,14 +35,15 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const now = new Date('2026-09-18T12:00:00Z');
 const trialActive = {
   status: 'active',
-  endsAt: new Date('2026-10-18T12:00:00Z'),
+  // Fine prova oltre «oggi» del test (fake timers 2026-09-18) e oltre la data reale CI.
+  endsAt: new Date('2027-12-31T12:00:00Z'),
 };
 
+/** Logica gate: pagine HTML estratte in JS condivisi / per-modulo. */
 const SCARICO_PAGES = [
-  'modules/vigneto/views/trattamenti-standalone.html',
-  'modules/vigneto/views/concimazioni-standalone.html',
-  'modules/frutteto/views/trattamenti-standalone.html',
-  'modules/frutteto/views/concimazioni-standalone.html',
+  'shared/js/trattamenti-coltura-page.js',
+  'modules/vigneto/js/concimazioni-page.js',
+  'modules/frutteto/js/concimazioni-page.js',
 ];
 
 describe('tenantHasMagazzinoModule', () => {
@@ -99,7 +101,7 @@ describe('syncScarichiMagazzinoTrattamento — trial', () => {
       previousMovimentoIds: [],
     });
     expect(out.movimentoIds).toEqual([]);
-    expect(createMovimento).not.toHaveBeenCalled();
+    expect(setMovimentoConId).not.toHaveBeenCalled();
   });
 
   it('crea movimenti se magazzino è in prova e lo scarico è richiesto', async () => {
@@ -116,8 +118,8 @@ describe('syncScarichiMagazzinoTrattamento — trial', () => {
       registraScaricoMagazzino: true,
       previousMovimentoIds: [],
     });
-    expect(out.movimentoIds).toEqual(['mov-1']);
-    expect(createMovimento).toHaveBeenCalledTimes(1);
+    expect(out.movimentoIds).toEqual(['trattamento_vigneto_v1_tr1_p1']);
+    expect(setMovimentoConId).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -24,6 +24,14 @@ import {
 
 import { filterAttrezziDropdownCompatibili } from '../../js/macchine-cv-compat.js';
 import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../../js/macchina-selezionabile.js';
+import {
+    etichettaOpzioneMezzo,
+    isMezzoInUso,
+    mezzoGiaDellEntitaInModifica,
+    trovaUtilizzoMezzo,
+    aggiornaAvvisoSottoTendina,
+    confermaSalvataggioMezzoInUso
+} from '../../js/mezzo-in-uso-avviso.js';
 import { computeWorkedAreaHaAsync } from '../../services/zone-lavorate-area.js?v=2026-10-20a';
 import {
     ETICHETTA_COMPLETATO_SENZA_ZONE,
@@ -31,6 +39,7 @@ import {
 } from '../../js/lavoro-progresso-display.js?v=2026-10-20a';
 import {
     allCategorieFlat,
+    applyFiltriTipiPerColtura,
     buildLavoroCategorieIndex,
     filterTipiLavoroByCategoria,
     getSottocategorieForParent,
@@ -181,6 +190,7 @@ export function setupManodoperaVisibility(hasManodoperaModule) {
 // ============================================
 
 import { isTerrenoArchiviato, nomeTerrenoPerStorico } from '../../../shared/js/terreno-archivio.js';
+import { htmlAzioniRegistro, isLavoroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 let terreniPerIdLookup = new Map();
 
@@ -1680,16 +1690,15 @@ export function populateTrattoriDropdown(trattoriList, selectedMacchinaId) {
         option.value = trattore.id;
         const nome = trattore.nome || 'Trattore senza nome';
         const cavalli = trattore.cavalli ? ` (${trattore.cavalli} CV)` : '';
-        const stato = trattore.stato === 'disponibile' ? '✅' : trattore.stato === 'in_uso' ? '🔄' : '⚠️';
-        option.textContent = `${stato} ${nome}${cavalli}`;
         const isCurrent = selectedMacchinaId && String(trattore.id) === String(selectedMacchinaId);
         const sel = macchinaSelezionabile(trattore, {
             contesto: 'nuovo-lavoro',
             giaAssegnataAlLavoro: !!isCurrent
         });
-        const inUso = String(trattore.stato || '').toLowerCase().replace(/_/g, '-') === 'in-uso';
-        option.disabled = !isCurrent && (!sel.ok || inUso);
-        option.textContent += suffissoMacchinaNonSelezionabile(sel);
+        // B6 (decisione Pier): mezzo in_uso resta selezionabile — etichetta «— in uso», non disabled.
+        const base = `${nome}${cavalli}${suffissoMacchinaNonSelezionabile(sel)}`;
+        option.textContent = etichettaOpzioneMezzo(base, trattore);
+        option.disabled = !isCurrent && !sel.ok;
         select.appendChild(option);
     });
 
@@ -1941,41 +1950,21 @@ export function populateTipoLavoroDropdown(
         }
     }
     
-    // FILTRO VENDEMMIA: Se terreno è VITE e categoria è RACCOLTA, mostra solo tipi vendemmia
-    // APPLICATO DOPO aver filtrato per categoria, così funziona correttamente con la gerarchia
-    if (isTerrenoVite && isRaccolta && tipiFiltrati.length > 0) {
-        console.log('[GESTIONE-LAVORI] Applicando filtro vendemmia: mostro solo Vendemmia Manuale e Vendemmia Meccanica');
-        console.log('[GESTIONE-LAVORI] Tipi prima del filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
-        
-        tipiFiltrati = tipiFiltrati.filter(tipo => {
-            const nomeTipo = (tipo.nome || '').toLowerCase();
-            const includeVendemmia = nomeTipo.includes('vendemmia');
-            console.log('[GESTIONE-LAVORI] Tipo:', tipo.nome, 'include vendemmia?', includeVendemmia);
-            return includeVendemmia;
-        });
-        
-        console.log('[GESTIONE-LAVORI] Tipi dopo filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
-        
-        // Se non ci sono tipi vendemmia nella lista, aggiungi i predefiniti
-        if (tipiFiltrati.length === 0) {
-            console.log('[GESTIONE-LAVORI] Nessun tipo vendemmia trovato, aggiungo predefiniti');
-            // Trova la sottocategoria corretta per aggiungere i tipi predefiniti
-            const sottocatManuale = allCategorieFlat([], sottocategorieLavoriMap).find(sc => 
-                sc.codice === 'raccolta_manuale' || sc.nome?.toLowerCase().includes('manuale')
-            );
-            const sottocatMeccanica = allCategorieFlat([], sottocategorieLavoriMap).find(sc => 
-                sc.codice === 'raccolta_meccanica' || sc.nome?.toLowerCase().includes('meccanica')
-            );
-            
-            tipiFiltrati = [
-                { nome: 'Vendemmia Manuale', sottocategoriaId: sottocatManuale?.id || categoriaId, categoriaId: categoriaId },
-                { nome: 'Vendemmia Meccanica', sottocategoriaId: sottocatMeccanica?.id || categoriaId, categoriaId: categoriaId }
-            ];
+    // Filtro per coltura del terreno (vendemmia solo vigneto, scuotitore/frutteto, ecc.)
+    {
+        let terrenoCorrente = null;
+        if (terrenoId && typeof window.lavoriState !== 'undefined' && window.lavoriState.terreniList) {
+            terrenoCorrente = trovaTerrenoPerId(window.lavoriState.terreniList, terrenoId);
         }
-    } else if (isRaccolta && !terrenoId) {
-        console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non selezionato, mostro tutti i tipi raccolta');
-    } else if (isRaccolta && terrenoId && !isTerrenoVite) {
-        console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non è VITE, mostro tutti i tipi raccolta');
+        const keepNome = selectedValue || previousTipo || null;
+        tipiFiltrati = applyFiltriTipiPerColtura(tipiFiltrati, {
+            isRaccolta,
+            terreno: terrenoCorrente,
+            keepNome
+        });
+        if (isRaccolta && !terrenoId) {
+            console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non selezionato, mostro tipi filtrati senza terreno');
+        }
     }
 
     tipiFiltrati = filterTipiLavoroNascondiTipiGenericiTrattamenti(
@@ -2504,6 +2493,12 @@ export async function renderLavori(
                 <td>${statoBadge}</td>
                 <td>
                     <div class="action-buttons">
+                        ${(() => {
+                            const solaLettura = isLavoroSolaLettura(lavoro, lavoro.terreno);
+                            if (solaLettura) {
+                                return `<button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">👁️ Dettagli</button>${htmlAzioniRegistro(true, '')}`;
+                            }
+                            return `
                         <button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">👁️ Dettagli</button>
                         ${renderCalcolatoreVmLink(lavoro)}
                         <button class="btn btn-info btn-sm" onclick="openModificaModal('${lavoro.id}')">✏️ Modifica</button>
@@ -2511,7 +2506,8 @@ export async function renderLavori(
                         ${hasManodoperaModule && lavoro.stato === 'in_standby' ? `<button type="button" class="btn btn-success btn-sm" onclick="openSostitutoAssenzaModal('${lavoro.id}')" title="Scegli sostituto dalla shortlist">👤 Assegna sostituto</button><button type="button" class="btn btn-primary btn-sm" onclick="openStandbyAssenzaModal('${lavoro.id}')" title="Ripristina senza sostituto">▶️ Ripristina</button>` : ''}
                         ${hasManodoperaModule && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `<button type="button" class="btn btn-warning btn-sm" onclick="openStandbyAssenzaModal('${lavoro.id}')" title="Assenza operaio: metti il lavoro in standby">⏸️ Standby assenza</button>` : ''}
                         ${lavoro.stato === 'sospeso' ? `<button type="button" class="btn btn-primary btn-sm" onclick="creaLavoroRipresa('${lavoro.id}')" title="Nuovo lavoro collegato per completare dopo la sospensione">🔁 Crea ripresa</button>` : ''}
-                        <button class="btn btn-danger btn-sm" onclick="openEliminaModal('${lavoro.id}')">🗑️ Elimina</button>
+                        <button class="btn btn-danger btn-sm" onclick="openEliminaModal('${lavoro.id}')">🗑️ Elimina</button>`;
+                        })()}
                     </div>
                 </td>
             </tr>
@@ -2638,9 +2634,8 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         const categoriaRef = attrezzo.categoriaId || attrezzo.categoriaFunzione;
         const categoriaNome = getNomeCategoria ? getNomeCategoria(categoriaRef) : 'Senza categoria';
         const cvMin = attrezzo.cavalliMinimiRichiesti ? ` (min ${attrezzo.cavalliMinimiRichiesti} CV)` : '';
-        const stato = attrezzo.stato === 'disponibile' ? '✅' : attrezzo.stato === 'in_uso' ? '🔄' : '⚠️';
-        option.textContent = `${stato} ${nome} - ${categoriaNome}${cvMin}`;
-        // Come diario attività: non disabilitare — altrimenti select.value / iniezione Tony non possono selezionare; il salvataggio gestisce conflitti.
+        // B6: in uso selezionabile, etichetta «— in uso»
+        option.textContent = etichettaOpzioneMezzo(`${nome} - ${categoriaNome}${cvMin}`, attrezzo);
         option.disabled = false;
         select.appendChild(option);
     });
@@ -2649,6 +2644,47 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         ensureMacchinaOptionInSelect(select, selectedAttrezzoId, attrezziList, 'Attrezzo assegnato');
         select.value = String(selectedAttrezzoId);
     }
+}
+
+/**
+ * Avviso sotto tendina trattore/attrezzo in Gestione lavori (B6).
+ */
+export function refreshAvvisoMezzoInUsoLavoro(tipoMezzo, mezzoId, macchineList = [], ctx = {}) {
+    const selectId = tipoMezzo === 'attrezzo' ? 'lavoro-attrezzo' : 'lavoro-trattore';
+    const select = typeof document !== 'undefined' ? document.getElementById(selectId) : null;
+    const macchina = (macchineList || []).find((x) => String(x.id) === String(mezzoId || ''));
+    const silenzioso = !mezzoId || !isMezzoInUso(macchina)
+        || mezzoGiaDellEntitaInModifica(mezzoId, ctx);
+    const utilizzo = silenzioso ? null : trovaUtilizzoMezzo(mezzoId, ctx);
+    aggiornaAvvisoSottoTendina(select, macchina, {
+        utilizzo,
+        tipoMezzo,
+        silenzioso,
+        avvisoId: `${selectId}-in-uso-avviso`
+    });
+}
+
+/**
+ * Conferma salvataggio lavoro se mezzo in uso altrove.
+ * @returns {boolean}
+ */
+export function confermaMezziInUsoAlSalvataggioLavoro({
+    macchinaId,
+    attrezzoId,
+    macchineList = [],
+    ctx = {},
+    confirmFn
+} = {}) {
+    const list = macchineList || [];
+    const check = (id, tipoMezzo) => {
+        if (!id) return true;
+        if (mezzoGiaDellEntitaInModifica(id, ctx)) return true;
+        const macchina = list.find((x) => String(x.id) === String(id));
+        return confermaSalvataggioMezzoInUso(macchina, { tipoMezzo, confirmFn });
+    };
+    if (!check(macchinaId, 'trattore')) return false;
+    if (!check(attrezzoId, 'attrezzo')) return false;
+    return true;
 }
 
 /**

@@ -645,10 +645,18 @@ export async function createVendemmiaFromLavoro(lavoroId) {
     }
     
     // Calcola ore totali dal lavoro (se presente)
+    // Ore validate se presenti, altrimenti stima durata prevista × 8
     let oreImpiegate = null;
-    if (lavoro.durataPrevista) {
-      // Stima ore: durata prevista in giorni × 8 ore/giorno
-      oreImpiegate = lavoro.durataPrevista * 8;
+    {
+      let costiLavoro = null;
+      try {
+        const { calcolaCostiLavoro } = await import('./lavori-vigneto-service.js');
+        costiLavoro = await calcolaCostiLavoro(lavoroId, lavoro);
+      } catch (e) {
+        console.warn('[VENDEMMIA-SERVICE] calcolo ore validate da lavoro (non critico):', e);
+      }
+      const { risolviOreCostiLavoro } = await import('../../../shared/js/ore-lavoro-validate.js');
+      oreImpiegate = risolviOreCostiLavoro(lavoro, costiLavoro).oreImpiegate;
     }
     
     // Crea vendemmia con dati precompilati
@@ -905,8 +913,18 @@ export async function syncVendemmiaFromLavoro(lavoroId) {
     // Ore: se ci sono ore validate le userà comunque calcolaCompensiVendemmia via lavoroId,
     // ma manteniamo un valore "display" coerente (fallback su durata prevista).
     let oreImpiegate = null;
-    if (lavoro.durataPrevista) {
-      oreImpiegate = lavoro.durataPrevista * 8;
+    try {
+      let costiLavoro = null;
+      try {
+        const { calcolaCostiLavoro } = await import('./lavori-vigneto-service.js');
+        costiLavoro = await calcolaCostiLavoro(lavoroId, lavoro);
+      } catch (e) {
+        console.warn('[VENDEMMIA-SERVICE] calcolo ore validate da lavoro (non critico):', e);
+      }
+      const { risolviOreCostiLavoro } = await import('../../../shared/js/ore-lavoro-validate.js');
+      oreImpiegate = risolviOreCostiLavoro(lavoro, costiLavoro).oreImpiegate;
+    } catch (e) {
+      console.warn('[VENDEMMIA-SERVICE] risoluzione ore (non critico):', e);
     }
 
     const updates = {

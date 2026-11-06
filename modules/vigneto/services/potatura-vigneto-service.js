@@ -16,6 +16,23 @@ import {
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { PotaturaVigneto } from '../models/PotaturaVigneto.js';
 import { getVigneto, updateVigneto } from './vigneti-service.js';
+import { risolviOreCostiLavoro } from '../../../shared/js/ore-lavoro-validate.js';
+
+/**
+ * Ore/costi di un lavoro: validate se presenti, altrimenti stima durataPrevista × 8 (senza costi).
+ * @param {string} lavoroId
+ * @param {Object} lavoro
+ */
+async function getOreCostiDaLavoro(lavoroId, lavoro) {
+  let costi = null;
+  try {
+    const { calcolaCostiLavoro } = await import('./lavori-vigneto-service.js');
+    costi = await calcolaCostiLavoro(lavoroId, lavoro);
+  } catch (e) {
+    console.warn('[POTATURA-VIGNETO] getOreCostiDaLavoro:', e);
+  }
+  return risolviOreCostiLavoro(lavoro, costi);
+}
 
 const SUB_COLLECTION_NAME = 'potature';
 
@@ -451,8 +468,7 @@ export async function createPotaturaFromLavoro(lavoroId) {
         }
       } catch (e) { /* ignore */ }
     } else if (lavoro.operaioId) operai.push(lavoro.operaioId);
-    let oreImpiegate = null;
-    if (lavoro.durataPrevista) oreImpiegate = lavoro.durataPrevista * 8;
+    const oreCosti = await getOreCostiDaLavoro(lavoroId, lavoro);
     const potaturaData = {
       vignetoId: vigneto.id,
       lavoroId,
@@ -461,7 +477,10 @@ export async function createPotaturaFromLavoro(lavoroId) {
       parcella: null,
       ceppiPotati: null,
       operai,
-      oreImpiegate,
+      oreImpiegate: oreCosti.oreImpiegate,
+      ...(oreCosti.daValidate
+        ? { costoManodopera: oreCosti.costoManodopera, costoMacchina: oreCosti.costoMacchina }
+        : {}),
       note: `Potatura creata da lavoro: ${lavoro.nome || lavoroId}`
     };
     const potatura = new PotaturaVigneto(potaturaData);
@@ -593,7 +612,9 @@ export async function getDatiPrecompilazionePotatura(vignetoId, potatura, option
     ceppiPotati: potatura.ceppiPotati ?? null,
     operaiNomi: '',
     costoManodopera: potatura.costoManodopera ?? 0,
-    costoMacchina: potatura.costoMacchina ?? 0
+    costoMacchina: potatura.costoMacchina ?? 0,
+    oreImpiegate: potatura.oreImpiegate ?? null,
+    oreDaValidate: false
   };
   const hasManodopera = options.hasManodoperaModule !== false;
 
@@ -656,6 +677,10 @@ export async function getDatiPrecompilazionePotatura(vignetoId, potatura, option
       if (costi) {
         out.costoManodopera = costi.costoManodopera ?? 0;
         out.costoMacchina = costi.costoMacchine ?? 0;
+        if (Number.isFinite(costi.oreValidate) && costi.oreValidate > 0) {
+          out.oreImpiegate = costi.oreValidate;
+          out.oreDaValidate = true;
+        }
       }
     } catch (e) {
       console.warn('[POTATURA-VIGNETO] getDatiPrecompilazionePotatura calcolaCostiLavoro:', e);
@@ -729,8 +754,13 @@ export async function syncPotaturaFromLavoro(lavoroId) {
       } catch (e) { /* ignore */ }
     } else if (lavoro.operaioId) operai.push(lavoro.operaioId);
     const dataPotatura = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date());
-    const oreImpiegate = lavoro.durataPrevista ? lavoro.durataPrevista * 8 : null;
-    await updatePotatura(found.vignetoId, found.potaturaId, { data: dataPotatura, operai, oreImpiegate });
+    const oreCosti = await getOreCostiDaLavoro(lavoroId, lavoro);
+    const updates = { data: dataPotatura, operai, oreImpiegate: oreCosti.oreImpiegate };
+    if (oreCosti.daValidate) {
+      if (oreCosti.costoManodopera != null) updates.costoManodopera = oreCosti.costoManodopera;
+      if (oreCosti.costoMacchina != null) updates.costoMacchina = oreCosti.costoMacchina;
+    }
+    await updatePotatura(found.vignetoId, found.potaturaId, updates);
     return found.potaturaId;
   } catch (error) {
     console.error('[POTATURA-VIGNETO] syncPotaturaFromLavoro:', error);

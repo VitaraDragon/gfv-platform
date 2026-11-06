@@ -204,7 +204,7 @@
                 </div>
                 <div class="form-group">
                     <label for="mov-quantita" id="label-mov-quantita">Quantità *</label>
-                    <input type="number" id="mov-quantita" required min="0" step="0.01" placeholder="Es. 10">
+                    <input type="number" id="mov-quantita" required min="0" step="0.001" placeholder="Es. 10">
                 </div>
                 <div class="form-group">
                     <label for="mov-confezione">Confezione (opzionale)</label>
@@ -246,14 +246,18 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { suggestMovPrezzoInDom } from '../../../core/js/movimento-prezzo-catalogo.js';
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp, increment } from '../../../core/services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
         import { MovimentoMagazzino } from '../models/MovimentoMagazzino.js';
+        import { getCurrentTenantId, setCurrentTenantId } from '../../../core/services/tenant-service.js';
+        import { eliminaMovimentoConStornoTrattamento } from '../services/trattamento-scarico-magazzino-service.js';
         import * as CarburanteMovimento from '../lib/carburante-movimento.js';
+        import { etichettaAttivitaMovimento, etichettaLavoroMovimento } from '../../../shared/js/magazzino-etichette.js';
 
         window.GFVCarburanteMovimento = CarburanteMovimento;
 
@@ -314,6 +318,9 @@
                     setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
                     return;
                 }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!richiediModulo(tenantDoc.exists() ? tenantDoc.data() : null, 'magazzino')) return;
                 document.getElementById('btn-nuovo-movimento').onclick = openModal;
                 document.getElementById('btn-elimina-selezionati').onclick = function () {
                     window.eliminaMovimentiSelezionati();
@@ -458,13 +465,15 @@
             const sel = document.getElementById('mov-macchina');
             if (!sel) return;
             const prev = sel.value;
+            const fromQuery = fuelQuery().macchinaId || null;
             const opts = mezziPieno.map(function (m) {
                 const tipo = String(m.tipoMacchina || m.tipo || '').toLowerCase();
                 const extra = tipo && tipo !== 'trattore' ? ' (' + tipo + ')' : '';
                 return `<option value="${m.id}">${escapeHtml(m.nome || m.id)}${extra}</option>`;
             }).join('');
             sel.innerHTML = '<option value="">Seleziona mezzo</option>' + opts;
-            if (prev && mezziPieno.some(function (m) { return m.id === prev; })) sel.value = prev;
+            const prefer = prev || fromQuery;
+            if (prefer && mezziPieno.some(function (m) { return m.id === prefer; })) sel.value = prefer;
         }
 
         function isMezzoRifornibile(m) {
@@ -567,7 +576,7 @@
         function clearCarburanteFilterFromUrl() {
             try {
                 const url = new URL(window.location.href);
-                ['categoria', 'pieno', 'origine', 'origineCarburante'].forEach(function (k) { url.searchParams.delete(k); });
+                ['categoria', 'pieno', 'origine', 'origineCarburante', 'macchinaId', 'macchina'].forEach(function (k) { url.searchParams.delete(k); });
                 window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''));
             } catch (_) { /* ignore */ }
         }
@@ -617,6 +626,7 @@
                 const snapshot = await getDocs(q);
                 movimenti = [];
                 snapshot.forEach(d => movimenti.push({ id: d.id, ...d.data() }));
+                await ensureEtichetteMovimenti(movimenti);
                 renderMovimenti();
             } catch (err) {
                 console.error(err);
@@ -737,18 +747,52 @@
             return p && p.unitaMisura ? p.unitaMisura : '';
         }
 
+        const lavoriMissing = new Set();
+        const attivitaMissing = new Set();
+
         function getLavoroNome(id) {
             if (!id) return '-';
             const l = lavori.find(x => x.id === id);
-            return l ? (l.nome || l.id) : id;
+            if (!l && !lavoriMissing.has(id)) {
+                // fetch lazy: mark for batch resolve next render
+            }
+            return etichettaLavoroMovimento(l, id);
         }
 
         function getAttivitaLabel(id) {
             if (!id) return '-';
             const a = attivita.find(x => x.id === id);
-            if (!a) return id;
-            const parts = [a.data, a.tipoLavoro, a.terrenoNome].filter(Boolean);
-            return parts.length ? parts.join(' – ') : a.id;
+            return etichettaAttivitaMovimento(a, id);
+        }
+
+        async function ensureEtichetteMovimenti(lista) {
+            if (!currentTenantId || !Array.isArray(lista)) return;
+            const missingAtt = [];
+            const missingLav = [];
+            lista.forEach((m) => {
+                if (m.attivitaId && !attivita.some((a) => a.id === m.attivitaId) && !attivitaMissing.has(m.attivitaId)) {
+                    missingAtt.push(m.attivitaId);
+                }
+                if (m.lavoroId && !lavori.some((l) => l.id === m.lavoroId) && !lavoriMissing.has(m.lavoroId)) {
+                    missingLav.push(m.lavoroId);
+                }
+            });
+            const chunk = async (ids, collezione, target, missingSet) => {
+                for (let i = 0; i < ids.length; i += 10) {
+                    const slice = ids.slice(i, i + 10);
+                    await Promise.all(slice.map(async (id) => {
+                        try {
+                            const snap = await getDoc(doc(db, 'tenants', currentTenantId, collezione, id));
+                            if (snap.exists()) target.push({ id: snap.id, ...snap.data() });
+                            else missingSet.add(id);
+                        } catch (_) {
+                            missingSet.add(id);
+                        }
+                    }));
+                }
+            };
+            if (missingAtt.length) await chunk(missingAtt, 'attivita', attivita, attivitaMissing);
+            if (missingLav.length) await chunk(missingLav, 'lavori', lavori, lavoriMissing);
         }
 
         function updateQuantitaLabel() {
@@ -836,7 +880,7 @@
                                 <td>${formatData(m.data)}</td>
                                 <td>${escapeHtml(getProdottoNome(m.prodottoId))}</td>
                                 <td><span class="badge-${m.tipo === 'entrata' ? 'entrata' : 'uscita'}">${m.origineCarburante === 'pieno' ? 'Pieno' : (m.origineCarburante === 'carico_cisterna' ? 'Carico cisterna' : (m.tipo === 'entrata' ? '➕ Entrata' : '➖ Uscita'))}</span></td>
-                                <td>${Number(m.quantita)} ${escapeHtml(getProdottoUnita(m.prodottoId) || '')}</td>
+                                <td>${Number.isFinite(Number(m.quantita)) ? Number(m.quantita).toFixed(3) : '-'} ${escapeHtml(getProdottoUnita(m.prodottoId) || '')}</td>
                                 ${showMezzo ? `<td>${escapeHtml(getMacchinaNome(m.macchinaId))}</td>` : ''}
                                 <td>${escapeHtml((m.confezione || '').substring(0, 25))}${(m.confezione || '').length > 25 ? '...' : ''}</td>
                                 <td>${formatPrezzoCell(m.prezzoUnitario)}</td>
@@ -966,9 +1010,9 @@
             const mov = movimenti.find(m => m.id === movimentoId);
             if (!mov) return { ok: false, reason: 'non trovato' };
             if (mov.prodottoId) {
-                const delta = mov.tipo === 'entrata' ? -Number(mov.quantita || 0) : Number(mov.quantita || 0);
-                await deleteDoc(doc(db, 'tenants', currentTenantId, 'movimentiMagazzino', movimentoId));
-                await applyGiacenzaDelta(mov.prodottoId, delta);
+                // Servizio condiviso: ripristina la giacenza e, per uno scarico da trattamento, aggiorna il trattamento.
+                if (getCurrentTenantId() !== currentTenantId) setCurrentTenantId(currentTenantId);
+                await eliminaMovimentoConStornoTrattamento(mov);
             } else {
                 await deleteDoc(doc(db, 'tenants', currentTenantId, 'movimentiMagazzino', movimentoId));
             }
@@ -977,7 +1021,14 @@
         }
 
         window.eliminaMovimento = async function(movimentoId) {
-            if (!confirm('Eliminare questo movimento? La giacenza del prodotto verrà ripristinata.')) return;
+            const movDaEliminare = movimenti.find(m => m.id === movimentoId);
+            const domanda = movDaEliminare && movDaEliminare.origineTrattamentoId
+                ? 'Questo movimento è lo scarico di magazzino di un trattamento (' +
+                    (movDaEliminare.origineTrattamentoModulo || 'coltura') + ').\n\n' +
+                    'Eliminandolo la giacenza del prodotto verrà ripristinata e il trattamento risulterà senza scarico registrato ' +
+                    '(potrai registrarlo di nuovo salvando il trattamento).\n\nEliminare lo scarico?'
+                : 'Eliminare questo movimento? La giacenza del prodotto verrà ripristinata.';
+            if (!confirm(domanda)) return;
             try {
                 const result = await tryDeleteMovimentoById(movimentoId);
                 if (!result.ok) {
@@ -1000,6 +1051,16 @@
                 'Eliminare definitivamente ' + ids.length + ' moviment' + (ids.length === 1 ? 'o' : 'i') +
                 ' selezionat' + (ids.length === 1 ? 'o' : 'i') +
                 '?\nLa giacenza dei prodotti verrà ripristinata. Operazione non annullabile.';
+            const nScarichiTrattamento = ids.filter(id => {
+                const m = movimenti.find(x => x.id === id);
+                return m && m.origineTrattamentoId;
+            }).length;
+            if (nScarichiTrattamento) {
+                confirmMsg +=
+                    '\n\nAttenzione: ' + nScarichiTrattamento + ' di questi ' +
+                    (nScarichiTrattamento === 1 ? 'è lo scarico' : 'sono scarichi') +
+                    ' di un trattamento. I trattamenti collegati risulteranno senza scarico registrato.';
+            }
             if (docFilter) {
                 confirmMsg +=
                     '\n\nNota: è attivo il filtro documento (da Archivio). Verranno eliminati solo questi ' +
@@ -1053,6 +1114,14 @@
             document.getElementById('mov-lavoro').value = '';
             document.getElementById('mov-attivita').value = '';
             applyCarburanteFormMode(q.origineForm || '');
+            // B7: preselezione mezzo da ?macchinaId= (pieno da Diario / quick bar)
+            if (q.origineForm === 'pieno' && q.macchinaId) {
+                fillMacchinaSelect();
+                const macSel = document.getElementById('mov-macchina');
+                if (macSel && mezziPieno.some(function (m) { return m.id === q.macchinaId; })) {
+                    macSel.value = q.macchinaId;
+                }
+            }
             document.getElementById('movimento-modal').classList.add('active');
         }
 

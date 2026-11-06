@@ -167,7 +167,12 @@ function storageSessione() {
   }
 }
 
+/** Una sola volta per caricamento pagina (evita OPTIONS duplicati in console). */
+let warmUpEndpointTonyFatto = false;
+
 function warmUpEndpointTony() {
+  if (warmUpEndpointTonyFatto) return;
+  warmUpEndpointTonyFatto = true;
   for (const url of [URL_TONY_LANDING_ASK, URL_TONY_LANDING_AUDIO]) {
     try {
       fetch(url, { method: 'OPTIONS' }).catch(() => {});

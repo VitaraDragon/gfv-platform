@@ -25,7 +25,11 @@ import {
     erroreSalvataggioStato,
     statoPerSelectModifica
 } from '../../services/lavoro-ripresa-guasto.js';
-import { trovaTerrenoPerId } from './gestione-lavori-controller.js?v=2026-10-21c';
+import {
+    trovaTerrenoPerId,
+    confermaMezziInUsoAlSalvataggioLavoro,
+    refreshAvvisoMezzoInUsoLavoro
+} from './gestione-lavori-controller.js?v=2026-10-21c';
 import {
     isLavoroSolaLettura,
     MESSAGGIO_SOLA_LETTURA,
@@ -38,6 +42,8 @@ async function caricaProdottiMiscela() {
     aggiornaSezioneMiscelaLavoro();
     const section = document.getElementById('lavoro-miscela-section');
     if (!section || section.style.display === 'none') return;
+    const selectProdotto = document.getElementById('lavoro-miscela-prodotto');
+    if (!selectProdotto || selectProdotto.disabled) return;
     const terrenoId = document.getElementById('lavoro-terreno')?.value || '';
     let specie = null;
     try {
@@ -473,10 +479,12 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
  * Setup handler per macchine (trattore, attrezzo, operatore)
  * @param {Function} populateAttrezziDropdownCallback - Callback per popolare dropdown attrezzi
  * @param {Function} populateOperatoreMacchinaDropdownCallback - Callback per popolare dropdown operatore macchina
+ * @param {Function} [getMezzoInUsoCtx] - () => { macchineList, ctx } per avviso B6
  */
 export function setupMacchineHandlers(
     populateAttrezziDropdownCallback,
-    populateOperatoreMacchinaDropdownCallback
+    populateOperatoreMacchinaDropdownCallback,
+    getMezzoInUsoCtx = null
 ) {
     const trattoreSelect = document.getElementById('lavoro-trattore');
     const attrezzoSelect = document.getElementById('lavoro-attrezzo');
@@ -484,6 +492,17 @@ export function setupMacchineHandlers(
     const tipoAssegnazioneRadios = document.querySelectorAll('input[name="tipo-assegnazione"]');
     const attrezzoGroup = document.getElementById('attrezzo-group');
     const operatoreMacchinaGroup = document.getElementById('operatore-macchina-group');
+
+    function refreshAvvisiMezzo() {
+        if (typeof getMezzoInUsoCtx !== 'function') return;
+        const pack = getMezzoInUsoCtx() || {};
+        const list = pack.macchineList || [];
+        const ctx = pack.ctx || {};
+        const trattoreId = document.getElementById('lavoro-trattore')?.value || null;
+        const attrezzoId = document.getElementById('lavoro-attrezzo')?.value || null;
+        refreshAvvisoMezzoInUsoLavoro('trattore', trattoreId, list, ctx);
+        refreshAvvisoMezzoInUsoLavoro('attrezzo', attrezzoId, list, ctx);
+    }
     
     if (trattoreSelect) {
         trattoreSelect.__gfvPopulateAttrezzi = populateAttrezziDropdownCallback;
@@ -520,6 +539,7 @@ export function setupMacchineHandlers(
             }
 
             if (popolaOperatore) popolaOperatore();
+            refreshAvvisiMezzo();
         });
 
         if (trattoreSelect.value) {
@@ -547,6 +567,7 @@ export function setupMacchineHandlers(
                 operatoreMacchinaGroup.style.display = (trattoreId || this.value) ? 'block' : 'none';
             }
             if (this.__gfvPopulateOperatore) this.__gfvPopulateOperatore();
+            refreshAvvisiMezzo();
         });
     }
 
@@ -2147,6 +2168,27 @@ export async function salvaLavoroCorpo(
         operatoreMacchinaId: valoreMacchinaScelto('lavoro-operatore-macchina', lavoroOriginaleIniziale?.operatoreMacchinaId),
         operatoreToccato: document.getElementById('lavoro-operatore-macchina')?.dataset.userTouched === '1'
     };
+
+    // B6: mezzo in uso altrove → conferma (non blocco). Nessun avviso se è già il mezzo di questo lavoro.
+    if (state.hasParcoMacchineModule && (macchineScelte.macchinaId || macchineScelte.attrezzoId)) {
+        const macchineUnite = [
+            ...(state.trattoriList || []),
+            ...(state.attrezziList || [])
+        ];
+        const okMezzo = confermaMezziInUsoAlSalvataggioLavoro({
+            macchinaId: macchineScelte.macchinaId,
+            attrezzoId: macchineScelte.attrezzoId,
+            macchineList: macchineUnite,
+            ctx: {
+                lavori: state.lavoriList || [],
+                attivita: state.attivitaList || [],
+                escludiLavoroId: lavoroIdSalvataggio,
+                macchinaIdCorrente: lavoroOriginaleIniziale?.macchinaId || null,
+                attrezzoIdCorrente: lavoroOriginaleIniziale?.attrezzoId || null
+            }
+        });
+        if (!okMezzo) return;
+    }
 
     let lavoroSalvato = false;
     try {

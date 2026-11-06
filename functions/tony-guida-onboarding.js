@@ -148,7 +148,7 @@ function buildTonyGuidaOnboardingPromptNote(onboarding) {
     TONY_GUIDA_ONBOARDING_DAILY_LIMIT +
     " domande al giorno.\n" +
     "- Se l'utente chiede di Tony, del piano o di cosa succede dopo: spiega che dopo il periodo di prova Tony resta disponibile con il piano Base (pagina Abbonamento). Non ripeterlo se non richiesto.\n" +
-    "- Il piano Free ha limiti: massimo 5 terreni e 30 attività al mese; i moduli si possono provare gratis 30 giorni dalla pagina Abbonamento.\n" +
+    "- Il piano Free ha limiti: massimo 5 terreni e 30 attività al mese. Per provare un modulo gratis 30 giorni bisogna prima passare al piano Base (pagina Abbonamento); sul Free la prova moduli non è disponibile.\n" +
     "- Aiuta l'utente nei primi passi: creare terreni, registrare attività, invitare collaboratori, scoprire i moduli.\n"
   );
 }

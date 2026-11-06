@@ -3,7 +3,7 @@
  * @module core/utils/module-access-resolver
  */
 
-import { getModuleConfig, resolveTenantPlanId } from '../config/subscription-plans.js';
+import { BUNDLES, getModuleConfig, resolveTenantPlanId } from '../config/subscription-plans.js';
 
 export const MODULE_TRIAL_DAYS = 30;
 
@@ -72,13 +72,17 @@ export function getActiveTrialModuleIds(moduleTrials, now = new Date()) {
 
 /**
  * Moduli effettivi per UI, Tony e gating client.
+ * Pagati + prove attive + moduli coperti da bundle attivi (anche se non ancora in `modules`).
  * @param {object|null|undefined} tenant
  * @param {Date} [now]
+ * @param {{ bundleCatalog?: Array<{ id: string, modules: string[] }> }} [options]
  */
-export function resolveEffectiveModules(tenant, now = new Date()) {
+export function resolveEffectiveModules(tenant, now = new Date(), options = {}) {
   const paid = getPaidModuleIds(tenant);
   const trialIds = getActiveTrialModuleIds(tenant?.moduleTrials, now);
-  return Array.from(new Set([...paid, ...trialIds]));
+  const bundleCatalog = options.bundleCatalog || BUNDLES;
+  const covered = getModulesCoveredByActiveBundles(tenant, bundleCatalog);
+  return Array.from(new Set([...paid, ...trialIds, ...covered]));
 }
 
 /**

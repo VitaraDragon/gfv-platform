@@ -10,13 +10,13 @@ Un terreno che non usate più (fine affitto o vendita) si **archivia**, non si c
 
 ### Come funziona l'archiviazione
 
-Quando il terreno ha dati collegati (lavori, ore, vigneti, frutteti, potature o trattamenti), il pulsante diventa **Archivia** e vedete **tre passaggi**:
+Quando il terreno ha dati collegati (lavori, ore, vigneti, frutteti, potature o trattamenti), il pulsante in elenco è **Elimina / Archivia** e l’app apre **modali** (non un `prompt` del browser) in **tre passaggi**:
 
 1. **Conferma con OK e Annulla**: «Sul terreno «{nome}» ci sono {elenco}. Il terreno esce da elenchi, tendine e conteggi. Lavori, ore, vigneti, potature e trattamenti restano consultabili con il suo nome. Puoi ripristinarlo quando vuoi. Anche i vigneti e i frutteti ancora aperti si chiudono: lo storico resta.» Se ci sono lavori ancora aperti, aggiunge una frase che li rende in sola lettura.
 2. **Motivo dell'archiviazione**: scelta tra **1 = fine affitto**, **2 = vendita**, **3 = altro** (con nota facoltativa).
 3. **Messaggio finale**: «Terreno archiviato. Lo storico resta consultabile e puoi ripristinarlo quando vuoi.»
 
-Se il terreno non ha nulla collegato, compare solo «Sei sicuro di voler eliminare il terreno «{nome}»?» e il pulsante resta **Elimina**.
+Se il terreno non ha nulla collegato, il pulsante in elenco resta **Elimina / Archivia** e compare un **modale** «Sei sicuro di voler eliminare il terreno «{nome}»?» (non un `prompt` del browser).
 
 ### Dove compaiono gli archiviati
 
@@ -28,7 +28,7 @@ Gli archiviati non contano nel limite terreni del piano e non ricevono avvisi me
 
 Se la verifica dei collegamenti non riesce, non si cancella nulla: compare «Non riesco a controllare i dati collegati, riprova».
 
-Se cambiate la coltura del terreno (da vite a frutteto, o il contrario) e c'è un vigneto o un frutteto ancora aperto, l'app chiede conferma e lo **chiude**. Lo storico di potature e trattamenti resta, in sola consultazione. I lavori già aperti restano modificabili finché non li completate o li annullate; poi diventano solo consultazione. La coltura di un lavoro nuovo è quella del terreno. Se cambiate la superficie, si aggiorna anche la superficie del vigneto o del frutteto ancora aperti e delle campagne in corso; i registri già salvati non si toccano.
+Se cambiate la coltura del terreno (es. Vite → Melo), **prima del salvataggio** compare un dialogo titolo **Cambio coltura** con bottoni **Continua** / **Annulla**. Il messaggio elenca quanti lavori aperti verranno chiusi (con nome e data). **Continua**: chiude i lavori aperti (restano nello storico in sola lettura, con ore; libera le macchine), chiude gli impianti vigneto/frutteto aperti (badge **Chiuso**; potature e trattamenti restano consultabili). **Annulla**: non salva nulla. La coltura di un lavoro nuovo è quella del terreno. Se cambiate la superficie, si aggiorna anche la superficie del vigneto o del frutteto ancora aperti e delle campagne in corso; i registri già salvati non si toccano.
 
 ---
 
@@ -104,6 +104,7 @@ Oltre al titolo dell’azienda, di solito trovi:
 - **Guide** — apre la documentazione utente nel browser (moduli attivi + Core).
 - **Mappa** — collegamento rapido alla **mappa satellitare** terreni (e lavori, se i moduli lo prevedono).
 - **Invita collaboratore** — compare con il **modulo Manodopera** attivo e permessi da manager/amministratore.
+- **Gestisci utenti** — nel menu **ingranaggio** (accanto a Impostazioni) per **manager e amministratore**, anche **senza** il modulo Manodopera: da lì invitate collaboratori e impostate i ruoli.
 
 ### Panoramica (tre sezioni)
 
@@ -288,7 +289,7 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 2. Premi **➕ Aggiungi Attività**: si apre il riquadro.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
-5. **Tipo di lavoro** e **coltura**, nell’ordine delle etichette: prima la **Categoria principale lavoro** (es. potatura, trattamenti); se la categoria ne ha, compare la **Sottocategoria** (facoltativa, es. manuale o meccanica); poi il **Tipo lavoro specifico**, che elenca solo i tipi di quella categoria. Se il tipo che cercate non c’è, potete aggiungerlo con **➕ Nuovo** accanto all’elenco. Infine **Categoria Coltura** e **Coltura**. **Coltura** è obbligatoria: dopo che avete salvato categoria e coltura sul terreno, nel Diario la Coltura si riempie da sola; se resta vuota, manca la coltura sul terreno — apri **Terreni**, premi **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Senza **Coltura** l’attività non si salva: compare «La coltura è obbligatoria».
+5. **Tipo di lavoro** e **coltura**, nell’ordine delle etichette: prima la **Categoria principale lavoro** (es. potatura, trattamenti); se la categoria ne ha, compare la **Sottocategoria** (facoltativa, es. manuale o meccanica); poi il **Tipo lavoro specifico**, che elenca solo i tipi di quella categoria e adatti alla **coltura del terreno** (es. **Vendemmia** solo su Vite; scuotitore su frutteto). Se il tipo che cercate non c’è, potete aggiungerlo con **➕ Nuovo** accanto all’elenco. Infine **Categoria Coltura** e **Coltura**. **Coltura** è obbligatoria: dopo che avete salvato categoria e coltura sul terreno, nel Diario la Coltura si riempie da sola; se resta vuota, manca la coltura sul terreno — apri **Terreni**, premi **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Senza **Coltura** l’attività non si salva: compare «La coltura è obbligatoria».
 6. **Orari:** ora di inizio obbligatoria; ora di fine se hai finito il turno (aiuta anche il calcolo delle ore).
 7. **Pause (minuti):** indica le pause effettive; le **ore nette** si aggiornano in base a orari e pause.
 8. **Note:** cosa avete fatto, condizioni, nome del turno, ecc.
@@ -403,7 +404,8 @@ La conversazione con **Tony** non si perde: dopo il ricaricamento la chat ripart
 ### Login
 1. Aprite la pagina di **accesso** dell’app.  
 2. Inserite **email** e **password** dell’account.  
-3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).
+3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).  
+4. Se email o password non sono corrette, l’app lo dice in italiano («Email o password errati»); con troppi tentativi o rete assente vi indica di riprovare più tardi o di controllare la connessione. Con **Esci** (Logout) tornate al login senza messaggi di sessione persa.
 
 **Se l’app vi riporta al login con un messaggio:**
 - «La sessione non è stata conservata: riprova; se sei in incognito usa una finestra normale.» → rifate l’accesso; se usate una finestra in incognito, aprite GFV in una finestra normale.

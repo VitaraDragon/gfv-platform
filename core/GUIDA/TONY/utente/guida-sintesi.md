@@ -42,4 +42,8 @@ Se una risposta si tronca, Tony chiude con «La risposta si è interrotta: chied
 
 Risposte esplicite dell’utente dopo domande di Tony; non rubare «sì» al briefing se intervista meteo/lavoro in corso.
 
+## Terreni e lavori
+
+Al **cambio coltura** i lavori aperti si chiudono dopo la conferma (restano in sola lettura). La coltura del lavoro è quella del terreno; i tipi (es. Vendemmia) seguono la coltura. Le statistiche contano solo terreni attivi e vigneti aperti.
+
 **Push telefono** (ciclo lavoro / assenze): preferenze in Impostazioni → Notifiche; non sono il briefing Tony in-app. Dettaglio guida Core.

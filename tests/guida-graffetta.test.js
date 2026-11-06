@@ -52,6 +52,29 @@ describe('guida graffetta', () => {
     }
   });
 
+  it('«← Dashboard»: alto a destra OPPURE graffetta → Home; mai «alto a sinistra» da solo', () => {
+    for (const f of [
+      'core/GUIDA/CORE/utente/guida-sintesi.md',
+      'docs-sviluppo/GUIDA/CORE/utente/guida-sintesi.md',
+      'core/GUIDA/CORE/utente/guida.md',
+      'docs-sviluppo/GUIDA/CORE/utente/guida.md',
+      'core/services/tony-guida-app.js',
+    ]) {
+      const src = SORGENTI[f];
+      // Positivo: «← Dashboard» associato ad «alto a destra».
+      expect(src, f).toMatch(/←\s*Dashboard»[^.\n]{0,40}alto a destra/i);
+      // Negativo: nessuna frase che lega «← Dashboard» ad «alto a sinistra» (senza graffetta/Home di mezzo).
+      const frasi = src.split(/(?<=[.;])\s+/);
+      for (const frase of frasi) {
+        if (!/←\s*Dashboard»/.test(frase)) continue;
+        if (!/alto a sinistra/i.test(frase)) continue;
+        // Ammesso solo se l'alto a sinistra è la graffetta → Home.
+        expect(frase, f + ' → ' + frase.slice(0, 80)).toMatch(/graffetta[^.;\n]{0,40}alto a sinistra|alto a sinistra[^.;\n]{0,40}graffetta/i);
+        expect(frase, f).toMatch(/alto a destra/i);
+      }
+    }
+  });
+
   it('guida-app/core.md senza «Dashboard ->»', () => {
     const coreApp = read('core/guida-app/core.md');
     const docsApp = read('docs-sviluppo/guida-app/core.md');

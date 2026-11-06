@@ -503,7 +503,7 @@
 
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal, formatDateTimeItalianReadable } from '../js/date-format-it.js';
+        import { formatDateLikeToItalianLongLocal, formatDateTimeItalianReadable, dateLikeToDate } from '../js/date-format-it.js';
         import { showAlert } from '../js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
 
@@ -881,7 +881,7 @@
                             const stato = user.stato || 'attivo';
                             // Gestisci stato online e ultimo accesso
                             const isOnline = user.isOnline === true;
-                            const lastSeen = user.lastSeen ? (user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen)) : null;
+                            const lastSeen = dateLikeToDate(user.lastSeen);
                             
                             let ultimoAccesso = 'Mai';
                             let onlineStatus = '';
@@ -904,7 +904,8 @@
                             // Se non è online, mostra ultimo accesso
                             if (!onlineStatus && user.ultimoAccesso) {
                                 try {
-                                    const accessoDate = user.ultimoAccesso.toDate ? user.ultimoAccesso.toDate() : new Date(user.ultimoAccesso);
+                                    const accessoDate = dateLikeToDate(user.ultimoAccesso);
+                                    if (!accessoDate) throw new Error('data ultimo accesso non valida');
                                     const now = new Date();
                                     const diffMs = now - accessoDate;
                                     const diffMins = Math.floor(diffMs / 60000);

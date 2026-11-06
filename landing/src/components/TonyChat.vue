@@ -345,9 +345,14 @@ async function ripristinaSessioneIntervista() {
   return true;
 }
 
-/** Salva lo stato dell'intervista (mai email o password). */
-function salvaSessioneCorrente() {
-  if (smontato || inAttesa.value) return;
+/**
+ * Salva lo stato dell'intervista (mai email o password).
+ * `forza`: ignora «risposta in corso» (dopo ogni risposta, pagehide, pagina nascosta):
+ * un F5 non deve perdere i terreni già raccolti.
+ */
+function salvaSessioneCorrente(forza?: boolean) {
+  if (smontato) return;
+  if (forza !== true && inAttesa.value) return;
   salvaSessioneIntervista(storageSessione(), {
     faseAiuto: faseAiuto.value,
     aiutoFatto: aiutoFatto.value,
@@ -375,9 +380,14 @@ watch(
     aiutoFatto.value,
     inAttesa.value,
   ],
-  salvaSessioneCorrente,
+  () => salvaSessioneCorrente(),
   { flush: 'post' }
 );
+
+/** Pagina che si chiude / ricarica (F5): ultimo salvataggio dello stato raccolto. */
+function onPageHide() {
+  salvaSessioneCorrente(true);
+}
 
 onMounted(() => {
   void ripristinaSessioneIntervista();
@@ -389,6 +399,7 @@ onMounted(() => {
   microfonoDisponibile.value = typeof SR === 'function';
   document.addEventListener('visibilitychange', onVisibility);
   document.addEventListener('keydown', onEscConsenso);
+  if (typeof window !== 'undefined') window.addEventListener('pagehide', onPageHide);
   if (import.meta.env.DEV) {
     const query = typeof window !== 'undefined' ? window.location.search : '';
     import('../lib/tony-chat-finto.js')
@@ -1037,6 +1048,9 @@ async function inviaTesto(grezzo: string, daChip = false) {
   } else {
     campoAttivo.value = azione.campoAttivo;
   }
+  // Dopo OGNI risposta: salva subito (non aspettare il watcher) così un F5 subito dopo
+  // non perde i terreni appena raccolti.
+  salvaSessioneCorrente(true);
   if (azione.tipo === 'limite') {
     mostraAccountEvidenza.value = true;
     chipVisibili.value = false;
@@ -1278,6 +1292,7 @@ function onMicUp() {
 
 function onVisibility() {
   if (document.hidden) {
+    salvaSessioneCorrente(true);
     fermaMicrofono();
     fermaVoceCorrente();
   }
@@ -1292,6 +1307,7 @@ onUnmounted(() => {
   if (timerFuoco) window.clearTimeout(timerFuoco);
   document.removeEventListener('visibilitychange', onVisibility);
   document.removeEventListener('keydown', onEscConsenso);
+  if (typeof window !== 'undefined') window.removeEventListener('pagehide', onPageHide);
 });
 
 /** Esposto a TonyStage quando si saluta a metà richiesta. */

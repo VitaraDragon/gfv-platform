@@ -23,6 +23,77 @@ export function messaggioMotivoLogin(motivo) {
   return MESSAGGI_MOTIVO_LOGIN[chiave] || '';
 }
 
+/** Flag di sessione: l'utente ha premuto «Logout» (non è una sessione persa). */
+export const CHIAVE_LOGOUT_VOLONTARIO = 'gfv_logout_volontario';
+
+function storageSessione(storage) {
+  if (storage) return storage;
+  try {
+    return typeof sessionStorage !== 'undefined' ? sessionStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Da chiamare PRIMA di signOut() in ogni logout volontario: l'onAuthStateChanged(null)
+ * che ne segue non deve portare a «sessione-persa».
+ * @param {Storage} [storage]
+ */
+export function segnaLogoutVolontario(storage) {
+  const s = storageSessione(storage);
+  try {
+    if (s) s.setItem(CHIAVE_LOGOUT_VOLONTARIO, '1');
+  } catch {
+    /* storage non disponibile */
+  }
+}
+
+/**
+ * Legge (e di default consuma) il flag di logout volontario.
+ * @param {Storage} [storage]
+ * @param {{ consuma?: boolean }} [opts]
+ * @returns {boolean}
+ */
+export function logoutVolontarioPendente(storage, opts) {
+  const s = storageSessione(storage);
+  if (!s) return false;
+  let presente = false;
+  try {
+    presente = s.getItem(CHIAVE_LOGOUT_VOLONTARIO) === '1';
+    if (presente && !(opts && opts.consuma === false)) s.removeItem(CHIAVE_LOGOUT_VOLONTARIO);
+  } catch {
+    return false;
+  }
+  return presente;
+}
+
+/**
+ * Percorso di login quando l'utente risulta null: logout volontario → login pulito
+ * (senza motivo); sessione davvero persa → `?motivo=sessione-persa`.
+ * @param {string} loginPath es. './auth/login-standalone.html'
+ * @param {Storage} [storage]
+ * @returns {string}
+ */
+export function loginPathDopoUtenteNullo(loginPath, storage) {
+  return logoutVolontarioPendente(storage)
+    ? loginPath
+    : loginPath + (loginPath.indexOf('?') === -1 ? '?' : '&') + 'motivo=sessione-persa';
+}
+
+/**
+ * Rimuove `motivo=sessione-persa` dall'URL di login (es. dopo logout volontario).
+ * @param {string} search query string con o senza `?`
+ * @returns {string} nuova query string (con `?` iniziale, o vuota)
+ */
+export function queryLoginSenzaSessionePersa(search) {
+  const raw = String(search || '');
+  const params = new URLSearchParams(raw.charAt(0) === '?' ? raw.slice(1) : raw);
+  if (params.get('motivo') === 'sessione-persa') params.delete('motivo');
+  const qs = params.toString();
+  return qs ? '?' + qs : '';
+}
+
 /**
  * Scelta «Sei già collegato» solo se: registered, sessione già presente al primo
  * evento Auth, e non c’è un login manuale in corso.

@@ -19,7 +19,25 @@ import { TrattamentoVigneto } from '../models/TrattamentoVigneto.js';
 import { getVigneto, updateVigneto } from './vigneti-service.js';
 import { inferTipoTrattamentoColturaFromTipoLavoroNome } from '../../../core/config/trattamenti-lavoro-defaults.js';
 
+import {
+  righeTrattamentoDaMiscela,
+  applicaCostiDaAnagrafica,
+  righeSenzaCampiVuoti,
+  trattamentoHaSoloRigaVuota
+} from '../../../shared/js/registro-trattamenti.js';
+
 const SUB_COLLECTION_NAME = 'trattamenti';
+
+/** Anagrafica prodotti per il prezzo. Se il magazzino non risponde, il costo resta vuoto. */
+async function caricaAnagraficaProdotti() {
+  try {
+    const { getAllProdotti } = await import('../../magazzino/services/prodotti-service.js');
+    return (await getAllProdotti({ soloAttivi: true })) || [];
+  } catch (error) {
+    console.warn('[TRATTAMENTI-VIGNETO] anagrafica prodotti non disponibile:', error);
+    return [];
+  }
+}
 
 /**
  * Ottieni path sub-collection trattamenti per un vigneto
@@ -231,7 +249,10 @@ export async function updateTrattamento(vignetoId, trattamentoId, updates, optio
       await updateDocument(
         collectionPath,
         trattamentoId,
-        { magazzinoMovimentoIds: movimentoIds.length ? movimentoIds : [] },
+        {
+          magazzinoMovimentoIds: movimentoIds.length ? movimentoIds : [],
+          ...(movimentoIds.length ? { magazzinoScaricoStornatoIl: null } : {})
+        },
         tenantId
       );
     }
@@ -268,6 +289,13 @@ export async function deleteTrattamento(vignetoId, trattamentoId, opzioni = {}) 
     }
     const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
     await assertRegistroImpiantoModificabile(existing, 'vigneti', vignetoId);
+
+    // Prima le uscite di magazzino: se lo storno fallisce il trattamento resta e l'errore arriva all'utente.
+    const idsScarico = existing && Array.isArray(existing.magazzinoMovimentoIds) ? existing.magazzinoMovimentoIds : [];
+    if (idsScarico.length) {
+      const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
+      await rimuoviMovimentiTrattamento(idsScarico);
+    }
     
     const collectionPath = getTrattamentiPath(vignetoId);
     await deleteDocument(collectionPath, trattamentoId, tenantId);
@@ -473,7 +501,10 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno, op
       buildIndiceTrattamentiPerTerreno(vigneto.terrenoId)
     ]);
     const { byLavoro, byAttivita } = indiceTrattamenti;
-    const terrenoLabel = terreno ? (terreno.nome || vigneto.terrenoId) : vigneto.terrenoId;
+    const { nomeTerrenoPerStorico } = await import('../../../shared/js/terreno-archivio.js');
+    const terrenoLabel = terreno
+      ? nomeTerrenoPerStorico(terreno, vigneto.terrenoId || '-')
+      : (vigneto.terrenoId || '-');
 
     const attivitaRaw = attivitaRawAll.filter(att => {
       const dataStr = typeof att.data === 'string' ? att.data : (att.data?.toDate ? att.data.toDate().toISOString().slice(0, 10) : '');
@@ -782,9 +813,19 @@ export async function createTrattamentoFromLavoro(lavoroId) {
       tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(lavoro.tipoLavoro || ''),
       operatore,
       superficieTrattata,
+      superficieDaAnagrafeTerreno: Number.isFinite(superficieTrattata),
       costoProdotto: 0,
       note: `Trattamento creato da lavoro: ${lavoro.nome || lavoroId}`
     };
+    if (superficieTrattata == null || !Number.isFinite(superficieTrattata)) delete trattamentoData.superficieTrattata;
+    const daMiscela = righeTrattamentoDaMiscela(lavoro.miscelaPrevista, superficieTrattata);
+    if (daMiscela.prodotti.length) {
+      const conCosti = applicaCostiDaAnagrafica(daMiscela.prodotti, await caricaAnagraficaProdotti());
+      trattamentoData.prodotti = righeSenzaCampiVuoti(conCosti.prodotti);
+      trattamentoData.costoProdotto = conCosti.costoProdotto;
+      trattamentoData.acquaEttolitriPerEttaro = daMiscela.acquaEttolitriPerEttaro;
+      trattamentoData.acquaEttolitriTotali = daMiscela.acquaEttolitriTotali;
+    }
     const trattamento = new TrattamentoVigneto(trattamentoData);
     trattamento.aggiornaCalcoli();
     const collectionPath = getTrattamentiPath(vigneto.id);
@@ -865,6 +906,18 @@ export async function syncTrattamentoFromLavoro(lavoroId) {
     const updates = { data: dataTrattamento, operatore };
     if (found.trattamento.superficieDaAnagrafeTerreno) {
       updates.superficieTrattata = superficieTrattata;
+    }
+    // Miscela del lavoro → righe solo se il trattamento ha ancora la sola riga vuota: i dati reali non si toccano.
+    if (trattamentoHaSoloRigaVuota(found.trattamento) && lavoro.miscelaPrevista) {
+      const supRighe = updates.superficieTrattata != null ? updates.superficieTrattata : found.trattamento.superficieTrattata;
+      const daMiscela = righeTrattamentoDaMiscela(lavoro.miscelaPrevista, Number.isFinite(supRighe) ? supRighe : superficieTrattata);
+      if (daMiscela.prodotti.length) {
+        const conCosti = applicaCostiDaAnagrafica(daMiscela.prodotti, await caricaAnagraficaProdotti());
+        updates.prodotti = conCosti.prodotti;
+        updates.costoProdotto = conCosti.costoProdotto;
+        if (found.trattamento.acquaEttolitriPerEttaro == null) updates.acquaEttolitriPerEttaro = daMiscela.acquaEttolitriPerEttaro;
+        if (found.trattamento.acquaEttolitriTotali == null) updates.acquaEttolitriTotali = daMiscela.acquaEttolitriTotali;
+      }
     }
     await updateTrattamento(found.vignetoId, found.trattamentoId, updates);
     return found.trattamentoId;

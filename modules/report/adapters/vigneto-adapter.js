@@ -12,7 +12,8 @@ export const vignetoReportAdapter = {
    */
   async getFilters() {
     const { getAllVigneti } = await import('../../vigneto/services/vigneti-service.js');
-    const vigneti = await getAllVigneti();
+    const { impiantiAperti } = await import('../../../shared/js/impianto-aperto.js');
+    const vigneti = impiantiAperti(await getAllVigneti());
 
     const currentYear = new Date().getFullYear();
     const anni = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
