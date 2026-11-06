@@ -1,5 +1,6 @@
 /**
  * Miscela prevista sul form lavoro. Visibile solo se il tipo è un trattamento.
+ * Senza Magazzino resta disponibile l'inserimento a testo libero.
  * @module shared/js/registro-trattamenti-lavoro
  */
 
@@ -23,6 +24,20 @@ function esc(value) {
 
 export function tipoLavoroETrattamento(nome) {
   return String(nome || '').toLowerCase().includes('trattament');
+}
+
+export function configuraMiscelaPerModuli(moduli = []) {
+  const hasMagazzino = Array.isArray(moduli) && moduli.includes('magazzino');
+  const contenitore = document.getElementById('lavoro-miscela-prodotto-group');
+  const select = document.getElementById('lavoro-miscela-prodotto');
+  if (contenitore) contenitore.hidden = !hasMagazzino;
+  if (select) {
+    select.disabled = !hasMagazzino;
+    if (!hasMagazzino) select.value = '';
+  }
+  const nome = document.getElementById('lavoro-miscela-nome-label');
+  if (nome) nome.textContent = hasMagazzino ? 'Nome se non è in magazzino' : 'Nome prodotto';
+  return hasMagazzino;
 }
 
 export function aggiornaSezioneMiscelaLavoro() {

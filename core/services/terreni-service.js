@@ -322,12 +322,18 @@ export async function getCollegamentiTerreno(terrenoId) {
   };
 
   for (const [collectionName, chiave] of COLLEZIONI_COLLEGATE) {
+    const conteggioEsatto = chiave === 'lavori';
     const documenti = await getCollectionData(collectionName, {
       tenantId,
       where: [['terrenoId', '==', terrenoId]],
-      limit: chiave === 'lavori' ? undefined : 1
+      limit: conteggioEsatto ? undefined : 1
     });
-    collegamenti[chiave] = documenti.length;
+    if (conteggioEsatto) {
+      collegamenti[chiave] = documenti.length;
+    } else {
+      collegamenti[chiave] = 0;
+      collegamenti[`${chiave}Presenti`] = documenti.length > 0;
+    }
     if (chiave === 'lavori') {
       collegamenti.lavoriAperti = documenti
         .filter((doc) => !isLavoroChiuso(doc))

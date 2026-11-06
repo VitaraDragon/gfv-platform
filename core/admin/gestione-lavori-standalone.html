@@ -1381,14 +1381,14 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group" id="lavoro-miscela-prodotto-group">
                             <label for="lavoro-miscela-prodotto">Prodotto</label>
                             <select id="lavoro-miscela-prodotto">
                                 <option value="">— Nessun prodotto —</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="lavoro-miscela-nome">Nome se non è in magazzino</label>
+                            <label for="lavoro-miscela-nome" id="lavoro-miscela-nome-label">Nome se non è in magazzino</label>
                             <input type="text" id="lavoro-miscela-nome" placeholder="Nome prodotto">
                         </div>
                         <div class="form-group">
@@ -3698,6 +3698,8 @@
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 hasContoTerziModule = modules.includes('contoTerzi');
                                 hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
+                                const { configuraMiscelaPerModuli } = await import('../../shared/js/registro-trattamenti-lavoro.js');
+                                configuraMiscelaPerModuli(modules);
                                 
                                 // Inizializza context Tony: moduli + ruoli manager (evita guard profilo campo errata)
                                 var tonyOptsLavori = {

@@ -12,6 +12,7 @@ import { getCurrentUserData } from './auth-service.js';
 import { isOraDelCaposquadraSuLavoroSquadra, assertUtentePuoValidareOra } from './manodopera-ore-validazione-scope.js';
 import { lavoroSelezionabilePerOre } from './ore-lavoro-selezionabile.js?v=2026-10-16a';
 import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
+import { assertOraLavoroModificabile } from './ore-sola-lettura.js';
 import {
   calcolaOreNette as calcolaOreNettePura,
   formattaOreMinuti,
@@ -859,6 +860,8 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
   if (!lavoroId || !oraId) throw new Error('ID lavoro e ora obbligatori');
   const { doc, getDoc, updateDoc, Timestamp } = await firebaseOre();
   const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const terreno = await leggiTerrenoDelLavoro(db, doc, getDoc, tenantId, lavoro);
+  assertOraLavoroModificabile(lavoro, terreno);
   const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
   if (ora.stato !== 'da_validare') throw new Error('Questa ora è già stata validata o rifiutata');
   assertUtentePuoValidareOra({

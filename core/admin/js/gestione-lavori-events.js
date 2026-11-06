@@ -42,6 +42,8 @@ async function caricaProdottiMiscela() {
     aggiornaSezioneMiscelaLavoro();
     const section = document.getElementById('lavoro-miscela-section');
     if (!section || section.style.display === 'none') return;
+    const selectProdotto = document.getElementById('lavoro-miscela-prodotto');
+    if (!selectProdotto || selectProdotto.disabled) return;
     const terrenoId = document.getElementById('lavoro-terreno')?.value || '';
     let specie = null;
     try {

@@ -2822,12 +2822,18 @@
             
             if (terrenoId) {
                 const terreno = terreni.find(t => t.id === terrenoId);
-                // Vigneto con filari: se sottocategoria è Generale, passa a Tra le File
+                // Solo Lavorazione del Terreno: Generale → Tra le File su colture a filari
+                // (non su Raccolta/Potatura: altrimenti il tipo resta vuoto)
                 if (terreno && (terreno.coltura_categoria || terreno.coltura)) {
                     const cat = terreno.coltura_categoria || (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(terreno.coltura || '') : null);
                     const colturaStr = (cat || terreno.coltura || '').toLowerCase();
                     const isVigneto = /vite|vigneto|frutteto|oliveto|arboreo/.test(colturaStr);
-                    if (isVigneto && autoSwitchTraLeFile) {
+                    const catPrincSelect = document.getElementById('attivita-categoria-principale');
+                    const catPrincNome = catPrincSelect && catPrincSelect.selectedIndex >= 0
+                        ? (catPrincSelect.options[catPrincSelect.selectedIndex]?.text || '')
+                        : '';
+                    const isLavTerreno = /lavorazione/i.test(catPrincNome) && /terreno/i.test(catPrincNome);
+                    if (isVigneto && autoSwitchTraLeFile && isLavTerreno) {
                         const subSelect = document.getElementById('attivita-sottocategoria');
                         const subOpt = subSelect && Array.from(subSelect.options).find(o => (o.text || '').toLowerCase().includes('generale'));
                         if (subSelect && subOpt && subSelect.value === subOpt.value) {

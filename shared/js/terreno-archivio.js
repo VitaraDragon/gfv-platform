@@ -69,15 +69,20 @@ export function terreniOperativi(lista) {
 
 export function haCollegamenti(collegamenti) {
   if (!collegamenti || typeof collegamenti !== 'object') return false;
-  return ETICHETTE_COLLEGAMENTI.some(([key]) => Number(collegamenti[key]) > 0);
+  return ETICHETTE_COLLEGAMENTI.some(([key]) =>
+    Number(collegamenti[key]) > 0 || collegamenti[`${key}Presenti`] === true
+  );
 }
 
 export function riepilogoCollegamenti(collegamenti) {
   const parti = [];
   for (const [key, singolare, plurale] of ETICHETTE_COLLEGAMENTI) {
     const n = Number(collegamenti && collegamenti[key]) || 0;
-    if (n <= 0) continue;
-    parti.push(`${n} ${n === 1 ? singolare : plurale}`);
+    if (n > 0) {
+      parti.push(`${n} ${n === 1 ? singolare : plurale}`);
+    } else if (collegamenti && collegamenti[`${key}Presenti`] === true) {
+      parti.push(`dati collegati: ${plurale}`);
+    }
   }
   return parti.join(', ');
 }

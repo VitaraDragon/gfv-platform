@@ -30,3 +30,7 @@ Modulo **Manodopera** attivo (abbonamento **o prova 30 giorni**): in prova avete
 - **Versione mobile** / **lavori caposquadra:** dati tabella visibili in pagina; contesto **ristretto** per operaio/caposquadra.
 
 Senza modulo **Manodopera** attivo, **non** descrivere schermate manodopera.
+
+## Disattivazione Manodopera
+
+Si migrano in Diario **solo** i lavori con ore reali. I lavori mai eseguiti restano nello storico lavori (sola lettura), senza orari inventati. Al cambio coltura i lavori aperti si chiudono dopo conferma e non si validano più ore.

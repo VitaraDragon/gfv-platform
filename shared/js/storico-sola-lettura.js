@@ -1,12 +1,17 @@
 /**
  * Storico in sola lettura. Nessuna regola dei 12 mesi.
- * Un lavoro precedente al cambio coltura resta modificabile finché è aperto.
+ * Al cambio coltura i lavori aperti vengono chiusi e restano sempre in sola lettura
+ * (`chiusoPerCambioColtura` / `motivoChiusura: 'cambio_coltura'`), qualunque sia la data.
+ * I lavori chiusi iniziati prima di `colturaDal` restano in sola lettura.
  *
  * @module shared/js/storico-sola-lettura
  */
 
 export const MESSAGGIO_SOLA_LETTURA =
   'Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione';
+
+export const MESSAGGIO_SOLA_LETTURA_CAMBIO_COLTURA =
+  'Lavoro chiuso al cambio coltura: solo consultazione';
 
 export const MESSAGGIO_ORE_SOLA_LETTURA =
   'Il lavoro è in sola lettura: non si possono segnare ore.';
@@ -19,9 +24,23 @@ export const NOTA_COLTURA_DAL_TERRENO =
 
 const STATI_LAVORO_CHIUSI = new Set(['completato', 'annullato']);
 
+export function isLavoroChiusoPerCambioColtura(lavoro) {
+  if (!lavoro) return false;
+  if (lavoro.chiusoPerCambioColtura === true) return true;
+  return String(lavoro.motivoChiusura || '').toLowerCase() === 'cambio_coltura';
+}
+
 export function isLavoroChiuso(lavoro) {
   const stato = String(lavoro && lavoro.stato || '').toLowerCase();
   return STATI_LAVORO_CHIUSI.has(stato);
+}
+
+/**
+ * Messaggio banner: variante dedicata se chiuso al cambio coltura.
+ */
+export function messaggioSolaLetturaLavoro(lavoro) {
+  if (isLavoroChiusoPerCambioColtura(lavoro)) return MESSAGGIO_SOLA_LETTURA_CAMBIO_COLTURA;
+  return MESSAGGIO_SOLA_LETTURA;
 }
 
 export function istanteRecord(record, campi = ['dataInizio', 'data', 'createdAt', 'creatoIl']) {
@@ -57,7 +76,9 @@ export function isTerrenoArchiviato(terreno) {
  * @param {object|null|undefined} terreno
  */
 export function isLavoroSolaLettura(lavoro, terreno) {
-  if (!lavoro || !terreno) return false;
+  if (!lavoro) return false;
+  if (isLavoroChiusoPerCambioColtura(lavoro)) return true;
+  if (!terreno) return false;
   if (isTerrenoArchiviato(terreno)) return true;
   const soglia = istanteColturaDal(terreno);
   if (soglia == null) return false;

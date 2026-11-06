@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-05 — QA 3 nov resto B6–G su `fix/qa-03nov-3-resto-b6g`.**
+**Ultimo aggiornamento documentazione: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
+
+## 2026-11-05 — QA 4 nov prompt 4 (37–56): cambio coltura, migrazione, archiviazione
+
+Su `fix/qa-04nov-4` (PR verso develop): **D1** al cambio coltura dialogo app con numero lavori, chiusura automatica e sola lettura permanente (`chiusoPerCambioColtura`); **D2** tipi/categorie filtrate per coltura (Vendemmia solo vigneto); **A1** migrazione Manodopera solo con ore reali; **A2–A4** miscela senza Magazzino, destinazione vendemmia, superficie trattamenti; **A5–A6** etichette movimenti e ore Diario coerenti; **A7** 404 dashboard vigneto non riprodotti (path ok); **B1–B3** validazione ore sola lettura, collegamenti solo al clic, conteggi veri; **C1–C6** statistiche senza archiviati, modale archiviazione, «(archiviato)» in trattamenti, vigneti chiusi esclusi dai totali, azioni sola lettura in Gestione lavori, card prova Abbonamento. Nessun deploy in questo giro (solo asset browser / Pages dopo merge+promote).
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 3 nov resto B6–G su `fix/qa-03nov-3-resto-b6g`.**
 
 ## 2026-11-05 — QA 3 nov resto B6–G (trattore in uso, pieno, registri, diario, login, sede/Tony)
 
