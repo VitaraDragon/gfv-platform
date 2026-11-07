@@ -6,7 +6,7 @@
 import { tonyDebugLog } from './debug.js';
 import { injectWidget, formatTonyChatHtml } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript, isTonySegnaOreIntent, TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT, rewriteDiarioNavSpeechForGestioneLavori } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript, isTonySegnaOreIntent, TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT, rewriteDiarioNavSpeechForGestioneLavori, alignApriPaginaSpeechToTarget } from './engine.js';
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
@@ -9379,6 +9379,12 @@ if (typeof window !== 'undefined') {
                 
                 var finalSpeech = parsedData.text || (typeof rawData === 'string' ? rawData : 'Ok');
                 finalSpeech = (typeof cleanTextFromJsonResidue === 'function' ? cleanTextFromJsonResidue(finalSpeech) : (finalSpeech || 'Ok').trim()) || 'Ok';
+                if (commandToExecute && String(commandToExecute.type || '').toUpperCase() === 'APRI_PAGINA') {
+                    var finalNavTarget = (commandToExecute.params && commandToExecute.params.target) || commandToExecute.target || commandToExecute.modulo || '';
+                    if (finalNavTarget) {
+                        finalSpeech = alignApriPaginaSpeechToTarget(finalSpeech, finalNavTarget) || finalSpeech;
+                    }
+                }
                 finalSpeech = alignLavoroFattoSpeech(
                     finalSpeech,
                     text,
@@ -9500,6 +9506,16 @@ if (typeof window !== 'undefined') {
                         out = rewriteDiarioNavSpeechForGestioneLavori(out);
                         window.__tonyRewriteDiarioSpeechToGestioneLavori = false;
                         tonySpeechOverride = true;
+                    }
+                    if (commandToExecute && String(commandToExecute.type || '').toUpperCase() === 'APRI_PAGINA') {
+                        var navSpeechTarget = (commandToExecute.params && commandToExecute.params.target) || commandToExecute.target || commandToExecute.modulo || '';
+                        if (navSpeechTarget) {
+                            var alignedNavSpeech = alignApriPaginaSpeechToTarget(out, navSpeechTarget);
+                            if (alignedNavSpeech && alignedNavSpeech !== out) {
+                                out = alignedNavSpeech;
+                                tonySpeechOverride = true;
+                            }
+                        }
                     }
                     out = cleanTextFromJsonResidue(out);
                     out = tonyCorreggiTestoTuttoPronto(out);
