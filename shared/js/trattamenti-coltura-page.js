@@ -10,6 +10,13 @@ import { showAlert } from '../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../core/js/simulator-standalone-page.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from './storico-sola-lettura.js';
+import {
+    apriConAvviso,
+    bindAzioniLista,
+    impiantiPerFiltro,
+    impiantiPerInserimento,
+    mostraArchiviatiSelezionato
+} from './filtri-storico.js';
 import { colturaSchedaRegistro, aliasColturaScheda } from '../../core/config/registro-trattamenti-specie.js';
 import {
     aziendaDaTenant,
@@ -1061,18 +1068,7 @@ window.iniziaTracciamentoPoligonoTrattamento = function() {
 async function loadAnagrafica() {
     const anagraficaMod = await import(resolvePath(cfg.anagraficaPath));
     colture = await anagraficaMod[cfg.listExport]();
-    const selFilter = document.getElementById(cfg.filterId);
-    const selModal = document.getElementById(cfg.selectId);
-    [selFilter, selModal].forEach(sel => {
-        if (!sel) return;
-        sel.innerHTML = sel === selFilter ? '<option value="">' + cfg.filterAllLabel + '</option>' : '<option value="">' + cfg.selectPlaceholder + '</option>';
-        colture.filter((v) => v.statoImpianto !== 'chiuso').forEach(v => {
-            const opt = document.createElement('option');
-            opt.value = v.id;
-            opt.textContent = cfg.optionLabel(v);
-            sel.appendChild(opt);
-        });
-    });
+    riempiSelectImpianti();
     const annoCorrente = new Date().getFullYear();
     const annoSel = document.getElementById('filter-anno');
     annoSel.innerHTML = '';
@@ -1154,7 +1150,11 @@ async function loadTrattamenti() {
                 : `<span class="alert-badge green" title="Dosaggi nel range consigliato" aria-label="Tutto ok"></span>`;
         const foundColtura = colture.find(v => v.id === row[cfg.idKey]);
         const azioni = htmlAzioniRegistro(
-            isRegistroSolaLettura({ registro: t || row, impianto: foundColtura }),
+            isRegistroSolaLettura({
+                registro: t || row,
+                terreno: row.terrenoStato ? { stato: row.terrenoStato } : null,
+                impianto: foundColtura
+            }),
             hasTrattamento
                 ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
                <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
@@ -1175,9 +1175,26 @@ async function loadTrattamenti() {
         </tr>`;
     }).join('');
 
-    tbody.querySelectorAll('[data-edit-row]').forEach(btn => btn.addEventListener('click', () => openModalEditRow(parseInt(btn.getAttribute('data-edit-row'), 10))));
-    tbody.querySelectorAll('[data-delete-row]').forEach(btn => btn.addEventListener('click', () => deleteTrattamentoConfirmRow(parseInt(btn.getAttribute('data-delete-row'), 10))));
-    tbody.querySelectorAll('[data-completa-row]').forEach(btn => btn.addEventListener('click', () => openModalCompleta(parseInt(btn.getAttribute('data-completa-row'), 10))));
+}
+
+function riempiSelectImpianti() {
+    const selFilter = document.getElementById(cfg.filterId);
+    const selModal = document.getElementById(cfg.selectId);
+    const scrivi = (sel, records, placeholder) => {
+        if (!sel) return;
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">' + placeholder + '</option>';
+        records.forEach((record) => {
+            const opt = document.createElement('option');
+            opt.value = record.id;
+            opt.textContent = cfg.optionLabel(record);
+            sel.appendChild(opt);
+        });
+        if (prev && [...sel.options].some((opt) => opt.value === prev)) sel.value = prev;
+        else sel.value = '';
+    };
+    scrivi(selFilter, impiantiPerFiltro(colture, mostraArchiviatiSelezionato()), cfg.filterAllLabel);
+    scrivi(selModal, impiantiPerInserimento(colture), cfg.selectPlaceholder);
 }
 
 function setDatiBaseReadOnly(data, terrenoLabel, riferimentoLabel) {
@@ -1313,6 +1330,10 @@ async function applyScaricoMagazzinoUi(t) {
 }
 
 async function openModalEditRow(idx) {
+    await apriConAvviso(() => apriModificaTrattamento(idx), showAlert);
+}
+
+async function apriModificaTrattamento(idx) {
     const row = listRows[idx];
     if (!row || !row.trattamento) return;
     const t = row.trattamento;
@@ -1731,6 +1752,20 @@ async function init() {
         document.getElementById('trattamento-superficie').addEventListener('input', ricalcolaQuantitaCostoProdotti);
         document.getElementById(cfg.filterId).addEventListener('change', loadTrattamenti);
         document.getElementById('filter-anno').addEventListener('change', loadTrattamenti);
+        const mostraArchiviati = document.getElementById('filter-mostra-archiviati');
+        if (mostraArchiviati && mostraArchiviati.getAttribute('data-archivio-bound') !== '1') {
+            mostraArchiviati.setAttribute('data-archivio-bound', '1');
+            mostraArchiviati.addEventListener('change', async () => {
+                riempiSelectImpianti();
+                await loadTrattamenti();
+            });
+        }
+        bindAzioniLista(document.getElementById('table-wrap'), {
+            onEdit: (idx) => openModalEditRow(idx),
+            onCompleta: (idx) => openModalCompleta(idx),
+            onDelete: (idx) => deleteTrattamentoConfirmRow(idx),
+            onError: (err) => showAlert((err && err.message) || 'Non riesco ad aprire il trattamento.', 'error')
+        });
         document.getElementById('close-modal').addEventListener('click', closeModal);
         document.getElementById('cancel-btn').addEventListener('click', closeModal);
         document.getElementById('form-trattamento').addEventListener('submit', saveTrattamento);
