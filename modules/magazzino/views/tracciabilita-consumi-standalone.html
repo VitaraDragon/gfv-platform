@@ -103,6 +103,12 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label for="filter-mostra-archiviati">
+                        <input type="checkbox" id="filter-mostra-archiviati">
+                        Mostra archiviati
+                    </label>
+                </div>
+                <div class="filter-group">
                     <label for="filter-vista">Visualizzazione</label>
                     <select id="filter-vista" aria-label="Modalità elenco">
                         <option value="raggruppata">Raggruppata (consigliata)</option>
@@ -148,6 +154,7 @@
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, query, orderBy } from '../../../core/services/firebase-service.js';
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { nomeAppezzamentoConsumo, terreniPerFiltro } from '../../../shared/js/filtri-storico.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { CATEGORIE_PRODOTTO } from '../config/categorie-prodotto.js';
 
@@ -373,10 +380,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
         }
 
         function nomeTerrenoTracciabilita(t) {
-            if (!t) return '';
-            const base = String(t.nome || '').trim();
-            if (!base) return '';
-            return t.stato === 'archiviato' ? base + ' (archiviato)' : base;
+            return nomeAppezzamentoConsumo(t, '');
         }
 
         function labelCoperturaTerreno(c) {
@@ -418,10 +422,8 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
                 const a = attivita.find(x => x.id === m.attivitaId);
                 if (a) {
                     if (a.terrenoId) terrenoId = a.terrenoId;
-                    if (a.terrenoNome) terrenoNome = String(a.terrenoNome).trim();
-                    if (!terrenoNome && terrenoId && terreniById[terrenoId]) {
-                        terrenoNome = nomeTerrenoTracciabilita(terreniById[terrenoId]);
-                    }
+                    const terrenoAtt = terrenoId && terreniById[terrenoId];
+                    terrenoNome = nomeAppezzamentoConsumo(terrenoAtt, a.terrenoNome);
                 }
             }
             return { terrenoId, terrenoNome };
@@ -436,13 +438,14 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
             z.value = '';
             z.textContent = 'Tutti i terreni';
             sel.appendChild(z);
-            const list = Object.values(terreniById).slice().sort((a, b) =>
+            const mostra = !!document.getElementById('filter-mostra-archiviati')?.checked;
+            const list = terreniPerFiltro(Object.values(terreniById), mostra).sort((a, b) =>
                 String(a.nome || '').localeCompare(String(b.nome || ''), 'it', { sensitivity: 'base' }));
             for (const t of list) {
-                if (!t || !t.id || t.stato === 'archiviato') continue;
+                if (!t || !t.id) continue;
                 const o = document.createElement('option');
                 o.value = t.id;
-                o.textContent = t.nome || t.id;
+                o.textContent = nomeAppezzamentoConsumo(t, t.id);
                 sel.appendChild(o);
             }
             if (prev && [...sel.options].some(op => op.value === prev)) sel.value = prev;
@@ -1202,6 +1205,13 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
                 document.getElementById('filter-categoria').onchange = onFilter;
                 const ft = document.getElementById('filter-terreno');
                 if (ft) ft.onchange = onFilter;
+                const mostraArchiviati = document.getElementById('filter-mostra-archiviati');
+                if (mostraArchiviati) {
+                    mostraArchiviati.addEventListener('change', () => {
+                        populateFilterTerrenoOptions();
+                        onFilter();
+                    });
+                }
                 document.getElementById('filter-vista').onchange = async () => { await renderTabella(); };
                 await loadProdotti();
                 await loadVignetiFruttetiTerreni();
