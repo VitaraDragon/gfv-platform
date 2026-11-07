@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — T-FLOW-014: modulo Tony prima delle rotte.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — Trattamenti: schede mobile, Mostra archiviati.**
+
+## 2026-11-07 — Trattamenti: Modifica sulle schede e storico archiviati
+
+Su `cursor/trattamenti-schede-archiviati-a8f7` (PR verso develop): Modifica e Completa di Trattamenti Vigneto/Frutteto rispondono anche sulla scheda della pelle Proposta, perché il clic è sul contenitore della lista e non solo sui bottoni della tabella. Se l’apertura del modulo fallisce, l’avviso è visibile. Seminativo aveva già la delega sullo stesso contenitore: ora usa lo stesso avviso. **Mostra archiviati** (spento all’inizio) rimette nei filtri i vigneti e i frutteti chiusi e i terreni archiviati di Trattamenti Seminativo e di Tracciabilità consumi. Le tendine di inserimento restano solo sugli attivi. La riga di un terreno archiviato ha « (archiviato)» e resta in sola consultazione. Test `tests/trattamenti-schede-archiviati.test.js`. Nessun deploy. Functions, rules, indici e Tony no.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — T-FLOW-014: modulo Tony prima delle rotte.**
 
 ## 2026-11-07 — T-FLOW-014: il preventivo non parte col modulo ancora spento
 

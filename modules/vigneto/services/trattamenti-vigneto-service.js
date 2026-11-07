@@ -539,6 +539,7 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno, op
         data: dataInizio,
         lavoroLabel: lavoro.tipoLavoro || lavoro.nome || lavoro.id,
         terrenoLabel,
+        terrenoStato: terreno && terreno.stato ? terreno.stato : null,
         vignetoId,
         trattamento
       });
@@ -555,6 +556,7 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno, op
         data: dataAtt,
         lavoroLabel: att.note || att.tipoLavoro || 'Attività',
         terrenoLabel,
+        terrenoStato: terreno && terreno.stato ? terreno.stato : null,
         vignetoId,
         trattamento
       });

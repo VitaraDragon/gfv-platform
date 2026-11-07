@@ -445,6 +445,7 @@ export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno, 
         data: dataInizio,
         lavoroLabel: lavoro.tipoLavoro || lavoro.nome || lavoro.id,
         terrenoLabel,
+        terrenoStato: terreno && terreno.stato ? terreno.stato : null,
         fruttetoId,
         trattamento
       });
@@ -462,6 +463,7 @@ export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno, 
         data: dataAtt,
         lavoroLabel: att.note || att.tipoLavoro || 'Attività',
         terrenoLabel,
+        terrenoStato: terreno && terreno.stato ? terreno.stato : null,
         fruttetoId,
         trattamento
       });
