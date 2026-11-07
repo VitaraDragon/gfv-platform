@@ -2134,7 +2134,8 @@
     var list = window.lavoriState[stateKey];
     if (!Array.isArray(list)) return rawValue;
     if (nameKey === 'nome' && (stateKey === 'caposquadraList' || stateKey === 'operaiList')) {
-      return resolveUserByName(rawValue, list) || rawValue;
+      // Mai inventare/tenere un nome assente dal tenant (es. «Luca» inesistente).
+      return resolveUserByName(rawValue, list) || '';
     }
     return _resolveByName(rawValue, list, nameKey || 'nome') || rawValue;
   }
@@ -5864,14 +5865,28 @@
       if ((!hit || !hit.ambiguous) && hint !== msg && msg) {
         hit = findPersonInInterviewText(msg, { roleHint: roleHint });
       }
-      if (hit && hit.ambiguous) {
+      var list = role === 'caposquadra'
+        ? ((window.lavoriState && window.lavoriState.caposquadraList) || [])
+        : ((window.lavoriState && window.lavoriState.operaiList) || []);
+      var rawPerson = String(formData[key] || '').trim();
+      var resolvedId = rawPerson ? resolveUserByName(rawPerson, list) : null;
+      var unknownNamed = !!(rawPerson && !looksLikeFirestoreDocId(rawPerson) && !resolvedId && !hit);
+      if ((hit && hit.ambiguous) || unknownNamed) {
         delete formData[key];
         delete formData['lavoro-operatore-macchina'];
         if (formData['tipo-assegnazione'] === (role === 'caposquadra' ? 'squadra' : 'autonomo')) {
           delete formData['tipo-assegnazione'];
         }
         if (formData['lavoro-stato'] === 'assegnato') delete formData['lavoro-stato'];
-        offerPersonDisambResponse(hit, msg || hint);
+        if (hit && hit.ambiguous) {
+          offerPersonDisambResponse(hit, msg || hint);
+        } else if (unknownNamed) {
+          var ruoloLabel = role === 'caposquadra' ? 'caposquadra' : 'operai';
+          window.__tonyLavoroUnknownPersonMessage =
+            'Non ho trovato «' + rawPerson + '» tra i ' + ruoloLabel +
+            '. Ripeti nome e cognome come in elenco, oppure dimmi a chi assegnare.';
+          window.__tonyLastLavoroInterviewQuestion = window.__tonyLavoroUnknownPersonMessage;
+        }
         window.__tonyLavoroCreationFlow = true;
         window.__tonyLavoroInterviewPending = true;
       }
@@ -7179,6 +7194,13 @@
    * @returns {Promise<{asked: boolean, message: string}>}
    */
   async function promptLavoroInterviewMissing() {
+    if (window.__tonyLavoroUnknownPersonMessage) {
+      var msgUnknown = String(window.__tonyLavoroUnknownPersonMessage);
+      window.__tonyLavoroUnknownPersonMessage = '';
+      window.__tonyLavoroInterviewPending = true;
+      window.__tonyLastLavoroInterviewQuestion = msgUnknown;
+      return { asked: true, message: msgUnknown };
+    }
     if (lavoroInterviewNeedsAssignModeQuestion()) {
       window.__tonyLavoroInterviewPending = true;
       var msgAssign = buildNextLavoroInterviewMessage([], false);
