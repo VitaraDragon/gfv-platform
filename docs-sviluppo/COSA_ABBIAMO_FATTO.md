@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — Intervista lavoro: scelta successiva e negazione.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — T-FLOW-014: modulo Tony prima delle rotte.**
+
+## 2026-11-07 — T-FLOW-014: il preventivo non parte col modulo ancora spento
+
+Sulla stessa PR: `Tony.init` segnava il widget pronto e poi attendeva `tony-routes.json` prima di leggere i moduli. In quel buco T-FLOW-014 iniettava il preventivo e Tony rispondeva «modulo Tony Avanzato non attivo», quindi la bolla del terreno non arrivava mai (timeout 90 s, 3/3). Il controllo del modulo ora avviene prima di quell’attesa. Stesso emulator e stesso tenant: develop `719d570` chiudeva il flusso; la PR prima del fix lo bloccava; dopo il fix il flusso isolato è passato due volte. Test `tests/tony-modulo-prima-delle-rotte.test.js`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: scelta successiva e negazione.**
 
 ## 2026-11-07 — Intervista Gestione lavori: non sovrascrive una scelta già fatta
 
