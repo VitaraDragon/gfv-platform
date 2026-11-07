@@ -1,6 +1,30 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — Intervista lavoro: persona reale, niente loop.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — T-FLOW-014: modulo Tony prima delle rotte.**
+
+## 2026-11-07 — T-FLOW-014: il preventivo non parte col modulo ancora spento
+
+Sulla stessa PR: `Tony.init` segnava il widget pronto e poi attendeva `tony-routes.json` prima di leggere i moduli. In quel buco T-FLOW-014 iniettava il preventivo e Tony rispondeva «modulo Tony Avanzato non attivo», quindi la bolla del terreno non arrivava mai (timeout 90 s, 3/3). Il controllo del modulo ora avviene prima di quell’attesa. Stesso emulator e stesso tenant: develop `719d570` chiudeva il flusso; la PR prima del fix lo bloccava; dopo il fix il flusso isolato è passato due volte. Test `tests/tony-modulo-prima-delle-rotte.test.js`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: scelta successiva e negazione.**
+
+## 2026-11-07 — Intervista Gestione lavori: non sovrascrive una scelta già fatta
+
+Sulla stessa PR `cursor/tony-intervista-cascata-a8f7`: se tipo o sottocategoria hanno già un valore vero, un ricarico non li riporta al valore precedente dell’intervista. Il ripristino di un select vuoto emette `change`, come il listener della miscela. Il radio della persona mancante emette `change`, così il form mostra il gruppo caposquadra. «non al caposquadra» non conta come lavoro di squadra. T-FLOW-014 non è in questo diff: il codice che chiede il terreno del preventivo è identico a `719d570`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: cascata tipo e ruolo esplicito.**
+
+## 2026-11-07 — Intervista Gestione lavori: sottocategoria del tipo e ruolo detto
+
+Su `cursor/tony-intervista-cascata-a8f7` (PR verso develop, baseline `origin/develop` = `719d570` / `origin/main` = `d6040bdd`): la sottocategoria vera del tipo (Manuale per la potatura) sostituisce una copertura messa prima (Tra le File, Sulla Fila, Generale). Un ricarico dei select che non ripristina il tipo lo rimette se l’opzione c’è ancora. «assegnato al caposquadra» resta squadra anche se il nome è un operaio: il campo operaio resta vuoto e Tony dice che quel nome non è tra i caposquadra. Se il tipo è già scelto, ripeterlo o rispondere squadra/persona non riapre la lista dei tipi. «Chi sono i caposquadra disponibili?» non è questa correzione: con il flusso di creazione ancora acceso la frase entra nell’intervista. Test `tests/tony-lavoro-intervista-cascata.test.js` con la cascata dei select e il catalogo reale dei modi. Nessun deploy eseguito. Dopo merge autorizzato: Pages e service worker. Functions, rules e indici no. Browser e voce non provati.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: persona reale, niente loop.**
 
 ## 2026-11-07 — Intervista Gestione lavori: persona del roster e campi che restano
 
