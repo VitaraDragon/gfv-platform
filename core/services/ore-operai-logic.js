@@ -15,6 +15,7 @@ import {
   isOraDelCaposquadraSuLavoroSquadra,
   oreVisibileInCodaValidazione
 } from './manodopera-ore-validazione-scope.js';
+import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
 
 const TIME_RE = /^(\d{1,2}):(\d{2})$/;
 
@@ -429,13 +430,25 @@ function messaggioBloccoValidata(ora, lavoro) {
  * Permessi interfaccia secondo R1 (proprietario) e R4 (validatore).
  * La validazione di una riga in coda resta su assertUtentePuoValidareOra.
  *
- * @param {{ ora: object, lavoro: object, userId: string, isCaposquadra: boolean, isManager: boolean }} args
+ * @param {{ ora: object, lavoro: object, userId: string, isCaposquadra: boolean, isManager: boolean, terreno?: object|null }} args
  */
 export function permessiOra(args) {
-  const { ora, lavoro, userId, isCaposquadra, isManager } = args || {};
+  const { ora, lavoro, userId, isCaposquadra, isManager, terreno } = args || {};
   const uid = String(userId || '');
   const owner = Boolean(uid) && String(ora && ora.operaioId || '') === uid;
   const stato = String(ora && ora.stato || '');
+  const terrenoEffettivo = terreno
+    || (lavoro && lavoro.terreno && typeof lavoro.terreno === 'object' ? lavoro.terreno : null);
+  if (isLavoroSolaLettura(lavoro, terrenoEffettivo)) {
+    return {
+      puoModificare: false,
+      puoEliminare: false,
+      puoCorreggere: false,
+      puoAnnullareValidazione: false,
+      puoRifiutare: false,
+      motivoBlocco: MESSAGGIO_ORE_SOLA_LETTURA
+    };
+  }
   const validatore = isValidatoreOre({ ora, lavoro, userId: uid, isCaposquadra, isManager });
   const modificabile = owner && (stato === 'da_validare' || stato === 'rifiutate');
 
@@ -452,6 +465,27 @@ export function permessiOra(args) {
     puoRifiutare: validatore && (stato === 'validate' || stato === 'da_validare'),
     motivoBlocco
   };
+}
+
+/**
+ * Riga ore su lavoro in sola lettura (terreno archiviato / storico cambio coltura).
+ * @param {object} row ora arricchita con lavoro/terreno, oppure { ora, lavoro, terreno }
+ */
+export function isOraSuLavoroSolaLettura(row) {
+  if (!row || typeof row !== 'object') return false;
+  const lavoro = row.lavoro || row.lavoroData || row;
+  const terreno = row.terreno
+    || (lavoro && lavoro.terreno && typeof lavoro.terreno === 'object' ? lavoro.terreno : null);
+  return isLavoroSolaLettura(lavoro, terreno);
+}
+
+/**
+ * Solo le ore ancora validabili operativamente (esclude storico sola lettura).
+ * @param {object[]} righe
+ * @returns {object[]}
+ */
+export function filtraOreValidabiliOperative(righe) {
+  return (Array.isArray(righe) ? righe : []).filter((row) => !isOraSuLavoroSolaLettura(row));
 }
 
 /**

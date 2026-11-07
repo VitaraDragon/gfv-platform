@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   getAllTerreni,
   nomeTerrenoStatistiche,
-  superficieTerreniAttivi
+  superficieTerreniAttivi,
+  calcolaMetricheTerreniAttivi
 } from '../core/js/statistiche-controller.js';
 
 const terreni = [
@@ -36,5 +37,11 @@ describe('C1 — statistiche terreni attivi', () => {
     const tutti = await getAllTerreni('tenant', dependencies, null, { includiArchiviati: true });
     const archivio = tutti.find((t) => t.id === '3');
     expect(nomeTerrenoStatistiche(archivio)).toBe('C (archiviato)');
+  });
+
+  it('calcolaMetricheTerreniAttivi allinea Terreni Totali e Superficie totale', () => {
+    const metriche = calcolaMetricheTerreniAttivi(terreni);
+    expect(metriche.totaleTerreni).toBe(4);
+    expect(metriche.superficieTotale).toBe(13);
   });
 });

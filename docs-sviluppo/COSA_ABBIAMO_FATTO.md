@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — QA post-#340 P1–P5 su `fix/qa-post340`.**
+
+## 2026-11-07 — QA post-#340 (P1–P5): storico ore, colture, totali, validazione, etichette
+
+Su `fix/qa-post340` (PR verso develop, baseline `ff46690b` = #339 già in develop / #340 su main): **P1** `eliminaOraPropria` e `permessiOra` rispettano `isLavoroSolaLettura` (niente cancellazione storico); **P2** eliminazione coltura fail-closed sui riferimenti (anche terreni archiviati), niente «Eliminare comunque»; **P3** Terreni Totali / Superficie totale solo attivi aziendali; **P4** KPI e bulk «ore da validare» escludono sola lettura, testi in registrazioni/durata; **P5** etichetta lavoro con nome terreno da oggetto (niente `[object Object]`). Test: `tests/qa-post340-p1-p5.test.js`. Nessun deploy functions/rules in questo giro (solo asset browser / Pages dopo merge+promote).
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
 
 ## 2026-11-05 — QA 4 nov prompt 4 (37–56): cambio coltura, migrazione, archiviazione
 
@@ -88,22 +96,6 @@ Con Manodopera attivo, «segna le ore» detto da un manager non apre più un lav
 
 ---
 
-**Ultimo aggiornamento precedente: 2026-10-26 — Tony: slot di turno, ripresa con un luogo, segna ore non è meteo.**
-
-## 2026-10-26 — Tony: slot di turno (#124), ripresa con un luogo (#84), segna ore non è meteo
-
-Porting a mano su main di #124 (`ec0bd83d`) e del resto di #84 (`cbc9c44e`). Dopo un oliveto, mietitura o trebbiatura non confermano campo e ore del turno prima: Tony chiede l’appezzamento. «Continua dalla fila 4 verso il fosso» ripete fila e fosso; la regola 4 c’era già. «Aiutami a segnare le ore di oggi per un lavoro» non apre più la valutazione meteo. «Ore» da sola resta una domanda sul tempo. Serve il deploy di `tonyAsk` e `tonyAskStream`.
-
----
-
-**Ultimo aggiornamento precedente: 2026-10-26 — Tony: la chat mostra solo la frase.**
-
-## 2026-10-26 — Tony: la chat mostra solo la frase (porting #123)
-
-Porting a mano di #123 (`0db04887`) su main. Se la risposta arriva troncata o con un comando attaccato (`OPEN_MODAL`, `INJECT_FORM_DATA`, …), in chat e in voce resta la frase; il comando parte solo se id, formId o target sono chiusi. Una bolla vuota non viene mostrata. L’estrazione di `text` con virgolette non escapate resta quella di #298; «Tutto pronto» resta l’uscita di ogni bolla. Nessun deploy di Cloud Functions.
-
----
-
 **Ultimo aggiornamento precedente: 2026-10-25 — Tony: mai JSON grezzo in chat.**
 
 ## 2026-10-25 — Tony: mai JSON grezzo in chat (virgolette non escapate)
@@ -148,7 +140,7 @@ Sui lavori di squadra la zona la segna il caposquadra di quel lavoro, oppure un 
 
 ## 2026-10-19 — Barra «C'è una nuova versione»
 
-Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: il ricaricamento parte subito dopo che la versione nuova ha preso il controllo, così una pagina già aperta non lo perde. Dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
 
 ---
 
