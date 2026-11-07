@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — EIMA Tony affidabilità (TTS command, Luca, speech/nav).**
+**Ultimo aggiornamento documentazione: 2026-11-07 — Intervista lavoro: persona reale, niente loop.**
+
+## 2026-11-07 — Intervista Gestione lavori: persona del roster e campi che restano
+
+Su `cursor/tony-intervista-persona-a8f7` (PR verso develop, baseline `origin/develop` = `abecc048` / `origin/main` = `aee9ca63`): l’injector assegna caposquadra e operaio solo se il nome o l’id/uid è nel roster di quel ruolo. Un nome assente, un id sconosciuto o un id dell’altro ruolo non entra nel campo e non torna il testo grezzo. «assegnato al caposquadra …» non usa la parola del ruolo come nome. «chiamato …» resta il nome del lavoro. Il terreno già detto viene scritto prima della domanda manuale/meccanica. Le domande seguono terreno, tipo, squadra o persona, poi chi. Se si ripete la domanda sul caposquadra, Tony non dice che manca il tipo. Test `tests/tony-lavoro-intervista-persona.test.js`; il vincolo letterale `|| ''` di #343 è sostituito da questo comportamento. Nessun deploy eseguito. Dopo merge autorizzato: Pages e service worker. Functions, rules e indici no. Browser e voce non provati.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — EIMA Tony affidabilità (TTS command, Luca, speech/nav).**
 
 ## 2026-11-07 — EIMA: affidabilità Tony demo (TTS «, command:», persona assente, speech/nav)
 
