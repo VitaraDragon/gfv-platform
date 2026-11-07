@@ -176,6 +176,61 @@ export function superficieTerreniAttivi(terreni = []) {
 }
 
 /**
+ * Totali «Terreni» / «Superficie totale» delle statistiche: solo aziendali attivi.
+ * Esclude archiviati e terreni cliente. Non altera lo storico.
+ *
+ * @param {Array<object>} terreni
+ * @returns {{
+ *   totaleTerreni: number,
+ *   terreniProprieta: number,
+ *   terreniAffitto: number,
+ *   superficieTotale: number,
+ *   superficieProprieta: number,
+ *   superficieAffitto: number,
+ *   canoneMensileTotale: number
+ * }}
+ */
+export function calcolaMetricheTerreniAttivi(terreni = []) {
+    let totaleTerreni = 0;
+    let terreniProprieta = 0;
+    let terreniAffitto = 0;
+    let superficieTotale = 0;
+    let superficieProprieta = 0;
+    let superficieAffitto = 0;
+    let canoneMensileTotale = 0;
+
+    (Array.isArray(terreni) ? terreni : []).forEach((terreno) => {
+        if (!terreno || typeof terreno !== 'object') return;
+        if (terreno.clienteId) return;
+        if (isTerrenoArchiviato(terreno)) return;
+        totaleTerreni += 1;
+        const superficie = Number(terreno.superficie) || 0;
+        superficieTotale += superficie;
+        const tipoPossesso = terreno.tipoPossesso || 'proprieta';
+        if (tipoPossesso === 'proprieta') {
+            terreniProprieta += 1;
+            superficieProprieta += superficie;
+        } else if (tipoPossesso === 'affitto') {
+            terreniAffitto += 1;
+            superficieAffitto += superficie;
+            if (terreno.canoneAffitto) {
+                canoneMensileTotale += Number(terreno.canoneAffitto) || 0;
+            }
+        }
+    });
+
+    return {
+        totaleTerreni,
+        terreniProprieta,
+        terreniAffitto,
+        superficieTotale,
+        superficieProprieta,
+        superficieAffitto,
+        canoneMensileTotale
+    };
+}
+
+/**
  * Carica tutte le attività con filtri opzionali
  * @param {string} currentTenantId - ID tenant corrente
  * @param {Object} filters - Filtri opzionali (terrenoId, tipoLavoro, dataDa, dataA)
@@ -980,34 +1035,16 @@ export async function loadStatisticheTerreni(currentTenantId, dependencies, getA
         if (!tenantId) return;
         
         const terreni = await getAllTerreniCallback();
-        
-        // Calcola statistiche
-        let totaleTerreni = terreni.length;
-        let terreniProprieta = 0;
-        let terreniAffitto = 0;
-        let superficieTotale = 0;
-        let superficieProprieta = 0;
-        let superficieAffitto = 0;
-        let canoneMensileTotale = 0;
-        
-        terreni.forEach(terreno => {
-            const superficie = terreno.superficie || 0;
-            superficieTotale += superficie;
-            
-            // Applica default 'proprieta' per retrocompatibilità
-            const tipoPossesso = terreno.tipoPossesso || 'proprieta';
-            
-            if (tipoPossesso === 'proprieta') {
-                terreniProprieta++;
-                superficieProprieta += superficie;
-            } else if (tipoPossesso === 'affitto') {
-                terreniAffitto++;
-                superficieAffitto += superficie;
-                if (terreno.canoneAffitto) {
-                    canoneMensileTotale += terreno.canoneAffitto;
-                }
-            }
-        });
+        const metriche = calcolaMetricheTerreniAttivi(terreni);
+        const {
+            totaleTerreni,
+            terreniProprieta,
+            terreniAffitto,
+            superficieTotale,
+            superficieProprieta,
+            superficieAffitto,
+            canoneMensileTotale
+        } = metriche;
         
         const canoneAnnuoTotale = canoneMensileTotale * 12;
         

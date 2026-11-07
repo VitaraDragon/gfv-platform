@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — QA post-#340 P1–P5 su `fix/qa-post340`.**
+
+## 2026-11-07 — QA post-#340 (P1–P5): storico ore, colture, totali, validazione, etichette
+
+Su `fix/qa-post340` (PR verso develop, baseline `ff46690b` = #339 già in develop / #340 su main): **P1** `eliminaOraPropria` e `permessiOra` rispettano `isLavoroSolaLettura` (niente cancellazione storico); **P2** eliminazione coltura fail-closed sui riferimenti (anche terreni archiviati), niente «Eliminare comunque»; **P3** Terreni Totali / Superficie totale solo attivi aziendali; **P4** KPI e bulk «ore da validare» escludono sola lettura, testi in registrazioni/durata; **P5** etichetta lavoro con nome terreno da oggetto (niente `[object Object]`). Test: `tests/qa-post340-p1-p5.test.js`. Nessun deploy functions/rules in questo giro (solo asset browser / Pages dopo merge+promote).
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
 
 ## 2026-11-05 — QA 4 nov prompt 4 (37–56): cambio coltura, migrazione, archiviazione
 

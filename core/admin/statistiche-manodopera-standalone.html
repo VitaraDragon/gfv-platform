@@ -429,6 +429,8 @@
             fetchUsersByIds
         } from '../services/manodopera-lavori-ore-loader.js';
         import { calcolaSuperficieStats } from '../services/statistiche-superficie.js?v=2026-10-18c';
+        import { calcolaMetricheTerreniAttivi } from '../js/statistiche-controller.js';
+        import { isLavoroSolaLettura } from '../../shared/js/storico-sola-lettura.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -1033,6 +1035,10 @@
             try {
                 const oggi = new Date();
                 const primoGiornoMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                const terreniMap = new Map();
+                (cachedTerreniDocs || []).forEach(function (terrenoDoc) {
+                    terreniMap.set(terrenoDoc.id, Object.assign({ id: terrenoDoc.id }, terrenoDoc.data() || {}));
+                });
 
                 let oreValidateMese = 0;
                 let oreValidateTotale = 0;
@@ -1042,6 +1048,8 @@
                 forEachOraInBundle(bundle, function (ctx) {
                     const ora = ctx.oraData;
                     const oreNette = ora.oreNette || 0;
+                    const lavoro = Object.assign({ id: ctx.lavoroId }, ctx.lavoroData || {});
+                    const terreno = terreniMap.get(lavoro.terrenoId) || null;
 
                     if (ora.stato === 'validate') {
                         oreValidateTotale += oreNette;
@@ -1058,6 +1066,8 @@
                             }
                         }
                     } else if (ora.stato === 'da_validare') {
+                        // KPI operativo: esclude ore di lavori in sola lettura (es. terreno archiviato)
+                        if (isLavoroSolaLettura(lavoro, terreno)) return;
                         oreDaValidare += oreNette;
                     }
                 });
@@ -1166,37 +1176,21 @@
             return formatDateLikeToItalianLongLocal(data) || '';
         }
 
-        // Statistiche terreni (da docs già caricati)
+        // Statistiche terreni (solo attivi aziendali; archiviati restano fuori dai totali)
         function applyStatisticheTerreni(terreniDocs) {
             try {
-                let totaleTerreni = 0;
-                let terreniProprieta = 0;
-                let terreniAffitto = 0;
-                let superficieTotale = 0;
-                let superficieProprieta = 0;
-                let superficieAffitto = 0;
-                let canoneMensileTotale = 0;
-
-                (terreniDocs || []).forEach(function (terrenoDoc) {
-                    totaleTerreni++;
-                    const terreno = terrenoDoc.data();
-                    const superficie = terreno.superficie || 0;
-                    superficieTotale += superficie;
-
-                    const tipoPossesso = terreno.tipoPossesso || 'proprieta';
-
-                    if (tipoPossesso === 'proprieta') {
-                        terreniProprieta++;
-                        superficieProprieta += superficie;
-                    } else if (tipoPossesso === 'affitto') {
-                        terreniAffitto++;
-                        superficieAffitto += superficie;
-                        if (terreno.canoneAffitto) {
-                            canoneMensileTotale += terreno.canoneAffitto;
-                        }
-                    }
-                });
-
+                const metriche = calcolaMetricheTerreniAttivi(
+                    (terreniDocs || []).map(function (terrenoDoc) {
+                        return Object.assign({ id: terrenoDoc.id }, terrenoDoc.data() || {});
+                    })
+                );
+                const totaleTerreni = metriche.totaleTerreni;
+                const terreniProprieta = metriche.terreniProprieta;
+                const terreniAffitto = metriche.terreniAffitto;
+                const superficieTotale = metriche.superficieTotale;
+                const superficieProprieta = metriche.superficieProprieta;
+                const superficieAffitto = metriche.superficieAffitto;
+                const canoneMensileTotale = metriche.canoneMensileTotale;
                 const canoneAnnuoTotale = canoneMensileTotale * 12;
 
                 document.getElementById('stat-terreni-totali-manodopera').textContent = totaleTerreni;
@@ -1211,6 +1205,8 @@
                 const affitti = [];
                 (terreniDocs || []).forEach(function (terrenoDoc) {
                     const terreno = terrenoDoc.data();
+                    if (terreno.stato === 'archiviato') return;
+                    if (terreno.clienteId) return;
                     const tipoPossesso = terreno.tipoPossesso || 'proprieta';
                     if (tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
                         const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);

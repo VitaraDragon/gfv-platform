@@ -426,7 +426,7 @@ export async function removeColtura(coltura) {
         return { success: false, error: 'Non è possibile eliminare una coltura predefinita' };
       }
       
-      // Elimina da colture
+      // Elimina da colture (fail-closed su riferimenti / verifica incompleta)
       await deleteColtura(colturaObj.id);
       
       // Sincronizza ListePersonalizzate
@@ -434,17 +434,9 @@ export async function removeColtura(coltura) {
       
       return { success: true, error: null };
     } catch (error) {
-      // Fallback: se colture non disponibile, usa metodo vecchio
-      console.warn('Impossibile rimuovere da colture, uso ListePersonalizzate:', error.message);
-      
-      const liste = await getListe();
-      const result = liste.removeColtura(coltura);
-      
-      if (result.success) {
-        await setDocument(COLLECTION_NAME, DOCUMENT_ID, liste.toFirestore(), tenantId);
-      }
-      
-      return result;
+      // Non aggirare il blocco riferimenti con il fallback ListePersonalizzate
+      console.error('Impossibile rimuovere coltura:', error.message);
+      return { success: false, error: error.message || 'Impossibile eliminare la coltura' };
     }
   } catch (error) {
     console.error('Errore rimozione coltura:', error);

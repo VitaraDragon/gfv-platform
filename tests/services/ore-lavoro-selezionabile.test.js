@@ -309,5 +309,13 @@ describe('etichetta lavoro ore', () => {
             stato: 'completato_da_approvare'
         })).toBe('Legatura — in attesa approvazione');
         expect(componiEtichettaLavoroOre({ nome: 'Potatura', stato: 'assegnato' })).toBe('Potatura');
+        expect(componiEtichettaLavoroOre({
+            nome: 'S340-C Potatura',
+            terreno: { nome: 'S340-C', stato: 'attivo' }
+        })).toBe('S340-C Potatura - S340-C');
+        expect(componiEtichettaLavoroOre({
+            nome: 'QACC-B Potatura',
+            terreno: { nome: 'QACC-B', stato: 'archiviato' }
+        })).toBe('QACC-B Potatura - QACC-B (archiviato)');
     });
 });

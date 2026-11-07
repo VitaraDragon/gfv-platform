@@ -3574,133 +3574,36 @@
             }
         }
         
-        // Rimuovi coltura
+        // Rimuovi coltura (blocco riferimenti in colture-service: niente «Eliminare comunque»)
         async function removeColtura(colturaNome, colturaId) {
             if (!currentTenantId) {
                 showAlert('Tenant ID non disponibile', 'error');
                 return;
             }
-            
+
             try {
-                // Prova a rimuovere da collection colture (fonte unica di verità)
-                try {
-                    const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
-                    let colturaDoc = null;
-                    
-                    // Se abbiamo l'ID, usalo direttamente
-                    if (colturaId) {
-                        try {
-                            const colturaDocRef = doc(db, `tenants/${currentTenantId}/colture`, colturaId);
-                            const colturaSnap = await getDoc(colturaDocRef);
-                            if (colturaSnap.exists()) {
-                                colturaDoc = { id: colturaSnap.id, data: () => colturaSnap.data() };
-                            }
-                        } catch (e) {
-                            console.warn('Errore recupero coltura per ID:', e);
-                        }
-                    }
-                    
-                    // Se non trovata per ID, cerca per nome
-                    if (!colturaDoc) {
-                        const q = query(coltureRef, where('nome', '==', colturaNome));
-                        const snapshot = await getDocs(q);
-                        if (!snapshot.empty) {
-                            const doc = snapshot.docs[0];
-                            colturaDoc = { id: doc.id, data: () => doc.data() };
-                        }
-                    }
-                    
-                    if (!colturaDoc) {
+                const { getColturaByNome, deleteColtura } = await import('../services/colture-service.js');
+                let id = colturaId;
+                if (!id) {
+                    const trovata = await getColturaByNome(colturaNome);
+                    if (!trovata) {
                         showAlert('Coltura non trovata', 'error');
                         return;
                     }
-                    
-                    const colturaData = colturaDoc.data();
-                    
-                    // Verifica se è predefinita
-                    if (colturaData.predefinito) {
-                        showAlert('Non è possibile eliminare una coltura predefinita', 'error');
-                        return;
-                    }
-                    
-                    // Verifica se usata in attività
-                    try {
-                        const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
-                        const qAttivita = query(attivitaCollection, where('coltura', '==', colturaNome));
-                        const querySnapshot = await getDocs(qAttivita);
-                        const numAttivita = querySnapshot.size;
-                        
-                        // Verifica anche in terreni
-                        const terreniCollection = collection(db, `tenants/${currentTenantId}/terreni`);
-                        const qTerreni = query(terreniCollection, where('coltura', '==', colturaNome));
-                        const terreniSnapshot = await getDocs(qTerreni);
-                        const numTerreni = terreniSnapshot.size;
-                        
-                        if (numAttivita > 0 || numTerreni > 0) {
-                            if (!confirm(`Questa coltura è usata in ${numAttivita} attività e ${numTerreni} terreni. Eliminare comunque?`)) {
-                                return;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Errore verifica uso coltura:', e);
-                    }
-                    
-                    // Elimina da collection colture
-                    await deleteDoc(doc(db, `tenants/${currentTenantId}/colture`, colturaDoc.id));
-                    
-                    showAlert('Coltura eliminata con successo', 'success');
-                    await loadColturePerCategoria();
-                } catch (error) {
-                    // Fallback: se colture non disponibile, usa metodo vecchio
-                    console.warn('Impossibile rimuovere da colture, uso ListePersonalizzate:', error.message);
-                    
-                    // Verifica se è predefinita
-                    if (COLTURE_PREDEFINITE.some(p => p.toLowerCase() === coltura.toLowerCase())) {
-                        showAlert('Non è possibile eliminare una coltura predefinita', 'error');
-                        return;
-                    }
-                    
-                    // Verifica se usata in attività
-                    try {
-                        const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
-                        const q = query(attivitaCollection, where('coltura', '==', coltura));
-                        const querySnapshot = await getDocs(q);
-                        const numAttivita = querySnapshot.size;
-                        
-                        if (numAttivita > 0) {
-                            if (!confirm(`Questa coltura è usata in ${numAttivita} attività. Eliminare comunque?`)) {
-                                return;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Errore verifica attività:', e);
-                    }
-                    
-                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                    const listeSnap = await getDoc(listeRef);
-                    
-                    if (!listeSnap.exists()) {
-                        showAlert('Liste non trovate', 'error');
-                        return;
-                    }
-                    
-                    const data = listeSnap.data();
-                    const colture = (data.colture || []).filter(c => c !== coltura);
-                    
-                    await updateDoc(listeRef, {
-                        colture: colture,
-                        updatedAt: serverTimestamp()
-                    });
-                    
-                    showAlert('Coltura eliminata con successo', 'success');
-                    await loadColturePerCategoria();
+                    id = trovata.id;
                 }
+                if (!confirm(`Eliminare la coltura «${colturaNome}»?`)) {
+                    return;
+                }
+                await deleteColtura(id);
+                showAlert('Coltura eliminata con successo', 'success');
+                await loadColturePerCategoria();
             } catch (error) {
                 console.error('Errore rimozione coltura:', error);
                 showAlert('Errore durante l\'eliminazione: ' + error.message, 'error');
             }
         }
-        
+
         // ========== Gestione Tariffe Operai ==========
         
         const TIPI_OPERAI = [

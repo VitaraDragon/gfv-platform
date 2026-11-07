@@ -17,8 +17,13 @@ import { Coltura } from '../models/Coltura.js';
 import { COLTURE_PREDEFINITE } from '../config/app-catalog-seed-data.js';
 import { conLockSeed, idSeed, datiSeed, scriviSeedBatch } from './catalogo-seed.js';
 import { mappeCodiceCanonico } from '../js/catalogo-dedupe.js';
+import {
+  decidiEliminazioneColtura,
+  MESSAGGIO_VERIFICA_USO_COLTURA
+} from './colture-elimina-logic.js';
 
 export { COLTURE_PREDEFINITE };
+export { decidiEliminazioneColtura, MESSAGGIO_VERIFICA_USO_COLTURA };
 
 const COLLECTION_NAME = 'colture';
 
@@ -352,14 +357,12 @@ export async function updateColtura(colturaId, updates) {
 }
 
 /**
- * Elimina una coltura
+ * Elimina una coltura. Mai con riferimenti residui (nessun force).
  * @param {string} colturaId - ID coltura
- * @param {Object} options - Opzioni eliminazione
- * @param {boolean} options.force - Se true, elimina anche se usata (default: false)
  * @returns {Promise<void>}
- * @throws {Error} Se coltura è usata e force=false
+ * @throws {Error} Se coltura è usata, predefinita o la verifica fallisce
  */
-export async function deleteColtura(colturaId, options = {}) {
+export async function deleteColtura(colturaId) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) {
@@ -375,21 +378,26 @@ export async function deleteColtura(colturaId, options = {}) {
     if (!coltura) {
       throw new Error('Coltura non trovata');
     }
-    
-    // Non permettere eliminazione di colture predefinite
-    if (coltura.predefinito) {
-      throw new Error('Non è possibile eliminare colture predefinite del sistema');
+
+    let numAttivita = 0;
+    let numTerreni = 0;
+    let verificaOk = true;
+    try {
+      numAttivita = await getNumeroAttivitaColtura(coltura.nome);
+      numTerreni = await getNumeroTerreniColtura(coltura.nome);
+    } catch (error) {
+      console.error('Errore verifica uso coltura:', error);
+      verificaOk = false;
     }
-    
-    // Verifica se coltura è usata in attività o terreni
-    const numAttivita = await getNumeroAttivitaColtura(coltura.nome);
-    const numTerreni = await getNumeroTerreniColtura(coltura.nome);
-    
-    if ((numAttivita > 0 || numTerreni > 0) && !options.force) {
-      throw new Error(
-        `Impossibile eliminare: la coltura è utilizzata da ${numAttivita} attività e ${numTerreni} terreni. ` +
-        `Elimina prima le attività/terreni o usa l'opzione force=true per eliminare comunque.`
-      );
+
+    const decisione = decidiEliminazioneColtura({
+      predefinito: !!coltura.predefinito,
+      numAttivita,
+      numTerreni,
+      verificaOk
+    });
+    if (!decisione.ok) {
+      throw new Error(decisione.messaggio);
     }
     
     await deleteDocument(COLLECTION_NAME, colturaId, tenantId);
@@ -400,57 +408,45 @@ export async function deleteColtura(colturaId, options = {}) {
 }
 
 /**
- * Verifica se una coltura è usata in attività
+ * Verifica se una coltura è usata in attività del Diario (non Gestione lavori).
  * @param {string} nomeColtura - Nome coltura
  * @returns {Promise<number>} Numero di attività che usano questa coltura
  */
 export async function getNumeroAttivitaColtura(nomeColtura) {
-  try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
-    // Import dinamico per evitare dipendenze circolari
-    const { getCollectionData } = await import('./firebase-service.js');
-    
-    const attivita = await getCollectionData('attivita', {
-      tenantId,
-      where: [['coltura', '==', nomeColtura]]
-    });
-    
-    return attivita.length;
-  } catch (error) {
-    console.error('Errore verifica uso coltura:', error);
-    return 0;
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Nessun tenant corrente disponibile');
   }
+
+  const { getCollectionData } = await import('./firebase-service.js');
+
+  const attivita = await getCollectionData('attivita', {
+    tenantId,
+    where: [['coltura', '==', nomeColtura]]
+  });
+
+  return attivita.length;
 }
 
 /**
- * Verifica se una coltura è usata in terreni
+ * Verifica se una coltura è usata in terreni (inclusi archiviati).
  * @param {string} nomeColtura - Nome coltura
  * @returns {Promise<number>} Numero di terreni che usano questa coltura
  */
 export async function getNumeroTerreniColtura(nomeColtura) {
-  try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
-    // Import dinamico per evitare dipendenze circolari
-    const { getCollectionData } = await import('./firebase-service.js');
-    
-    const terreni = await getCollectionData('terreni', {
-      tenantId,
-      where: [['coltura', '==', nomeColtura]]
-    });
-    
-    return terreni.length;
-  } catch (error) {
-    console.error('Errore verifica uso coltura in terreni:', error);
-    return 0;
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Nessun tenant corrente disponibile');
   }
+
+  const { getCollectionData } = await import('./firebase-service.js');
+
+  const terreni = await getCollectionData('terreni', {
+    tenantId,
+    where: [['coltura', '==', nomeColtura]]
+  });
+
+  return terreni.length;
 }
 
 /**
@@ -559,6 +555,8 @@ export default {
   createColtura,
   updateColtura,
   deleteColtura,
+  decidiEliminazioneColtura,
+  MESSAGGIO_VERIFICA_USO_COLTURA,
   getNumeroAttivitaColtura,
   getNumeroTerreniColtura,
   migraListaPiatta,

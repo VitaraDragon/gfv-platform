@@ -2,6 +2,8 @@
  * Regole validazione ore: operai (caposquadra) vs ore del caposquadra (manager).
  */
 
+import { isLavoroSolaLettura } from '../../shared/js/storico-sola-lettura.js';
+
 export function isLavoroSquadra(lavoroData) {
     return Boolean(lavoroData?.caposquadraId && !lavoroData?.operaioId);
 }
@@ -87,6 +89,10 @@ function contaOreDaValidareNonVisibili(righe, visibili) {
     let n = 0;
     for (const riga of tutte) {
         if (!riga || riga.stato !== 'da_validare') continue;
+        const lavoro = riga.lavoro || riga.lavoroData || null;
+        const terreno = riga.terreno
+            || (lavoro && lavoro.terreno && typeof lavoro.terreno === 'object' ? lavoro.terreno : null);
+        if (isLavoroSolaLettura(lavoro, terreno)) continue;
         if (visteRef.has(riga)) continue;
         if (riga.id != null && riga.id !== '' && visteId.has(String(riga.id))) continue;
         n += 1;
