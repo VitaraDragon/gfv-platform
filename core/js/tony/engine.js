@@ -627,14 +627,32 @@ function extractQuotedJsonField(raw, fieldName) {
  * @param {string} t
  * @returns {string}
  */
+/**
+ * True se dopo «command:» resta residuo JSON (vuoto, {, "type", …), non prosa utile.
+ * @param {string} afterColon
+ * @returns {boolean}
+ */
+function tonyLooksLikeLeakedCommandResidue(afterColon) {
+    var a = String(afterColon || '').trim();
+    if (!a) return true;
+    if (/^\{/.test(a)) return true;
+    if (/^["']?\s*(?:type|action|params|target|formId|id|formData)\b/i.test(a)) return true;
+    if (/^null\b/i.test(a)) return true;
+    return false;
+}
+
 function stripBareTonyCommandTail(t) {
     if (!t) return '';
     var out = String(t);
     out = out.replace(new RegExp('\\s*\\b(?:' + TONY_CHAT_COMMAND_TOKEN + ')\\b[\\s\\S]*$', 'i'), '');
     out = out.replace(/\{\s*["']?(?:text|replyText|command|commands|action|type|formData|params)["']?[\s\S]*$/i, '');
-    // Coda stream / JSON spezzato: «frase.", "command":» o «frase. , command:»
-    out = out.replace(/["']\s*,\s*["']?command["']?\s*:[\s\S]*$/i, '');
-    out = out.replace(/\s*,\s*["']?command["']?\s*:[\s\S]*$/i, '');
+    // Coda stream / JSON spezzato: solo se dopo «command:» è residuo JSON, non prosa legittima.
+    out = out.replace(/["']\s*,\s*["']?command["']?\s*:([\s\S]*)$/i, function (_m, after) {
+        return tonyLooksLikeLeakedCommandResidue(after) ? '' : _m;
+    });
+    out = out.replace(/\s*,\s*["']?command["']?\s*:([\s\S]*)$/i, function (_m, after) {
+        return tonyLooksLikeLeakedCommandResidue(after) ? '' : _m;
+    });
     out = out.replace(/\b(?:attivita-form|lavoro-form|preventivo-form|prodotto-form|movimento-form|form-trattamento|field-workspace-ore-form|quick-hours-form|attivita-modal|lavoro-modal|preventivo-modal|prodotto-modal|movimento-modal|terreno-modal)\b/gi, '');
     return out.trim();
 }
@@ -852,7 +870,9 @@ function tonyExtractTextValueLooseClient(s) {
     if (lastGood >= 0) return tonyUnescapeJsonStringClient(after.slice(0, lastGood));
     var t = after.replace(/\s*[}\]]+\s*$/g, '').trim();
     t = t.replace(/\s*,\s*"(?:command|action|params)"[\s\S]*$/i, '').trim();
-    t = t.replace(/\s*,\s*["']?command["']?\s*:[\s\S]*$/i, '').trim();
+    t = t.replace(/\s*,\s*["']?command["']?\s*:([\s\S]*)$/i, function (_m, afterCmd) {
+        return tonyLooksLikeLeakedCommandResidue(afterCmd) ? '' : _m;
+    }).trim();
     return tonyUnescapeJsonStringClient(t) || null;
 }
 
@@ -1778,6 +1798,7 @@ export function rewriteDiarioNavSpeechForGestioneLavori(speech) {
 
 /**
  * Allinea il parlato al target APRI_PAGINA reale (evita «Gestione lavori» + pagina Potatura).
+ * Sostituisce solo la destinazione sbagliata: tiene spiegazioni utili (senza «ti porto» incluso).
  * @param {string} speech
  * @param {string} target
  * @returns {string}
@@ -1791,13 +1812,16 @@ export function alignApriPaginaSpeechToTarget(speech, target) {
     var isLavori = resolved === 'lavori' || resolved === 'gestione lavori';
     var isPotatura = String(resolved).indexOf('potatura') >= 0;
     var isDiario = resolved === 'attivita' || resolved === 'diario';
-    var claimsWrong =
-        (/\bgestione\s+lavori\b/i.test(s) && !isLavori) ||
-        (/\bpotatura\b/i.test(s) && !isPotatura && /ti porto\b/i.test(s)) ||
-        (/\bdiario\b/i.test(s) && !isDiario && /ti porto\b/i.test(s));
-    if (!claimsWrong) return s;
-    if (/ti porto\b/i.test(s)) {
-        return 'Ti porto a ' + label + '.';
+    var out = s;
+    var hasNavVerb = /\b(ti porto|apro|apri|vado|apriamo|andiamo)\b/i.test(out);
+    if (/\bgestione\s+lavori\b/i.test(out) && !isLavori) {
+        out = out.replace(/\bgestione\s+lavori\b/gi, label);
     }
-    return s;
+    if (hasNavVerb && /\bdiario(?:\s+attivit[aà])?\b/i.test(out) && !isDiario) {
+        out = out.replace(/\bdiario(?:\s+attivit[aà])?\b/gi, label);
+    }
+    if (hasNavVerb && /\bpotatura(?:\s+vigneto|\s+frutteto)?\b/i.test(out) && !isPotatura) {
+        out = out.replace(/\bpotatura(?:\s+vigneto|\s+frutteto)?\b/gi, label);
+    }
+    return out;
 }

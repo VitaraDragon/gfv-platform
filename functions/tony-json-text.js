@@ -116,7 +116,13 @@ function extractTextValueLoose(s) {
   // Troncato: niente chiusura riconosciuta
   let t = after.replace(/\s*[}\]]+\s*$/g, "").trim();
   t = t.replace(/\s*,\s*"(?:command|action|params)"[\s\S]*$/i, "").trim();
-  t = t.replace(/\s*,\s*["']?command["']?\s*:[\s\S]*$/i, "").trim();
+  t = t.replace(/\s*,\s*["']?command["']?\s*:([\s\S]*)$/i, (m, afterCmd) => {
+    const a = String(afterCmd || "").trim();
+    if (!a || /^\{/.test(a) || /^["']?\s*(?:type|action|params|target|formId|id|formData)\b/i.test(a) || /^null\b/i.test(a)) {
+      return "";
+    }
+    return m;
+  }).trim();
   return unescapeTonyJsonString(t) || null;
 }
 
