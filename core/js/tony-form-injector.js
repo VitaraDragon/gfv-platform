@@ -287,11 +287,27 @@
     return list.some(function (k) { return s.indexOf(normalizeTonyText(k)) >= 0; });
   }
 
-  function forceCoverageByTerreno(existingSub, terrenoHasFilari) {
+  function lavoroCoverageSubNames() {
     var cfg = getLavorazioniDefaultsTony();
     var rules = cfg.coverageRules || {};
     var rowSubs = Array.isArray(rules.rowCropSubcategories) ? rules.rowCropSubcategories : ['Tra le File', 'Sulla Fila'];
     var openField = String(rules.openFieldSubcategory || 'Generale');
+    return { rowSubs: rowSubs, openField: openField };
+  }
+
+  /** Tra le File / Sulla Fila / Generale: copertura del terreno, non il tipo (Manuale, Meccanico, …). */
+  function isLavoroCoverageSubName(name) {
+    var n = normalizeTonyText(name);
+    if (!n || n === '-- nessuna sottocategoria --') return true;
+    var names = lavoroCoverageSubNames();
+    if (n === normalizeTonyText(names.openField)) return true;
+    return names.rowSubs.some(function (x) { return normalizeTonyText(x) === n; });
+  }
+
+  function forceCoverageByTerreno(existingSub, terrenoHasFilari) {
+    var names = lavoroCoverageSubNames();
+    var rowSubs = names.rowSubs;
+    var openField = names.openField;
     var sub = String(existingSub || '').trim();
     if (!sub) return terrenoHasFilari ? rowSubs[0] : openField;
     var subNorm = normalizeTonyText(sub);
@@ -656,6 +672,21 @@
 
   function lavoroTipoIsChosen() {
     return lavoroSelectHasChoice('lavoro-tipo-lavoro');
+  }
+
+  function chosenLavoroTipoLabel() {
+    var el = document.getElementById('lavoro-tipo-lavoro');
+    if (!el || el.selectedIndex < 0 || !el.options[el.selectedIndex]) return '';
+    return String(el.options[el.selectedIndex].text || el.value || '').trim();
+  }
+
+  /** L'utente ripete il tipo già scelto: non riaprire la lista. */
+  function textRestatesChosenLavoroTipo(text) {
+    if (!lavoroTipoIsChosen()) return false;
+    var chosen = normalizeTonyText(chosenLavoroTipoLabel());
+    var t = normalizeTonyText(text);
+    if (!chosen || !t) return false;
+    return t === chosen;
   }
 
   var LOV_INTERVIEW_USER_FIELDS = [
@@ -4051,6 +4082,92 @@
     return true;
   }
 
+  function lavoroSelectLabelIsPlaceholder(text) {
+    var n = normalizeTonyText(text);
+    if (!n) return true;
+    return /seleziona|nessuna sottocategoria|nessun tipo/.test(n);
+  }
+
+  function restoreLavoroSelectHeldValue(selectId, wanted) {
+    var want = String(wanted || '').trim();
+    if (!want) return;
+    var el = document.getElementById(selectId);
+    if (!el || el.tagName !== 'SELECT' || !el.options) return;
+    var current = '';
+    if (el.selectedIndex >= 0 && el.options[el.selectedIndex]) {
+      current = String(el.options[el.selectedIndex].text || el.value || '').trim();
+    }
+    if (current && !lavoroSelectLabelIsPlaceholder(current)) {
+      if (normalizeTonyText(current) !== normalizeTonyText(want)) {
+        var hold = window.__tonyLavoroCascadeHold || {};
+        if (selectId === 'lavoro-tipo-lavoro') hold.tipo = current;
+        if (selectId === 'lavoro-sottocategoria') hold.sub = current;
+        window.__tonyLavoroCascadeHold = hold;
+      }
+      return;
+    }
+    var wantNorm = normalizeTonyText(want);
+    var match = null;
+    for (var i = 0; i < el.options.length; i++) {
+      var opt = el.options[i];
+      if (!(opt.value || '').trim()) continue;
+      var text = String(opt.text || '').trim();
+      if (opt.value === want || normalizeTonyText(text) === wantNorm) {
+        match = opt;
+        break;
+      }
+    }
+    if (!match || el.value === match.value) return;
+    el.value = match.value;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function restoreLavoroCascadeHold() {
+    var hold = window.__tonyLavoroCascadeHold;
+    if (!hold || window.__tonyLavoroCascadeHoldRestoring) return;
+    window.__tonyLavoroCascadeHoldRestoring = true;
+    try {
+      restoreLavoroSelectHeldValue('lavoro-sottocategoria', hold.sub);
+      restoreLavoroSelectHeldValue('lavoro-tipo-lavoro', hold.tipo);
+    } finally {
+      window.__tonyLavoroCascadeHoldRestoring = false;
+    }
+  }
+
+  function rememberLavoroInterviewCascade(formData) {
+    if (!formData) return;
+    var tipo = String(formData['lavoro-tipo-lavoro'] || '').trim();
+    var sub = String(formData['lavoro-sottocategoria'] || '').trim();
+    if (!tipo && !sub) return;
+    var prev = window.__tonyLavoroCascadeHold || {};
+    window.__tonyLavoroCascadeHold = {
+      tipo: tipo || prev.tipo || '',
+      sub: sub || prev.sub || ''
+    };
+    var tipoEl = document.getElementById('lavoro-tipo-lavoro');
+    var subEl = document.getElementById('lavoro-sottocategoria');
+    if (!window.__tonyLavoroCascadeHoldObserver && (tipoEl || subEl)) {
+      var obs = new MutationObserver(function () { restoreLavoroCascadeHold(); });
+      if (subEl) obs.observe(subEl, { childList: true });
+      if (tipoEl) obs.observe(tipoEl, { childList: true });
+      window.__tonyLavoroCascadeHoldObserver = obs;
+    }
+    restoreLavoroCascadeHold();
+  }
+
+  function noteMissingExplicitCaposquadra(text) {
+    if (!textNamesCaposquadraRole(text)) return;
+    var token = extractPersonTokenFromInterviewText(text);
+    if (!token || /^(caposquadra|capo\s*squadra)$/i.test(String(token || '').trim())) {
+      window.__tonyLavoroMissingCaposquadra = '';
+      return;
+    }
+    var capi = (window.lavoriState && window.lavoriState.caposquadraList) || [];
+    var hit = findPersonInListInterviewText(token, capi, 'caposquadra');
+    window.__tonyLavoroMissingCaposquadra = (hit && !hit.ambiguous) ? '' : token;
+  }
+
   /**
    * Inietta form lavoro (gestione-lavori).
    * - deriveParentsFromTipoLavoro: da tipo lavoro deriviamo categoria e sottocategoria
@@ -4114,11 +4231,16 @@
           log('deriveParentsFromTipoLavoro: categoria = ' + derived.categoriaNome);
         }
         if (derived.sottocategoriaNome) {
-          var existingSub = (formData['lavoro-sottocategoria'] || '').toString().trim().toLowerCase();
-          if (!existingSub || existingSub === '-- nessuna sottocategoria --') {
-            formData['lavoro-sottocategoria'] = derived.sottocategoriaNome;
-            log('deriveParentsFromTipoLavoro: sottocategoria = ' + derived.sottocategoriaNome);
-          } else if (existingSub === 'generale') {
+          var existingSubRaw = (formData['lavoro-sottocategoria'] || '').toString().trim();
+          var existingSub = existingSubRaw.toLowerCase();
+          if (!existingSub || existingSub === '-- nessuna sottocategoria --' || isLavoroCoverageSubName(existingSubRaw)) {
+            if (normalizeTonyText(existingSubRaw) !== normalizeTonyText(derived.sottocategoriaNome)) {
+              formData['lavoro-sottocategoria'] = derived.sottocategoriaNome;
+              log('deriveParentsFromTipoLavoro: sottocategoria = ' + derived.sottocategoriaNome);
+            }
+            existingSub = String(formData['lavoro-sottocategoria'] || '').trim().toLowerCase();
+          }
+          if (existingSub === 'generale') {
             var terrenoVal = String(formData['lavoro-terreno'] || '').trim();
             var terreniList = (window.lavoriState && window.lavoriState.terreniList) || (context && context.lavori && context.lavori.terreni) || [];
             var terreno = terreniList.find(function (t) { return (t.id || '') === terrenoVal; });
@@ -4155,6 +4277,8 @@
 
     sanitizeUndeclaredLavoroMacchine(formData, injectOpts);
 
+    if (interviewPatch) rememberLavoroInterviewCascade(formData);
+
     var mapConfig = {
       formId: 'lavoro-form',
       modalId: 'lavoro-modal',
@@ -4164,6 +4288,7 @@
     };
 
     var ok = await injectForm(formData, mapConfig, context, injectOpts);
+    if (interviewPatch) restoreLavoroCascadeHold();
 
     var skipSecondPass = !!(injectOpts.patchOnly);
     if (ok && formData['lavoro-terreno'] && !skipSecondPass) {
@@ -5383,9 +5508,17 @@
     return getLavoroInterviewAssignMode();
   }
 
+  function textNamesCaposquadraRole(text) {
+    var raw = String(text || '');
+    if (!/\bcaposquadra\b|\bcapo\s*squadra\b/i.test(raw)) return false;
+    if (/\b(non|nessun[oa]?|senza)\b[\s\S]{0,30}?\b(caposquadra|capo\s*squadra)\b/i.test(raw)) return false;
+    return true;
+  }
+
   function parseAssignModeFromText(text) {
     var t = normalizeTonyText(text);
     if (!t) return null;
+    if (textNamesCaposquadraRole(text)) return 'squadra';
     if (/^(s[iì]|yes|y|squadra|di\s+squadra|con\s+(?:il\s+)?(?:capo|squadra)|lavoro\s+di\s+squadra)\b/.test(t) ||
         /\b(lavoro\s+)?di\s+squadra\b/.test(t)) {
       return 'squadra';
@@ -5407,6 +5540,12 @@
     window.__tonyLastLavoroInterviewQuestion = '';
     window.__tonyLavoroPendingTipoHint = '';
     window.__tonyLavoroPendingCreationText = '';
+    window.__tonyLavoroMissingCaposquadra = '';
+    window.__tonyLavoroCascadeHold = null;
+    if (window.__tonyLavoroCascadeHoldObserver) {
+      try { window.__tonyLavoroCascadeHoldObserver.disconnect(); } catch (eHold) {}
+      window.__tonyLavoroCascadeHoldObserver = null;
+    }
     window.__tonyLavoroInterviewAskedMacchineField = null;
     window.__tonyMacchineDisambAskedAt = 0;
     window.__tonyLastMacchineDisambField = null;
@@ -6053,6 +6192,9 @@
     var assignMode = opts.roleHint || null;
     if (!assignMode && lavoroInterviewAssignModeConfirmed()) {
       assignMode = getLavoroInterviewAssignMode();
+    }
+    if (textNamesCaposquadraRole(text)) {
+      return findPersonInListInterviewText(text, capi, 'caposquadra');
     }
     if (!assignMode) {
       var lastQ = String(window.__tonyLastLavoroInterviewQuestion || '');
@@ -6787,6 +6929,10 @@
   async function applyLavoroInterviewFromUserReply(userText) {
     var out = { handled: false, readyForSave: false, message: '', voiceText: '', field: '' };
     var text = String(userText || '').trim();
+    restoreLavoroCascadeHold();
+    noteMissingExplicitCaposquadra(text);
+    var missingCapoToken = window.__tonyLavoroMissingCaposquadra || '';
+    window.__tonyLavoroMissingCaposquadra = '';
     var patch = {};
     var terrenoHintPre = (document.getElementById('lavoro-terreno') && document.getElementById('lavoro-terreno').value) || '';
     var tipoPickFromDisamb = false;
@@ -6837,6 +6983,8 @@
       if (fromDisamb) {
         patch['lavoro-tipo-lavoro'] = fromDisamb;
         tipoPickFromDisamb = true;
+        window.__tonyLavoroTipoDisambCandidates = null;
+      } else if (lavoroTipoIsChosen() && !mentionsLavoroTipoKeyword(text)) {
         window.__tonyLavoroTipoDisambCandidates = null;
       } else if (isLavoroTipoDisambQualifierText(text)) {
         out.handled = true;
@@ -6952,7 +7100,7 @@
       }
     }
 
-    if (!Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
+    if (!lavoroTipoIsChosen() && !Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
       var ambiguous = findTipoLavoroCandidatesInInterviewText(text, terrenoHintPre);
       if (ambiguous.length > 1) {
         out.handled = true;
@@ -6964,7 +7112,7 @@
         return out;
       }
     }
-    if (!Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && lavoroInterviewFieldEmpty('lavoro-terreno')) {
+    if (!lavoroTipoIsChosen() && !Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && lavoroInterviewFieldEmpty('lavoro-terreno')) {
       out.handled = true;
       out.message = 'Prima dimmi su quale terreno, così scelgo Generale o Tra le File in base alla coltura.';
       out.voiceText = 'Su quale terreno?';
@@ -6972,7 +7120,7 @@
       window.__tonyLastLavoroInterviewQuestion = out.message;
       return out;
     }
-    if (!Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
+    if (!lavoroTipoIsChosen() && !Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
       var queryTipo = lavoroTipoQueryFromText(text);
       var candsUnmatched = findTipoLavoroCandidatesInInterviewText(queryTipo, terrenoHintPre);
       if (!candsUnmatched.length && queryTipo !== text) {
@@ -7008,6 +7156,15 @@
           window.__tonyLastLavoroInterviewQuestion = terrenoDisambMsg;
           return out;
         }
+      }
+      if (textRestatesChosenLavoroTipo(text)) {
+        var reqRestate = getLavoroInterviewRequiredEmpty();
+        out.handled = true;
+        out.message = buildNextLavoroInterviewMessage(reqRestate, lavoroInterviewCanAskMacchine());
+        out.voiceText = out.message;
+        window.__tonyLavoroInterviewPending = reqRestate.length > 0;
+        window.__tonyLastLavoroInterviewQuestion = out.message;
+        return out;
       }
       if (lavoroInterviewNeedsAssignModeQuestion() && String(text || '').trim().length >= 2) {
         out.handled = true;
@@ -7100,6 +7257,26 @@
       clearLavoroTerrenoDisamb();
     }
     log('applyLavoroInterviewFromUserReply: patch ' + Object.keys(patch).join(', '));
+
+    if (missingCapoToken) {
+      delete patch['lavoro-operaio'];
+      var opElMiss = document.getElementById('lavoro-operaio');
+      if (opElMiss) opElMiss.value = '';
+      var autoElMiss = document.getElementById('tipo-autonomo');
+      var squadElMiss = document.getElementById('tipo-squadra');
+      if (autoElMiss) autoElMiss.checked = false;
+      if (squadElMiss) {
+        squadElMiss.checked = true;
+        squadElMiss.dispatchEvent(new Event('change', { bubbles: true }));
+        squadElMiss.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      setLavoroInterviewConfirmedAssignMode('squadra');
+      window.__tonyLavoroInterviewPending = true;
+      out.message = 'Non ho trovato «' + missingCapoToken + '» tra i caposquadra. Ripeti nome e cognome come in elenco.';
+      out.voiceText = out.message;
+      window.__tonyLastLavoroInterviewQuestion = out.message;
+      return out;
+    }
 
     if (patch['lavoro-tipo-lavoro'] && !getLavoroTipoDomText()) {
       await delay(120);
