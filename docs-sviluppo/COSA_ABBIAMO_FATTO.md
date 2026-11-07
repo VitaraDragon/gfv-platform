@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — Intervista lavoro: persona reale, niente loop.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — Intervista lavoro: cascata tipo e ruolo esplicito.**
+
+## 2026-11-07 — Intervista Gestione lavori: sottocategoria del tipo e ruolo detto
+
+Su `cursor/tony-intervista-cascata-a8f7` (PR verso develop, baseline `origin/develop` = `719d570` / `origin/main` = `d6040bdd`): la sottocategoria vera del tipo (Manuale per la potatura) sostituisce una copertura messa prima (Tra le File, Sulla Fila, Generale). Un ricarico dei select che non ripristina il tipo lo rimette se l’opzione c’è ancora. «assegnato al caposquadra» resta squadra anche se il nome è un operaio: il campo operaio resta vuoto e Tony dice che quel nome non è tra i caposquadra. Se il tipo è già scelto, ripeterlo o rispondere squadra/persona non riapre la lista dei tipi. «Chi sono i caposquadra disponibili?» non è questa correzione: con il flusso di creazione ancora acceso la frase entra nell’intervista. Test `tests/tony-lavoro-intervista-cascata.test.js` con la cascata dei select e il catalogo reale dei modi. Nessun deploy eseguito. Dopo merge autorizzato: Pages e service worker. Functions, rules e indici no. Browser e voce non provati.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: persona reale, niente loop.**
 
 ## 2026-11-07 — Intervista Gestione lavori: persona del roster e campi che restano
 
