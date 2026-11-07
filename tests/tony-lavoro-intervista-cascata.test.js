@@ -132,6 +132,19 @@ function bindPageCascade() {
       reloadTipi(filterId, capturedValue, capturedText);
     }
   });
+  form.addEventListener('change', (event) => {
+    const target = event.target;
+    if (!target) return;
+    if (target.name === 'tipo-assegnazione') {
+      const squadra = document.getElementById('tipo-squadra').checked;
+      document.getElementById('caposquadra-group').style.display = squadra ? 'block' : 'none';
+      document.getElementById('operaio-group').style.display = squadra ? 'none' : 'block';
+      window.__assegnazioneChange = (window.__assegnazioneChange || 0) + 1;
+    }
+    if (target.id === 'lavoro-tipo-lavoro') {
+      window.__tipoChange = (window.__tipoChange || 0) + 1;
+    }
+  });
 }
 
 function mountForm() {
@@ -145,8 +158,8 @@ function mountForm() {
         <div id="tipo-lavoro-group"><select id="lavoro-tipo-lavoro"><option value="">-- Seleziona tipo lavoro --</option></select></div>
         <input type="radio" name="tipo-assegnazione" id="tipo-squadra" value="squadra" checked />
         <input type="radio" name="tipo-assegnazione" id="tipo-autonomo" value="autonomo" />
-        <select id="lavoro-caposquadra"><option value="">Seleziona caposquadra...</option></select>
-        <select id="lavoro-operaio"><option value="">Seleziona operaio...</option></select>
+        <div id="caposquadra-group"><select id="lavoro-caposquadra"><option value="">Seleziona caposquadra...</option></select></div>
+        <div id="operaio-group" style="display:none"><select id="lavoro-operaio"><option value="">Seleziona operaio...</option></select></div>
         <select id="lavoro-operatore-macchina"><option value=""></option></select>
         <input id="lavoro-data-inizio" />
         <input id="lavoro-durata" />
@@ -298,6 +311,69 @@ describe('intervista lavoro — cascata pagina', () => {
     expect(snap.squadra).toBe(true);
     expect(res.message).toMatch(/caposquadra/i);
     expect(res.message).not.toMatch(/Chi sono|Non ho riconosciuto/i);
+  }, 30000);
+
+  it('un tipo scelto dopo l’intervista non torna indietro al ricarico', async () => {
+    const frase = 'Crea un lavoro di potatura manuale di produzione chiamato Filare positivo sul terreno Vigna del Nord assegnato al caposquadra Neri Bosco';
+    await api.applyLavoroInterviewFromUserReply(frase);
+    await settle();
+    const tipo = document.getElementById('lavoro-tipo-lavoro');
+    tipo.value = 'Potatura di Rinnovamento';
+    document.getElementById('lavoro-terreno').dispatchEvent(new Event('change', { bubbles: true }));
+    await settle();
+    expect(tipo.value).toBe('Potatura di Rinnovamento');
+    expect(selectedText('lavoro-sottocategoria')).toBe('Manuale');
+
+    document.getElementById('lavoro-categoria-principale').value = CAT_LAV.id;
+    document.getElementById('lavoro-categoria-principale').dispatchEvent(new Event('change', { bubbles: true }));
+    await settle();
+    expect(selectedText('lavoro-tipo-lavoro')).not.toBe('Potatura di Produzione');
+    expect(selectedText('lavoro-sottocategoria')).not.toBe('Manuale');
+  }, 30000);
+
+  it('il ripristino del tipo avvisa il listener della pagina', async () => {
+    const frase = 'Crea un lavoro di potatura manuale di produzione chiamato Filare positivo sul terreno Vigna del Nord assegnato al caposquadra Neri Bosco';
+    await api.applyLavoroInterviewFromUserReply(frase);
+    await settle();
+    window.__tipoChange = 0;
+    const tipoEl = document.getElementById('lavoro-tipo-lavoro');
+    tipoEl.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option><option value="Potatura di Produzione">Potatura di Produzione</option>';
+    await new Promise((r) => setTimeout(r, 0));
+    expect(tipoEl.value).toBe('Potatura di Produzione');
+    expect(window.__tipoChange).toBeGreaterThan(0);
+  }, 30000);
+
+  it('il radio senza persona avvisa il listener che mostra il caposquadra', async () => {
+    document.getElementById('lavoro-terreno').value = VIGNA.id;
+    document.getElementById('tipo-squadra').checked = false;
+    document.getElementById('tipo-autonomo').checked = true;
+    document.getElementById('caposquadra-group').style.display = 'none';
+    document.getElementById('operaio-group').style.display = 'block';
+    window.__tonyLavoroAssignModeConfirmed = true;
+    window.__tonyLavoroConfirmedAssignMode = 'squadra';
+    window.__assegnazioneChange = 0;
+    const res = await api.applyLavoroInterviewFromUserReply('chiamato Filare positivo assegnato al caposquadra Blu Fontana');
+    expect(document.getElementById('tipo-squadra').checked).toBe(true);
+    expect(document.getElementById('tipo-autonomo').checked).toBe(false);
+    expect(document.getElementById('lavoro-caposquadra').value).toBe('');
+    expect(document.getElementById('lavoro-operaio').value).toBe('');
+    expect(document.getElementById('caposquadra-group').style.display).toBe('block');
+    expect(document.getElementById('operaio-group').style.display).toBe('none');
+    expect(window.__assegnazioneChange).toBeGreaterThan(0);
+    expect(res.message).toMatch(/caposquadra/i);
+  }, 20000);
+
+  it('«non al caposquadra» non impone la squadra e lascia l’operaio nominato', async () => {
+    const frase = 'Crea un lavoro di potatura manuale di produzione chiamato Filare positivo sul terreno Vigna del Nord non al caposquadra, assegnato a Blu Fontana';
+    const res = await api.applyLavoroInterviewFromUserReply(frase);
+    await settle();
+    const snap = snapshot(res.message);
+    expect(snap.capo).toBe('');
+    expect(snap.operaio).toBe(OPERAIO.id);
+    expect(snap.autonomo).toBe(true);
+    expect(snap.squadra).toBe(false);
+    expect(snap.tipo).toBe('Potatura di Produzione');
+    expect(res.message).not.toMatch(/tra i caposquadra/i);
   }, 30000);
 
   it('nome assente resta vuoto', async () => {

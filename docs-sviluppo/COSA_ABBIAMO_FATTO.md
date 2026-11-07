@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — Intervista lavoro: cascata tipo e ruolo esplicito.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — Intervista lavoro: scelta successiva e negazione.**
+
+## 2026-11-07 — Intervista Gestione lavori: non sovrascrive una scelta già fatta
+
+Sulla stessa PR `cursor/tony-intervista-cascata-a8f7`: se tipo o sottocategoria hanno già un valore vero, un ricarico non li riporta al valore precedente dell’intervista. Il ripristino di un select vuoto emette `change`, come il listener della miscela. Il radio della persona mancante emette `change`, così il form mostra il gruppo caposquadra. «non al caposquadra» non conta come lavoro di squadra. T-FLOW-014 non è in questo diff: il codice che chiede il terreno del preventivo è identico a `719d570`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: cascata tipo e ruolo esplicito.**
 
 ## 2026-11-07 — Intervista Gestione lavori: sottocategoria del tipo e ruolo detto
 

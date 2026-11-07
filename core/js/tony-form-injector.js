@@ -4082,6 +4082,12 @@
     return true;
   }
 
+  function lavoroSelectLabelIsPlaceholder(text) {
+    var n = normalizeTonyText(text);
+    if (!n) return true;
+    return /seleziona|nessuna sottocategoria|nessun tipo/.test(n);
+  }
+
   function restoreLavoroSelectHeldValue(selectId, wanted) {
     var want = String(wanted || '').trim();
     if (!want) return;
@@ -4091,7 +4097,15 @@
     if (el.selectedIndex >= 0 && el.options[el.selectedIndex]) {
       current = String(el.options[el.selectedIndex].text || el.value || '').trim();
     }
-    if (current && normalizeTonyText(current) === normalizeTonyText(want)) return;
+    if (current && !lavoroSelectLabelIsPlaceholder(current)) {
+      if (normalizeTonyText(current) !== normalizeTonyText(want)) {
+        var hold = window.__tonyLavoroCascadeHold || {};
+        if (selectId === 'lavoro-tipo-lavoro') hold.tipo = current;
+        if (selectId === 'lavoro-sottocategoria') hold.sub = current;
+        window.__tonyLavoroCascadeHold = hold;
+      }
+      return;
+    }
     var wantNorm = normalizeTonyText(want);
     var match = null;
     for (var i = 0; i < el.options.length; i++) {
@@ -4103,8 +4117,10 @@
         break;
       }
     }
-    if (!match) return;
+    if (!match || el.value === match.value) return;
     el.value = match.value;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   function restoreLavoroCascadeHold() {
@@ -5493,7 +5509,10 @@
   }
 
   function textNamesCaposquadraRole(text) {
-    return /\bcaposquadra\b|\bcapo\s*squadra\b/i.test(String(text || ''));
+    var raw = String(text || '');
+    if (!/\bcaposquadra\b|\bcapo\s*squadra\b/i.test(raw)) return false;
+    if (/\b(non|nessun[oa]?|senza)\b[\s\S]{0,30}?\b(caposquadra|capo\s*squadra)\b/i.test(raw)) return false;
+    return true;
   }
 
   function parseAssignModeFromText(text) {
@@ -7246,7 +7265,11 @@
       var autoElMiss = document.getElementById('tipo-autonomo');
       var squadElMiss = document.getElementById('tipo-squadra');
       if (autoElMiss) autoElMiss.checked = false;
-      if (squadElMiss) squadElMiss.checked = true;
+      if (squadElMiss) {
+        squadElMiss.checked = true;
+        squadElMiss.dispatchEvent(new Event('change', { bubbles: true }));
+        squadElMiss.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       setLavoroInterviewConfirmedAssignMode('squadra');
       window.__tonyLavoroInterviewPending = true;
       out.message = 'Non ho trovato «' + missingCapoToken + '» tra i caposquadra. Ripeti nome e cognome come in elenco.';
