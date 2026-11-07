@@ -158,7 +158,7 @@ Dettaglio del gesto in campo: guida **Manodopera** (sezione operaio/caposquadra 
 Pagina di **consultazione** (non sostituisce i movimenti manuali): mostra come i prodotti sono stati **consumati** nel tempo, spesso collegati a **terreno**, **categoria** e contesto di utilizzo (lavori, trattamenti, ecc.).
 
 1. Aprire **Tracciabilità consumi** dalla home magazzino.
-2. Impostare i **filtri** (categoria, terreno, vista **raggruppata** o **dettaglio**): usate i pulsanti di aggiornamento previsti in pagina prima di leggere i totali.
+2. Impostare i **filtri** (categoria, terreno, vista **raggruppata** o **dettaglio**): usate i pulsanti di aggiornamento previsti in pagina prima di leggere i totali. **Mostra archiviati**, spento all’inizio, rimette nel filtro i terreni archiviati. In elenco il nome ha **(archiviato)**.
 3. Le tabelle e i totali dipendono dai **movimenti** e dagli scarichi collegati ai moduli di campo: se mancano registrazioni, i numeri saranno incompleti.
 
 ---
