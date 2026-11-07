@@ -1198,12 +1198,14 @@
                     macchinaInfo = parts.length > 0 ? parts.join('<br>') : '-';
                 }
 
+                const lavoroRiga = lavoroDiOra(ora.lavoroId);
                 const perm = permessiOra({
                     ora,
-                    lavoro: lavoroDiOra(ora.lavoroId),
+                    lavoro: lavoroRiga,
                     userId,
                     isCaposquadra: flags.isCaposquadra,
-                    isManager: flags.isManager
+                    isManager: flags.isManager,
+                    terreno: (lavoroRiga && lavoroRiga.terreno) || null
                 });
                 const tracciaHtml = htmlTracciaRiga(ora);
                 let azioni = '';
@@ -1213,8 +1215,8 @@
                 if (perm.puoEliminare) {
                     azioni += `<button type="button" class="btn btn-danger btn-sm" data-elimina-ora="${escapeHtml(ora.id)}" data-lavoro-id="${escapeHtml(ora.lavoroId)}">🗑️ Elimina</button>`;
                 }
-                if (!perm.puoModificare && ora.stato === 'validate') {
-                    azioni = `<span title="${escapeHtml(perm.motivoBlocco)}">🔒</span>`;
+                if (!perm.puoModificare && !perm.puoEliminare && perm.motivoBlocco) {
+                    azioni = `<span title="${escapeHtml(perm.motivoBlocco)}">${ora.stato === 'validate' ? '🔒' : 'Solo consultazione'}</span>`;
                 }
 
                 html += `
@@ -1525,14 +1527,16 @@
             }
             const voci = righe.map((ora) => {
                 const evidenza = lavoroId && ora.lavoroId === lavoroId;
+                const lavoroRiga = lavoroDiOra(ora.lavoroId);
                 const perm = permessiOra({
                     ora,
-                    lavoro: lavoroDiOra(ora.lavoroId),
+                    lavoro: lavoroRiga,
                     userId,
                     isCaposquadra: flags.isCaposquadra,
-                    isManager: flags.isManager
+                    isManager: flags.isManager,
+                    terreno: (lavoroRiga && lavoroRiga.terreno) || null
                 });
-                const chiRiga = chiValidaOra({ ora, lavoro: lavoroDiOra(ora.lavoroId) });
+                const chiRiga = chiValidaOra({ ora, lavoro: lavoroRiga });
                 const tracciaGiorno = formatTracciaOra(ora, nomeDaCache);
                 return `<div style="padding:6px 8px;margin-top:6px;border-radius:6px;${evidenza ? 'background:#e7f6ec;border:1px solid #8fceaa;' : ''}">
                     <strong>${escapeHtml(ora.lavoroNome || 'Lavoro')}</strong>

@@ -764,8 +764,10 @@ export async function eliminaOraPropria(db, tenantId, user, lavoroId, oraId) {
   const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
   const { doc, getDoc, deleteDoc } = await firebaseOre();
   const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const terreno = await leggiTerrenoDelLavoro(db, doc, getDoc, tenantId, lavoro);
+  assertOraLavoroModificabile(lavoro, terreno);
   const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
-  const perm = permessiOra({ ora, lavoro, userId, isCaposquadra, isManager });
+  const perm = permessiOra({ ora, lavoro, userId, isCaposquadra, isManager, terreno });
   if (!perm.puoEliminare) {
     throw new Error(perm.motivoBlocco || 'Non puoi eliminare questa ora');
   }
