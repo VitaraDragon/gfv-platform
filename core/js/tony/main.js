@@ -10636,18 +10636,6 @@ if (typeof window !== 'undefined') {
                             timestamp: new Date().toISOString()
                         }
                     });
-                    // Carica rotte disponibili per supporto evolutivo (nuove cartelle in modules/)
-                    try {
-                        var configUrl = (scriptBase ? new URL('../config/tony-routes.json', scriptBase).href : (window.location.pathname.replace(/\/[^/]*$/, '') + '/../config/tony-routes.json'));
-                        var routesRes = await fetch(configUrl, { cache: 'no-store' });
-                        if (routesRes.ok) {
-                            var routesData = await routesRes.json();
-                            window.__tonyAvailableRoutes = (routesData && routesData.routes) || [];
-                            tonyDebugLog('[Tony] Rotte disponibili caricate:', window.__tonyAvailableRoutes.length);
-                        }
-                    } catch (e) {
-                        window.__tonyAvailableRoutes = [];
-                    }
                     var _tonyWidgetInitTime = Date.now();
 
     function normalizeTonyPlanClient(raw) {
@@ -10805,6 +10793,19 @@ if (typeof window !== 'undefined') {
                     } catch (eInitFg) {}
                     window.__tonyCheckModuleStatus = checkTonyModuleStatus;
                     window.__tonyIsAdvancedActive = function() { return isTonyAdvancedActive; };
+                    // Dopo il flag del modulo: un await qui (rotte) cede il turno al test E2E,
+                    // che altrimenti inietta il preventivo mentre isTonyAdvancedActive è ancora false.
+                    try {
+                        var configUrl = (scriptBase ? new URL('../config/tony-routes.json', scriptBase).href : (window.location.pathname.replace(/\/[^/]*$/, '') + '/../config/tony-routes.json'));
+                        var routesRes = await fetch(configUrl, { cache: 'no-store' });
+                        if (routesRes.ok) {
+                            var routesData = await routesRes.json();
+                            window.__tonyAvailableRoutes = (routesData && routesData.routes) || [];
+                            tonyDebugLog('[Tony] Rotte disponibili caricate:', window.__tonyAvailableRoutes.length);
+                        }
+                    } catch (e) {
+                        window.__tonyAvailableRoutes = [];
+                    }
                     
                     var statusCheckCount = 0;
                     var statusCheckInterval = setInterval(function() {
