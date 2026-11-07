@@ -192,11 +192,11 @@ describe('EIMA — persona assente (Luca) non viene assegnata', () => {
     expect(window.__tonyLavoroUnknownPersonMessage).toBe('');
   });
 
-  it('resolveFromLavoriState non fa più fallback al nome grezzo per operai assenti', () => {
+  it('persona assente: niente id grezzo e niente fallback al testo libero', () => {
     const src = readFileSync(resolve(process.cwd(), 'core/js/tony-form-injector.js'), 'utf8');
-    expect(src).toMatch(/resolveUserByName\(rawValue, list\) \|\| ''/);
     expect(src).not.toMatch(
-      /caposquadraList \|\| stateKey === 'operaiList'\)[\s\S]{0,120}resolveUserByName\(rawValue, list\) \|\| rawValue/
+      /caposquadraList \|\| stateKey === 'operaiList'\)[\s\S]{0,500}\|\| rawValue/
     );
+    expect(src).not.toMatch(/resolveUserByName\(rawValue, list\) \|\| rawValue/);
   });
 });
