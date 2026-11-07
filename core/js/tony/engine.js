@@ -632,6 +632,9 @@ function stripBareTonyCommandTail(t) {
     var out = String(t);
     out = out.replace(new RegExp('\\s*\\b(?:' + TONY_CHAT_COMMAND_TOKEN + ')\\b[\\s\\S]*$', 'i'), '');
     out = out.replace(/\{\s*["']?(?:text|replyText|command|commands|action|type|formData|params)["']?[\s\S]*$/i, '');
+    // Coda stream / JSON spezzato: «frase.", "command":» o «frase. , command:»
+    out = out.replace(/["']\s*,\s*["']?command["']?\s*:[\s\S]*$/i, '');
+    out = out.replace(/\s*,\s*["']?command["']?\s*:[\s\S]*$/i, '');
     out = out.replace(/\b(?:attivita-form|lavoro-form|preventivo-form|prodotto-form|movimento-form|form-trattamento|field-workspace-ore-form|quick-hours-form|attivita-modal|lavoro-modal|preventivo-modal|prodotto-modal|movimento-modal|terreno-modal)\b/gi, '');
     return out.trim();
 }
@@ -829,19 +832,27 @@ function tonyExtractTextValueLooseClient(s) {
     if (!m || m.index == null) return null;
     var start = m.index + m[0].length;
     var after = s.slice(start);
-    var lastGood = -1;
+    // Preferisci la PRIMA chiusura prima di "command"|"action"|"params".
+    // Non usare l'ULTIMA "…}" (le chiavi nested del command riscriverebbero lastGood
+    // e lascerebbero in chat/TTS residui tipo ,"command":).
+    var firstCommandSep = -1;
+    var lastBraceClose = -1;
     for (var i = 0; i < after.length; i++) {
         var ch = after[i];
         if (ch === '\\') { i++; continue; }
         if (ch !== '"') continue;
         var rest = after.slice(i + 1);
-        if (/^\s*,\s*"(?:command|action|params)"/.test(rest) || /^\s*\}/.test(rest)) {
-            lastGood = i;
+        if (/^\s*,\s*"(?:command|action|params)"/.test(rest)) {
+            if (firstCommandSep < 0) firstCommandSep = i;
+        } else if (/^\s*\}/.test(rest)) {
+            lastBraceClose = i;
         }
     }
+    var lastGood = firstCommandSep >= 0 ? firstCommandSep : lastBraceClose;
     if (lastGood >= 0) return tonyUnescapeJsonStringClient(after.slice(0, lastGood));
     var t = after.replace(/\s*[}\]]+\s*$/g, '').trim();
     t = t.replace(/\s*,\s*"(?:command|action|params)"[\s\S]*$/i, '').trim();
+    t = t.replace(/\s*,\s*["']?command["']?\s*:[\s\S]*$/i, '').trim();
     return tonyUnescapeJsonStringClient(t) || null;
 }
 
@@ -1763,4 +1774,30 @@ export function rewriteDiarioNavSpeechForGestioneLavori(speech) {
     var s = speech == null ? '' : String(speech);
     if (!/ti porto al diario/i.test(s)) return s;
     return s.replace(/ti porto al diario\.?/gi, 'Ti porto a gestione lavori.');
+}
+
+/**
+ * Allinea il parlato al target APRI_PAGINA reale (evita «Gestione lavori» + pagina Potatura).
+ * @param {string} speech
+ * @param {string} target
+ * @returns {string}
+ */
+export function alignApriPaginaSpeechToTarget(speech, target) {
+    var s = speech == null ? '' : String(speech);
+    if (!s.trim()) return s;
+    var resolved = resolveTarget(target);
+    if (!resolved) return s;
+    var label = TONY_LABEL_MAP[resolved] || resolved;
+    var isLavori = resolved === 'lavori' || resolved === 'gestione lavori';
+    var isPotatura = String(resolved).indexOf('potatura') >= 0;
+    var isDiario = resolved === 'attivita' || resolved === 'diario';
+    var claimsWrong =
+        (/\bgestione\s+lavori\b/i.test(s) && !isLavori) ||
+        (/\bpotatura\b/i.test(s) && !isPotatura && /ti porto\b/i.test(s)) ||
+        (/\bdiario\b/i.test(s) && !isDiario && /ti porto\b/i.test(s));
+    if (!claimsWrong) return s;
+    if (/ti porto\b/i.test(s)) {
+        return 'Ti porto a ' + label + '.';
+    }
+    return s;
 }

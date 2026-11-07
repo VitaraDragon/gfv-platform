@@ -81,8 +81,10 @@ function extractBalancedObject(str, startIdx) {
 }
 
 /**
- * Valore di "text": "..." anche con virgolette interne non escapate:
- * prende fino all'ULTIMA " seguita da \s*,\s*"(command|action|params)" oppure \s*}.
+ * Valore di "text": "..." anche con virgolette interne non escapate.
+ * Preferisce la PRIMA " chiusa da \s*,\s*"(command|action|params)";
+ * altrimenti l'ultima " seguita da \s*}. Non usare l'ultima "…}" dentro il
+ * command nested (lascerebbe ,"command": in chat/TTS).
  * @param {string} s
  * @returns {string|null}
  */
@@ -91,7 +93,8 @@ function extractTextValueLoose(s) {
   if (!m || m.index == null) return null;
   const start = m.index + m[0].length;
   const after = s.slice(start);
-  let lastGood = -1;
+  let firstCommandSep = -1;
+  let lastBraceClose = -1;
   for (let i = 0; i < after.length; i++) {
     const ch = after[i];
     if (ch === "\\") {
@@ -100,19 +103,20 @@ function extractTextValueLoose(s) {
     }
     if (ch !== '"') continue;
     const rest = after.slice(i + 1);
-    if (
-      /^\s*,\s*"(?:command|action|params)"/.test(rest) ||
-      /^\s*\}/.test(rest)
-    ) {
-      lastGood = i;
+    if (/^\s*,\s*"(?:command|action|params)"/.test(rest)) {
+      if (firstCommandSep < 0) firstCommandSep = i;
+    } else if (/^\s*\}/.test(rest)) {
+      lastBraceClose = i;
     }
   }
+  const lastGood = firstCommandSep >= 0 ? firstCommandSep : lastBraceClose;
   if (lastGood >= 0) {
     return unescapeTonyJsonString(after.slice(0, lastGood));
   }
   // Troncato: niente chiusura riconosciuta
   let t = after.replace(/\s*[}\]]+\s*$/g, "").trim();
   t = t.replace(/\s*,\s*"(?:command|action|params)"[\s\S]*$/i, "").trim();
+  t = t.replace(/\s*,\s*["']?command["']?\s*:[\s\S]*$/i, "").trim();
   return unescapeTonyJsonString(t) || null;
 }
 

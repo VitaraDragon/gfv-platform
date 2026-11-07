@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — QA post-#340 P1–P5 su `fix/qa-post340`.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — EIMA Tony affidabilità (TTS command, Luca, speech/nav).**
+
+## 2026-11-07 — EIMA: affidabilità Tony demo (TTS «, command:», persona assente, speech/nav)
+
+Su `fix/eima-tony-affidabilita` (PR verso develop, baseline `origin/develop` = `de222889` / `origin/main` = `858ba457`): **TTS** — `tonyExtractTextValueLooseClient` / `extractTextValueLoose` non prendono più l’ultima `"}"` del command nested (residuo `,"command":` in chat/voce in streaming); strip coda `, command:`; **persona** — inject non tiene nomi assenti dal tenant (`resolveUserByName` senza fallback grezzo) e `sanitizeAmbiguousLavoroInterviewFields` chiede chiarimento; **nav** — `alignApriPaginaSpeechToTarget` allinea il parlato al target APRI_PAGINA (es. testo «gestione lavori» + target potatura). Test: `tests/tony-eima-affidabilita.test.js` + estensione `tony-json-text`. Nessun deploy eseguito; dopo merge autorizzato: Pages (client) + Functions `tonyAsk`/`tonyAskStream` (tony-json-text). Browser reale con voce e tenant demo: ancora QA Pier.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — QA post-#340 P1–P5 su `fix/qa-post340`.**
 
 ## 2026-11-07 — QA post-#340 (P1–P5): storico ore, colture, totali, validazione, etichette
 
