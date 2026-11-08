@@ -122,7 +122,7 @@ function soloCategoriaColtura(grezzo) {
 function colturaDetta(grezzo) {
   const testo = String(grezzo || '').trim();
   if (!testo || soloCategoriaColtura(testo)) return null;
-  return normalizzaColturaCatalogo(testo) || testo;
+  return normalizzaColturaCatalogo(testo) || inizialeMaiuscola(testo);
 }
 
 /**
@@ -189,13 +189,23 @@ export function interpretaFraseTerreni(domanda) {
   return pezzi.map((pezzo) => {
     const misura = misuraNelPezzo(pezzo);
     const superficie = misura ? misura.superficie : null;
-    const varieta = misura ? misura.varieta : null;
+    let varieta = misura ? misura.varieta : null;
     let nome = null;
     if (nomeDetto && pezzi.length === 1) nome = nomeDetto;
     else if (misura) {
       const prima = pezzo.slice(0, misura.index);
       const cand = pulisciNomeCandidato(prima);
       if (cand && (!varieta || chiaveNome(cand) !== chiaveNome(varieta))) nome = cand;
+    }
+    if (nome && !varieta) {
+      const parole = nome.split(/\s+/);
+      if (parole.length >= 2) {
+        const ultima = parole[parole.length - 1];
+        if (normalizzaColturaCatalogo(ultima)) {
+          varieta = ultima;
+          nome = parole.slice(0, -1).join(' ');
+        }
+      }
     }
     if (nome && varieta && chiaveNome(nome) === chiaveNome(varieta)) nome = null;
     return { nome, varieta, superficie };
@@ -243,6 +253,14 @@ function assegnaColtura(out, detto) {
   if (!out.coltura && detto) {
     if (soloCategoriaColtura(detto)) out.categoria = out.categoria || detto;
     else out.coltura = colturaDetta(detto);
+  } else if (out.coltura && detto && !normalizzaColturaCatalogo(detto)) {
+    // «noci» non è nel catalogo: non diventa Noce. «peschi» non tocca Pesco.
+    const kd = chiaveNome(detto);
+    const km = chiaveNome(out.coltura);
+    const radice = kd.replace(/i$/, '');
+    if (kd && km && km !== kd && radice && (km.startsWith(radice) || kd.startsWith(km))) {
+      out.coltura = inizialeMaiuscola(detto);
+    }
   }
 }
 
@@ -272,18 +290,32 @@ function voceDaMisura(l) {
  * @param {Array<object>} attuali
  * @returns {string|null}
  */
-function colturaSeRispostaBreve(domanda, attuali) {
-  const pendenti = (Array.isArray(attuali) ? attuali : []).filter(
-    (t) =>
-      t &&
-      !nomeTerrenoVisibile(t.nome) &&
-      !String(t.coltura || '').trim() &&
-      (typeof t.superficie === 'number' || t.categoria)
-  );
-  if (pendenti.length !== 1) return null;
+function colturaFuoriCatalogo(t) {
+  if (!t) return false;
+  const haDati =
+    nomeTerrenoVisibile(t.nome) ||
+    typeof t.superficie === 'number' ||
+    t.categoria ||
+    String(t.coltura || '').trim();
+  if (!haDati) return false;
+  const col = String(t.coltura || '').trim();
+  if (!col) return typeof t.superficie === 'number' || !!t.categoria;
+  return !normalizzaColturaCatalogo(col);
+}
+
+/**
+ * «pesco» da solo corregge l'unico terreno in attesa di coltura.
+ * «mais» dopo un seminativo senza nome resta la coltura, non un terreno nuovo.
+ * @returns {{ terreno: object, coltura: string }|null}
+ */
+function correzioneColturaBreve(domanda, attuali) {
   const s = String(domanda || '').trim();
-  if (!s || /\d/.test(s) || s.split(/\s+/).length > 4) return null;
-  return normalizzaColturaCatalogo(s);
+  if (!s || /\d/.test(s) || s.split(/\s+/).length > 3) return null;
+  const coltura = normalizzaColturaCatalogo(s);
+  if (!coltura) return null;
+  const attesa = (Array.isArray(attuali) ? attuali : []).filter(colturaFuoriCatalogo);
+  if (attesa.length !== 1) return null;
+  return { terreno: attesa[0], coltura };
 }
 
 /**
@@ -329,7 +361,9 @@ function allineaListaAllaFrase(letti, lista, attuali) {
     }
     if (scelto >= 0) {
       usati[scelto] = true;
-      tenuti.push(lista[scelto]);
+      const voce = Object.assign({}, lista[scelto]);
+      if (l.nome) voce.nome = inizialeMaiuscola(l.nome);
+      tenuti.push(voce);
     } else {
       tenuti.push(voceDaMisura(l));
     }
@@ -349,20 +383,14 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
   const lista = Array.isArray(terreniNuovi)
     ? terreniNuovi.map((t) => (t && typeof t === 'object' ? Object.assign({}, t) : t))
     : [];
-  const colturaBreve = colturaSeRispostaBreve(domanda, attuali);
-  if (colturaBreve) {
-    const pend = attuali.filter(
-      (t) =>
-        t &&
-        !nomeTerrenoVisibile(t.nome) &&
-        !String(t.coltura || '').trim() &&
-        (typeof t.superficie === 'number' || t.categoria)
-    )[0];
+  const correzione = correzioneColturaBreve(domanda, attuali);
+  if (correzione) {
+    const pend = correzione.terreno;
     return [
       {
-        nome: null,
+        nome: nomeTerrenoVisibile(pend && pend.nome) || null,
         superficie: pend && typeof pend.superficie === 'number' ? pend.superficie : null,
-        coltura: colturaBreve,
+        coltura: correzione.coltura,
         podere: pend && pend.podere ? pend.podere : null,
         categoria: pend && pend.categoria ? pend.categoria : undefined,
       },
@@ -1030,9 +1058,16 @@ export function fraseTerrenoSenzaRiepilogo(domanda) {
   );
 }
 
-/** Il riepilogo si apre su fatto solo se l'utente non sta ancora dettando un terreno. */
+/** Il riepilogo si apre se l'utente lo chiede, non perché il modello mette fatto. */
+export function utenteChiedeRiepilogo(domanda) {
+  const d = String(domanda || '').trim();
+  if (!d || fraseTerrenoSenzaRiepilogo(d)) return false;
+  return /riepilogo|basta|ho finito|^fatto\b|^(no|nope)\b/i.test(d);
+}
+
+/** Compatibilità: fatto del modello non basta, serve la richiesta dell'utente. */
 export function aprireSchedaPerFatto(domanda, fatto) {
-  return fatto === true && !fraseTerrenoSenzaRiepilogo(domanda);
+  return fatto === true && utenteChiedeRiepilogo(domanda);
 }
 
 function confermaTerrenoRaccolto(t) {
@@ -1065,11 +1100,12 @@ export function preparaTurnoOnboarding(opts) {
   const attuali = o.datiAttuali && typeof o.datiAttuali === 'object' ? o.datiAttuali : {};
   const nuoviIn =
     o.datiNuovi && typeof o.datiNuovi === 'object' ? Object.assign({}, o.datiNuovi) : {};
-  if (
-    !Array.isArray(nuoviIn.terreni) &&
-    interpretaFraseTerreni(o.domanda).some((l) => l && (l.superficie != null || l.varieta))
-  ) {
-    nuoviIn.terreni = [];
+  if (!Array.isArray(nuoviIn.terreni)) {
+    const haMisura = interpretaFraseTerreni(o.domanda).some(
+      (l) => l && (l.superficie != null || l.varieta)
+    );
+    const correzione = correzioneColturaBreve(o.domanda, attuali.terreni);
+    if (haMisura || correzione) nuoviIn.terreni = [];
   }
   if (Array.isArray(nuoviIn.terreni)) {
     nuoviIn.terreni = correggiTerreniEstratti(
@@ -1084,7 +1120,24 @@ export function preparaTurnoOnboarding(opts) {
     nuoviIn,
     passo0 && PASSI_AIUTO.indexOf(passo0) >= 0 ? passo0 : 'terreni'
   );
+  if (!chiedeRiepilogoEsplicito(o.domanda)) {
+    o.testo = String(o.testo || '')
+      .replace(/[^.?!]*ecco il riepilogo[^.?!]*[.?!]?/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
   let passo = allineaPassoAiuto(passo0, uniti.dati, nuoviIn, o.domanda);
+  const sedeNota =
+    uniti.dati.sede && (uniti.dati.sede.indirizzo || uniti.dati.sede.citta);
+  if (
+    passo === 'sede' &&
+    sedeNota &&
+    !(uniti.dati.poderi && uniti.dati.poderi.length) &&
+    uniti.dati.senzaPoderi !== true &&
+    !messaggioNegaPoderi(o.domanda, passo)
+  ) {
+    passo = 'poderi';
+  }
   const mancanti = terreniInAttesaNome(uniti.dati.terreni);
   const devePoderi =
     passo === 'poderi' &&
@@ -1142,6 +1195,30 @@ export function preparaTurnoOnboarding(opts) {
   } else if (!mancanti.length && o.testo) {
     const pulito = togliRichiestaNomeGiaDato(o.testo);
     if (pulito !== String(o.testo).trim()) testo = pulito;
+  }
+
+  const soloColtura = normalizzaColturaCatalogo(String(o.domanda || '').trim());
+  if (
+    soloColtura &&
+    !/\d/.test(String(o.domanda || '')) &&
+    String(o.domanda || '').trim().split(/\s+/).length <= 3 &&
+    !mancanti.length
+  ) {
+    const lista = Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : [];
+    const colpiti = lista.filter(
+      (t) => chiaveNome(t && t.coltura) === chiaveNome(soloColtura) && nomeTerrenoVisibile(t && t.nome)
+    );
+    if (colpiti.length === 1) {
+      const mostratoOra = testo != null ? testo : String(o.testo || '');
+      if (
+        !mostratoOra.trim() ||
+        /come si chiama/i.test(mostratoOra) ||
+        /account gratuito arrivi a/i.test(mostratoOra) ||
+        mostratoOra.trim() === 'Va bene.'
+      ) {
+        testo = confermaTerrenoRaccolto(colpiti[0]);
+      }
+    }
   }
 
   const nTerreni = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
