@@ -43,6 +43,11 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 
 - `main.js`: `__tonyLavoroCreationFlow`, intercept «crea lavoro», segna ore senza orari; 0 CF sui turni intervista dove implementato.
 - Conferme salvataggio form prima di nuova intervista.
+- Domanda informativa caposquadra (`chi sono` / `quali sono` / `disponibili`) durante l’intervista: risposta da `lavoriState.caposquadraList` del tenant già caricato in pagina (solo attivi). Non scrive un nome, non legge altri tenant né gli operai. A modal chiuso `userCanReplyToLavoroInterview` resta falso.
+- Persona assente: il messaggio cita il token nome (`nomeCitatoPerAssenza`), non la frase grezza. Elenco vuoto: «elenco non è ancora pronto», senza chiedere di nuovo l’assegnazione.
+- Match univoco in memoria con select senza option: fino a 3 tentativi brevi, poi «tendina non è ancora pronta». I campi già scritti restano.
+- `stopLavoroCreationFlow`: chiusura modal (`closeLavoroModal` / chiusura dopo salvataggio) e pannello chat. Solo il flag. Non tocca `chatHistory` né `tony_session_state`.
+- Residuo fuori da questo intervento: il parser Cloud Function cross-page (`extractAssigneeToken`) tiene solo la prima parola di «assegna a / per».
 
 ## Acquisizione documenti (foto / PDF)
 
