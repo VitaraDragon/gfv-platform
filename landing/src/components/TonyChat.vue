@@ -29,6 +29,7 @@ import {
   PASSI_AIUTO,
   allineaPassoAiuto,
   aprireSchedaPerFatto,
+  fraseTerrenoSenzaRiepilogo,
   collegaTerreniAiPoderi,
   decidiDopoRisposta,
   erroriColturaTerreniForm,
@@ -37,6 +38,7 @@ import {
   prossimoPasso,
   serializzaRaccolti,
   storiaDopoRiepilogo,
+  utenteChiedeRiepilogo,
 } from '../lib/tony-aiuto-account.js';
 import {
   leggiSessioneIntervista,
@@ -1032,7 +1034,11 @@ async function inviaTesto(grezzo: string, daChip = false) {
       chipVisibili.value = true;
     } else if (turno.vaiATerreni) {
       avviaPasso('terreni');
-    } else if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
+    } else if (
+      (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) &&
+      !fraseTerrenoSenzaRiepilogo(domanda) &&
+      passoAiuto.value !== 'sede'
+    ) {
       if (dopoRisposta.perLimiteDomande) giaRiaperturaLimiteDomande = true;
       if (dopoRisposta.messaggio) {
         messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
@@ -1046,8 +1052,15 @@ async function inviaTesto(grezzo: string, daChip = false) {
       // Solo la domanda del passo successivo (niente doppia domanda sui poderi).
       const prox = prossimoPasso(passoAiuto.value || '');
       if (prox) avviaPasso(prox);
-      else apriScheda();
-    } else if (aprireSchedaPerFatto(domanda, esito.dati && esito.dati.fatto)) {
+      else if (!fraseTerrenoSenzaRiepilogo(domanda)) apriScheda();
+      else {
+        campoAttivo.value = true;
+        chipVisibili.value = true;
+      }
+    } else if (
+      aprireSchedaPerFatto(domanda, esito.dati && esito.dati.fatto) ||
+      utenteChiedeRiepilogo(domanda)
+    ) {
       const chiedeRiepilogo =
         typeof domanda === 'string' &&
         /riepilogo|basta|ho finito|fatto|^no\b/i.test(domanda.trim());
@@ -1055,9 +1068,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
         campoAttivo.value = true;
         chipVisibili.value = true;
       } else {
-        const prox = prossimoPasso(passoAiuto.value || '');
-        if (prox) avviaPasso(prox);
-        else apriScheda();
+        apriScheda();
       }
     } else {
       campoAttivo.value = true;

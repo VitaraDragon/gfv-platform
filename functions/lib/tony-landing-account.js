@@ -232,7 +232,7 @@ function promptSistemaAccount(argomento, opzioni) {
     "Fuori tema: se il messaggio non c'entra col passo (es. «piscina»), rispondi con UNA frase che lo riporta al passo e metti fuoriTema: true; non trattarlo come nome di podere o terreno.",
     "Non fare due volte di seguito la stessa domanda.",
     "Il nome di un podere o di un terreno va scritto esattamente come lo dice l'utente, comprese parole come Podere, Cascina, Tenuta, Campo: non accorciarlo.",
-    "Il nome del terreno non è la coltura, la varietà né gli ettari. «3 ha di trebbiano» ha superficie 3 e varietà trebbiano, ma nome null: chiedi come si chiama quel terreno e tieni ettari e coltura. Se il nome è già esplicito («si chiama Vigna Alta», «Vigna Alta: 3 ha»), scrivilo e non chiedere di nuovo il nome.",
+    "Il nome del terreno non è la coltura, la varietà né gli ettari. «3 ha di trebbiano» ha superficie 3 e varietà trebbiano, ma nome null: chiedi come si chiama quel terreno e tieni ettari e coltura. «laghetto grano 5 ha» è nome laghetto, coltura Grano, 5 ha: la coltura può stare prima degli ettari. Se il nome è già esplicito («si chiama Vigna Alta», «Vigna Alta: 3 ha»), scrivilo e non chiedere di nuovo il nome. Una sola parola che è una coltura («pesco») corregge il terreno in attesa, non ne crea uno nuovo.",
     "I poderi sono facoltativi. Nel passo «poderi» chiedi una volta se ne ha. Un no non inventa poderi. Se ne dice uno, anche fuori dal passo, tienilo senza duplicarlo. Nel passo «terreni» non ripetere la domanda sui poderi.",
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
     "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
@@ -248,7 +248,7 @@ function promptSistemaAccount(argomento, opzioni) {
         ? "Hai GIÀ chiesto quali ortaggi: NON richiederlo di nuovo. Se l'utente dice «vari», «misti» o simili, proponi di scegliere un ortaggio concreto dall'elenco (es. Insalata, Pomodoro, Zucchine); non mettere fatto:true né mandare al riepilogo finché non c'è una coltura catalogo."
         : "Chiedi UNA sola volta, citando il terreno: «Quali ortaggi soprattutto? Per esempio Pomodoro, Insalata, Zucchine». Se nomina un ortaggio dell'elenco colture, usa quello; se dice «vari/misti», proponi di sceglierne uno (es. Insalata); non andare al riepilogo con sola categoria Ortive."),
     "Se il messaggio dell'utente descrive chiaramente un podere o un terreno (nome, ettari, coltura) anche se l'argomento corrente è un passo precedente, estrai comunque quei dati nel JSON.",
-    "Non dire mai di aver salvato o registrato; alla fine dire «Ecco il riepilogo: controlla e conferma».",
+    "Non dire mai di aver salvato o registrato. Non mettere fatto: true alla sede, su un podere o mentre correggi una coltura. «Ecco il riepilogo: controlla e conferma» solo se l'utente chiede il riepilogo.",
     "Rispondi solo con il JSON dello schema; frasi brevi in testo."
   ];
   if (poderiNoti.length === 1) {
@@ -655,6 +655,14 @@ function superficieDaDomanda(domanda) {
  * @param {string} domanda
  * @param {{ sede?: object|null, poderi?: object[], terreni?: object[] }|null} dati
  */
+function stessoAppezzamento(modello, detto) {
+  const a = chiaveNome(modello);
+  const b = chiaveNome(detto);
+  if (!a || !b) return !a;
+  if (a === b) return true;
+  return a.startsWith(b + " ") || b.startsWith(a + " ");
+}
+
 function applicaSuperficieDaDomanda(domanda, dati) {
   if (!dati || typeof dati !== "object") return dati;
   const numeri = superficieDaDomanda(domanda);
@@ -666,6 +674,9 @@ function applicaSuperficieDaDomanda(domanda, dati) {
   if (typeof t.superficie === "number" && t.superficie === numeri[0]) {
     return dati;
   }
+  const detto = nomeEsplicitoNellaFrase(domanda);
+  const nome = nomeTerrenoVisibile(t.nome);
+  if (detto && nome && !stessoAppezzamento(nome, detto)) return dati;
   const copia = Object.assign({}, dati, {
     terreni: [
       Object.assign({}, t, {
@@ -744,7 +755,13 @@ function nomeEsplicitoNellaFrase(frase) {
   prima = prima.replace(/^(?:un|uno|una|il|lo|la|i|gli|le)\s+/i, "");
   prima = prima.replace(/^(?:terreno|appezzamento)\s+/i, "");
   prima = prima.replace(/^[\s:,\-–—]+|[\s:,\-–—.?!]+$/g, "").trim();
-  return nomeTerrenoVisibile(prima);
+  prima = nomeTerrenoVisibile(prima);
+  if (!prima) return "";
+  const parole = prima.split(/\s+/);
+  if (parole.length >= 2 && risolviColturaConSinonimi(parole[parole.length - 1])) {
+    return parole.slice(0, -1).join(" ");
+  }
+  return prima;
 }
 
 /**
@@ -778,6 +795,7 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
     const copia = Object.assign({}, t);
     if (nomeEsplicito && terreni.length === 1) {
       const modello = nomeTerrenoVisibile(t.nome);
+      if (modello && !stessoAppezzamento(modello, nomeEsplicito)) return t;
       copia.nome =
         modello && chiaveNome(modello) === chiaveNome(nomeEsplicito)
           ? modello
@@ -861,21 +879,41 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   }
 
   let testo = typeof parsed.testo === "string" ? parsed.testo.trim() : "";
+  const domanda =
+    opzioni && typeof opzioni === "object" && typeof opzioni.domanda === "string"
+      ? opzioni.domanda
+      : "";
   const testoMancante = !testo;
   if (testoMancante) testo = TESTO_RIPIEGO;
   testo = correggiUnoNelTesto(testo);
   if (/salvat|registrat/i.test(testo)) {
-    testo = "Ecco il riepilogo: controlla e conferma";
+    const chiedeChiusuraTesto = /riepilogo|basta|ho finito|^fatto\b/i.test(
+      String(domanda || "").trim()
+    );
+    if (!String(domanda || "").trim() || chiedeChiusuraTesto) {
+      testo = "Ecco il riepilogo: controlla e conferma";
+    } else {
+      testo = testo
+        .replace(/[^.?!]*(?:salvat\w*|registrat\w*)[^.?!]*[.?!]?/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (/ecco il riepilogo/i.test(testo)) testo = "";
+    }
+  }
+  const chiedeChiusuraPrecoce = /riepilogo|basta|ho finito|^fatto\b/i.test(
+    String(domanda || "").trim()
+  );
+  if (String(domanda || "").trim() && !chiedeChiusuraPrecoce && /ecco il riepilogo/i.test(testo)) {
+    testo = testo
+      .replace(/[^.?!]*ecco il riepilogo[^.?!]*[.?!]?/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   const sede = pulisciSede(parsed.sede);
   const poderiRisposta = pulisciPoderi(parsed.poderi);
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
-  const domanda =
-    opzioni && typeof opzioni === "object" && typeof opzioni.domanda === "string"
-      ? opzioni.domanda
-      : "";
   const puliti = pulisciTerreni(parsed.terreni, terreniDaRaccolti(raccolti), domanda);
   const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
   const argomento =
