@@ -8576,7 +8576,15 @@ if (typeof window !== 'undefined') {
                         if (opts.fromVoice) isWaitingForTonyResponse = false;
                         _isSendingMessage = false;
                     };
-                    if (rosterProbe.rosterReady) {
+                    if (rosterProbe.needsTenantRoster &&
+                        typeof window.TonyFormInjector.answerCaposquadraRosterOffPage === 'function') {
+                        appendMessage('Un attimo…', 'typing');
+                        window.TonyFormInjector.answerCaposquadraRosterOffPage(text).then(function (reply) {
+                            deliverRoster(reply);
+                        }).catch(function () {
+                            deliverRoster({ message: 'In questa azienda non riesco a leggere l\'elenco dei caposquadra.' });
+                        });
+                    } else if (rosterProbe.rosterReady) {
                         deliverRoster(rosterProbe);
                     } else {
                         appendMessage('Un attimo…', 'typing');
