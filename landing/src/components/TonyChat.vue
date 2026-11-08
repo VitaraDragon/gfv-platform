@@ -32,10 +32,10 @@ import {
   decidiDopoRisposta,
   erroriColturaTerreniForm,
   esitoRipiegoAccount,
+  preparaTurnoOnboarding,
   prossimoPasso,
   serializzaRaccolti,
   storiaDopoRiepilogo,
-  unisciDati,
 } from '../lib/tony-aiuto-account.js';
 import {
   leggiSessioneIntervista,
@@ -972,9 +972,23 @@ async function inviaTesto(grezzo: string, daChip = false) {
       void suonaFraseFissa('cinqueTerreni');
     }
     const prima = JSON.stringify(datiAiuto.value);
-    const uniti = unisciDati(datiAiuto.value, esito.dati, passoAiuto.value || '');
+    const turno = preparaTurnoOnboarding({
+      domanda,
+      passo: passoAiuto.value || '',
+      datiAttuali: datiAiuto.value,
+      datiNuovi: esito.dati,
+      testo: azione.testo,
+    });
+    const uniti = turno.dati;
     const novita = JSON.stringify(uniti.dati) !== prima;
     datiAiuto.value = uniti.dati;
+    if (turno.testo) {
+      azione.testo = turno.testo;
+      const ultimoTesto = messaggi.value[messaggi.value.length - 1];
+      if (ultimoTesto && ultimoTesto.ruolo === 'tony' && !ultimoTesto.live) {
+        ultimoTesto.testo = turno.testo;
+      }
+    }
     if (uniti.troppiTerreni && !esito.troppiTerreni) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
       void suonaFraseFissa('cinqueTerreni');
@@ -992,7 +1006,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
     } else {
       turniSenzaNovitaNelPasso.value += 1;
     }
-    const passoAllineato = allineaPassoAiuto(
+    const passoAllineato = turno.passo || allineaPassoAiuto(
       passoAiuto.value || '',
       datiAiuto.value,
       esito.dati,
@@ -1014,7 +1028,12 @@ async function inviaTesto(grezzo: string, daChip = false) {
       passo: passoAiuto.value || '',
       giaRiaperturaLimiteDomande,
     });
-    if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
+    if (turno.bloccaAvanti) {
+      campoAttivo.value = true;
+      chipVisibili.value = true;
+    } else if (turno.vaiATerreni) {
+      avviaPasso('terreni');
+    } else if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
       if (dopoRisposta.perLimiteDomande) giaRiaperturaLimiteDomande = true;
       if (dopoRisposta.messaggio) {
         messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });

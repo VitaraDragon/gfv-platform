@@ -30,11 +30,26 @@ function leggi(rel) {
 }
 
 describe('round2 – passo segue i dati', () => {
-  it('terreni in risposta durante sede → passo terreni', () => {
+  it('terreni in risposta durante sede, senza poderi → chiede i poderi', () => {
     expect(
       allineaPassoAiuto(
         'sede',
         { sede: { indirizzo: 'Via Roma 1', citta: 'Faenza' }, poderi: [], terreni: [] },
+        { terreni: [{ nome: 'Campo A', superficie: 1, coltura: 'Grano' }] },
+        'ok'
+      )
+    ).toBe('poderi');
+  });
+
+  it('terreni in risposta durante sede, podere già detto → passo terreni', () => {
+    expect(
+      allineaPassoAiuto(
+        'sede',
+        {
+          sede: { indirizzo: 'Via Roma 1', citta: 'Faenza' },
+          poderi: [{ nome: 'Nord' }],
+          terreni: [],
+        },
         { terreni: [{ nome: 'Campo A', superficie: 1, coltura: 'Grano' }] },
         'ok'
       )

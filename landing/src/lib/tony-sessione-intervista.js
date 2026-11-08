@@ -51,7 +51,13 @@ function pulisciDati(dati) {
     .slice(0, 10)
     .map((nome) => ({ nome }));
   const terreni = (Array.isArray(d.terreni) ? d.terreni : [])
-    .filter((t) => t && t.nome)
+    .filter(
+      (t) =>
+        t &&
+        (t.nome ||
+          (typeof t.superficie === 'number' && Number.isFinite(t.superficie)) ||
+          t.coltura)
+    )
     .slice(0, 10)
     .map((t) => {
       const voce = {
@@ -67,12 +73,13 @@ function pulisciDati(dati) {
       if (categoria) voce.categoria = categoria;
       return voce;
     })
-    .filter((t) => t.nome);
+    .filter((t) => t.nome || t.superficie != null || t.coltura);
   return {
     sede: pulisciSede(d.sede),
     poderi,
     terreni,
     ultimoPodere: testoOpz(d.ultimoPodere, 120),
+    senzaPoderi: d.senzaPoderi === true,
   };
 }
 

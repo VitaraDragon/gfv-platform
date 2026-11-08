@@ -46,6 +46,8 @@ const {
   promptSistemaAccount,
   rispostaAccountDaTesto,
   applicaSuperficieDaDomanda,
+  applicaNomeTerrenoDaDomanda,
+  testoSeMancaNomeTerreno,
   normalizzaDecimaliPerGemini
 } = require("./lib/tony-landing-account");
 const {
@@ -866,6 +868,11 @@ async function handleFaseAccount(req, res, ctx) {
     }
     if (pulita.dati) {
       pulita.dati = applicaSuperficieDaDomanda(domanda, pulita.dati);
+      pulita.dati = applicaNomeTerrenoDaDomanda(domanda, pulita.dati);
+      pulita.testo = testoSeMancaNomeTerreno(pulita.testo, pulita.dati);
+      if (pulita.dati && pulita.dati.nomeTerrenoMancante != null) {
+        delete pulita.dati.nomeTerrenoMancante;
+      }
     }
     const testoRisposta = pulita.testo || "";
 
