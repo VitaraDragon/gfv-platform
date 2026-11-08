@@ -258,6 +258,8 @@ Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e fluss
 
 - **Un’informazione alla volta** se Tony chiede chiarimenti (es. più terreni con nome simile).  
 - Se il terreno è ambiguo («Sangiovese» da solo), Tony può chiedere **quale appezzamento** — rispondi con il nome completo che vedi in app.  
+- Se durante la creazione chiedi **«chi sono i caposquadra?»**, Tony elenca i caposquadra **della tua azienda** e continua da dove eri. Quella domanda non diventa un nome.  
+- Se chiudi la **scheda lavoro** o il **pannello** di Tony, la creazione guidata si interrompe. Quello che hai già scritto nella scheda e la **chat** restano.  
 - Per le **ore**, se non indichi orari Tony chiede **data**, **inizio**, **fine** e **pause** prima di salvare.
 
 ---
