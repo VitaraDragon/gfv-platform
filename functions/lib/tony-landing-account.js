@@ -284,6 +284,13 @@ function taglia(testo, max) {
   return [...s].slice(0, max).join("");
 }
 
+/** «null» e «undefined» non sono nomi di terreno. */
+function nomeTerrenoVisibile(nome) {
+  const s = String(nome == null ? "" : nome).trim();
+  if (!s || /^(null|undefined|nullo)$/i.test(s)) return "";
+  return s;
+}
+
 function pulisciCap(valore) {
   const s = String(valore || "").trim();
   if (!s) return null;
@@ -471,6 +478,45 @@ function terreniDaRaccolti(raccolti) {
   return { nomi: nomi, conteggio: conteggio };
 }
 
+function superficieGrezza(t) {
+  if (!t || t.superficie == null || t.superficie === "") return null;
+  const n = Number(t.superficie);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Nella stessa risposta, «null» + nome vero con gli stessi ettari è un solo terreno. */
+function compattaTerreniGrezzi(lista) {
+  const out = [];
+  for (let i = 0; i < lista.length; i++) {
+    const t = lista[i];
+    if (!t || typeof t !== "object") continue;
+    const superficie = superficieGrezza(t);
+    const nome = nomeTerrenoVisibile(t.nome);
+    const voce = Object.assign({}, t, { nome: nome || null, superficie: superficie });
+    let idx = -1;
+    for (let j = 0; j < out.length; j++) {
+      const prev = out[j];
+      if (superficie == null || prev.superficie !== superficie) continue;
+      const ca = chiaveNome(prev.coltura || "");
+      const cb = chiaveNome(voce.coltura || "");
+      if (ca && cb && ca !== cb) continue;
+      const pa = chiaveNome(prev.podere || "");
+      const pb = chiaveNome(voce.podere || "");
+      if (pa && pb && pa !== pb) continue;
+      const na = nomeTerrenoVisibile(prev.nome);
+      const nb = nome;
+      if (na && nb && chiaveNome(na) !== chiaveNome(nb)) continue;
+      idx = j;
+      break;
+    }
+    if (idx < 0) out.push(voce);
+    else if (nome && !nomeTerrenoVisibile(out[idx].nome)) {
+      out[idx] = Object.assign({}, out[idx], { nome: nome });
+    }
+  }
+  return out;
+}
+
 /**
  * Pulisce i terreni della risposta. Il limite è «già raccolti + nuovi»:
  * i terreni già noti (stesso nome, anche con prefisso podere/tenuta…)
@@ -478,7 +524,23 @@ function terreniDaRaccolti(raccolti) {
  * @param {unknown} lista
  * @param {{ nomi?: string[], conteggio?: number }|string[]} [giaRaccolti]
  */
-function pulisciTerreni(lista, giaRaccolti) {
+function ordinaPerNomeDetto(lista, domanda) {
+  const frase = String(domanda || "").trim();
+  if (!frase || /\d/.test(frase) || frase.split(/\s+/).length > 4) return lista;
+  const detto = nomeTerrenoVisibile(frase);
+  if (!detto) return lista;
+  const copia = lista.slice();
+  copia.sort(function (a, b) {
+    const ma =
+      a && chiaveNome(nomeTerrenoVisibile(a.nome)) === chiaveNome(detto) ? 0 : 1;
+    const mb =
+      b && chiaveNome(nomeTerrenoVisibile(b.nome)) === chiaveNome(detto) ? 0 : 1;
+    return ma - mb;
+  });
+  return copia;
+}
+
+function pulisciTerreni(lista, giaRaccolti, domanda) {
   if (!Array.isArray(lista)) return { terreni: [], troppiTerreni: false };
   const info = Array.isArray(giaRaccolti)
     ? { nomi: giaRaccolti, conteggio: giaRaccolti.length }
@@ -500,8 +562,9 @@ function pulisciTerreni(lista, giaRaccolti) {
   let nuovi = 0;
   const visti = Object.create(null);
   const out = [];
-  for (let i = 0; i < lista.length; i++) {
-    const t = lista[i];
+  const listaUnica = ordinaPerNomeDetto(compattaTerreniGrezzi(lista), domanda);
+  for (let i = 0; i < listaUnica.length; i++) {
+    const t = listaUnica[i];
     if (!t || typeof t !== "object") continue;
     let superficie = null;
     if (t.superficie != null && t.superficie !== "") {
@@ -515,7 +578,7 @@ function pulisciTerreni(lista, giaRaccolti) {
         colturaGrezza = CATEGORIA_ORTIVE;
       }
     }
-    const nome = taglia(t.nome, LIMITI.NOME_TERRENO_MAX);
+    const nome = nomeTerrenoVisibile(taglia(t.nome, LIMITI.NOME_TERRENO_MAX));
     if (!nome && superficie == null && !colturaGrezza) continue;
     const chiave = nome ? nomeSenzaPrefissoPodere(nome) : "";
     const dedupe =
@@ -649,8 +712,29 @@ function misureNellaDomanda(domanda) {
 }
 
 /**
+ * Nome detto prima degli ettari, o con «si chiama». La varietà dopo «di» no.
+ * @param {string} frase
+ * @returns {string}
+ */
+function nomeEsplicitoNellaFrase(frase) {
+  const s = String(frase || "");
+  const chiama = s.match(
+    /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+([^,.]*)/i
+  );
+  if (chiama) return nomeTerrenoVisibile(chiama[1]);
+  const ha = s.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)/i);
+  if (!ha) return "";
+  let prima = s.slice(0, ha.index);
+  prima = prima.replace(/^(?:ho|ci sono|c'è|ce)\s+/i, "");
+  prima = prima.replace(/^(?:un|uno|una|il|lo|la|i|gli|le)\s+/i, "");
+  prima = prima.replace(/^(?:terreno|appezzamento)\s+/i, "");
+  prima = prima.replace(/^[\s:,\-–—]+|[\s:,\-–—.?!]+$/g, "").trim();
+  return nomeTerrenoVisibile(prima);
+}
+
+/**
  * Senza un nome esplicito il nome del modello non vale: si chiede dopo.
- * «si chiama Vigna Alta» resta. Il client applica la stessa regola.
+ * «si chiama Vigna Alta» e «quercione 4 ha» restano. Il client applica la stessa regola.
  * @param {string} domanda
  * @param {{ terreni?: object[] }|null} dati
  */
@@ -659,13 +743,17 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
   const terreni = Array.isArray(dati.terreni) ? dati.terreni : null;
   if (!terreni || !terreni.length) return dati;
   const frase = String(domanda || "");
-  const esplicito = frase.match(
-    /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+([^,.]*)/i
-  );
-  const nomeEsplicito = esplicito ? String(esplicito[1] || "").trim() : "";
+  const nomeEsplicito = nomeEsplicitoNellaFrase(frase);
   const misure = misureNellaDomanda(frase);
-  if (!misure.length) return dati;
-  const outT = terreni.map(function (t, indice) {
+  const terreniVisibili = terreni.map(function (t) {
+    if (!t || typeof t !== "object") return t;
+    const nome = nomeTerrenoVisibile(t.nome);
+    return Object.assign({}, t, { nome: nome || null });
+  });
+  if (!misure.length) {
+    return Object.assign({}, dati, { terreni: terreniVisibili });
+  }
+  const outT = terreniVisibili.map(function (t, indice) {
     if (!t || typeof t !== "object") return t;
     let misura = misure.find(function (v) {
       return typeof t.superficie === "number" && v.superficie === t.superficie;
@@ -673,8 +761,13 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
     if (!misura && misure.length === terreni.length) misura = misure[indice];
     if (!misura) return t;
     const copia = Object.assign({}, t);
-    if (nomeEsplicito && terreni.length === 1) copia.nome = nomeEsplicito;
-    else if (!nomeEsplicito) copia.nome = null;
+    if (nomeEsplicito && terreni.length === 1) {
+      const modello = nomeTerrenoVisibile(t.nome);
+      copia.nome =
+        modello && chiaveNome(modello) === chiaveNome(nomeEsplicito)
+          ? modello
+          : nomeEsplicito;
+    } else if (!nomeEsplicito) copia.nome = null;
     if ((copia.coltura == null || copia.coltura === "") && misura && misura.parola) {
       if (eCategoriaColtura(misura.parola)) {
         copia.categoria = copia.categoria || misura.parola;
@@ -687,7 +780,7 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
   const copiaDati = Object.assign({}, dati, { terreni: outT });
   if (
     outT.some(function (t) {
-      return t && !t.nome && t.coltura;
+      return t && !nomeTerrenoVisibile(t.nome) && t.coltura;
     })
   ) {
     copiaDati.nomeTerrenoMancante = true;
@@ -698,7 +791,7 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
 function testoSeMancaNomeTerreno(testo, dati) {
   if (!dati || dati.nomeTerrenoMancante !== true) return testo;
   const t = (Array.isArray(dati.terreni) ? dati.terreni : []).find(function (x) {
-    return x && !x.nome && x.coltura;
+    return x && !nomeTerrenoVisibile(x.nome) && x.coltura;
   });
   if (!t) return testo;
   if (!t.coltura && /che cosa ci coltivi|cosa ci coltivi|quale coltura/i.test(String(testo || ""))) {
@@ -763,7 +856,11 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const poderiRisposta = pulisciPoderi(parsed.poderi);
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
-  const puliti = pulisciTerreni(parsed.terreni, terreniDaRaccolti(raccolti));
+  const domanda =
+    opzioni && typeof opzioni === "object" && typeof opzioni.domanda === "string"
+      ? opzioni.domanda
+      : "";
+  const puliti = pulisciTerreni(parsed.terreni, terreniDaRaccolti(raccolti), domanda);
   const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
   const argomento =
     opzioni && typeof opzioni === "object" && typeof opzioni.argomento === "string"

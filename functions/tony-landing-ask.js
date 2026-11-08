@@ -841,7 +841,8 @@ async function handleFaseAccount(req, res, ctx) {
     if (esitoGemini.testo) testoGrezzo = esitoGemini.testo;
     const opzioniRisposta = {
       raccolti: validata.raccolti,
-      argomento: argomento
+      argomento: argomento,
+      domanda: domanda
     };
     let pulita = rispostaAccountDaTesto(testoGrezzo, opzioniRisposta);
     const jsonKo = pulita.jsonOk === false;

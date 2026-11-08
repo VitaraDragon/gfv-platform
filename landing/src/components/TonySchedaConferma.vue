@@ -2,15 +2,15 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
-  collegaTerreniAiPoderi,
   controllaScheda,
   erroriColturaTerreniForm,
+  erroriNomeTerreniForm,
   esitoSalvataggio,
   messaggioErroreSetup,
   normalizzaColturaCatalogo,
   nuovoRequestId,
   payloadDaScheda,
-  risolviNomePodere,
+  righeRiepilogo,
 } from '../lib/tony-aiuto-account.js';
 import { COLTURE_PREDEFINITE } from '../lib/generati/tony-landing-setup-core.js';
 
@@ -59,44 +59,10 @@ const nomiColture = computed(() =>
 );
 
 function caricaDaProps() {
-  const grezzi = props.dati || {};
-  const d = collegaTerreniAiPoderi({
-    sede: grezzi.sede || null,
-    poderi: Array.isArray(grezzi.poderi) ? grezzi.poderi : [],
-    terreni: Array.isArray(grezzi.terreni) ? grezzi.terreni : [],
-    ultimoPodere: grezzi.ultimoPodere || null,
-  });
-  sede.value = {
-    indirizzo: (d.sede && d.sede.indirizzo) || '',
-    citta: (d.sede && d.sede.citta) || '',
-    cap: (d.sede && d.sede.cap) || '',
-    provincia: (d.sede && d.sede.provincia) || '',
-  };
-  poderi.value =
-    Array.isArray(d.poderi) && d.poderi.length
-      ? d.poderi.map((p) => ({ nome: p.nome || '' }))
-      : [{ nome: '' }];
-  const nomeUnico =
-    poderi.value.length === 1 && poderi.value[0].nome
-      ? poderi.value[0].nome
-      : '';
-  terreni.value =
-    Array.isArray(d.terreni) && d.terreni.length
-      ? d.terreni.map((tr) => {
-          const risolto =
-            risolviNomePodere(tr.podere || '', poderi.value) ||
-            (tr.podere ? '' : nomeUnico);
-          return {
-            nome: tr.nome || '',
-            superficie:
-              tr.superficie != null && tr.superficie !== ''
-                ? String(tr.superficie).replace('.', ',')
-                : '',
-            coltura: tr.coltura || '',
-            podere: risolto || '',
-          };
-        })
-      : [{ nome: '', superficie: '', coltura: '', podere: nomeUnico }];
+  const righe = righeRiepilogo(props.dati || {});
+  sede.value = righe.sede;
+  poderi.value = righe.poderi;
+  terreni.value = righe.terreni;
 }
 
 onMounted(() => {
@@ -124,7 +90,9 @@ function payloadCorrente() {
 
 function controllaLive() {
   const esito = controllaScheda(payloadCorrente());
-  const extra = erroriColturaTerreniForm(terreni.value, props.dati);
+  const extra = erroriNomeTerreniForm(terreni.value).concat(
+    erroriColturaTerreniForm(terreni.value, props.dati)
+  );
   const mappa: Record<string, string> = {};
   const errori = [
     ...(Array.isArray(esito.errori) ? esito.errori : []),
