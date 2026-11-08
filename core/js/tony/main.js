@@ -369,6 +369,7 @@ if (typeof window !== 'undefined') {
             if (window.TonyFormInjector && typeof window.TonyFormInjector.resetLavoroInterviewSessionState === 'function') {
                 window.TonyFormInjector.resetLavoroInterviewSessionState();
             }
+            window.__tonyNuovaCreazioneLavoro = true;
             var openResult = window.openCreaModal();
             function waitModalActive() {
                 var tries = 0;
@@ -8555,6 +8556,39 @@ if (typeof window !== 'undefined') {
                         console.warn('[Tony] applyLavoroInterviewFromUserReply:', errIv);
                     });
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            // Domanda sui caposquadra a scheda chiusa: elenco del tenant già in pagina, senza modello.
+            if (!opts.proactive && !window.__tonyLavoroCreationFlow && window.TonyFormInjector &&
+                typeof window.TonyFormInjector.localCaposquadraRosterReply === 'function') {
+                var rosterProbe = window.TonyFormInjector.localCaposquadraRosterReply(text);
+                if (rosterProbe && rosterProbe.handled) {
+                    tonyDebugLog('[Tony] Elenco caposquadra locale:', text);
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    var deliverRoster = function (reply) {
+                        removeTyping();
+                        appendMessage((reply && reply.message) || 'In questa azienda non risultano caposquadra attivi.', 'tony');
+                        if (window.Tony && typeof window.Tony.speak === 'function' && reply && reply.voiceText) {
+                            window.Tony.speak(reply.voiceText);
+                        }
+                        if (opts.fromVoice) isWaitingForTonyResponse = false;
+                        _isSendingMessage = false;
+                    };
+                    if (rosterProbe.rosterReady) {
+                        deliverRoster(rosterProbe);
+                    } else {
+                        appendMessage('Un attimo…', 'typing');
+                        var waitRoster = window.TonyFormInjector.waitForLavoriFormDataReady
+                            ? window.TonyFormInjector.waitForLavoriFormDataReady(2000)
+                            : Promise.resolve(true);
+                        waitRoster.then(function () {
+                            deliverRoster(window.TonyFormInjector.localCaposquadraRosterReply(text));
+                        }).catch(function () {
+                            deliverRoster(rosterProbe);
+                        });
+                    }
                     return;
                 }
             }
