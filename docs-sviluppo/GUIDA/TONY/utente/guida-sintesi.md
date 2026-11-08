@@ -22,7 +22,7 @@ Snapshot da `dashboard-counts-snapshot` + testi `dashboard-tony-briefing-text.js
 
 ## Intervista vocale (Avanzato)
 
-Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senza orari; conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. Durante la creazione, «chi sono i caposquadra?» elenca solo i caposquadra dell’azienda già in pagina e non è un nome; chiusura scheda o pannello spegne la creazione guidata senza cancellare i campi già scritti né la chat. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
+Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senza orari; conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. «chi sono i caposquadra?» elenca solo i caposquadra attivi già caricati per l’azienda, anche a scheda chiusa, e non gli operai. La X sospende la bozza in pagina (Riprendi scheda lavoro) senza registrarla e senza tenerla dopo un ricaricamento; Annulla la scarta; un nuovo «crea un lavoro» parte vuoto. La chat resta. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
 
 ## Foto bolla / fattura (Avanzato + Magazzino)
 

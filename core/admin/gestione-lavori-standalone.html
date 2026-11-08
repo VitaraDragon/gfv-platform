@@ -1411,7 +1411,7 @@
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeLavoroModal()">Annulla</button>
+                    <button type="button" class="btn btn-secondary" onclick="annullaBozzaLavoro()">Annulla</button>
                 </div>
             </form>
         </div>
@@ -1788,6 +1788,7 @@
             clearFilters as clearFiltersModule,
             openCreaModal as openCreaModalModule,
             closeLavoroModal as closeLavoroModalModule,
+            annullaBozzaLavoro as annullaBozzaLavoroModule,
             openModificaModal as openModificaModalModule,
             openEliminaModal as openEliminaModalModule,
             approvaLavoro as approvaLavoroModule,
@@ -3591,6 +3592,9 @@
         window.openCreaModal = openCreaModalWrapper;
         window.openModificaModal = openModificaModalWrapper;
         window.closeLavoroModal = closeLavoroModalWrapper;
+        window.annullaBozzaLavoro = function annullaBozzaLavoroWrapper() {
+            annullaBozzaLavoroModule(lavoriState, updateState);
+        };
         window.openDettaglioModal = openDettaglioModalWrapper;
         window.closeDettaglioModal = closeDettaglioModalWrapper;
         window.switchTab = switchTabWrapper;
