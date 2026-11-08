@@ -190,10 +190,77 @@ function fermaFlussoCreazioneLavoroTony() {
     }
 }
 
+const CAMPI_BOZZA_LAVORO = [
+    'lavoro-nome', 'lavoro-terreno', 'lavoro-categoria-principale', 'lavoro-sottocategoria',
+    'lavoro-tipo-lavoro', 'lavoro-caposquadra', 'lavoro-operaio', 'lavoro-operatore-macchina',
+    'lavoro-trattore', 'lavoro-attrezzo', 'lavoro-data-inizio', 'lavoro-durata', 'lavoro-stato', 'lavoro-note'
+];
+
+function leggiBozzaLavoroNonSalvata() {
+    const form = document.getElementById('lavoro-form');
+    if (!form) return null;
+    const idEl = document.getElementById('lavoro-id');
+    if (idEl && String(idEl.value || '').trim()) return null;
+    const fields = {};
+    const labels = {};
+    let any = false;
+    CAMPI_BOZZA_LAVORO.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const value = String(el.value || '').trim();
+        if (!value) return;
+        fields[id] = value;
+        if (el.tagName === 'SELECT' && el.selectedIndex >= 0) {
+            labels[id] = String(el.options[el.selectedIndex].text || '').trim();
+        }
+        // Lo stato è sempre valorizzato all'apertura (assegnato / in corso): da solo non è una scheda compilata.
+        if (id !== 'lavoro-stato') any = true;
+    });
+    const radio = form.querySelector('input[name="tipo-assegnazione"]:checked');
+    if (radio && radio.value) fields['tipo-assegnazione'] = radio.value;
+    if (!any) return null;
+    return { fields, labels };
+}
+
+function applicaBozzaLavoroNonSalvata(bozza) {
+    if (!bozza || !bozza.fields) return;
+    Object.keys(bozza.fields).forEach((id) => {
+        if (id === 'tipo-assegnazione') {
+            const radio = document.querySelector(`input[name="tipo-assegnazione"][value="${bozza.fields[id]}"]`);
+            if (radio) radio.checked = true;
+            return;
+        }
+        const el = document.getElementById(id);
+        if (!el) return;
+        const value = bozza.fields[id];
+        if (el.tagName === 'SELECT' && !Array.from(el.options).some((o) => o.value === value)) {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = (bozza.labels && bozza.labels[id]) || value;
+            el.appendChild(opt);
+        }
+        el.value = value;
+    });
+    const sub = document.getElementById('lavoro-sottocategoria-group');
+    const tipo = document.getElementById('tipo-lavoro-group');
+    if (bozza.fields['lavoro-sottocategoria'] && sub) sub.style.display = '';
+    if (bozza.fields['lavoro-tipo-lavoro'] && tipo) tipo.style.display = '';
+}
+
+function aggiornaPulsanteBozzaLavoro() {
+    const btn = document.getElementById('crea-lavoro-button');
+    if (!btn) return;
+    if (!btn.dataset.etichettaCrea) btn.dataset.etichettaCrea = btn.textContent;
+    btn.textContent = window.__tonyLavoroBozzaNonSalvata ? 'Riprendi scheda lavoro' : btn.dataset.etichettaCrea;
+}
+
 function chiudiModaleLavoroSeSessione(sessione, closeLavoroModalCallback) {
     if (sessione !== lavoroModalSessione) return;
     const modal = document.getElementById('lavoro-modal');
     if (!modal || !modal.classList.contains('active')) return;
+    window.__tonyChiusuraLavoroSalvata = true;
+    window.__tonyLavoroBozzaNonSalvata = null;
+    aggiornaPulsanteBozzaLavoro();
     fermaFlussoCreazioneLavoroTony();
     if (typeof closeLavoroModalCallback === 'function') {
         try {
@@ -772,10 +839,19 @@ export async function openCreaModal(
     const lavoroIdInput = document.getElementById('lavoro-id');
     const lavoroStatoSelect = document.getElementById('lavoro-stato');
     
-    if (modalTitle) modalTitle.textContent = 'Crea Nuovo Lavoro';
-    if (lavoroForm) {
+    const nuovaCreazione = window.__tonyNuovaCreazioneLavoro === true;
+    window.__tonyNuovaCreazioneLavoro = false;
+    if (nuovaCreazione) {
+        window.__tonyLavoroBozzaNonSalvata = null;
+        aggiornaPulsanteBozzaLavoro();
+    }
+    const bozza = nuovaCreazione ? null : window.__tonyLavoroBozzaNonSalvata;
+    if (modalTitle) modalTitle.textContent = bozza ? 'Scheda lavoro' : 'Crea Nuovo Lavoro';
+    if (lavoroForm && !bozza) {
         lavoroForm.reset();
         // form.reset() non riaccende i campi spenti da un lavoro in sola lettura.
+        applicaSolaLetturaAlForm(lavoroForm, { solaLettura: false });
+    } else if (lavoroForm) {
         applicaSolaLetturaAlForm(lavoroForm, { solaLettura: false });
     }
     nascondiBlocchiImpiantoLavoro();
@@ -786,23 +862,27 @@ export async function openCreaModal(
     if (loadCategorieLavoriCallback) await loadCategorieLavoriCallback();
     if (loadTipiLavoroCallback) await loadTipiLavoroCallback();
     
-    if (populateTerrenoDropdownCallback) populateTerrenoDropdownCallback();
-    if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback();
+    const terrenoBozza = bozza && bozza.fields ? bozza.fields['lavoro-terreno'] : null;
+    const categoriaBozza = bozza && bozza.fields ? bozza.fields['lavoro-categoria-principale'] : null;
+    if (populateTerrenoDropdownCallback) populateTerrenoDropdownCallback(terrenoBozza || undefined);
+    if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback(categoriaBozza || undefined);
     
     const sottocategoriaGroup = document.getElementById('lavoro-sottocategoria-group');
     const tipoLavoroGroup = document.getElementById('tipo-lavoro-group');
     const tipoLavoroSelect = document.getElementById('lavoro-tipo-lavoro');
-    if (sottocategoriaGroup) sottocategoriaGroup.style.display = 'none';
-    if (tipoLavoroGroup) tipoLavoroGroup.style.display = 'none';
-    if (tipoLavoroSelect) tipoLavoroSelect.value = '';
+    if (!bozza) {
+        if (sottocategoriaGroup) sottocategoriaGroup.style.display = 'none';
+        if (tipoLavoroGroup) tipoLavoroGroup.style.display = 'none';
+        if (tipoLavoroSelect) tipoLavoroSelect.value = '';
+    }
     
     // Popola dropdown Manodopera solo se modulo attivo
     if (hasManodoperaModule) {
         if (populateCaposquadraDropdownCallback) {
-            populateCaposquadraDropdownCallback();
+            populateCaposquadraDropdownCallback(bozza && bozza.fields ? bozza.fields['lavoro-caposquadra'] : undefined);
         }
         if (populateOperaiDropdownCallback) {
-            populateOperaiDropdownCallback();
+            populateOperaiDropdownCallback(bozza && bozza.fields ? bozza.fields['lavoro-operaio'] : undefined);
         }
         // Imposta tipo assegnazione default a "squadra"
         const tipoSquadra = document.getElementById('tipo-squadra');
@@ -850,6 +930,7 @@ export async function openCreaModal(
     // Prima si mostra il modale, poi si sincronizzano i required.
     // campoLavoroVisibile risale gli antenati: con .modal { display:none } un sync
     // fatto a modale chiuso disabilita anche i campi che l'utente deve compilare.
+    if (bozza) applicaBozzaLavoroNonSalvata(bozza);
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
     if (sessioneApertura === lavoroModalSessione) {
@@ -864,6 +945,17 @@ export async function openCreaModal(
  */
 export function closeLavoroModal(state, updateState) {
     const lavoroModal = document.getElementById('lavoro-modal');
+    if (window.__tonyChiusuraLavoroSalvata) {
+        window.__tonyChiusuraLavoroSalvata = false;
+        window.__tonyLavoroBozzaNonSalvata = null;
+    } else {
+        const idEl = document.getElementById('lavoro-id');
+        const schedaGiaIdentificata = idEl && String(idEl.value || '').trim();
+        if (!schedaGiaIdentificata) {
+            window.__tonyLavoroBozzaNonSalvata = leggiBozzaLavoroNonSalvata();
+        }
+    }
+    aggiornaPulsanteBozzaLavoro();
     if (lavoroModal) lavoroModal.classList.remove('active');
     fermaFlussoCreazioneLavoroTony();
     applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), { solaLettura: false });
@@ -879,6 +971,15 @@ export function closeLavoroModal(state, updateState) {
             console.warn('[GESTIONE-LAVORI] updateState alla chiusura modal:', err);
         }
     }
+}
+
+/** Annulla esplicito: scarta la bozza e chiude. Non registra il lavoro. */
+export function annullaBozzaLavoro(state, updateState) {
+    window.__tonyChiusuraLavoroSalvata = true;
+    window.__tonyLavoroBozzaNonSalvata = null;
+    const form = document.getElementById('lavoro-form');
+    if (form) form.reset();
+    closeLavoroModal(state, updateState);
 }
 
 /**

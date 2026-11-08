@@ -35,6 +35,7 @@ vi.mock('../core/services/tenant-service.js', () => ({
 import { populateTrattoriDropdown } from '../core/admin/js/gestione-lavori-controller.js';
 import { applicaSolaLetturaAlForm } from '../shared/js/form-sola-lettura.js';
 import {
+    annullaBozzaLavoro,
     closeLavoroModal,
     handleSalvaLavoro,
     openCreaModal,
@@ -190,6 +191,9 @@ describe('gestione lavori — modale, trattore, Salva', () => {
     beforeEach(() => {
         document.head.innerHTML = '';
         document.body.innerHTML = '';
+        window.__tonyLavoroBozzaNonSalvata = null;
+        window.__tonyNuovaCreazioneLavoro = false;
+        window.__tonyChiusuraLavoroSalvata = false;
         cssModale();
         mocks.updateDoc.mockClear();
         mocks.addDoc.mockClear();
@@ -240,6 +244,50 @@ describe('gestione lavori — modale, trattore, Salva', () => {
         expect(form.querySelector('button[type="submit"]').style.display).not.toBe('none');
         expect(form.querySelector('#banner-sola-lettura')).toBeNull();
         expect(giaSpento.disabled).toBe(true);
+    });
+
+    it('la X sospende la bozza, Annulla la scarta, una nuova creazione parte vuota', async () => {
+        formLavoro();
+        compila({ nome: 'S352 Test Tony', tipo: 'Potatura', terreno: 'ter1' });
+        document.getElementById('lavoro-id').value = '';
+        const btn = document.createElement('button');
+        btn.id = 'crea-lavoro-button';
+        btn.textContent = 'Crea Nuovo Lavoro';
+        document.body.appendChild(btn);
+
+        closeLavoroModal({ currentLavoroId: null }, () => {});
+        expect(window.__tonyLavoroBozzaNonSalvata.fields['lavoro-nome']).toBe('S352 Test Tony');
+        expect(btn.textContent).toBe('Riprendi scheda lavoro');
+        expect(document.getElementById('lavoro-modal').classList.contains('active')).toBe(false);
+
+        document.getElementById('lavoro-nome').value = '';
+        await openCreaModal(
+            { currentLavoroId: null },
+            () => {},
+            false,
+            false,
+            null, null, null, null, null, null, null, null, null, null
+        );
+        expect(document.getElementById('lavoro-nome').value).toBe('S352 Test Tony');
+        expect(document.getElementById('lavoro-tipo-lavoro').value).toBe('Potatura');
+        expect(document.getElementById('lavoro-terreno').value).toBe('ter1');
+
+        annullaBozzaLavoro({ currentLavoroId: null }, () => {});
+        expect(window.__tonyLavoroBozzaNonSalvata).toBeNull();
+        expect(btn.textContent).toBe('Crea Nuovo Lavoro');
+
+        document.getElementById('lavoro-nome').value = 'da scartare';
+        closeLavoroModal({ currentLavoroId: null }, () => {});
+        window.__tonyNuovaCreazioneLavoro = true;
+        await openCreaModal(
+            { currentLavoroId: null },
+            () => {},
+            false,
+            false,
+            null, null, null, null, null, null, null, null, null, null
+        );
+        expect(document.getElementById('lavoro-nome').value).toBe('');
+        expect(window.__tonyLavoroBozzaNonSalvata).toBeNull();
     });
 
     it('chiudere il modal toglie la sola lettura dal form', () => {
