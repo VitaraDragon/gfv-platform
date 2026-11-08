@@ -18,7 +18,7 @@ Modulo tenant: tipicamente `magazzino` (minuscolo; verificare `tenant.modules`).
 - **`prodotti`** — `prodotti-standalone.html`: `window.currentTableData`, evento `table-data-ready` con `detail.currentTableData`.
 - **`movimenti`** — `movimenti-standalone.html`: stesso canone.
 - **`carburante_hub`** — `carburante-home-standalone.html`: lista scorte per prodotto (gasolio, benzina, AdBlue), con `sottoScorta` per ogni prodotto; evento `table-data-ready`.
-- **`tracciabilita_consumi`** — `tracciabilita-consumi-standalone.html`: items + opz. `consumiAggregates`; filtri **categoria**, **terreno**, **vista**, **reset**; vedi istruzioni **FILTER_TABLE** in `functions/index.js` (Tony avanzato).
+- **`tracciabilita_consumi`** — `tracciabilita-consumi-standalone.html`: items + opz. `consumiAggregates`; filtri **categoria**, **terreno**, **vista**, **reset**, checkbox `#filter-mostra-archiviati` (#349, spenta all’inizio: `terreniPerFiltro` in `shared/js/filtri-storico.js` rimette i terreni archiviati nel filtro; nome con « (archiviato)» da `nomeAppezzamentoConsumo`); vedi istruzioni **FILTER_TABLE** in `functions/index.js` (Tony avanzato).
 
 ## Navigazione intent
 

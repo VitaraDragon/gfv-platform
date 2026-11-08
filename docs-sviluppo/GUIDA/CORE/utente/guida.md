@@ -22,7 +22,7 @@ Se il terreno non ha nulla collegato, il pulsante in elenco resta **Elimina / Ar
 
 In elenco gli archiviati sono nascosti finché non spuntate **Mostra archiviati**. Da lì potete **Ripristinare** il terreno: torna negli elenchi, ma un vigneto o un frutteto già chiuso resta chiuso.
 
-Gli archiviati non contano nel limite terreni del piano e non ricevono avvisi meteo. Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi, senza nessun segno: **(archiviato)** compare solo nello storico e in lista con **Mostra archiviati**.
+Gli archiviati non contano nel limite terreni del piano, non ricevono avvisi meteo e non entrano nei totali dei terreni in **Statistiche** (numero di terreni e superfici). Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi, senza nessun segno: **(archiviato)** compare solo nello storico e in lista con **Mostra archiviati**.
 
 ### Errori
 
@@ -142,7 +142,7 @@ Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è i
 3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
 Nell’elenco trovi sempre almeno **Home** (torna alla dashboard), **Terreni** e **Statistiche**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
-**Per tornare alla dashboard:** graffetta in alto a sinistra → **Home**. Su molte pagine c’è anche «← Dashboard» in alto se lo vedi.  
+**Per tornare alla dashboard:** graffetta in alto a sinistra → **Home**. **Oppure**, su molte pagine, il pulsante «← Dashboard» **in alto a destra** (se lo vedi).  
 Con **Manodopera** attivo compare anche **Gestione lavori** e **Statistiche** apre le statistiche manodopera; il **Diario attività** **non** compare nel menu (né in **Per te oggi**): le giornate nuove vanno in **Gestione lavori**. Un link diretto al Diario, se raggiunto, mostra solo lo **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).  
 **Impostazioni**, **Abbonamento**, **Guide** e **Logout** non sono in questo elenco: stanno nel menu dell’**ingranaggio** in alto a destra («Apri o chiudi le opzioni»). Se lavorate in più aziende, lì trovate anche **Azienda** (vedi [Impara qui: più aziende](#mini-guida-accedere-password-e-aziende)). Accanto c’è l’icona della **mappa**.
 
@@ -180,7 +180,7 @@ Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **di
 2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Se indirizzo e città sono già scritti ma il pin manca, all'apertura della mappa l'app cerca il punto da sola («Controlla il pin e salva»): verificate e salvate. Se non trova il civico lo mette al centro del comune («Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni»), se non trova il comune compare «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).»: cliccate voi il punto giusto sulla mappa. Se l'indirizzo cercato non è nel comune scritto in **Città**, compare «Non trovo questo indirizzo a …: metti il pin a mano sulla mappa.»: cliccate voi il punto giusto sulla mappa. Il pin serve anche per il **Meteo sede** in dashboard.
 3. **Logo (facoltativo):** nello stesso riquadro, campo **Logo**. In pagina trovi formati ammessi e dimensione massima. Il logo viene usato **nei preventivi** del modulo **Conto terzi**. Puoi anche **rimuovere** il logo se cambiate idea. Il logo si registra insieme a **Salva Impostazioni Azienda**.
 4. **Podere (facoltativo).** Solo se lavorate per **poderi** (fattorie, cascine, blocchi di campagna): nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** (obbligatorio), **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**. Se non vi serve un podere, **saltate** questo passo e andate ai Terreni.
-5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** di solito **non si eliminano**; potete invece arricchire con le vostre.
+5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** **non si eliminano**; potete invece arricchire con le vostre. Una **coltura** aggiunta da voi ha **🗑️ Elimina**: l’app chiede «Eliminare la coltura «…»?» e la elimina solo se **non è usata** da nessuna attività del **Diario** e da nessun **terreno**, anche archiviato. Se è usata compare un errore che dice quante attività del diario e quanti terreni la usano («Impossibile eliminare: la coltura è utilizzata da …»): la coltura resta, e per toglierla prima cambiate la coltura su quei terreni e attività. Se l’app non riesce a controllare dove è usata, non elimina nulla («Non riesco a verificare dove è usata questa coltura. Riprova; non la elimino.»).
 6. **Tariffa del proprietario:** nella sezione **Tariffe** c’è una **tariffa oraria** per il calcolo dei **costi** quando il lavoro è tracciato dal **Diario attività** — utile soprattutto se **non** avete il modulo **Manodopera** attivo. Salvate con **Salva Tariffa Proprietario**.
 
 **Solo con i moduli giusti (accenno):** le **tariffe orarie per tipo operaio** compaiono in Impostazioni **solo se il modulo Manodopera è attivo**. I **coefficienti di morfologia** (maggiorazioni per tipo di terreno rispetto alla pianura, usati nelle tariffe Conto terzi) compaiono **solo se il modulo Conto terzi è attivo**. Non entrano nel dettaglio in questa guida Core: quando attivate quei moduli, usate la documentazione dedicata a **Manodopera** e **Conto terzi**.
@@ -333,6 +333,8 @@ Nella pagina **Statistiche** puoi leggere totali e grafici basati su ciò che av
 Poi usa **Applica filtri** per aggiornare numeri e grafici. **Reset** riparte dall’impostazione larga (tutto incluso, secondo le etichette che vedi tu).
 
 Se cambiate filtro e non succede nulla, controlla di aver premuto **Applica filtri** dopo aver scelto le opzioni.
+
+**Totali dei terreni:** **Terreni Totali** e le superfici (**Superficie Totale**, di proprietà e in affitto) contano solo i terreni **dell’azienda ancora attivi**. Un terreno archiviato esce da questi totali, ma i lavori e le attività fatti lì restano nello storico; i terreni dei clienti del Conto terzi non ci entrano.
 
 ---
 

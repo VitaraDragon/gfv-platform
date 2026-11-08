@@ -150,7 +150,7 @@ Un lavoro **completato** o **in attesa di approvazione** resta in **Lavori asseg
 5. Opzionale: **Note** sul turno.  
 6. Tocca **Salva ore lavorate**.
 
-Sotto il modulo vedi **Le tue ore del giorno**. Due turni dello stesso giorno non possono coprirsi. Finché la tua riga è in attesa o rifiutata puoi modificarla o eliminarla. Una volta validata la corregge il manager.
+Sotto il modulo vedi **Le tue ore del giorno**. Due turni dello stesso giorno non possono coprirsi. Finché la tua riga è in attesa o rifiutata puoi modificarla o eliminarla. Una volta validata la corregge il manager. Le ore di un lavoro in **sola lettura** (terreno archiviato, oppure lavoro chiuso da un cambio coltura) restano visibili ma non si toccano: al posto dei pulsanti leggi **Solo consultazione** (lucchetto 🔒 se la riga è già validata).
 
 ### Cosa succede dopo
 
@@ -177,7 +177,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 - Qui validi le ore **del team sul singolo lavoro**. Le tue ore le valida il manager.  
 - Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.  
-- Nella **validazione completa** (scheda **✅ Valida ore** → **Apri validazione completa**), i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai. Quando non hai più ore da validare leggi «Nessuna ora da validare» e sotto «Tutte le ore sono state validate o rifiutate».
+- Nella **validazione completa** (scheda **✅ Valida ore** → **Apri validazione completa**), i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai. Quando non hai più ore da validare leggi «Nessuna ora da validare» e sotto «Tutte le ore sono state validate o rifiutate». Le righe di un lavoro in **sola lettura** (terreno archiviato o lavoro chiuso da un cambio coltura) non hanno la casella di selezione né i pulsanti: leggi **Solo consultazione**. Non entrano nel numero **Da validare** e **Valida tutte** le salta; se restano solo righe così, **Valida tutte** è spento.
 
 ---
 

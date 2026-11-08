@@ -166,7 +166,7 @@ Apri **Abbonamento** (dall’**ingranaggio** in alto a destra → **Abbonamento*
 | «Ho fatto la vigna» / «Ho finito in vigna» (anche «o' fatto la vigna») | Stesso percorso: **Diario** senza Manodopera, **Gestione lavori** con Manodopera, e apre la scheda. Non inventa terreno né tipo di lavoro: se non li hai detti, li scegli tu o te li chiede. |
 | «Crea un preventivo per erpicatura al cliente Rossi» | Tony avvia il **Nuovo preventivo** e può proporre **cliente** e **tipo lavoro**; se ci sono più terreni per quel cliente, chiede **quale terreno**. |
 | «Portami alla gestione lavori» / «Apri Manodopera» | Tony **apre** la pagina prevista per il tuo ruolo (es. home **Manodopera** o gestione lavori). |
-| «Crea un lavoro per l’operaio Rossi nel Sangiovese» | Tony avvia un’**intervista** passo passo (chi, terreno, tipo, date…) e poi apre o compila la scheda lavoro. |
+| «Crea un lavoro per l’operaio Rossi nel Sangiovese» | Tony avvia un’**intervista** passo passo e compila la scheda lavoro. Chiede solo quello che manca, in quest’ordine: terreno, tipo di lavoro, squadra o persona, chi, poi nome del lavoro, inizio e durata. Assegna solo persone che sono nell’elenco della tua azienda. |
 | «Segniamo le ore» (senza orari precisi) | Tony fa domande su **lavoro**, **data** e **orari** prima di compilare. |
 | «Mostrami solo i prodotti attivi» (mentre sei già sulla pagina prodotti) | Tony può applicare un **filtro** sulla lista già visibile. |
 
@@ -259,19 +259,28 @@ Se Tony chiede «vuoi un **riassunto**?» e rispondi **«Sì»**, **«Ok»** o s
 
 ### Cosa è
 
-Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e flussi **ore**), puoi **parlare a turni** invece di compilare tutto a mano: Tony fa **domande brevi** (chi lavora, quale terreno, tipo di lavoro, date, macchina…) e compila la scheda quando ha abbastanza informazioni.
+Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e flussi **ore**), puoi **parlare a turni** invece di compilare tutto a mano: Tony fa **domande brevi** (quale terreno, tipo di lavoro, squadra o persona e chi, date, macchina…) e compila la scheda quando ha abbastanza informazioni.
 
 ### Esempio tipico (lavoro)
 
-1. Sei in **Gestione lavori** (o chiedi ad Tony di portarti lì).  
-2. Dici: «**Crea un lavoro** per l’operaio … nel terreno …».  
-3. Tony chiede ciò che manca (tipo lavoro, inizio, durata, macchina se serve).  
+1. Sei in **Gestione lavori** (o chiedi a Tony di portarti lì).  
+2. Dici: «**Crea un lavoro** …», aggiungendo subito quello che sai (terreno, tipo, persona).  
+3. Tony scrive nella scheda quello che ha capito e chiede ciò che manca, una domanda alla volta e sempre in quest’ordine:  
+   - **terreno** («Su quale terreno?»; se il nome è ambiguo ti chiede quale);  
+   - **tipo di lavoro** («Che tipo di lavoro devo impostare?»; se serve ti propone le voci possibili, per esempio i tipi di potatura);  
+   - **squadra o persona** («È un lavoro di squadra o lo assegno a una persona?»);  
+   - **chi** («A quale caposquadra assegno il lavoro?» oppure «A chi lo assegno?»);  
+   - poi **nome del lavoro**, **data di inizio**, **durata** in giorni e, se serve, il **trattore**.  
 4. Confermi con **«Sì»** / **«Salva»** quando propone il riepilogo.
 
 ### Suggerimenti pratici
 
 - **Un’informazione alla volta** se Tony chiede chiarimenti (es. più terreni con nome simile).  
 - Se il terreno è ambiguo («Sangiovese» da solo), Tony può chiedere **quale appezzamento** — rispondi con il nome completo che vedi in app.  
+- Tony assegna il lavoro **solo a persone presenti nell’elenco della tua azienda per quel ruolo** (caposquadra per un lavoro di squadra, operaio per un lavoro a una persona). Se dici un nome che non c’è, Tony **non lo inventa** e non lo scrive: risponde per esempio «Non ho trovato «Mario Verdi» tra i caposquadra. Ripeti nome e cognome come in elenco.» I campi già compilati restano.  
+- «**Assegnato al caposquadra** …» resta un **lavoro di squadra**. Se il nome detto non è un caposquadra (per esempio è un operaio), Tony dice che non l’ha trovato tra i caposquadra e non lo mette come operaio responsabile.  
+- Se il **tipo di lavoro** è già scelto, ripeterlo o rispondere «lavoro di squadra» o con il nome di una persona non riapre l’elenco dei tipi: Tony va avanti con la domanda successiva.  
+- Se l’elenco delle persone non è ancora caricato, Tony lo dice («L’elenco dei caposquadra non è ancora pronto…») e ti chiede di ripetere il nome tra un attimo; quello che hai già scritto resta.  
 - Se durante la creazione chiedi **«chi sono i caposquadra?»**, Tony elenca i caposquadra **della tua azienda** e continua da dove eri. Quella domanda non diventa un nome.  
 - Se chiudi la **scheda lavoro** o il **pannello** di Tony, la creazione guidata si interrompe. Quello che hai già scritto nella scheda e la **chat** restano.  
 - Per le **ore**, se non indichi orari Tony chiede **data**, **inizio**, **fine** e **pause** prima di salvare.

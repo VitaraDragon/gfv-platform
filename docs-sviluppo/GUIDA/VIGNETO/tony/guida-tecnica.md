@@ -40,6 +40,8 @@ Le view in `modules/vigneto/views/` restano struttura HTML (dove serve, Google M
 
 Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`.
 
+**Schede e Mostra archiviati (#349):** `shared/js/filtri-storico.js` — `bindAzioniLista(container, { onEdit, onCompleta, onDelete, onError })` delega i clic `[data-edit-row]` / `[data-completa-row]` / `[data-delete-row]` sul contenitore della lista (`.table-container`), così rispondono anche le schede della pelle Proposta sul telefono; `apriConAvviso` mostra `messaggioAperturaTrattamento(err)` (default `MESSAGGIO_APERTURA_TRATTAMENTO` «Non riesco ad aprire il trattamento.») se l’apertura del modulo fallisce. Checkbox `#filter-mostra-archiviati` (spenta all’inizio, `mostraArchiviatiSelezionato`): `impiantiPerFiltro` / `terreniPerFiltro` includono impianti chiusi / terreni archiviati solo nel filtro; `impiantiPerInserimento` tiene le tendine di inserimento sugli aperti. Righe con terreno archiviato: « (archiviato)» e `isRegistroSolaLettura({ registro, terreno: { stato: row.terrenoStato }, impianto })` → solo consultazione (`terrenoStato` aggiunto dai servizi `trattamenti-vigneto-service.js` / `trattamenti-frutteto-service.js`). Test `tests/trattamenti-schede-archiviati.test.js`.
+
 ## Registro privato trattamenti (#208/#210)
 
 Meccanica condivisa vigneto / frutteto / seminativo in `shared/js/trattamenti-coltura-page.js` + `shared/js/registro-trattamenti*.js` (pagine `trattamenti-page.js` del modulo).

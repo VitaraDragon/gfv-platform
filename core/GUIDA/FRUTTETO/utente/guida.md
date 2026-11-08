@@ -112,7 +112,7 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 
 1. **Filtri:** **Frutteto** (opzionale) e **Anno** per restringere l’elenco. Con **Mostra archiviati** il filtro include anche i frutteti chiusi.
 2. **Tabella:** per ogni riga vedete data, frutteto, **lavoro / attività**, terreno, prodotti già indicati, superficie, costo, riferimento, eventuali **Avvisi** (es. dosaggi), e **Azioni**. Se il terreno è archiviato, il nome ha **(archiviato)** e la riga resta in sola consultazione.
-3. **Aprire il modulo** da **Azioni**: in testa compaiono i **dati base del lavoro** (data, terreno, riferimento, eventuali **macchine**) in **sola lettura**.
+3. **Aprire il modulo** da **Azioni**: in testa compaiono i **dati base del lavoro** (data, terreno, riferimento, eventuali **macchine**) in **sola lettura**. Sul telefono l’elenco è a schede: **Modifica** e **Completa** sulla scheda aprono lo stesso modulo della tabella. Se il modulo non si apre, compare un avviso con il motivo (per esempio «Non riesco ad aprire il trattamento.»).
 4. **Superficie trattata (ha)** — obbligatoria:
    - inserite il valore a mano; oppure
    - spuntate **Tutto il terreno** per usare la superficie già registrata in **anagrafe Terreni** (se manca in terreno, la pagina lo segnala); oppure
