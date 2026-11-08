@@ -258,7 +258,8 @@ Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e fluss
 
 - **Un’informazione alla volta** se Tony chiede chiarimenti (es. più terreni con nome simile).  
 - Se il terreno è ambiguo («Sangiovese» da solo), Tony può chiedere **quale appezzamento** — rispondi con il nome completo che vedi in app.  
-- Se chiedi **«chi sono i caposquadra?»**, Tony elenca solo i **caposquadra attivi della tua azienda**, anche con la scheda chiusa. Non mette in quell’elenco gli operai. Durante la creazione continua da dove eri.  
+- Se chiedi **«chi sono i caposquadra?»**, Tony elenca solo i **caposquadra attivi della tua azienda**, anche con la scheda chiusa e anche dalla **Dashboard**. Non mette in quell’elenco gli operai, non apre una scheda e non ti porta su Gestisci utenti. Durante la creazione continua da dove eri.  
+- Se durante la creazione dici **«il nome del lavoro è …»**, Tony aggiorna solo il nome e riprende la domanda che manca. Gli altri campi restano.  
 - La **X** sospende la scheda: i campi restano in questa pagina e il pulsante diventa **Riprendi scheda lavoro**. Non è un lavoro registrato finché non premi **Salva**, e un ricaricamento della pagina li perde. **Annulla** scarta la bozza. Un nuovo «crea un lavoro» detto a Tony parte da scheda vuota. La **chat** resta.  
 - Per le **ore**, se non indichi orari Tony chiede **data**, **inizio**, **fine** e **pause** prima di salvare.
 
