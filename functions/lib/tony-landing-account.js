@@ -229,6 +229,8 @@ function promptSistemaAccount(argomento, opzioni) {
     "Fuori tema: se il messaggio non c'entra col passo (es. «piscina»), rispondi con UNA frase che lo riporta al passo e metti fuoriTema: true; non trattarlo come nome di podere o terreno.",
     "Non fare due volte di seguito la stessa domanda.",
     "Il nome di un podere o di un terreno va scritto esattamente come lo dice l'utente, comprese parole come Podere, Cascina, Tenuta, Campo: non accorciarlo.",
+    "Il nome del terreno non è la coltura, la varietà né gli ettari. «3 ha di trebbiano» ha superficie 3 e varietà trebbiano, ma nome null: chiedi come si chiama quel terreno e tieni ettari e coltura. Se il nome è già esplicito («si chiama Vigna Alta», «Vigna Alta: 3 ha»), scrivilo e non chiedere di nuovo il nome.",
+    "I poderi sono facoltativi. Nel passo «poderi» chiedi una volta se ne ha. Un no non inventa poderi. Se ne dice uno, anche fuori dal passo, tienilo senza duplicarlo. Nel passo «terreni» non ripetere la domanda sui poderi.",
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
     "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
     "Accetta fino a 5 terreni (il quinto va bene). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.» Con 5 terreni metti fatto: true.",
@@ -253,7 +255,9 @@ function promptSistemaAccount(argomento, opzioni) {
         "»: ogni terreno va lì. Non chiedere MAI in quale podere."
     );
   } else if (poderiNoti.length === 0) {
-    regoleAiuto.push("Nessun podere: non chiedere il podere.");
+    regoleAiuto.push(
+      "Nessun podere raccolto: non chiedere in quale podere è un terreno. Se l'argomento è «poderi», la domanda se ne ha resta obbligatoria una volta sola."
+    );
   }
   const regole = regoleTenute().concat(regoleAiuto);
   let kb =
@@ -587,6 +591,73 @@ function normalizzaDecimaliPerGemini(domanda) {
   return String(domanda || "").replace(/(\d),(\d)/g, "$1.$2");
 }
 
+/**
+ * «3 ha di trebbiano»: la varietà non è il nome. Un nome esplicito («si chiama …») resta.
+ * Il client applica la stessa regola anche senza questo deploy.
+ * @param {string} domanda
+ * @param {{ terreni?: object[] }|null} dati
+ */
+function applicaNomeTerrenoDaDomanda(domanda, dati) {
+  if (!dati || typeof dati !== "object") return dati;
+  const terreni = Array.isArray(dati.terreni) ? dati.terreni : null;
+  if (!terreni) return dati;
+  const frase = String(domanda || "");
+  const esplicito = frase.match(
+    /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+([^,.]*)/i
+  );
+  const nomeEsplicito = esplicito ? String(esplicito[1] || "").trim() : "";
+  const varieta = [];
+  const re =
+    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:di\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
+  let m;
+  while ((m = re.exec(frase)) !== null) {
+    const parola = String(m[2] || "");
+    if (/^(di|da|ha|ettari|ettaro)$/i.test(parola)) continue;
+    varieta.push({
+      superficie: Number(String(m[1]).replace(",", ".")),
+      nome: parola
+    });
+  }
+  if (!varieta.length) return dati;
+  let cambiato = false;
+  const outT = terreni.map(function (t) {
+    if (!t || typeof t !== "object") return t;
+    const nome = t.nome != null ? String(t.nome).trim() : "";
+    if (!nome) return t;
+    const hit = varieta.filter(function (v) {
+      return v.nome && nome.toLowerCase() === v.nome.toLowerCase();
+    });
+    if (!hit.length) return t;
+    if (nomeEsplicito && nomeEsplicito.toLowerCase() === nome.toLowerCase()) return t;
+    cambiato = true;
+    const copia = Object.assign({}, t, { nome: nomeEsplicito || null });
+    if ((copia.coltura == null || copia.coltura === "") && hit[0].nome) {
+      copia.coltura = hit[0].nome;
+    }
+    return copia;
+  });
+  if (!cambiato) return dati;
+  const copiaDati = Object.assign({}, dati, { terreni: outT });
+  copiaDati.nomeTerrenoMancante = outT.some(function (t) {
+    return t && !t.nome && (t.superficie || t.coltura);
+  });
+  return copiaDati;
+}
+
+function testoSeMancaNomeTerreno(testo, dati) {
+  if (!dati || dati.nomeTerrenoMancante !== true) return testo;
+  const t = (Array.isArray(dati.terreni) ? dati.terreni : []).find(function (x) {
+    return x && !x.nome;
+  });
+  const n = t && typeof t.superficie === "number" ? t.superficie : null;
+  const ett = n == null ? "" : String(n).replace(".", ",") + (n === 1 ? " ettaro" : " ettari");
+  const col = t && t.coltura ? String(t.coltura) : "";
+  const desc = ett && col ? ett + " di " + col : ett || col;
+  return desc
+    ? "Come si chiama il terreno da " + desc + "?"
+    : "Come si chiama questo terreno?";
+}
+
 function correggiUnoNelTesto(testo) {
   return String(testo || "").replace(
     /\buno\b(?=\s+(?:terren|poder|modul|ettar))/gi,
@@ -693,6 +764,8 @@ module.exports = {
   SINONIMI_COLTURA,
   superficieDaDomanda,
   applicaSuperficieDaDomanda,
+  applicaNomeTerrenoDaDomanda,
+  testoSeMancaNomeTerreno,
   normalizzaDecimaliPerGemini,
   collegaTerreniAiPoderiServer,
   corrispondeNomePodere,
