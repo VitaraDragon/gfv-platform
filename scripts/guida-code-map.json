@@ -2204,6 +2204,104 @@
         "CORE"
       ],
       "label": "Test percorsi Tony con la graffetta"
+    },
+    {
+      "prefix": "shared/js/filtri-storico.js",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "Filtro Mostra archiviati e clic Modifica/Completa sulle schede (Trattamenti, Tracciabilità consumi)"
+    },
+    {
+      "prefix": "shared/js/storico-sola-lettura.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO"
+      ],
+      "label": "Sola lettura storico (terreno archiviato, cambio coltura): lavori, ore, registri"
+    },
+    {
+      "prefix": "core/services/colture-elimina-logic.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Eliminazione coltura bloccata se usata (Diario e terreni anche archiviati)"
+    },
+    {
+      "prefix": "core/js/statistiche-controller.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Statistiche: totali terreni solo aziendali attivi"
+    },
+    {
+      "prefix": "tests/qa-post340-p1-p5",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Test ore sola lettura, colture, totali terreni, validazione"
+    },
+    {
+      "prefix": "tests/qa-04nov-c1-statistiche-terreni-attivi",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test totali terreni attivi nelle statistiche"
+    },
+    {
+      "prefix": "tests/services/ore-lavoro-selezionabile",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test etichetta lavoro e ore selezionabili"
+    },
+    {
+      "prefix": "tests/services/ore-validazione-testo-coda",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test testo coda validazione ore"
+    },
+    {
+      "prefix": "tests/tony-lavoro-intervista-",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Test intervista creazione lavoro con Tony"
+    },
+    {
+      "prefix": "tests/tony-eima-affidabilita",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test affidabilità Tony (voce senza residui, persone assenti, parlato/pagina)"
+    },
+    {
+      "prefix": "tests/tony-modulo-prima-delle-rotte",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test controllo modulo Tony Avanzato prima delle rotte"
+    },
+    {
+      "prefix": "tests/trattamenti-schede-archiviati",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "Test schede Trattamenti e Mostra archiviati"
     }
   ]
 }
