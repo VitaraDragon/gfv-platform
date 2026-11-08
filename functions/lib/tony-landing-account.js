@@ -562,7 +562,10 @@ function pulisciTerreni(lista, giaRaccolti, domanda) {
   let nuovi = 0;
   const visti = Object.create(null);
   const out = [];
-  const listaUnica = ordinaPerNomeDetto(compattaTerreniGrezzi(lista), domanda);
+  const listaUnica = scartaFantasmaColtura(
+    ordinaPerNomeDetto(compattaTerreniGrezzi(lista), domanda),
+    domanda
+  );
   for (let i = 0; i < listaUnica.length; i++) {
     const t = listaUnica[i];
     if (!t || typeof t !== "object") continue;
@@ -614,22 +617,35 @@ function pulisciTerreni(lista, giaRaccolti, domanda) {
     }
     out.push(voce);
   }
-  let terreniOut = out;
+  return { terreni: out, troppiTerreni: troppiTerreni };
+}
+
+/**
+ * «Noci» / «Noce» non è il quinto terreno se l'utente ha detto «si chiama pozzo».
+ * Si toglie prima del limite, altrimenti il fantasma occupa lo slot e Pozzo sparisce.
+ * @param {object[]} lista
+ * @param {string} domanda
+ */
+function scartaFantasmaColtura(lista, domanda) {
   const misure = typeof domanda === "string" ? misureNellaDomanda(domanda) : [];
-  if (misure.length === 1) {
-    const parola = String(misure[0].parola || "").toLowerCase();
-    const stessa = terreniOut.filter(function (t) {
-      return t && t.superficie === misure[0].superficie;
-    });
-    if (parola && stessa.length > 1) {
-      terreniOut = terreniOut.filter(function (t) {
-        if (!t || t.superficie !== misure[0].superficie) return true;
-        const nome = t.nome ? nomeSenzaPrefissoPodere(t.nome).toLowerCase() : "";
-        return nome !== parola;
-      });
-    }
-  }
-  return { terreni: terreniOut, troppiTerreni: troppiTerreni };
+  if (misure.length !== 1 || !Array.isArray(lista)) return lista;
+  const sup = misure[0].superficie;
+  const parola = chiaveNome(misure[0].parola || "");
+  const esplicito = chiaveNome(nomeEsplicitoNellaFrase(domanda));
+  const stessa = lista.filter(function (t) {
+    return t && superficieGrezza(t) === sup;
+  });
+  if (stessa.length < 2) return lista;
+  return lista.filter(function (t) {
+    if (!t || superficieGrezza(t) !== sup) return true;
+    const nome = chiaveNome(nomeTerrenoVisibile(t.nome));
+    if (!nome) return true;
+    if (esplicito && nome === esplicito) return true;
+    if (parola && nome === parola) return false;
+    const col = chiaveNome(t.coltura || "");
+    if (esplicito && col && nome === col) return false;
+    return true;
+  });
 }
 
 /**
@@ -795,7 +811,12 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
     const copia = Object.assign({}, t);
     if (nomeEsplicito && terreni.length === 1) {
       const modello = nomeTerrenoVisibile(t.nome);
-      if (modello && !stessoAppezzamento(modello, nomeEsplicito)) return t;
+      const fantasma =
+        modello &&
+        !stessoAppezzamento(modello, nomeEsplicito) &&
+        (chiaveNome(modello) === chiaveNome(misura && misura.parola) ||
+          chiaveNome(modello) === chiaveNome(t.coltura || ""));
+      if (modello && !stessoAppezzamento(modello, nomeEsplicito) && !fantasma) return t;
       copia.nome =
         modello && chiaveNome(modello) === chiaveNome(nomeEsplicito)
           ? modello
@@ -837,6 +858,18 @@ function testoSeMancaNomeTerreno(testo, dati) {
   return desc
     ? "Come si chiama il terreno da " + desc + "?"
     : "Come si chiama questo terreno?";
+}
+
+function togliRiepilogoNonChiesto(testo) {
+  return String(testo || "")
+    .split(/(?<=[.!?])\s+/)
+    .filter(function (p) {
+      if (!/riepilogo/i.test(p)) return true;
+      return /ne hai altri/i.test(p);
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function correggiUnoNelTesto(testo) {
@@ -903,11 +936,8 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const chiedeChiusuraPrecoce = /riepilogo|basta|ho finito|^fatto\b/i.test(
     String(domanda || "").trim()
   );
-  if (String(domanda || "").trim() && !chiedeChiusuraPrecoce && /ecco il riepilogo/i.test(testo)) {
-    testo = testo
-      .replace(/[^.?!]*ecco il riepilogo[^.?!]*[.?!]?/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+  if (String(domanda || "").trim() && !chiedeChiusuraPrecoce) {
+    testo = togliRiepilogoNonChiesto(testo);
   }
 
   const sede = pulisciSede(parsed.sede);

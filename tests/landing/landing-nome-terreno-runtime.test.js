@@ -9,14 +9,19 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   aprireSchedaPerFatto,
+  decidiDopoRisposta,
   erroriNomeTerreniForm,
+  fraseTerrenoSenzaRiepilogo,
   interpretaFraseTerreni,
   normalizzaColturaCatalogo,
   payloadDaScheda,
   preparaTurnoOnboarding,
+  prossimoPasso,
   righeRiepilogo,
   serializzaRaccolti,
+  utenteChiedeRiepilogo,
 } from '../../landing/src/lib/tony-aiuto-account.js';
+import { azionePerEsito, MESSAGGI_CHAT } from '../../landing/src/lib/tony-chat-logica.js';
 import {
   leggiSessioneIntervista,
   salvaSessioneIntervista,
@@ -1112,5 +1117,431 @@ describe('runtime: quinto terreno collina 12 ha noci, Faenza t1386u', () => {
     expect(sesto.terreni.some((t) => /^bosco$/i.test(String(t.nome || '')))).toBe(false);
     attesiFaenza(sesto.terreni);
     expect(aprireSchedaPerFatto('bosco 3 ha di querce', true)).toBe(false);
+  });
+});
+
+const CAP5_POZZO =
+  "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.";
+
+function rigaBarbavara(nome, superficie, coltura) {
+  return { nome, superficie, coltura, podere: 'Barbavara' };
+}
+
+/**
+ * Come TonyChat dopo la correzione: preparaTurno riceve il testo della function,
+ * non il messaggio di errore che azionePerEsito mette al posto di una stringa vuota.
+ * La scheda segue gli stessi tre rami di TonyChat.vue.
+ */
+function turnoUi(stato, domanda, modello, meta) {
+  const raccolti = serializzaRaccolti(stato.dati);
+  const grezzo = typeof modello === 'string' ? modello : JSON.stringify(modello);
+  let pulita = rispostaAccountDaTesto(grezzo, {
+    raccolti,
+    argomento: stato.passo,
+    domanda,
+  });
+  const srvTerreni = pulita.dati && Array.isArray(pulita.dati.terreni) ? pulita.dati.terreni : [];
+  const srv = {
+    testo: pulita.testo,
+    troppi: pulita.troppiTerreni === true,
+    fatto: !!(pulita.dati && pulita.dati.fatto),
+    n: srvTerreni.length,
+    nomi: srvTerreni.map((t) => t && t.nome),
+  };
+  if (pulita.dati) {
+    pulita.dati = applicaSuperficieDaDomanda(domanda, pulita.dati);
+    pulita.dati = applicaNomeTerrenoDaDomanda(domanda, pulita.dati);
+    pulita.testo = testoSeMancaNomeTerreno(pulita.testo, pulita.dati);
+    if (pulita.dati.nomeTerrenoMancante != null) delete pulita.dati.nomeTerrenoMancante;
+  }
+  const esito = {
+    codice: 'ok',
+    testo: pulita.testo,
+    fase: 'account',
+    dati: pulita.dati,
+    troppiTerreni: pulita.troppiTerreni === true,
+    domandeRimaste: meta && typeof meta.rimaste === 'number' ? meta.rimaste : 22,
+  };
+  const azione = azionePerEsito(esito);
+  const prima = (stato.dati.terreni || []).length;
+  const client = preparaTurnoOnboarding({
+    domanda,
+    passo: stato.passo,
+    datiAttuali: stato.dati,
+    datiNuovi: esito.dati,
+    testo: typeof esito.testo === 'string' ? esito.testo : '',
+  });
+  stato.dati = client.dati.dati;
+  stato.passo = client.passo || stato.passo;
+  const novita = JSON.stringify(stato.dati) !== JSON.stringify(meta && meta.primaDati);
+  const dopo = decidiDopoRisposta({
+    nuoviDati: (stato.dati.terreni || []).length > prima,
+    turniSenzaNovitaNelPasso: (stato.dati.terreni || []).length > prima ? 0 : 1,
+    domandeRimaste: esito.domandeRimaste,
+    passo: stato.passo,
+  });
+  const frase = fraseTerrenoSenzaRiepilogo(domanda);
+  let scheda = false;
+  if (!client.bloccaAvanti && !client.vaiATerreni) {
+    if ((dopo.azione === 'riepilogo' || dopo.apriRiepilogo) && !frase && stato.passo !== 'sede') {
+      scheda = true;
+    } else if (dopo.azione === 'prossimoPasso' && !prossimoPasso(stato.passo) && !frase) {
+      scheda = true;
+    } else if (aprireSchedaPerFatto(domanda, esito.dati && esito.dati.fatto) || utenteChiedeRiepilogo(domanda)) {
+      scheda = true;
+    }
+  }
+  const righe = righeRiepilogo(stato.dati).terreni.filter((t) => t.nome || t.superficie || t.coltura);
+  const mostrato = client.testo != null && String(client.testo).trim() ? client.testo : azione.testo;
+  return {
+    srv,
+    mostrato,
+    azione: azione.testo,
+    scheda,
+    passo: stato.passo,
+    n: (stato.dati.terreni || []).length,
+    righe,
+    troppi: client.dati.troppiTerreni === true,
+    prima,
+    novita,
+  };
+}
+
+function dialogoPozzo(quinto) {
+  const stato = statoPulito();
+  const visti = [];
+  const gira = (domanda, modello) => {
+    visti.push(turnoUi(stato, domanda, modello));
+  };
+  gira('faenza via monte coralli 5', {
+    testo: 'Ho registrato la sede. Ecco il riepilogo: controlla e conferma',
+    sede: { indirizzo: 'via monte coralli 5', citta: 'Faenza', cap: null, provincia: 'RA' },
+    poderi: [],
+    terreni: [],
+    fatto: true,
+  });
+  gira('barbavara', {
+    testo: 'Hai un podere che si chiama Barbavara. Ne hai altri o passiamo ai terreni?',
+    poderi: [{ nome: 'Barbavara' }],
+    terreni: [],
+    fatto: false,
+  });
+  gira('passiamo ai terreni', {
+    testo: 'Dimmi il nome di un terreno, la sua superficie in ettari e la coltura. Ne hai zero su 5.',
+    terreni: [],
+    fatto: false,
+  });
+  gira('laghetto...4 ha trebbiano', {
+    testo: 'Ne hai altri o vediamo il riepilogo?',
+    terreni: [
+      rigaBarbavara('Laghetto', 4, 'Vite da Vino'),
+      rigaBarbavara('Trebbiano', 4, 'Vite da Vino'),
+    ],
+    fatto: false,
+  });
+  gira('collinetta 6 ha pesco', {
+    testo: 'Ne hai altri o vediamo il riepilogo?',
+    terreni: [rigaBarbavara('Collinetta', 6, 'Pesco')],
+    fatto: false,
+  });
+  gira('cancello 7 ha giuggiolo', {
+    testo: 'Ne hai altri o vediamo il riepilogo?',
+    terreni: [
+      rigaBarbavara('Cancello', 7, 'Giuggiolo'),
+      rigaBarbavara('Giuggiolo', 7, 'Giuggiolo'),
+    ],
+    fatto: false,
+  });
+  gira('12 ha grano si chiama chiesetta', {
+    testo: 'Ne hai altri o vediamo il riepilogo?',
+    terreni: [
+      rigaBarbavara('Grano', 12, 'Grano'),
+      rigaBarbavara('Chiesetta', 12, 'Grano'),
+    ],
+    fatto: false,
+  });
+  const noti = () =>
+    (stato.dati.terreni || []).map((t) => rigaBarbavara(t.nome, t.superficie, t.coltura));
+  gira(quinto.domanda, quinto.modello(noti));
+  return { stato, visti };
+}
+
+function attesiPozzo(terreni, colturaPozzo) {
+  expect(terreni).toHaveLength(5);
+  const per = (re) => terreni.find((t) => re.test(String(t.nome || '')));
+  expect(per(/^laghetto$/i)).toMatchObject({ superficie: 4 });
+  expect(['Vite da Vino', 'Trebbiano']).toContain(per(/^laghetto$/i).coltura);
+  expect(per(/^collinetta$/i)).toMatchObject({ superficie: 6, coltura: 'Pesco' });
+  expect(per(/^cancello$/i)).toMatchObject({ superficie: 7, coltura: 'Giuggiolo' });
+  expect(per(/^chiesetta$/i)).toMatchObject({ superficie: 12, coltura: 'Grano' });
+  expect(per(/^pozzo$/i)).toMatchObject({ superficie: 8, coltura: colturaPozzo });
+  expect(per(/^pozzo$/i).coltura).not.toBe(colturaPozzo === 'Noci' ? 'Noce' : 'Noci');
+  expect(terreni.every((t) => String(t.podere || '').toLowerCase() === 'barbavara')).toBe(true);
+  expect(new Set(terreni.map((t) => String(t.nome || '').toLowerCase())).size).toBe(5);
+}
+
+describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
+  it('il parser tiene nome-dopo, nome-prima, noci, noce e mais', () => {
+    expect(normalizzaColturaCatalogo('noci')).toBeNull();
+    expect(normalizzaColturaCatalogo('giuggiolo')).toBe('Giuggiolo');
+    expect(interpretaFraseTerreni('8 ha di noci che si chiama pozzo')[0]).toMatchObject({
+      nome: 'pozzo',
+      varieta: 'noci',
+      superficie: 8,
+    });
+    expect(interpretaFraseTerreni('pozzo 8 ha noci')[0]).toMatchObject({
+      nome: 'pozzo',
+      varieta: 'noci',
+      superficie: 8,
+    });
+    expect(interpretaFraseTerreni('8 ha di mais che si chiama pozzo')[0]).toMatchObject({
+      nome: 'pozzo',
+      varieta: 'mais',
+      superficie: 8,
+    });
+    expect(interpretaFraseTerreni('8 ha di noce che si chiama pozzo')[0]).toMatchObject({
+      nome: 'pozzo',
+      varieta: 'noce',
+      superficie: 8,
+    });
+    expect(interpretaFraseTerreni('noci 8 ha che si chiama pozzo')[0]).toMatchObject({
+      nome: 'pozzo',
+      varieta: 'noci',
+      superficie: 8,
+    });
+    expect(interpretaFraseTerreni('12 ha grano si chiama chiesetta')[0]).toMatchObject({
+      nome: 'chiesetta',
+      varieta: 'grano',
+      superficie: 12,
+    });
+    expect(interpretaFraseTerreni('faenza via monte coralli 5')[0].superficie).toBeNull();
+    expect(aprireSchedaPerFatto('faenza via monte coralli 5', true)).toBe(false);
+    expect(aprireSchedaPerFatto('8 ha di noci che si chiama pozzo', true)).toBe(false);
+    expect(utenteChiedeRiepilogo('8 ha di noci che si chiama pozzo')).toBe(false);
+  });
+
+  it('la chat non sostituisce il testo vuoto della sede con l errore', () => {
+    const src = fs.readFileSync(
+      path.join(path.dirname(new URL(import.meta.url).pathname), '../../landing/src/components/TonyChat.vue'),
+      'utf8'
+    );
+    expect(src).toMatch(/typeof esito\.testo === 'string' \? esito\.testo/);
+    const vuoto = azionePerEsito({ codice: 'ok', testo: '', fase: 'account' });
+    expect(vuoto.testo).toBe(MESSAGGI_CHAT.errore);
+    const stato = statoPulito();
+    const sede = turnoUi(stato, 'faenza via monte coralli 5', {
+      testo: 'Ho registrato la sede. Ecco il riepilogo: controlla e conferma',
+      sede: { indirizzo: 'via monte coralli 5', citta: 'Faenza' },
+      poderi: [],
+      terreni: [],
+      fatto: true,
+    });
+    expect(sede.mostrato).toMatch(/Hai uno o più poderi/i);
+    expect(sede.mostrato).not.toMatch(/riepilogo/i);
+    expect(sede.mostrato).not.toMatch(/non riesco a risponderti/i);
+    expect(sede.scheda).toBe(false);
+    expect(sede.passo).toBe('poderi');
+    const variante = turnoUi(statoPulito(), 'faenza via monte coralli 5', {
+      testo: 'Ti faccio vedere il riepilogo: controlla e conferma',
+      sede: { indirizzo: 'via monte coralli 5', citta: 'Faenza' },
+      poderi: [],
+      terreni: [],
+      fatto: true,
+    });
+    expect(variante.mostrato).not.toMatch(/riepilogo/i);
+    expect(variante.scheda).toBe(false);
+  });
+
+  for (const spec of [
+    {
+      nome: 'incrementale',
+      domanda: '8 ha di noci che si chiama pozzo',
+      coltura: 'Noci',
+      modello: () => ({
+        testo: CAP5_POZZO,
+        terreni: [rigaBarbavara('Pozzo', 8, 'Noce')],
+        fatto: true,
+      }),
+    },
+    {
+      nome: 'cumulativo',
+      domanda: '8 ha di noci che si chiama pozzo',
+      coltura: 'Noci',
+      modello: (noti) => ({
+        testo: CAP5_POZZO,
+        terreni: noti().concat([rigaBarbavara('Pozzo', 8, 'Noce')]),
+        fatto: true,
+      }),
+    },
+    {
+      nome: 'omesso',
+      domanda: '8 ha di noci che si chiama pozzo',
+      coltura: 'Noci',
+      modello: (noti) => ({ testo: CAP5_POZZO, terreni: noti(), fatto: true }),
+    },
+    {
+      nome: 'json-rotto',
+      domanda: '8 ha di noci che si chiama pozzo',
+      coltura: 'Noci',
+      modello: () => '{ questo non è json',
+    },
+    {
+      nome: 'doppio-noci-e-pozzo',
+      domanda: '8 ha di noci che si chiama pozzo',
+      coltura: 'Noci',
+      modello: (noti) => ({
+        testo: CAP5_POZZO,
+        terreni: noti().concat([
+          rigaBarbavara('Noci', 8, 'Noce'),
+          rigaBarbavara('Pozzo', 8, 'Noce'),
+        ]),
+        fatto: true,
+      }),
+      serverTienePozzo: true,
+    },
+    {
+      nome: 'solo-nome-noci',
+      domanda: '8 ha di noci che si chiama pozzo',
+      coltura: 'Noci',
+      modello: () => ({
+        testo: CAP5_POZZO,
+        terreni: [rigaBarbavara('Noci', 8, 'Noce')],
+        fatto: true,
+      }),
+    },
+    {
+      nome: 'senza-nome',
+      domanda: '8 ha di noci che si chiama pozzo',
+      coltura: 'Noci',
+      modello: (noti) => ({
+        testo: CAP5_POZZO,
+        terreni: noti().concat([rigaBarbavara(null, 8, 'Noce')]),
+        fatto: true,
+      }),
+    },
+    {
+      nome: 'nome-prima',
+      domanda: 'pozzo 8 ha noci',
+      coltura: 'Noci',
+      modello: () => ({
+        testo: CAP5_POZZO,
+        terreni: [rigaBarbavara('Noce', 8, 'Noce')],
+        fatto: true,
+      }),
+    },
+    {
+      nome: 'quinto-mais',
+      domanda: '8 ha di mais che si chiama pozzo',
+      coltura: 'Mais',
+      modello: (noti) => ({
+        testo: CAP5_POZZO,
+        terreni: noti().concat([rigaBarbavara('Mais', 8, 'Mais')]),
+        fatto: true,
+      }),
+    },
+    {
+      nome: 'quinto-noce',
+      domanda: '8 ha di noce che si chiama pozzo',
+      coltura: 'Noce',
+      modello: () => ({
+        testo: 'Ne hai altri o vediamo il riepilogo?',
+        terreni: [rigaBarbavara('Pozzo', 8, 'Noce')],
+        fatto: false,
+      }),
+    },
+  ]) {
+    it('due giri, ' + spec.nome + ', cinque righe e niente scheda', () => {
+      for (let giro = 0; giro < 2; giro++) {
+        const { stato, visti } = dialogoPozzo(spec);
+        expect(visti[0].n).toBe(0);
+        expect(visti[0].scheda).toBe(false);
+        expect(visti[0].mostrato).not.toMatch(/riepilogo/i);
+        expect(visti[1].n).toBe(0);
+        expect(visti[2].passo).toBe('terreni');
+        expect(visti[2].n).toBe(0);
+        expect(visti[3].n).toBe(1);
+        expect(visti[4].n).toBe(2);
+        expect(visti[5].n).toBe(3);
+        expect(visti[5].righe.find((t) => /^cancello$/i.test(t.nome)).coltura).toBe('Giuggiolo');
+        expect(visti[6].n).toBe(4);
+        expect(visti[6].righe.find((t) => /^chiesetta$/i.test(t.nome))).toMatchObject({
+          superficie: '12',
+          coltura: 'Grano',
+        });
+        const quinto = visti[7];
+        expect(quinto.prima).toBe(4);
+        expect(quinto.n).toBe(5);
+        expect(quinto.righe).toHaveLength(5);
+        expect(quinto.troppi).toBe(false);
+        expect(quinto.scheda).toBe(false);
+        expect(quinto.mostrato).not.toMatch(/account gratuito/i);
+        expect(quinto.mostrato).not.toMatch(/^Va bene\.$/);
+        if (spec.nome !== 'quinto-noce') {
+          expect(quinto.mostrato).toMatch(/Pozzo/);
+          expect(quinto.mostrato).toMatch(new RegExp(spec.coltura));
+        }
+        if (spec.serverTienePozzo) {
+          expect(quinto.srv.troppi).toBe(false);
+          expect(quinto.srv.nomi.some((n) => /^pozzo$/i.test(String(n || '')))).toBe(true);
+          expect(quinto.srv.nomi.some((n) => /^noci$/i.test(String(n || '')))).toBe(false);
+        }
+        attesiPozzo(stato.dati.terreni, spec.coltura);
+        const storage = storageFinto();
+        salvaSessioneIntervista(
+          storage,
+          {
+            faseAiuto: true,
+            aiutoFatto: false,
+            messaggi: [{ ruolo: 'tony', testo: quinto.mostrato }],
+            storia: [],
+            datiAiuto: stato.dati,
+            passoAiuto: 'terreni',
+            schedaAperta: false,
+          },
+          ORA + 20 + giro
+        );
+        const letto = leggiSessioneIntervista(storage, ORA + 20 + giro);
+        const righe = righeRiepilogo(letto.datiAiuto).terreni.filter(
+          (t) => t.nome || t.superficie || t.coltura
+        );
+        expect(righe).toHaveLength(5);
+        expect(righe.find((t) => /^pozzo$/i.test(t.nome)).coltura).toBe(spec.coltura);
+      }
+    });
+  }
+
+  it('solo il sesto è respinto, il riepilogo solo se chiesto', () => {
+    const { stato, visti } = dialogoPozzo({
+      domanda: '8 ha di noci che si chiama pozzo',
+      modello: (noti) => ({
+        testo: CAP5_POZZO,
+        terreni: noti().concat([
+          rigaBarbavara('Noci', 8, 'Noce'),
+          rigaBarbavara('Pozzo', 8, 'Noce'),
+        ]),
+        fatto: true,
+      }),
+    });
+    expect(visti[7].n).toBe(5);
+    expect(visti[7].scheda).toBe(false);
+    const sesto = turnoUi(stato, 'bosco 1 ha di orzo', {
+      testo: CAP5_POZZO,
+      terreni: [rigaBarbavara('Bosco', 1, 'Orzo')],
+      fatto: true,
+    });
+    expect(sesto.n).toBe(5);
+    expect(sesto.troppi).toBe(true);
+    expect(sesto.srv.troppi).toBe(true);
+    expect(sesto.mostrato).toMatch(/account gratuito/i);
+    expect(sesto.scheda).toBe(false);
+    expect(sesto.righe.some((t) => /^bosco$/i.test(t.nome))).toBe(false);
+    expect(sesto.righe.some((t) => /^pozzo$/i.test(t.nome))).toBe(true);
+    const chiesto = turnoUi(stato, 'vediamo il riepilogo', {
+      testo: 'Ecco il riepilogo: controlla e conferma',
+      terreni: [],
+      fatto: true,
+    });
+    expect(chiesto.scheda).toBe(true);
+    expect(chiesto.n).toBe(5);
   });
 });
