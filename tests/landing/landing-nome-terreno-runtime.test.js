@@ -721,7 +721,7 @@ describe('runtime: Cancello 4 ha pompelmi dopo il rilascio 360', () => {
       path.join(path.resolve(import.meta.dirname, '../..'), 'landing/src/components/TonyChat.vue'),
       'utf8'
     );
-    expect(chat).toContain('aprireSchedaPerFatto');
+    expect(chat).toContain('utenteChiedeRiepilogo');
     expect(chat).not.toContain('esito.dati.fatto === true');
   });
 
@@ -817,5 +817,300 @@ describe('runtime: Cancello 4 ha pompelmi dopo il rilascio 360', () => {
     expect(sesto.terreni.some((t) => /^prato$/i.test(String(t.nome || '')))).toBe(false);
     expect(sesto.testo).toMatch(/account gratuito/i);
     expect(aprireSchedaPerFatto('no', true)).toBe(true);
+  });
+});
+
+const CAP5 =
+  "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.";
+
+function riga(nome, superficie, coltura) {
+  return { nome, superficie, coltura, podere: 'Casetti' };
+}
+
+/**
+ * Dialogo Faenza di Pier t1386u. Il modello sbaglia in modi diversi;
+ * il percorso function → chat deve arrivare agli stessi cinque terreni.
+ */
+function dialogoFaenza(modo) {
+  const stato = statoPulito();
+  const visti = [];
+  visti.push(
+    turnoRuntime(stato, 'faenza via pergola 67', {
+      testo: 'Ho registrato la sede. Ecco il riepilogo: controlla e conferma',
+      sede: { indirizzo: 'via pergola 67', citta: 'Faenza', cap: null, provincia: 'RA' },
+      poderi: [],
+      terreni: [],
+      fatto: true,
+    })
+  );
+  visti.push(
+    turnoRuntime(stato, 'casetti', {
+      testo: 'Hai altri poderi o passiamo ai terreni?',
+      poderi: [{ nome: 'casetti' }],
+      terreni: [],
+      fatto: false,
+    })
+  );
+  visti.push(
+    turnoRuntime(stato, 'passiamo ai terreni', {
+      testo: 'Dimmi il nome di un terreno, la sua superficie in ettari e la coltura. Ne hai zero su 5.',
+      poderi: [],
+      terreni: [],
+      fatto: false,
+    })
+  );
+
+  const noti = () =>
+    (stato.dati.terreni || []).map((t) => ({
+      nome: t.nome,
+      superficie: t.superficie,
+      coltura: t.coltura,
+      podere: t.podere,
+    }));
+
+  const laghetto =
+    modo === 'doppio'
+      ? [riga('Laghetto', 5, 'Grano'), riga('Grano', 5, 'Grano')]
+      : modo === 'cumulativo'
+        ? [riga('Laghetto grano', 5, 'Grano')]
+        : [riga('Laghetto', 5, 'Grano')];
+  visti.push(
+    turnoRuntime(
+      stato,
+      'laghetto grano 5 ha',
+      modo === 'json-rotto'
+        ? 'non è json'
+        : modo === 'omesso'
+          ? { testo: CAP5, terreni: [], fatto: true }
+          : { testo: 'Ne hai altri o vediamo il riepilogo?', terreni: laghetto, fatto: false }
+    )
+  );
+
+  visti.push(
+    turnoRuntime(
+      stato,
+      'querecione 7 ha mais',
+      modo === 'json-rotto'
+        ? '{testo rotto'
+        : modo === 'omesso'
+          ? { testo: CAP5, terreni: noti().filter((t) => t.superficie !== 7), fatto: true }
+          : {
+              testo: 'Ne hai altri o vediamo il riepilogo?',
+              terreni: modo === 'cumulativo' ? noti().concat([riga('Quercione', 7, 'Mais')]) : [riga('querecione', 7, 'Mais')],
+              fatto: false,
+            }
+    )
+  );
+
+  visti.push(
+    turnoRuntime(
+      stato,
+      'cazun 6 ha peso',
+      modo === 'json-rotto'
+        ? 'ancora rotto'
+        : modo === 'omesso'
+          ? { testo: CAP5, terreni: [], fatto: true }
+          : {
+              testo: 'Ne hai altri o vediamo il riepilogo?',
+              terreni:
+                modo === 'cumulativo'
+                  ? noti().concat([riga('cazun', 6, 'peso')])
+                  : [riga('cazun', 6, 'peso')],
+              fatto: false,
+            }
+    )
+  );
+
+  const primaDiPesco = (stato.dati.terreni || []).length;
+  visti.push(
+    turnoRuntime(
+      stato,
+      'pesco',
+      modo === 'pesco-nuovo' || modo === 'incrementale'
+        ? {
+            testo: 'Come si chiama il terreno da 6 ettari di Pesco?',
+            terreni: [{ nome: 'Pesco', superficie: 6, coltura: 'Pesco', podere: 'Casetti' }],
+            fatto: true,
+          }
+        : modo === 'json-rotto'
+          ? 'pesco'
+          : {
+              testo: 'Ne hai altri o vediamo il riepilogo?',
+              terreni:
+                modo === 'cumulativo'
+                  ? noti().map((t) =>
+                      /^cazun$/i.test(String(t.nome || '')) ? riga('cazun', 6, 'Pesco') : t
+                    )
+                  : [riga('cazun', 6, 'Pesco')],
+              fatto: false,
+            }
+    )
+  );
+
+  visti.push(
+    turnoRuntime(
+      stato,
+      'cancello 7 ha trebbiano',
+      modo === 'json-rotto'
+        ? 'rotto di nuovo'
+        : modo === 'omesso'
+          ? { testo: CAP5, terreni: noti().filter((t) => t.superficie !== 7), fatto: true }
+          : {
+              testo: 'Ne hai altri o vediamo il riepilogo?',
+              terreni:
+                modo === 'cumulativo'
+                  ? noti().concat([riga('cancello', 7, 'Vite da Vino')])
+                  : [riga('cancello', 7, 'Vite da Vino')],
+              fatto: false,
+            }
+    )
+  );
+
+  const primaDellaCollina = (stato.dati.terreni || []).length;
+  visti.push(
+    turnoRuntime(
+      stato,
+      'collina 12 ha noci',
+      modo === 'json-rotto'
+        ? 'json spezzato'
+        : {
+            testo: CAP5,
+            terreni:
+              modo === 'omesso' || modo === 'pesco-nuovo'
+                ? noti()
+                : modo === 'cumulativo'
+                  ? noti().concat([riga('Collina', 12, 'Noce')])
+                  : [riga('Collina', 12, 'Noce')],
+            fatto: true,
+          }
+    )
+  );
+  return { stato, visti, primaDiPesco, primaDellaCollina };
+}
+
+function attesiFaenza(terreni, modo) {
+  const perNome = (re) => terreni.find((t) => re.test(String(t.nome || '')));
+  expect(terreni).toHaveLength(5);
+  expect(terreni.map((t) => String(t.nome || '').toLowerCase()).sort()).toEqual([
+    'cancello',
+    'cazun',
+    'collina',
+    'laghetto',
+    'querecione',
+  ]);
+  expect(perNome(/^laghetto$/i)).toMatchObject({ superficie: 5, coltura: 'Grano' });
+  expect(perNome(/^querecione$/i)).toMatchObject({ superficie: 7, coltura: 'Mais' });
+  expect(String(perNome(/^querecione$/i).nome)).not.toMatch(/quercione/i);
+  expect(perNome(/^cazun$/i)).toMatchObject({ superficie: 6, coltura: 'Pesco' });
+  const cancello = perNome(/^cancello$/i);
+  expect(cancello.superficie).toBe(7);
+  if (modo === 'json-rotto' || modo === 'omesso') expect(cancello.coltura).toMatch(/^trebbiano$/i);
+  else expect(cancello.coltura).toBe('Vite da Vino');
+  const collina = perNome(/^collina$/i);
+  expect(collina).toMatchObject({ superficie: 12, coltura: 'Noci' });
+  expect(collina.coltura).not.toBe('Noce');
+  expect(terreni.every((t) => String(t.podere || '').toLowerCase() === 'casetti')).toBe(true);
+  expect(terreni.filter((t) => !t.nome || /^pesco$/i.test(String(t.nome)))).toHaveLength(0);
+}
+
+describe('runtime: quinto terreno collina 12 ha noci, Faenza t1386u', () => {
+  it('catalogo: Noci non è Noce, grano si stacca dal nome, peso non è una coltura', () => {
+    expect(normalizzaColturaCatalogo('noci')).toBeNull();
+    expect(normalizzaColturaCatalogo('Noci')).toBeNull();
+    expect(normalizzaColturaCatalogo('Noce')).toBe('Noce');
+    expect(normalizzaColturaCatalogo('peso')).toBeNull();
+    expect(normalizzaColturaCatalogo('pesco')).toBe('Pesco');
+    expect(interpretaFraseTerreni('laghetto grano 5 ha')).toEqual([
+      { nome: 'laghetto', varieta: 'grano', superficie: 5 },
+    ]);
+    expect(interpretaFraseTerreni('querecione 7 ha mais')[0]).toMatchObject({
+      nome: 'querecione',
+      varieta: 'mais',
+      superficie: 7,
+    });
+    expect(interpretaFraseTerreni('collina 12 ha noci')[0]).toMatchObject({
+      nome: 'collina',
+      varieta: 'noci',
+      superficie: 12,
+    });
+    expect(interpretaFraseTerreni('campo vecchio 5 ha')[0].nome).toBe('campo vecchio');
+    expect(aprireSchedaPerFatto('faenza via pergola 67', true)).toBe(false);
+    expect(aprireSchedaPerFatto('pesco', true)).toBe(false);
+    expect(aprireSchedaPerFatto('collina 12 ha noci', true)).toBe(false);
+    expect(aprireSchedaPerFatto('riepilogo', true)).toBe(true);
+    expect(aprireSchedaPerFatto('riepilogo', false)).toBe(false);
+  });
+
+  for (const modo of ['incrementale', 'cumulativo', 'omesso', 'json-rotto', 'doppio', 'pesco-nuovo']) {
+    it('due giri puliti, modello ' + modo + ', cinque terreni e un Casetti', () => {
+      for (let giro = 0; giro < 2; giro++) {
+        const { stato, visti, primaDiPesco, primaDellaCollina } = dialogoFaenza(modo);
+        expect(visti[0].testo).toMatch(/Hai uno o più poderi/i);
+        expect(visti[0].testo).not.toMatch(/riepilogo/i);
+        expect(visti[0].passo).toBe('poderi');
+        expect(stato.dati.sede.citta).toBe('Faenza');
+        expect(visti[1].poderi.map((p) => p.toLowerCase())).toEqual(['casetti']);
+        expect(visti[2].passo).toBe('terreni');
+        expect(visti[3].terreni).toHaveLength(1);
+        expect(visti[3].terreni[0].nome).toMatch(/^laghetto$/i);
+        expect(visti[3].terreni[0].coltura).toBe('Grano');
+        expect(visti[3].terreni[0].superficie).toBe(5);
+        expect(visti[3].testo).not.toMatch(/account gratuito/i);
+        expect(String(visti[4].terreni.find((t) => t.superficie === 7).nome)).toMatch(/^querecione$/i);
+        expect(primaDiPesco).toBe(3);
+        expect(visti[6].terreni.find((t) => /^cazun$/i.test(t.nome)).coltura).toBe('Pesco');
+        expect(visti[6].terreni.filter((t) => t.superficie === 6)).toHaveLength(1);
+        expect(visti[6].testo).not.toMatch(/come si chiama/i);
+        expect(aprireSchedaPerFatto('pesco', true)).toBe(false);
+        expect(primaDellaCollina).toBe(4);
+        expect(visti[8].troppi).toBe(false);
+        expect(visti[8].terreni).toHaveLength(5);
+        expect(visti[8].testo).not.toMatch(/account gratuito/i);
+        expect(visti[8].testo).toMatch(/Collina/i);
+        expect(visti[8].testo).toMatch(/Noci/);
+        expect(aprireSchedaPerFatto('collina 12 ha noci', true)).toBe(false);
+        attesiFaenza(visti[8].terreni, modo);
+        expect(stato.dati.poderi).toHaveLength(1);
+
+        const storage = storageFinto();
+        salvaSessioneIntervista(
+          storage,
+          {
+            faseAiuto: true,
+            aiutoFatto: false,
+            messaggi: [{ ruolo: 'tony', testo: visti[8].testo }],
+            storia: [],
+            datiAiuto: stato.dati,
+            passoAiuto: 'terreni',
+            schedaAperta: false,
+          },
+          ORA + giro
+        );
+        const letto = leggiSessioneIntervista(storage, ORA + giro);
+        const { righe, payload } = schedaAttesa(letto.datiAiuto);
+        expect(righe.terreni).toHaveLength(5);
+        expect(payload.terreni).toHaveLength(5);
+        expect(payload.poderi).toHaveLength(1);
+        attesiFaenza(payload.terreni, modo);
+        expect(erroriNomeTerreniForm(payload.terreni)).toEqual([]);
+        expect(serializzaRaccolti(letto.datiAiuto)).toMatch(/5 di 5/);
+      }
+    });
+  }
+
+  it('il sesto reale è respinto e i cinque restano', () => {
+    const { stato } = dialogoFaenza('pesco-nuovo');
+    expect(stato.dati.terreni).toHaveLength(5);
+    const sesto = turnoRuntime(stato, 'bosco 3 ha di querce', {
+      testo: CAP5,
+      terreni: [riga('Bosco', 3, 'Querce')],
+      fatto: true,
+    });
+    expect(sesto.terreni).toHaveLength(5);
+    expect(sesto.troppi).toBe(true);
+    expect(sesto.testo).toMatch(/account gratuito/i);
+    expect(sesto.terreni.some((t) => /^bosco$/i.test(String(t.nome || '')))).toBe(false);
+    attesiFaenza(sesto.terreni);
+    expect(aprireSchedaPerFatto('bosco 3 ha di querce', true)).toBe(false);
   });
 });
