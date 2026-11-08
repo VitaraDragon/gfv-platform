@@ -64,6 +64,7 @@ export function messaggioHaTerreno(domanda) {
   const d = String(domanda || '');
   if (/\b(\d+(?:[.,]\d+)?)\s*(?:ha|ettar)/i.test(d)) return true;
   if (/\b(\d+(?:[.,]\d+)?)\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return true;
+  if (/\b(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|di\b)[a-zà-öø-ÿ]/i.test(d)) return true;
   return /\bterren|campo|cappezz|coltiv|semin/i.test(d);
 }
 
@@ -125,6 +126,41 @@ function colturaDetta(grezzo) {
   return normalizzaColturaCatalogo(testo) || inizialeMaiuscola(testo);
 }
 
+/** Restano nel nome: «campo vecchio», «vigna alta». Trebbiano e sangiovese no. */
+const PAROLE_NEL_NOME = Object.freeze([
+  'vecchio',
+  'vecchia',
+  'nuovo',
+  'nuova',
+  'grande',
+  'piccolo',
+  'piccola',
+  'alto',
+  'alta',
+  'basso',
+  'bassa',
+  'lungo',
+  'lunga',
+  'primo',
+  'prima',
+  'secondo',
+  'seconda',
+]);
+
+function restaNelNome(parola) {
+  return PAROLE_NEL_NOME.indexOf(String(parola || '').toLowerCase()) >= 0;
+}
+
+function staccaVarietaDalNome(nome) {
+  const parole = String(nome || '')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parole.length < 2) return { nome: parole.join(' '), varieta: '' };
+  const ultima = parole[parole.length - 1];
+  if (restaNelNome(ultima)) return { nome: parole.join(' '), varieta: '' };
+  return { nome: parole.slice(0, -1).join(' '), varieta: ultima };
+}
+
 /**
  * «12 di seminativo» è una misura anche senza la parola ettari.
  * @param {string} pezzo
@@ -137,7 +173,13 @@ function misuraNelPezzo(pezzo) {
     const varM = pezzo.match(
       /(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:(?:di|a|ad|al|allo|alla)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/i
     );
-    if (varM && STOP_NOME_TERRENO.indexOf(varM[1].toLowerCase()) < 0) varieta = varM[1];
+    if (
+      varM &&
+      STOP_NOME_TERRENO.indexOf(varM[1].toLowerCase()) < 0 &&
+      !/^che$/i.test(varM[1])
+    ) {
+      varieta = varM[1];
+    }
     return {
       superficie: Number(String(ha[1]).replace(',', '.')),
       varieta,
@@ -152,6 +194,16 @@ function misuraNelPezzo(pezzo) {
       superficie: Number(String(di[1]).replace(',', '.')),
       varieta: di[2],
       index: di.index,
+    };
+  }
+  const nudo = String(pezzo || '').match(
+    /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/i
+  );
+  if (nudo && STOP_NOME_TERRENO.indexOf(nudo[2].toLowerCase()) < 0) {
+    return {
+      superficie: Number(String(nudo[1]).replace(',', '.')),
+      varieta: nudo[2],
+      index: nudo.index,
     };
   }
   return null;
@@ -197,14 +249,18 @@ export function interpretaFraseTerreni(domanda) {
       const cand = pulisciNomeCandidato(prima);
       if (cand && (!varieta || chiaveNome(cand) !== chiaveNome(varieta))) nome = cand;
     }
+    if (nome && !varieta && nomeDetto && misura) {
+      const prima = pulisciNomeCandidato(pezzo.slice(0, misura.index));
+      if (prima && chiaveNome(prima) !== chiaveNome(nome)) {
+        const ultima = prima.split(/\s+/).pop();
+        if (ultima && chiaveNome(ultima) !== chiaveNome(nome)) varieta = ultima;
+      }
+    }
     if (nome && !varieta) {
-      const parole = nome.split(/\s+/);
-      if (parole.length >= 2) {
-        const ultima = parole[parole.length - 1];
-        if (normalizzaColturaCatalogo(ultima)) {
-          varieta = ultima;
-          nome = parole.slice(0, -1).join(' ');
-        }
+      const staccata = staccaVarietaDalNome(nome);
+      if (staccata.varieta) {
+        varieta = staccata.varieta;
+        nome = staccata.nome;
       }
     }
     if (nome && varieta && chiaveNome(nome) === chiaveNome(varieta)) nome = null;
@@ -522,6 +578,34 @@ export function domandaNomeTerreni(domanda, terreni) {
   return elenco
     ? 'Come si chiamano questi terreni? ' + elenco + '.'
     : 'Come si chiama ogni terreno?';
+}
+
+function togliErroreVuoto(testo) {
+  return String(testo || '')
+    .replace(/in questo momento non riesco a risponderti\.\s*intanto prova gfv!/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Toglie il riepilogo non chiesto. «Ne hai altri o vediamo il riepilogo?» resta. */
+function togliFrasiRiepilogo(testo) {
+  return String(testo || '')
+    .split(/(?<=[.!?])\s+/)
+    .filter((p) => !/riepilogo/i.test(p) || /ne hai altri/i.test(p))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function togliDomandaColturaGiaData(testo) {
+  const s = String(testo || '').trim();
+  if (!s) return s;
+  const pezzi = s.split(/(?<=[.!?])\s+/);
+  const filtrati = pezzi.filter(
+    (p) => !/che cosa ci coltivi|cosa ci coltivi|quale coltura/i.test(p)
+  );
+  const out = filtrati.join(' ').trim();
+  return out || 'Va bene.';
 }
 
 export function togliRichiestaNomeGiaDato(testo) {
@@ -1120,11 +1204,9 @@ export function preparaTurnoOnboarding(opts) {
     nuoviIn,
     passo0 && PASSI_AIUTO.indexOf(passo0) >= 0 ? passo0 : 'terreni'
   );
+  const testoIngresso = String(o.testo || '').trim();
   if (!chiedeRiepilogoEsplicito(o.domanda)) {
-    o.testo = String(o.testo || '')
-      .replace(/[^.?!]*ecco il riepilogo[^.?!]*[.?!]?/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    o.testo = togliFrasiRiepilogo(togliErroreVuoto(o.testo));
   }
   let passo = allineaPassoAiuto(passo0, uniti.dati, nuoviIn, o.domanda);
   const sedeNota =
@@ -1193,7 +1275,9 @@ export function preparaTurnoOnboarding(opts) {
       testo = domandaNomeTerreni(o.domanda, uniti.dati.terreni);
     }
   } else if (!mancanti.length && o.testo) {
-    const pulito = togliRichiestaNomeGiaDato(o.testo);
+    const varietaDetta = interpretaFraseTerreni(o.domanda).some((l) => l && l.varieta);
+    let pulito = togliRichiestaNomeGiaDato(o.testo);
+    if (varietaDetta) pulito = togliDomandaColturaGiaData(pulito);
     if (pulito !== String(o.testo).trim()) testo = pulito;
   }
 
@@ -1233,7 +1317,7 @@ export function preparaTurnoOnboarding(opts) {
     esitoRipiegoAccount({ testo: testoBase }) ||
     /account gratuito arrivi a/i.test(testoBase);
   if (
-    modelloIncerto &&
+    (modelloIncerto || testo === 'Va bene.') &&
     !devePoderi &&
     fraseTerrenoSenzaRiepilogo(o.domanda) &&
     nTerreni <= LIMITI.MAX_TERRENI_PER_RICHIESTA &&
@@ -1251,6 +1335,7 @@ export function preparaTurnoOnboarding(opts) {
       : null;
     if (tenuto && nomeTerrenoVisibile(tenuto.nome)) testo = confermaTerrenoRaccolto(tenuto);
   }
+  if (testo == null && o.testo !== testoIngresso) testo = o.testo;
 
   return {
     dati: uniti,
