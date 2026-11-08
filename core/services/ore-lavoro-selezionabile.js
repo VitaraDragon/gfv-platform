@@ -5,6 +5,7 @@
  */
 
 import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
+import { nomeTerrenoPerStorico } from '../../shared/js/terreno-archivio.js';
 
 export const FINESTRA_ORE_IN_RITARDO_GIORNI = 7;
 
@@ -33,13 +34,33 @@ export function suffissoEtichettaLavoroOre(stato) {
 }
 
 /**
+ * Nome terreno per etichetta lavoro. Accetta stringa, oggetto terreno o assente.
+ * @param {*} terrenoLike
+ * @param {string} [terrenoNome]
+ * @returns {string}
+ */
+export function nomeTerrenoPerEtichettaLavoro(terrenoLike, terrenoNome) {
+    if (terrenoNome != null && String(terrenoNome).trim() !== '') {
+        return String(terrenoNome).trim();
+    }
+    if (terrenoLike == null || terrenoLike === '') return '';
+    if (typeof terrenoLike === 'string' || typeof terrenoLike === 'number') {
+        return String(terrenoLike).trim();
+    }
+    if (typeof terrenoLike === 'object') {
+        return nomeTerrenoPerStorico(terrenoLike, '');
+    }
+    return '';
+}
+
+/**
  * Stessa etichetta del menu «Lavori assegnati».
- * @param {{ nome?: string, tipoLavoro?: string, titolo?: string, terrenoNome?: string, terreno?: string, stato?: string }} [work]
+ * @param {{ nome?: string, tipoLavoro?: string, titolo?: string, terrenoNome?: string, terreno?: string|object, stato?: string }} [work]
  * @returns {string}
  */
 export function componiEtichettaLavoroOre(work) {
     const nome = (work && (work.nome || work.tipoLavoro || work.titolo)) || 'Lavoro';
-    const terreno = (work && (work.terrenoNome || work.terreno)) || '';
+    const terreno = nomeTerrenoPerEtichettaLavoro(work && work.terreno, work && work.terrenoNome);
     return `${nome}${terreno ? ` - ${terreno}` : ''}${suffissoEtichettaLavoroOre(work && work.stato)}`;
 }
 

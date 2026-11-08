@@ -62,6 +62,24 @@ describe('testoCodaValidazioneVuota', () => {
         expect(testo.inAttesaCapisquadra).toBe('1 ora in attesa dei capisquadra');
     });
 
+    it('ore di lavori in sola lettura non contano come in attesa', () => {
+        const testo = testoCodaValidazioneVuota({
+            isManager: true,
+            isCaposquadra: false,
+            righe: [
+                {
+                    id: 'arch',
+                    stato: 'da_validare',
+                    lavoro: { id: 'l1', caposquadraId: 'c1' },
+                    terreno: { id: 't1', stato: 'archiviato' }
+                },
+                riga('o1', 'da_validare')
+            ],
+            visibili: []
+        });
+        expect(testo.inAttesaCapisquadra).toBe('1 ora in attesa dei capisquadra');
+    });
+
     it('le ore già visibili al manager non si contano due volte', () => {
         const autonoma = riga('a1', 'da_validare');
         const copia = riga('a1', 'da_validare');

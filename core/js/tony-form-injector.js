@@ -287,11 +287,27 @@
     return list.some(function (k) { return s.indexOf(normalizeTonyText(k)) >= 0; });
   }
 
-  function forceCoverageByTerreno(existingSub, terrenoHasFilari) {
+  function lavoroCoverageSubNames() {
     var cfg = getLavorazioniDefaultsTony();
     var rules = cfg.coverageRules || {};
     var rowSubs = Array.isArray(rules.rowCropSubcategories) ? rules.rowCropSubcategories : ['Tra le File', 'Sulla Fila'];
     var openField = String(rules.openFieldSubcategory || 'Generale');
+    return { rowSubs: rowSubs, openField: openField };
+  }
+
+  /** Tra le File / Sulla Fila / Generale: copertura del terreno, non il tipo (Manuale, Meccanico, …). */
+  function isLavoroCoverageSubName(name) {
+    var n = normalizeTonyText(name);
+    if (!n || n === '-- nessuna sottocategoria --') return true;
+    var names = lavoroCoverageSubNames();
+    if (n === normalizeTonyText(names.openField)) return true;
+    return names.rowSubs.some(function (x) { return normalizeTonyText(x) === n; });
+  }
+
+  function forceCoverageByTerreno(existingSub, terrenoHasFilari) {
+    var names = lavoroCoverageSubNames();
+    var rowSubs = names.rowSubs;
+    var openField = names.openField;
     var sub = String(existingSub || '').trim();
     if (!sub) return terrenoHasFilari ? rowSubs[0] : openField;
     var subNorm = normalizeTonyText(sub);
@@ -658,6 +674,21 @@
     return lavoroSelectHasChoice('lavoro-tipo-lavoro');
   }
 
+  function chosenLavoroTipoLabel() {
+    var el = document.getElementById('lavoro-tipo-lavoro');
+    if (!el || el.selectedIndex < 0 || !el.options[el.selectedIndex]) return '';
+    return String(el.options[el.selectedIndex].text || el.value || '').trim();
+  }
+
+  /** L'utente ripete il tipo già scelto: non riaprire la lista. */
+  function textRestatesChosenLavoroTipo(text) {
+    if (!lavoroTipoIsChosen()) return false;
+    var chosen = normalizeTonyText(chosenLavoroTipoLabel());
+    var t = normalizeTonyText(text);
+    if (!chosen || !t) return false;
+    return t === chosen;
+  }
+
   var LOV_INTERVIEW_USER_FIELDS = [
     'lavoro-operaio', 'lavoro-caposquadra', 'lavoro-terreno', 'lavoro-tipo-lavoro',
     'lavoro-nome', 'lavoro-data-inizio', 'lavoro-durata'
@@ -702,6 +733,30 @@
       if (fid === 'tipo-assegnazione') await delay(80);
     }
     return true;
+  }
+
+  async function persistInterviewFieldsBeforeQuestion(patch) {
+    if (!patch) return;
+    var context = (window.Tony && window.Tony.context) || {};
+    var kept = {};
+    ['lavoro-terreno', 'lavoro-nome', 'tipo-assegnazione', 'lavoro-caposquadra', 'lavoro-operaio', 'lavoro-stato'].forEach(function (k) {
+      if (patch[k] !== undefined && patch[k] !== null && String(patch[k]).trim() !== '') kept[k] = patch[k];
+    });
+    if (!Object.keys(kept).length) return;
+    if (kept['lavoro-terreno']) {
+      await injectLavoroForm(kept, context, {
+        patchOnly: true,
+        interviewPatch: true,
+        formReadyMaxMs: 800,
+        selectWaitMs: 5000
+      });
+      return;
+    }
+    var simple = {};
+    ['tipo-assegnazione', 'lavoro-caposquadra', 'lavoro-operaio', 'lavoro-stato', 'lavoro-nome'].forEach(function (k) {
+      if (kept[k] !== undefined) simple[k] = kept[k];
+    });
+    if (Object.keys(simple).length) await injectLavoroInterviewSimplePatch(simple, context);
   }
 
   /** Attende che lavoriState esponga liste macchine (populate async dopo nav Tony → Gestione Lavori). */
@@ -2129,12 +2184,28 @@
     return _resolveByName(name, attrezzi, 'nome');
   }
 
+  function personIdAlreadyOnRoster(rawValue, list) {
+    var rawId = String(rawValue || '').trim();
+    if (!rawId || !Array.isArray(list)) return '';
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      if (!item) continue;
+      if (item.id && String(item.id) === rawId) return String(item.id);
+      if (item.uid && String(item.uid) === rawId && item.id) return String(item.id);
+    }
+    return '';
+  }
+
   function resolveFromLavoriState(rawValue, stateKey, nameKey) {
     if (!window.lavoriState) return rawValue;
     var list = window.lavoriState[stateKey];
     if (!Array.isArray(list)) return rawValue;
     if (nameKey === 'nome' && (stateKey === 'caposquadraList' || stateKey === 'operaiList')) {
-      return resolveUserByName(rawValue, list) || rawValue;
+      // Id o uid già nel roster di questo ruolo: si tiene. Un nome si risolve solo dopo.
+      // Nome assente, id sconosciuto o id di un altro ruolo → '' (mai il grezzo).
+      var knownId = personIdAlreadyOnRoster(rawValue, list);
+      if (knownId) return knownId;
+      return resolveUserByName(rawValue, list) || '';
     }
     return _resolveByName(rawValue, list, nameKey || 'nome') || rawValue;
   }
@@ -4011,6 +4082,273 @@
     return true;
   }
 
+  function lavoroSelectLabelIsPlaceholder(text) {
+    var n = normalizeTonyText(text);
+    if (!n) return true;
+    return /seleziona|nessuna sottocategoria|nessun tipo/.test(n);
+  }
+
+  function restoreLavoroSelectHeldValue(selectId, wanted) {
+    var want = String(wanted || '').trim();
+    if (!want) return;
+    var el = document.getElementById(selectId);
+    if (!el || el.tagName !== 'SELECT' || !el.options) return;
+    var current = '';
+    if (el.selectedIndex >= 0 && el.options[el.selectedIndex]) {
+      current = String(el.options[el.selectedIndex].text || el.value || '').trim();
+    }
+    if (current && !lavoroSelectLabelIsPlaceholder(current)) {
+      if (normalizeTonyText(current) !== normalizeTonyText(want)) {
+        var hold = window.__tonyLavoroCascadeHold || {};
+        if (selectId === 'lavoro-tipo-lavoro') hold.tipo = current;
+        if (selectId === 'lavoro-sottocategoria') hold.sub = current;
+        window.__tonyLavoroCascadeHold = hold;
+      }
+      return;
+    }
+    var wantNorm = normalizeTonyText(want);
+    var match = null;
+    for (var i = 0; i < el.options.length; i++) {
+      var opt = el.options[i];
+      if (!(opt.value || '').trim()) continue;
+      var text = String(opt.text || '').trim();
+      if (opt.value === want || normalizeTonyText(text) === wantNorm) {
+        match = opt;
+        break;
+      }
+    }
+    if (!match || el.value === match.value) return;
+    el.value = match.value;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function restoreLavoroCascadeHold() {
+    var hold = window.__tonyLavoroCascadeHold;
+    if (!hold || window.__tonyLavoroCascadeHoldRestoring) return;
+    window.__tonyLavoroCascadeHoldRestoring = true;
+    try {
+      restoreLavoroSelectHeldValue('lavoro-sottocategoria', hold.sub);
+      restoreLavoroSelectHeldValue('lavoro-tipo-lavoro', hold.tipo);
+    } finally {
+      window.__tonyLavoroCascadeHoldRestoring = false;
+    }
+  }
+
+  function rememberLavoroInterviewCascade(formData) {
+    if (!formData) return;
+    var tipo = String(formData['lavoro-tipo-lavoro'] || '').trim();
+    var sub = String(formData['lavoro-sottocategoria'] || '').trim();
+    if (!tipo && !sub) return;
+    var prev = window.__tonyLavoroCascadeHold || {};
+    window.__tonyLavoroCascadeHold = {
+      tipo: tipo || prev.tipo || '',
+      sub: sub || prev.sub || ''
+    };
+    var tipoEl = document.getElementById('lavoro-tipo-lavoro');
+    var subEl = document.getElementById('lavoro-sottocategoria');
+    if (!window.__tonyLavoroCascadeHoldObserver && (tipoEl || subEl)) {
+      var obs = new MutationObserver(function () { restoreLavoroCascadeHold(); });
+      if (subEl) obs.observe(subEl, { childList: true });
+      if (tipoEl) obs.observe(tipoEl, { childList: true });
+      window.__tonyLavoroCascadeHoldObserver = obs;
+    }
+    restoreLavoroCascadeHold();
+  }
+
+  /** Domanda sull'elenco caposquadra, non un nome da assegnare. */
+  function isCaposquadraRosterQuestion(text) {
+    var raw = String(text || '').trim();
+    if (!raw) return false;
+    var t = normalizeTonyText(raw);
+    if (!/\b(caposquadra|capo\s*squadra)\b/.test(t)) return false;
+    var asksWho = /\b(chi\s+sono|quali\s+sono|chi\s+e\b|elenco|lista)\b/.test(t);
+    var asksAvailable = /\bdisponibil\w*/.test(t) && (asksWho || /\?\s*$/.test(raw));
+    if (asksWho || asksAvailable) return true;
+    return /\?\s*$/.test(raw) && /\b(chi|quali)\b/.test(t);
+  }
+
+  function personeRosterAttive(list) {
+    return (list || []).filter(function (p) {
+      if (!p) return false;
+      if (p.stato && String(p.stato) !== 'attivo') return false;
+      return !!formatPersonInterviewLabel(p, '');
+    });
+  }
+
+  function etichetteCaposquadraRoster() {
+    var seen = {};
+    var labels = [];
+    var capi = (window.lavoriState && window.lavoriState.caposquadraList) || [];
+    personeRosterAttive(capi).forEach(function (p) {
+      var label = formatPersonInterviewLabel(p, '');
+      if (!label || seen[label]) return;
+      seen[label] = 1;
+      labels.push(label);
+    });
+    return labels;
+  }
+
+  function elencoRuoloPronto(ruolo) {
+    var list = ruolo === 'caposquadra'
+      ? ((window.lavoriState && window.lavoriState.caposquadraList) || [])
+      : ((window.lavoriState && window.lavoriState.operaiList) || []);
+    return personeRosterAttive(list).length > 0;
+  }
+
+  function seguitoIntervistaDopoElenco() {
+    var last = String(window.__tonyLastLavoroInterviewQuestion || '').trim();
+    if (last && !isCaposquadraRosterQuestion(last) &&
+        !/^i caposquadra di questa azienda/i.test(last) &&
+        !/elenco dei caposquadra di questa azienda/i.test(last) &&
+        !/elenco .{0,40} non è ancora pronto/i.test(last) &&
+        !/tendina non è ancora pronta/i.test(last) &&
+        !/^non ho trovato «/i.test(last)) {
+      return last;
+    }
+    return buildNextLavoroInterviewMessage(getLavoroInterviewRequiredEmpty(), false);
+  }
+
+  function messaggioElencoCaposquadra() {
+    var labels = etichetteCaposquadraRoster();
+    var follow = seguitoIntervistaDopoElenco();
+    if (!labels.length) {
+      return 'In questo momento non ho l\'elenco dei caposquadra di questa azienda. I dati già inseriti restano. ' +
+        (follow || 'Quando l\'elenco è pronto, dimmi nome e cognome.');
+    }
+    return 'I caposquadra di questa azienda sono: ' + labels.join(', ') + '. ' + follow;
+  }
+
+  /** Nome da citare nell'errore: il token ricavato, non la frase intera. */
+  function nomeCitatoPerAssenza(text) {
+    var raw = String(text || '').trim().replace(/[?!.…]+$/g, '').trim();
+    var token = String(extractPersonTokenFromInterviewText(raw) || '').replace(/[?!.…]+$/g, '').trim();
+    var tokParts = token.split(/\s+/).filter(Boolean);
+    if (token && token !== raw && tokParts.length >= 1 && tokParts.length <= 2 &&
+        !/caposquadra|capo\s*squadra/i.test(token)) {
+      return tokParts.join(' ');
+    }
+    var base = raw;
+    base = base.replace(/\s+(?:come|da)\s+(?:caposquadra|capo\s*squadra|operaio|operaia|operatore)\b.*$/i, '').trim();
+    base = base.replace(/^(?:prova|metti|voglio|vorrei|usa|usare|imposta|scegli)\s+/i, '').trim();
+    base = base.replace(/^(?:il|lo|la|i|gli|le|un|una)\s+/i, '').trim();
+    base = base.replace(/^(?:caposquadra|capo\s*squadra)\s+(?:e|è)\s+/i, '').trim();
+    base = base.replace(/^(?:operaio|operaia|operatore)\s+(?:e|è)\s+/i, '').trim();
+    base = base.replace(/^(?:caposquadra|capo\s*squadra)\s+/i, '').trim();
+    var roleName = base.match(/^(operaio|operaia|operatore)\s+(.+)$/i);
+    if (roleName && roleName[2].trim().split(/\s+/).length >= 2) base = roleName[2].trim();
+    base = base.replace(/[?!.…]+$/g, '').trim();
+    var parts = base.split(/\s+/).filter(Boolean);
+    if (parts.length > 2) parts = parts.slice(0, 2);
+    var cited = parts.join(' ').trim();
+    if (!cited || /^(caposquadra|capo\s*squadra)$/i.test(cited)) {
+      return tokParts.join(' ') || raw;
+    }
+    return cited;
+  }
+
+  function messaggioElencoRuoloNonPronto(ruolo) {
+    var chi = ruolo === 'caposquadra' ? 'dei caposquadra' : 'degli operai';
+    return 'L\'elenco ' + chi + ' non è ancora pronto. I dati già inseriti restano. Ripeti il nome quando la tendina è carica.';
+  }
+
+  function messaggioPersonaNonInElenco(text, ruolo) {
+    var cited = nomeCitatoPerAssenza(text);
+    var dove = ruolo === 'caposquadra' ? 'tra i caposquadra' : 'tra gli operai';
+    return 'Non ho trovato «' + cited + '» ' + dove + '. Ripeti nome e cognome come in elenco.';
+  }
+
+  async function scriviPersonaSeTendinaPronta(fieldId, personId) {
+    var el = document.getElementById(fieldId);
+    if (!el || !personId) return 'absent';
+    function written() {
+      return String(el.value || '') === String(personId);
+    }
+    function hasOption() {
+      for (var i = 0; i < el.options.length; i++) {
+        if (String(el.options[i].value || '') === String(personId)) return true;
+      }
+      return false;
+    }
+    if (written()) return 'ok';
+    for (var attempt = 0; attempt < 3; attempt++) {
+      if (hasOption()) {
+        el.value = String(personId);
+        try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (eCh) { /* ignore */ }
+        if (written()) return 'ok';
+      }
+      await delay(80);
+    }
+    if (hasOption()) {
+      el.value = String(personId);
+      if (written()) return 'ok';
+    }
+    return 'not-ready';
+  }
+
+  function etichettaIdNelRoster(personId, role) {
+    var list = role === 'caposquadra'
+      ? ((window.lavoriState && window.lavoriState.caposquadraList) || [])
+      : ((window.lavoriState && window.lavoriState.operaiList) || []);
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p) continue;
+      if (String(p.id || '') === String(personId) || String(p.uid || '') === String(personId)) {
+        return formatPersonInterviewLabel(p, '') || 'questa persona';
+      }
+    }
+    return 'questa persona';
+  }
+
+  async function messaggioSePersonaUnivocaMaTendinaVuota(patch) {
+    var checks = [
+      ['lavoro-caposquadra', 'caposquadra', 'tra i caposquadra'],
+      ['lavoro-operaio', 'operaio', 'tra gli operai']
+    ];
+    for (var c = 0; c < checks.length; c++) {
+      var fieldId = checks[c][0];
+      var role = checks[c][1];
+      var dove = checks[c][2];
+      var personId = patch && patch[fieldId] ? String(patch[fieldId]).trim() : '';
+      if (!personId) continue;
+      var el = document.getElementById(fieldId);
+      if (el && String(el.value || '').trim()) {
+        var scelto = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+        var testoScelto = scelto ? String(scelto.text || '').trim() : '';
+        if (testoScelto && !/seleziona/i.test(testoScelto)) continue;
+      }
+      var stato = await scriviPersonaSeTendinaPronta(fieldId, personId);
+      if (stato === 'ok') continue;
+      if (stato === 'not-ready') {
+        var nome = etichettaIdNelRoster(personId, role);
+        return 'Ho trovato ' + nome + ' ' + dove +
+          ', ma la tendina non è ancora pronta. I dati già inseriti restano. Ripeti lo stesso nome tra un attimo.';
+      }
+    }
+    return '';
+  }
+
+  /** Spegnere solo il flusso di creazione. Non tocca campi del form né la chat. */
+  function stopLavoroCreationFlow() {
+    window.__tonyLavoroCreationFlow = false;
+  }
+
+  function noteMissingExplicitCaposquadra(text) {
+    if (isCaposquadraRosterQuestion(text)) {
+      window.__tonyLavoroMissingCaposquadra = '';
+      return;
+    }
+    if (!textNamesCaposquadraRole(text)) return;
+    var token = nomeCitatoPerAssenza(text);
+    if (!token || /^(caposquadra|capo\s*squadra)$/i.test(String(token || '').trim())) {
+      window.__tonyLavoroMissingCaposquadra = '';
+      return;
+    }
+    var capi = (window.lavoriState && window.lavoriState.caposquadraList) || [];
+    var hit = findPersonInListInterviewText(token, capi, 'caposquadra');
+    window.__tonyLavoroMissingCaposquadra = (hit && !hit.ambiguous) ? '' : token;
+  }
+
   /**
    * Inietta form lavoro (gestione-lavori).
    * - deriveParentsFromTipoLavoro: da tipo lavoro deriviamo categoria e sottocategoria
@@ -4074,11 +4412,16 @@
           log('deriveParentsFromTipoLavoro: categoria = ' + derived.categoriaNome);
         }
         if (derived.sottocategoriaNome) {
-          var existingSub = (formData['lavoro-sottocategoria'] || '').toString().trim().toLowerCase();
-          if (!existingSub || existingSub === '-- nessuna sottocategoria --') {
-            formData['lavoro-sottocategoria'] = derived.sottocategoriaNome;
-            log('deriveParentsFromTipoLavoro: sottocategoria = ' + derived.sottocategoriaNome);
-          } else if (existingSub === 'generale') {
+          var existingSubRaw = (formData['lavoro-sottocategoria'] || '').toString().trim();
+          var existingSub = existingSubRaw.toLowerCase();
+          if (!existingSub || existingSub === '-- nessuna sottocategoria --' || isLavoroCoverageSubName(existingSubRaw)) {
+            if (normalizeTonyText(existingSubRaw) !== normalizeTonyText(derived.sottocategoriaNome)) {
+              formData['lavoro-sottocategoria'] = derived.sottocategoriaNome;
+              log('deriveParentsFromTipoLavoro: sottocategoria = ' + derived.sottocategoriaNome);
+            }
+            existingSub = String(formData['lavoro-sottocategoria'] || '').trim().toLowerCase();
+          }
+          if (existingSub === 'generale') {
             var terrenoVal = String(formData['lavoro-terreno'] || '').trim();
             var terreniList = (window.lavoriState && window.lavoriState.terreniList) || (context && context.lavori && context.lavori.terreni) || [];
             var terreno = terreniList.find(function (t) { return (t.id || '') === terrenoVal; });
@@ -4115,6 +4458,8 @@
 
     sanitizeUndeclaredLavoroMacchine(formData, injectOpts);
 
+    if (interviewPatch) rememberLavoroInterviewCascade(formData);
+
     var mapConfig = {
       formId: 'lavoro-form',
       modalId: 'lavoro-modal',
@@ -4124,6 +4469,7 @@
     };
 
     var ok = await injectForm(formData, mapConfig, context, injectOpts);
+    if (interviewPatch) restoreLavoroCascadeHold();
 
     var skipSecondPass = !!(injectOpts.patchOnly);
     if (ok && formData['lavoro-terreno'] && !skipSecondPass) {
@@ -5343,9 +5689,17 @@
     return getLavoroInterviewAssignMode();
   }
 
+  function textNamesCaposquadraRole(text) {
+    var raw = String(text || '');
+    if (!/\bcaposquadra\b|\bcapo\s*squadra\b/i.test(raw)) return false;
+    if (/\b(non|nessun[oa]?|senza)\b[\s\S]{0,30}?\b(caposquadra|capo\s*squadra)\b/i.test(raw)) return false;
+    return true;
+  }
+
   function parseAssignModeFromText(text) {
     var t = normalizeTonyText(text);
     if (!t) return null;
+    if (textNamesCaposquadraRole(text)) return 'squadra';
     if (/^(s[iì]|yes|y|squadra|di\s+squadra|con\s+(?:il\s+)?(?:capo|squadra)|lavoro\s+di\s+squadra)\b/.test(t) ||
         /\b(lavoro\s+)?di\s+squadra\b/.test(t)) {
       return 'squadra';
@@ -5367,6 +5721,12 @@
     window.__tonyLastLavoroInterviewQuestion = '';
     window.__tonyLavoroPendingTipoHint = '';
     window.__tonyLavoroPendingCreationText = '';
+    window.__tonyLavoroMissingCaposquadra = '';
+    window.__tonyLavoroCascadeHold = null;
+    if (window.__tonyLavoroCascadeHoldObserver) {
+      try { window.__tonyLavoroCascadeHoldObserver.disconnect(); } catch (eHold) {}
+      window.__tonyLavoroCascadeHoldObserver = null;
+    }
     window.__tonyLavoroInterviewAskedMacchineField = null;
     window.__tonyMacchineDisambAskedAt = 0;
     window.__tonyLastMacchineDisambField = null;
@@ -5527,9 +5887,25 @@
   function extractPersonTokenFromInterviewText(raw) {
     var text = String(raw || '').trim();
     if (!text) return text;
-    var m = text.match(/\b(?:per|a|ad|assegna?\w*\s+(?:a|ad|al|alla))\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'`\-]{1,30}(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'`\-]{1,30})?)/i);
-    if (m) return trimPersonInterviewToken(m[1].trim());
-    return text;
+    var m = text.match(/\b(?:per|a|ad|assegna?\w*\s+(?:a|ad|al|alla))\s+(.+)$/i);
+    if (!m) return text;
+    var rest = trimPersonInterviewToken(m[1].trim());
+    rest = rest.replace(/^(?:il|lo|la|i|gli|le|un|una)\s+/i, '');
+    rest = rest.replace(/^(?:caposquadra|capo\s*squadra|operaio|operaia|operatore)\s+/i, '');
+    var parts = rest.split(/\s+/).filter(Boolean);
+    if (!parts.length) return text;
+    if (parts.length > 2) parts = parts.slice(0, 2);
+    return parts.join(' ');
+  }
+
+  function extractExplicitLavoroNome(text) {
+    var raw = String(text || '');
+    var m = raw.match(/\bchiamat[oa]\s+(.+?)(?=\s+\b(?:sul|sulla|sullo|nel|nella|nello|dentro|per|assegnat\w*|con|dal|dalla|dallo|domani|oggi)\b|[.?!]|$)/i);
+    if (!m) return '';
+    var nome = String(m[1] || '').replace(/^["'«\s]+|["'»\s]+$/g, '').trim();
+    if (!nome || nome.length > 80) return '';
+    if (nome.split(/\s+/).length > 8) return '';
+    return nome;
   }
 
   function lavoroInterviewParseText(text) {
@@ -5864,14 +6240,33 @@
       if ((!hit || !hit.ambiguous) && hint !== msg && msg) {
         hit = findPersonInInterviewText(msg, { roleHint: roleHint });
       }
-      if (hit && hit.ambiguous) {
+      var list = role === 'caposquadra'
+        ? ((window.lavoriState && window.lavoriState.caposquadraList) || [])
+        : ((window.lavoriState && window.lavoriState.operaiList) || []);
+      var rawPerson = String(formData[key] || '').trim();
+      var knownId = personIdAlreadyOnRoster(rawPerson, list);
+      if (knownId) {
+        formData[key] = knownId;
+        return;
+      }
+      var resolvedId = rawPerson ? resolveUserByName(rawPerson, list) : null;
+      var unknownNamed = !!(rawPerson && !looksLikeFirestoreDocId(rawPerson) && !resolvedId && !hit);
+      if ((hit && hit.ambiguous) || unknownNamed) {
         delete formData[key];
         delete formData['lavoro-operatore-macchina'];
         if (formData['tipo-assegnazione'] === (role === 'caposquadra' ? 'squadra' : 'autonomo')) {
           delete formData['tipo-assegnazione'];
         }
         if (formData['lavoro-stato'] === 'assegnato') delete formData['lavoro-stato'];
-        offerPersonDisambResponse(hit, msg || hint);
+        if (hit && hit.ambiguous) {
+          offerPersonDisambResponse(hit, msg || hint);
+        } else if (unknownNamed) {
+          var ruoloLabel = role === 'caposquadra' ? 'caposquadra' : 'operai';
+          window.__tonyLavoroUnknownPersonMessage =
+            'Non ho trovato «' + rawPerson + '» tra i ' + ruoloLabel +
+            '. Ripeti nome e cognome come in elenco, oppure dimmi a chi assegnare.';
+          window.__tonyLastLavoroInterviewQuestion = window.__tonyLavoroUnknownPersonMessage;
+        }
         window.__tonyLavoroCreationFlow = true;
         window.__tonyLavoroInterviewPending = true;
       }
@@ -5979,6 +6374,9 @@
     if (!assignMode && lavoroInterviewAssignModeConfirmed()) {
       assignMode = getLavoroInterviewAssignMode();
     }
+    if (textNamesCaposquadraRole(text)) {
+      return findPersonInListInterviewText(text, capi, 'caposquadra');
+    }
     if (!assignMode) {
       var lastQ = String(window.__tonyLastLavoroInterviewQuestion || '');
       if (/caposquadra/i.test(lastQ)) assignMode = 'squadra';
@@ -6055,6 +6453,7 @@
     if (/\bmanuale\b/.test(t) && n.indexOf('manual') >= 0) sc += 10;
     if (/\bmeccanic/.test(t) && n.indexOf('meccanic') >= 0) sc += 10;
     if (/\bproduzione\b/.test(t) && n.indexOf('produz') >= 0) sc += 8;
+    if (/\bmanuale\b/.test(t) && /\bproduzione\b/.test(t) && n.indexOf('produz') >= 0) sc += 6;
     if (/\bverde\b/.test(t) && n.indexOf('verde') >= 0) sc += 8;
     if (!/\bmeccanic/.test(t) && n.indexOf('meccanic') >= 0) sc -= 7;
     if (!/\bmanual/.test(t) && !/\bmanuale\b/.test(t) && n.indexOf('manual') >= 0) sc += 4;
@@ -6541,7 +6940,12 @@
       }
     }
 
-    if (lavoroInterviewFieldEmpty('lavoro-nome')) {
+    if (lavoroInterviewFieldEmpty('lavoro-nome') && !String(patch['lavoro-nome'] || '').trim()) {
+      var explicitNome = extractExplicitLavoroNome(text);
+      if (explicitNome) patch['lavoro-nome'] = explicitNome;
+    }
+
+    if (lavoroInterviewFieldEmpty('lavoro-nome') && !String(patch['lavoro-nome'] || '').trim()) {
       var tipoForNome = patch['lavoro-tipo-lavoro'];
       if (!tipoForNome && lavoroTipoIsChosen()) {
         tipoForNome = getLavoroTipoDomText();
@@ -6558,7 +6962,7 @@
       }
     }
 
-    if (getLavoroTipoDomText() && lavoroInterviewFieldEmpty('lavoro-nome')) {
+    if (getLavoroTipoDomText() && lavoroInterviewFieldEmpty('lavoro-nome') && !String(patch['lavoro-nome'] || '').trim()) {
       var nomeCand = String(text || '').trim();
       if (nomeCand && nomeCand.length <= 60 && nomeCand.split(/\s+/).length <= 6 &&
           !mentionsLavoroTipoKeyword(nomeCand) && !parseAssignModeFromText(nomeCand) &&
@@ -6576,6 +6980,27 @@
   function buildNextLavoroInterviewMessage(requiredEmpty, needsMacchine) {
     if (lavoroInterviewPersonDisambPending()) {
       return buildLavoroPersonDisambPendingMessage('');
+    }
+    if (requiredEmpty.indexOf('lavoro-terreno') >= 0) {
+      if (window.__tonyLavoroTerrenoDisambCandidates && window.__tonyLavoroTerrenoDisambCandidates.length > 1) {
+        return buildTerrenoDisambiguationMessage(
+          window.__tonyLavoroTerrenoDisambCandidates,
+          window.__tonyLavoroTerrenoDisambStemHint || ''
+        );
+      }
+      return 'Su quale terreno?';
+    }
+    if (!lavoroTipoIsChosen() && requiredEmpty.indexOf('lavoro-tipo-lavoro') >= 0) {
+      var terrElMsg = document.getElementById('lavoro-terreno');
+      var terrValMsg = terrElMsg && terrElMsg.value ? String(terrElMsg.value).trim() : '';
+      if (terrValMsg) {
+        var pendingTipo = window.__tonyLavoroPendingTipoHint || '';
+        if (pendingTipo) {
+          var proactiveTipo = offerTipoLavoroDisambIfNeeded(pendingTipo, terrValMsg, { preferList: true });
+          if (proactiveTipo) return proactiveTipo;
+        }
+      }
+      return 'Che tipo di lavoro devo impostare?';
     }
     if (lavoroInterviewNeedsAssignModeQuestion()) {
       return 'È un lavoro di squadra o lo assegno a una persona?';
@@ -6602,27 +7027,6 @@
       }
       return 'A chi lo assegno?';
     }
-    if (requiredEmpty.indexOf('lavoro-terreno') >= 0) {
-      if (window.__tonyLavoroTerrenoDisambCandidates && window.__tonyLavoroTerrenoDisambCandidates.length > 1) {
-        return buildTerrenoDisambiguationMessage(
-          window.__tonyLavoroTerrenoDisambCandidates,
-          window.__tonyLavoroTerrenoDisambStemHint || ''
-        );
-      }
-      return 'Su quale terreno?';
-    }
-    if (!lavoroTipoIsChosen() && requiredEmpty.indexOf('lavoro-tipo-lavoro') >= 0) {
-      var terrElMsg = document.getElementById('lavoro-terreno');
-      var terrValMsg = terrElMsg && terrElMsg.value ? String(terrElMsg.value).trim() : '';
-      if (terrValMsg) {
-        var pendingTipo = window.__tonyLavoroPendingTipoHint || '';
-        if (pendingTipo) {
-          var proactiveTipo = offerTipoLavoroDisambIfNeeded(pendingTipo, terrValMsg, { preferList: true });
-          if (proactiveTipo) return proactiveTipo;
-        }
-      }
-      return 'Che tipo di lavoro devo impostare?';
-    }
     var order = ['lavoro-nome', 'lavoro-data-inizio', 'lavoro-durata'];
     for (var i = 0; i < order.length; i++) {
       var fid = order[i];
@@ -6643,6 +7047,7 @@
     var modal = document.getElementById('lavoro-modal');
     if (!modal || !modal.classList.contains('active')) return false;
     if (window.__tonyAwaitingLavoroSaveConfirm) return false;
+    if (isCaposquadraRosterQuestion(userText)) return true;
     if (typeof isLavoroTipoCorrectionText === 'function' && isLavoroTipoCorrectionText(userText)) {
       return true;
     }
@@ -6706,6 +7111,18 @@
   async function applyLavoroInterviewFromUserReply(userText) {
     var out = { handled: false, readyForSave: false, message: '', voiceText: '', field: '' };
     var text = String(userText || '').trim();
+    if (isCaposquadraRosterQuestion(text)) {
+      out.handled = true;
+      out.message = messaggioElencoCaposquadra();
+      out.voiceText = out.message;
+      window.__tonyLavoroInterviewPending = true;
+      window.__tonyLastLavoroInterviewQuestion = out.message;
+      return out;
+    }
+    restoreLavoroCascadeHold();
+    noteMissingExplicitCaposquadra(text);
+    var missingCapoToken = window.__tonyLavoroMissingCaposquadra || '';
+    window.__tonyLavoroMissingCaposquadra = '';
     var patch = {};
     var terrenoHintPre = (document.getElementById('lavoro-terreno') && document.getElementById('lavoro-terreno').value) || '';
     var tipoPickFromDisamb = false;
@@ -6756,6 +7173,8 @@
       if (fromDisamb) {
         patch['lavoro-tipo-lavoro'] = fromDisamb;
         tipoPickFromDisamb = true;
+        window.__tonyLavoroTipoDisambCandidates = null;
+      } else if (lavoroTipoIsChosen() && !mentionsLavoroTipoKeyword(text)) {
         window.__tonyLavoroTipoDisambCandidates = null;
       } else if (isLavoroTipoDisambQualifierText(text)) {
         out.handled = true;
@@ -6860,6 +7279,7 @@
         String(terrForTipoDisamb).trim()) {
       var disambTipoMsg = offerTipoLavoroDisambIfNeeded(text, terrForTipoDisamb, { preferList: true });
       if (disambTipoMsg) {
+        await persistInterviewFieldsBeforeQuestion(patch);
         out.handled = true;
         out.message = disambTipoMsg;
         out.voiceText = disambTipoMsg;
@@ -6870,7 +7290,7 @@
       }
     }
 
-    if (!Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
+    if (!lavoroTipoIsChosen() && !Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
       var ambiguous = findTipoLavoroCandidatesInInterviewText(text, terrenoHintPre);
       if (ambiguous.length > 1) {
         out.handled = true;
@@ -6882,14 +7302,15 @@
         return out;
       }
     }
-    if (!Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && lavoroInterviewFieldEmpty('lavoro-terreno')) {
+    if (!lavoroTipoIsChosen() && !Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && lavoroInterviewFieldEmpty('lavoro-terreno')) {
       out.handled = true;
       out.message = 'Prima dimmi su quale terreno, così scelgo Generale o Tra le File in base alla coltura.';
       out.voiceText = 'Su quale terreno?';
       window.__tonyLavoroInterviewPending = true;
+      window.__tonyLastLavoroInterviewQuestion = out.message;
       return out;
     }
-    if (!Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
+    if (!lavoroTipoIsChosen() && !Object.keys(patch).length && mentionsLavoroTipoKeyword(text) && !lavoroInterviewFieldEmpty('lavoro-terreno')) {
       var queryTipo = lavoroTipoQueryFromText(text);
       var candsUnmatched = findTipoLavoroCandidatesInInterviewText(queryTipo, terrenoHintPre);
       if (!candsUnmatched.length && queryTipo !== text) {
@@ -6926,6 +7347,15 @@
           return out;
         }
       }
+      if (textRestatesChosenLavoroTipo(text)) {
+        var reqRestate = getLavoroInterviewRequiredEmpty();
+        out.handled = true;
+        out.message = buildNextLavoroInterviewMessage(reqRestate, lavoroInterviewCanAskMacchine());
+        out.voiceText = out.message;
+        window.__tonyLavoroInterviewPending = reqRestate.length > 0;
+        window.__tonyLastLavoroInterviewQuestion = out.message;
+        return out;
+      }
       if (lavoroInterviewNeedsAssignModeQuestion() && String(text || '').trim().length >= 2) {
         out.handled = true;
         out.message = 'Non ho riconosciuto «' + String(text).trim() + '». ' +
@@ -6937,17 +7367,27 @@
       if (assignModeMiss === 'squadra' && lavoroInterviewFieldEmpty('lavoro-caposquadra') &&
           String(text || '').trim().length >= 2) {
         out.handled = true;
-        out.message = 'Non ho trovato «' + String(text).trim() + '» tra i caposquadra. Ripeti nome e cognome come in elenco.';
-        out.voiceText = 'Non ho trovato quel caposquadra. Ripeti il nome come in elenco.';
+        out.message = elencoRuoloPronto('caposquadra')
+          ? messaggioPersonaNonInElenco(text, 'caposquadra')
+          : messaggioElencoRuoloNonPronto('caposquadra');
+        out.voiceText = elencoRuoloPronto('caposquadra')
+          ? 'Non ho trovato quel caposquadra. Ripeti il nome come in elenco.'
+          : 'L\'elenco dei caposquadra non è ancora pronto.';
         window.__tonyLavoroInterviewPending = true;
+        window.__tonyLastLavoroInterviewQuestion = out.message;
         return out;
       }
       if (assignModeMiss === 'autonomo' && lavoroInterviewFieldEmpty('lavoro-operaio') &&
           String(text || '').trim().length >= 2) {
         out.handled = true;
-        out.message = 'Non ho trovato «' + String(text).trim() + '» tra gli operai. Ripeti nome e cognome come in elenco.';
-        out.voiceText = 'Non ho trovato quell\'operaio. Ripeti il nome come in elenco.';
+        out.message = elencoRuoloPronto('operaio')
+          ? messaggioPersonaNonInElenco(text, 'operaio')
+          : messaggioElencoRuoloNonPronto('operaio');
+        out.voiceText = elencoRuoloPronto('operaio')
+          ? 'Non ho trovato quell\'operaio. Ripeti il nome come in elenco.'
+          : 'L\'elenco degli operai non è ancora pronto.';
         window.__tonyLavoroInterviewPending = true;
+        window.__tonyLastLavoroInterviewQuestion = out.message;
         return out;
       }
       return out;
@@ -7018,6 +7458,37 @@
     }
     log('applyLavoroInterviewFromUserReply: patch ' + Object.keys(patch).join(', '));
 
+    if (missingCapoToken) {
+      delete patch['lavoro-operaio'];
+      var opElMiss = document.getElementById('lavoro-operaio');
+      if (opElMiss) opElMiss.value = '';
+      var autoElMiss = document.getElementById('tipo-autonomo');
+      var squadElMiss = document.getElementById('tipo-squadra');
+      if (autoElMiss) autoElMiss.checked = false;
+      if (squadElMiss) {
+        squadElMiss.checked = true;
+        squadElMiss.dispatchEvent(new Event('change', { bubbles: true }));
+        squadElMiss.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      setLavoroInterviewConfirmedAssignMode('squadra');
+      window.__tonyLavoroInterviewPending = true;
+      out.message = etichetteCaposquadraRoster().length
+        ? ('Non ho trovato «' + missingCapoToken + '» tra i caposquadra. Ripeti nome e cognome come in elenco.')
+        : messaggioElencoRuoloNonPronto('caposquadra');
+      out.voiceText = out.message;
+      window.__tonyLastLavoroInterviewQuestion = out.message;
+      return out;
+    }
+
+    var tendinaMsg = await messaggioSePersonaUnivocaMaTendinaVuota(patch);
+    if (tendinaMsg) {
+      window.__tonyLavoroInterviewPending = true;
+      out.message = tendinaMsg;
+      out.voiceText = tendinaMsg;
+      window.__tonyLastLavoroInterviewQuestion = tendinaMsg;
+      return out;
+    }
+
     if (patch['lavoro-tipo-lavoro'] && !getLavoroTipoDomText()) {
       await delay(120);
     }
@@ -7048,7 +7519,12 @@
       window.__tonyLavoroInterviewPending = true;
       out.message = buildNextLavoroInterviewMessage(reqAfter, needsMacAfter);
       if (out.message === window.__tonyLastLavoroInterviewQuestion) {
-        if (reqAfter.indexOf('lavoro-tipo-lavoro') >= 0) {
+        var repeatedQ = String(out.message || '');
+        if (reqAfter.indexOf('lavoro-caposquadra') >= 0 && /caposquadra/i.test(repeatedQ)) {
+          out.message = 'Non ho ancora registrato il caposquadra. Ripeti nome e cognome come in elenco.';
+        } else if (reqAfter.indexOf('lavoro-operaio') >= 0 && /assegno|operaio/i.test(repeatedQ)) {
+          out.message = 'Non ho ancora registrato la persona. Ripeti nome e cognome come in elenco.';
+        } else if (reqAfter.indexOf('lavoro-tipo-lavoro') >= 0 && /tipo di lavoro|manuale o meccanica|quale usare/i.test(repeatedQ)) {
           var terrRetry = (document.getElementById('lavoro-terreno') && document.getElementById('lavoro-terreno').value) || '';
           var hintRetry = mentionsLavoroTipoKeyword(text) ? text : (window.__tonyLavoroPendingTipoHint || text);
           var disambRetry = offerTipoLavoroDisambIfNeeded(hintRetry, terrRetry, { preferList: true });
@@ -7179,6 +7655,13 @@
    * @returns {Promise<{asked: boolean, message: string}>}
    */
   async function promptLavoroInterviewMissing() {
+    if (window.__tonyLavoroUnknownPersonMessage) {
+      var msgUnknown = String(window.__tonyLavoroUnknownPersonMessage);
+      window.__tonyLavoroUnknownPersonMessage = '';
+      window.__tonyLavoroInterviewPending = true;
+      window.__tonyLastLavoroInterviewQuestion = msgUnknown;
+      return { asked: true, message: msgUnknown };
+    }
     if (lavoroInterviewNeedsAssignModeQuestion()) {
       window.__tonyLavoroInterviewPending = true;
       var msgAssign = buildNextLavoroInterviewMessage([], false);
@@ -7320,6 +7803,7 @@
     buildLavoroInterviewPatch: buildLavoroInterviewPatch,
     promptLavoroInterviewMissing: promptLavoroInterviewMissing,
     resetLavoroInterviewSessionState: resetLavoroInterviewSessionState,
+    stopLavoroCreationFlow: stopLavoroCreationFlow,
     isLavoroTipoCorrectionText: isLavoroTipoCorrectionText,
     isLavoroTerrenoCorrectionText: isLavoroTerrenoCorrectionText,
     mentionsLavoroTipoKeyword: mentionsLavoroTipoKeyword,

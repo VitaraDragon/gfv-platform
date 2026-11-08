@@ -1,6 +1,62 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
+**Ultimo aggiornamento documentazione: 2026-11-07 — Trattamenti: schede mobile, Mostra archiviati.**
+
+## 2026-11-07 — Trattamenti: Modifica sulle schede e storico archiviati
+
+Su `cursor/trattamenti-schede-archiviati-a8f7` (PR verso develop): Modifica e Completa di Trattamenti Vigneto/Frutteto rispondono anche sulla scheda della pelle Proposta, perché il clic è sul contenitore della lista e non solo sui bottoni della tabella. Se l’apertura del modulo fallisce, l’avviso è visibile. Seminativo aveva già la delega sullo stesso contenitore: ora usa lo stesso avviso. **Mostra archiviati** (spento all’inizio) rimette nei filtri i vigneti e i frutteti chiusi e i terreni archiviati di Trattamenti Seminativo e di Tracciabilità consumi. Le tendine di inserimento restano solo sugli attivi. La riga di un terreno archiviato ha « (archiviato)» e resta in sola consultazione. Test `tests/trattamenti-schede-archiviati.test.js`. Nessun deploy. Functions, rules, indici e Tony no.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — T-FLOW-014: modulo Tony prima delle rotte.**
+
+## 2026-11-07 — T-FLOW-014: il preventivo non parte col modulo ancora spento
+
+Sulla stessa PR: `Tony.init` segnava il widget pronto e poi attendeva `tony-routes.json` prima di leggere i moduli. In quel buco T-FLOW-014 iniettava il preventivo e Tony rispondeva «modulo Tony Avanzato non attivo», quindi la bolla del terreno non arrivava mai (timeout 90 s, 3/3). Il controllo del modulo ora avviene prima di quell’attesa. Stesso emulator e stesso tenant: develop `719d570` chiudeva il flusso; la PR prima del fix lo bloccava; dopo il fix il flusso isolato è passato due volte. Test `tests/tony-modulo-prima-delle-rotte.test.js`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: scelta successiva e negazione.**
+
+## 2026-11-07 — Intervista Gestione lavori: non sovrascrive una scelta già fatta
+
+Sulla stessa PR `cursor/tony-intervista-cascata-a8f7`: se tipo o sottocategoria hanno già un valore vero, un ricarico non li riporta al valore precedente dell’intervista. Il ripristino di un select vuoto emette `change`, come il listener della miscela. Il radio della persona mancante emette `change`, così il form mostra il gruppo caposquadra. «non al caposquadra» non conta come lavoro di squadra. T-FLOW-014 non è in questo diff: il codice che chiede il terreno del preventivo è identico a `719d570`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: cascata tipo e ruolo esplicito.**
+
+## 2026-11-07 — Intervista Gestione lavori: sottocategoria del tipo e ruolo detto
+
+Su `cursor/tony-intervista-cascata-a8f7` (PR verso develop, baseline `origin/develop` = `719d570` / `origin/main` = `d6040bdd`): la sottocategoria vera del tipo (Manuale per la potatura) sostituisce una copertura messa prima (Tra le File, Sulla Fila, Generale). Un ricarico dei select che non ripristina il tipo lo rimette se l’opzione c’è ancora. «assegnato al caposquadra» resta squadra anche se il nome è un operaio: il campo operaio resta vuoto e Tony dice che quel nome non è tra i caposquadra. Se il tipo è già scelto, ripeterlo o rispondere squadra/persona non riapre la lista dei tipi. «Chi sono i caposquadra disponibili?» non è questa correzione: con il flusso di creazione ancora acceso la frase entra nell’intervista. Test `tests/tony-lavoro-intervista-cascata.test.js` con la cascata dei select e il catalogo reale dei modi. Nessun deploy eseguito. Dopo merge autorizzato: Pages e service worker. Functions, rules e indici no. Browser e voce non provati.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Intervista lavoro: persona reale, niente loop.**
+
+## 2026-11-07 — Intervista Gestione lavori: persona del roster e campi che restano
+
+Su `cursor/tony-intervista-persona-a8f7` (PR verso develop, baseline `origin/develop` = `abecc048` / `origin/main` = `aee9ca63`): l’injector assegna caposquadra e operaio solo se il nome o l’id/uid è nel roster di quel ruolo. Un nome assente, un id sconosciuto o un id dell’altro ruolo non entra nel campo e non torna il testo grezzo. «assegnato al caposquadra …» non usa la parola del ruolo come nome. «chiamato …» resta il nome del lavoro. Il terreno già detto viene scritto prima della domanda manuale/meccanica. Le domande seguono terreno, tipo, squadra o persona, poi chi. Se si ripete la domanda sul caposquadra, Tony non dice che manca il tipo. Test `tests/tony-lavoro-intervista-persona.test.js`; il vincolo letterale `|| ''` di #343 è sostituito da questo comportamento. Nessun deploy eseguito. Dopo merge autorizzato: Pages e service worker. Functions, rules e indici no. Browser e voce non provati.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — EIMA Tony affidabilità (TTS command, Luca, speech/nav).**
+
+## 2026-11-07 — EIMA: affidabilità Tony demo (TTS «, command:», persona assente, speech/nav)
+
+Su `fix/eima-tony-affidabilita` (PR verso develop, baseline `origin/develop` = `de222889` / `origin/main` = `858ba457`): **TTS** — `tonyExtractTextValueLooseClient` / `extractTextValueLoose` non prendono più l’ultima `"}"` del command nested (residuo `,"command":` in chat/voce in streaming); strip coda `, command:` solo se residuo JSON (frasi legittime con «, command:» restano intere); virgolette escapate e stream incompleto coperti da test; **persona** — inject non tiene nomi assenti dal tenant (`resolveUserByName` senza fallback grezzo) e `sanitizeAmbiguousLavoroInterviewFields` chiede chiarimento; **nav** — `alignApriPaginaSpeechToTarget` sostituisce solo la destinazione sbagliata (anche senza «ti porto»), senza cancellare spiegazioni utili. Test: `tests/tony-eima-affidabilita.test.js` + estensione `tony-json-text`. Nessun deploy eseguito; dopo merge autorizzato: Pages (client) + Functions `tonyAsk`/`tonyAskStream` (tony-json-text). Browser reale con voce e tenant demo: ancora QA Pier.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — QA post-#340 P1–P5 su `fix/qa-post340`.**
+
+## 2026-11-07 — QA post-#340 (P1–P5): storico ore, colture, totali, validazione, etichette
+
+Su `fix/qa-post340` (PR verso develop, baseline `ff46690b` = #339 già in develop / #340 su main): **P1** `eliminaOraPropria` e `permessiOra` rispettano `isLavoroSolaLettura` (niente cancellazione storico); **P2** eliminazione coltura fail-closed sui riferimenti (anche terreni archiviati), niente «Eliminare comunque»; **P3** Terreni Totali / Superficie totale solo attivi aziendali; **P4** KPI e bulk «ore da validare» escludono sola lettura, testi in registrazioni/durata; **P5** etichetta lavoro con nome terreno da oggetto (niente `[object Object]`). Test: `tests/qa-post340-p1-p5.test.js`. Nessun deploy functions/rules in questo giro (solo asset browser / Pages dopo merge+promote).
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-05 — QA 4 nov prompt 4 (37–56) su `fix/qa-04nov-4`.**
 
 ## 2026-11-05 — QA 4 nov prompt 4 (37–56): cambio coltura, migrazione, archiviazione
 

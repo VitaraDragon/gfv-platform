@@ -194,6 +194,8 @@ let activeSlides = [];
 let currentSlideIndex = 0;
 let cachedWorks = [];
 let cachedWorksForTony = [];
+/** Tutti i lavori caricati (anche sola lettura), con terreno agganciato — per permessi ore del giorno. */
+let cachedLavoriById = new Map();
 let fieldWorkspaceInitializedForUid = null;
 let selectedWork = null;
 let userIsCaposquadra = false;
@@ -978,8 +980,10 @@ async function loadWorksForSelection(tentativo) {
             rawList.forEach((w) => {
                 if (w && w.terrenoId && terreniPerId.has(w.terrenoId)) w.terreno = terreniPerId.get(w.terrenoId);
             });
+            cachedLavoriById = new Map(rawList.filter((w) => w && w.id).map((w) => [w.id, w]));
         } catch (errTerreni) {
             console.warn('[FIELD-WORKSPACE] terreni per le ore:', errTerreni);
+            cachedLavoriById = new Map(rawList.filter((w) => w && w.id).map((w) => [w.id, w]));
         }
 
         // Capo: elenco operativo completo (no taglio «max 14 giorni futuri» del dropdown Segna ore).
@@ -2064,13 +2068,15 @@ function utenteWorkspace() {
 }
 
 function lavoroPerPermessi(lavoroId) {
+    const fromCache = cachedLavoriById && cachedLavoriById.get(lavoroId);
     const found = (cachedWorks || []).find((w) => w.id === lavoroId);
-    const raw = (found && found.raw) || found || {};
+    const raw = fromCache || (found && found.raw) || found || {};
     return {
         id: lavoroId,
         nome: (found && (found.label || found.nome)) || raw.nome || '',
         caposquadraId: raw.caposquadraId || null,
-        operaioId: raw.operaioId || null
+        operaioId: raw.operaioId || null,
+        terreno: raw.terreno && typeof raw.terreno === 'object' ? raw.terreno : null
     };
 }
 
@@ -2130,12 +2136,14 @@ function dipingiOreGiorno(righe, stato, giornoForzato) {
     } else {
         const voci = list.map((ora) => {
             const evidenza = lavoroId && ora.lavoroId === lavoroId;
+            const lavoroRiga = lavoroPerPermessi(ora.lavoroId);
             const perm = permessiOra({
                 ora,
-                lavoro: lavoroPerPermessi(ora.lavoroId),
+                lavoro: lavoroRiga,
                 userId: currentUser.uid,
                 isCaposquadra: userIsCaposquadra,
-                isManager: false
+                isManager: false,
+                terreno: lavoroRiga.terreno || null
             });
             let azioni = '';
             if (perm.puoModificare) {
@@ -2144,8 +2152,8 @@ function dipingiOreGiorno(righe, stato, giornoForzato) {
             if (perm.puoEliminare) {
                 azioni += `<button type="button" data-elimina-ora="${escapeHtmlUnsafe(ora.id)}" data-lavoro-id="${escapeHtmlUnsafe(ora.lavoroId || '')}">🗑️</button>`;
             }
-            if (!perm.puoModificare && ora.stato === 'validate') {
-                azioni = `<span title="${escapeHtmlUnsafe(perm.motivoBlocco)}">🔒</span>`;
+            if (!perm.puoModificare && !perm.puoEliminare && perm.motivoBlocco) {
+                azioni = `<span title="${escapeHtmlUnsafe(perm.motivoBlocco)}">${ora.stato === 'validate' ? '🔒' : 'Solo consultazione'}</span>`;
             }
             const chiRiga = chiValidaOra({ ora, lavoro: lavoroPerPermessi(ora.lavoroId) });
             const tracciaGiorno = formatTracciaOra(ora, () => '');

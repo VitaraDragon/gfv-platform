@@ -81,6 +81,15 @@ describe('extractTonyTextLoose (server)', () => {
     });
   });
 
+  it('JSON quasi-valido con command nested: niente residuo ,"command": (TTS)', () => {
+    // Virgolette interne non escapate → tryStrict fallisce → extractTextValueLoose
+    const raw =
+      '{"text": "Ti porto alla gestione lavori.", "command": {"type": "APRI_PAGINA", "target": "gestione lavori"}}';
+    const out = extractTonyTextLoose(raw);
+    expect(out.text).toBe('Ti porto alla gestione lavori.');
+    expect(out.text).not.toMatch(/command/i);
+  });
+
   it('JSON con command e parametri (FILTER_TABLE)', () => {
     const raw =
       '{"text": "Ecco i preventivi per la categoria «Vite».", "command": {"type": "FILTER_TABLE", "params": {"categoriaColtura": "Vite"}}}';

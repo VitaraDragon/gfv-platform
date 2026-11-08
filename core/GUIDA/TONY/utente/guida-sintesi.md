@@ -24,7 +24,7 @@ All’apertura della dashboard Tony fa il punto della situazione con i numeri de
 
 ## Intervista vocale (Avanzato)
 
-Su Gestione lavori e Segna ore Tony fa le domande una alla volta per creare un lavoro o segnare le ore, anche senza orari (data per richiesta, oggi se non detta; «Tutto pronto» con giorno; dopo Annulla un «sì» non salva; «Fatto» solo a ora salvata, altrimenti il motivo; lavoro inesistente/finito → «Non trovo un lavoro attivo con questo nome» — dettaglio sintesi Manodopera); conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
+Su Gestione lavori e Segna ore Tony fa le domande una alla volta per creare un lavoro o segnare le ore, anche senza orari (data per richiesta, oggi se non detta; «Tutto pronto» con giorno; dopo Annulla un «sì» non salva; «Fatto» solo a ora salvata, altrimenti il motivo; lavoro inesistente/finito → «Non trovo un lavoro attivo con questo nome» — dettaglio sintesi Manodopera); conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. Durante la creazione, «chi sono i caposquadra?» elenca solo i caposquadra dell’azienda già in pagina e non è un nome; chiudere la scheda o il pannello interrompe la creazione guidata senza cancellare i campi già scritti né la chat. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
 
 ## Foto bolla / fattura (Avanzato + Magazzino)
 

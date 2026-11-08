@@ -14,7 +14,8 @@ import {
 } from '../services/trattamenti-service.js';
 import { avvisoDosaggioProdotti } from '../models/SeminativoTrattamento.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
-import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
+import { etichettaTerrenoStorico } from '../../../shared/js/terreno-archivio.js';
+import { apriConAvviso, bindAzioniLista, mostraArchiviatiSelezionato, terreniPerFiltro } from '../../../shared/js/filtri-storico.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 import { aliasColturaScheda, colturaSchedaRegistro } from '../../../core/config/registro-trattamenti-specie.js';
 import {
@@ -216,7 +217,7 @@ function populateFilters() {
     seen.add(row.campagnaId);
     campagne.push({ value: row.campagnaId, label: campagnaLabel(row) });
   });
-  fillSelect(document.getElementById('filter-terreno'), terreniOperativi(terreni).map((t) => ({
+  fillSelect(document.getElementById('filter-terreno'), terreniPerFiltro(terreni, mostraArchiviatiSelezionato()).map((t) => ({
     value: t.id,
     label: getTerrenoLabel(t.id)
   })), 'Tutti i terreni');
@@ -484,6 +485,10 @@ async function loadProdottiAnagrafica() {
 }
 
 async function openModal(row) {
+  await apriConAvviso(() => compilaModuloTrattamento(row), (messaggio) => alert(messaggio));
+}
+
+async function compilaModuloTrattamento(row) {
   editingRow = row;
   const trattamento = row.trattamento;
   document.getElementById('trattamento-id').value = trattamento ? trattamento.id || '' : '';
@@ -666,6 +671,13 @@ function setupEventListeners() {
   });
   const search = document.getElementById('filter-ricerca');
   if (search) search.addEventListener('input', applyFilters);
+  const mostraArchiviati = document.getElementById('filter-mostra-archiviati');
+  if (mostraArchiviati) {
+    mostraArchiviati.addEventListener('change', () => {
+      populateFilters();
+      applyFilters();
+    });
+  }
   const resetBtn = document.getElementById('btn-reset-filtri');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
@@ -676,17 +688,12 @@ function setupEventListeners() {
       applyFilters();
     });
   }
-  const listHost = document.querySelector('.table-container');
-  if (listHost) {
-    listHost.addEventListener('click', (event) => {
-      const completa = event.target.closest('[data-completa-row]');
-      const edit = event.target.closest('[data-edit-row]');
-      const remove = event.target.closest('[data-delete-row]');
-      if (completa) openModal(visible[Number(completa.getAttribute('data-completa-row'))]);
-      if (edit) openModal(visible[Number(edit.getAttribute('data-edit-row'))]);
-      if (remove) confirmDelete(Number(remove.getAttribute('data-delete-row')));
-    });
-  }
+  bindAzioniLista(document.querySelector('.table-container'), {
+    onEdit: (idx) => openModal(visible[idx]),
+    onCompleta: (idx) => openModal(visible[idx]),
+    onDelete: (idx) => confirmDelete(idx),
+    onError: (err) => alert((err && err.message) || 'Non riesco ad aprire il trattamento.')
+  });
   const form = document.getElementById('form-trattamento');
   if (form) form.addEventListener('submit', onSubmit);
   const closeBtn = document.getElementById('btn-close-trattamento-modal');

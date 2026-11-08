@@ -6,7 +6,7 @@
 import { tonyDebugLog } from './debug.js';
 import { injectWidget, formatTonyChatHtml } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript, isTonySegnaOreIntent, TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT, rewriteDiarioNavSpeechForGestioneLavori } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript, isTonySegnaOreIntent, TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT, rewriteDiarioNavSpeechForGestioneLavori, alignApriPaginaSpeechToTarget } from './engine.js';
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
@@ -7605,6 +7605,11 @@ if (typeof window !== 'undefined') {
         closeBtn.addEventListener('click', function() {
             isWaitingForTonyResponse = false;
             if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: false, reason: 'panel_close' });
+            if (window.TonyFormInjector && typeof window.TonyFormInjector.stopLavoroCreationFlow === 'function') {
+                window.TonyFormInjector.stopLavoroCreationFlow();
+            } else {
+                window.__tonyLavoroCreationFlow = false;
+            }
             panel.classList.remove('is-open');
             pendingVoiceText = null;
             toggleAutoMode(false, 'panel-close');
@@ -9379,6 +9384,12 @@ if (typeof window !== 'undefined') {
                 
                 var finalSpeech = parsedData.text || (typeof rawData === 'string' ? rawData : 'Ok');
                 finalSpeech = (typeof cleanTextFromJsonResidue === 'function' ? cleanTextFromJsonResidue(finalSpeech) : (finalSpeech || 'Ok').trim()) || 'Ok';
+                if (commandToExecute && String(commandToExecute.type || '').toUpperCase() === 'APRI_PAGINA') {
+                    var finalNavTarget = (commandToExecute.params && commandToExecute.params.target) || commandToExecute.target || commandToExecute.modulo || '';
+                    if (finalNavTarget) {
+                        finalSpeech = alignApriPaginaSpeechToTarget(finalSpeech, finalNavTarget) || finalSpeech;
+                    }
+                }
                 finalSpeech = alignLavoroFattoSpeech(
                     finalSpeech,
                     text,
@@ -9500,6 +9511,16 @@ if (typeof window !== 'undefined') {
                         out = rewriteDiarioNavSpeechForGestioneLavori(out);
                         window.__tonyRewriteDiarioSpeechToGestioneLavori = false;
                         tonySpeechOverride = true;
+                    }
+                    if (commandToExecute && String(commandToExecute.type || '').toUpperCase() === 'APRI_PAGINA') {
+                        var navSpeechTarget = (commandToExecute.params && commandToExecute.params.target) || commandToExecute.target || commandToExecute.modulo || '';
+                        if (navSpeechTarget) {
+                            var alignedNavSpeech = alignApriPaginaSpeechToTarget(out, navSpeechTarget);
+                            if (alignedNavSpeech && alignedNavSpeech !== out) {
+                                out = alignedNavSpeech;
+                                tonySpeechOverride = true;
+                            }
+                        }
                     }
                     out = cleanTextFromJsonResidue(out);
                     out = tonyCorreggiTestoTuttoPronto(out);
@@ -10620,18 +10641,6 @@ if (typeof window !== 'undefined') {
                             timestamp: new Date().toISOString()
                         }
                     });
-                    // Carica rotte disponibili per supporto evolutivo (nuove cartelle in modules/)
-                    try {
-                        var configUrl = (scriptBase ? new URL('../config/tony-routes.json', scriptBase).href : (window.location.pathname.replace(/\/[^/]*$/, '') + '/../config/tony-routes.json'));
-                        var routesRes = await fetch(configUrl, { cache: 'no-store' });
-                        if (routesRes.ok) {
-                            var routesData = await routesRes.json();
-                            window.__tonyAvailableRoutes = (routesData && routesData.routes) || [];
-                            tonyDebugLog('[Tony] Rotte disponibili caricate:', window.__tonyAvailableRoutes.length);
-                        }
-                    } catch (e) {
-                        window.__tonyAvailableRoutes = [];
-                    }
                     var _tonyWidgetInitTime = Date.now();
 
     function normalizeTonyPlanClient(raw) {
@@ -10789,6 +10798,19 @@ if (typeof window !== 'undefined') {
                     } catch (eInitFg) {}
                     window.__tonyCheckModuleStatus = checkTonyModuleStatus;
                     window.__tonyIsAdvancedActive = function() { return isTonyAdvancedActive; };
+                    // Dopo il flag del modulo: un await qui (rotte) cede il turno al test E2E,
+                    // che altrimenti inietta il preventivo mentre isTonyAdvancedActive è ancora false.
+                    try {
+                        var configUrl = (scriptBase ? new URL('../config/tony-routes.json', scriptBase).href : (window.location.pathname.replace(/\/[^/]*$/, '') + '/../config/tony-routes.json'));
+                        var routesRes = await fetch(configUrl, { cache: 'no-store' });
+                        if (routesRes.ok) {
+                            var routesData = await routesRes.json();
+                            window.__tonyAvailableRoutes = (routesData && routesData.routes) || [];
+                            tonyDebugLog('[Tony] Rotte disponibili caricate:', window.__tonyAvailableRoutes.length);
+                        }
+                    } catch (e) {
+                        window.__tonyAvailableRoutes = [];
+                    }
                     
                     var statusCheckCount = 0;
                     var statusCheckInterval = setInterval(function() {

@@ -105,13 +105,13 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
    - **Concimazione** → compare in **Concimazioni**;
    - **Potatura** → compare in **Potatura**.
 2. Aprite la pagina registro dalla **Dashboard Frutteto** (Azioni rapide).
-3. Impostate **Anno** e, dove c’è il menu, **Frutteto** (anche «Tutti i frutteti»): l’elenco mostra le righe collegate ai vostri interventi.
+3. Impostate **Anno** e, dove c’è il menu, **Frutteto** (anche «Tutti i frutteti»): l’elenco mostra le righe collegate ai vostri interventi. In **Trattamenti**, **Mostra archiviati** (spento all’inizio) rimette nel filtro i frutteti chiusi. La tendina di un inserimento nuovo resta solo sugli aperti.
 4. Usate la colonna **Azioni** per aprire il modulo e salvare i **dati aggiuntivi** che non erano nel lavoro.
 
 ### Trattamenti fitosanitari: passo per passo
 
-1. **Filtri:** **Frutteto** (opzionale) e **Anno** per restringere l’elenco.
-2. **Tabella:** per ogni riga vedete data, frutteto, **lavoro / attività**, terreno, prodotti già indicati, superficie, costo, riferimento, eventuali **Avvisi** (es. dosaggi), e **Azioni**.
+1. **Filtri:** **Frutteto** (opzionale) e **Anno** per restringere l’elenco. Con **Mostra archiviati** il filtro include anche i frutteti chiusi.
+2. **Tabella:** per ogni riga vedete data, frutteto, **lavoro / attività**, terreno, prodotti già indicati, superficie, costo, riferimento, eventuali **Avvisi** (es. dosaggi), e **Azioni**. Se il terreno è archiviato, il nome ha **(archiviato)** e la riga resta in sola consultazione.
 3. **Aprire il modulo** da **Azioni**: in testa compaiono i **dati base del lavoro** (data, terreno, riferimento, eventuali **macchine**) in **sola lettura**.
 4. **Superficie trattata (ha)** — obbligatoria:
    - inserite il valore a mano; oppure

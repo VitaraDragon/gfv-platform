@@ -612,7 +612,8 @@
             riassuntoTraccia,
             etichettaStatoAttualeOra,
             chiValidaOra,
-            calcolaContatoriOreValidazione
+            calcolaContatoriOreValidazione,
+            filtraOreValidabiliOperative
         } from '../services/ore-operai-logic.js';
 
         // Import service unificato macchine (solo se modulo attivo)
@@ -715,6 +716,10 @@
             return `${prefisso}${escapeHtml(r.breve)} <button type="button" class="btn-link-traccia" data-traccia-toggle="${id}">mostra tutto</button><span id="${id}" hidden>${escapeHtml(r.full)}</span>`;
         }
 
+        function oreDaValidareOperative() {
+            return filtraOreValidabiliOperative(oreDaValidare);
+        }
+
         function aggiornaContatoriValidazione() {
             const flags = flagValidazione();
             const op = document.getElementById('filtro-validate-operaio');
@@ -726,9 +731,17 @@
                 filtroOperaioId: op ? op.value : '',
                 filtroLavoroId: lav ? lav.value : ''
             });
-            setStatOre('stat-da-validare', filtrati.daValidare);
+            setStatOre('stat-da-validare', filtraOreValidabiliOperative(filtrati.daValidare));
             setStatOre('stat-validate', filtrati.validate, filtrati.periodoEtichetta);
             setStatOre('stat-rifiutate', filtrati.rifiutate, filtrati.periodoEtichetta);
+            const btnTutte = document.getElementById('valida-tutte-btn');
+            if (btnTutte) {
+                const operative = filtraOreValidabiliOperative(filtrati.daValidare);
+                btnTutte.disabled = operative.length === 0;
+                btnTutte.title = operative.length === 0
+                    ? 'Nessuna registrazione validabile (eventuali righe in sola lettura restano consultabili)'
+                    : '';
+            }
         }
 
         function onToggleTraccia(event) {
@@ -1239,8 +1252,12 @@
 
         // Valida tutte le ore selezionate
         function messaggioConfermaMassa(lista) {
+            const n = lista.length;
+            const ore = formattaOreMinuti(sommaOreNette(lista));
             const nSovra = contaRigheConSovrapposizione(lista, oreTuttePerSovrapposizione);
-            const base = `Sei sicuro di voler validare ${lista.length} ${lista.length === 1 ? 'ora' : 'ore'}?`;
+            const base = n === 1
+                ? `Sei sicuro di voler validare 1 registrazione (${ore})?`
+                : `Sei sicuro di voler validare ${n} registrazioni (${ore})?`;
             if (!nSovra) return base;
             const frase = nSovra === 1
                 ? '1 riga ha sovrapposizioni: controllala'
@@ -1274,11 +1291,11 @@
                     }
                 }
                 if (successCount > 0) {
-                    showAlert(`✅ ${successCount} ${successCount === 1 ? 'ora validata' : 'ore validate'} con successo!`, 'success');
+                    showAlert(`✅ ${successCount} ${successCount === 1 ? 'registrazione validata' : 'registrazioni validate'} con successo!`, 'success');
                 }
                 if (avvisi.length) showAlert(avvisi[0], 'warning');
                 if (errorCount > 0) {
-                    showAlert(`⚠️ ${errorCount} ${errorCount === 1 ? 'ora non validata' : 'ore non validate'}.`, 'error');
+                    showAlert(`⚠️ ${errorCount} ${errorCount === 1 ? 'registrazione non validata' : 'registrazioni non validate'}.`, 'error');
                 }
                 await loadOreDaValidare();
             } finally {
@@ -1305,11 +1322,12 @@
         };
 
         window.validaTutte = async function() {
-            if (!oreDaValidare.length) {
-                showAlert('Nessuna ora da validare', 'info');
+            const operative = oreDaValidareOperative();
+            if (!operative.length) {
+                showAlert('Nessuna registrazione validabile (le ore di lavori archiviati restano in sola lettura).', 'info');
                 return;
             }
-            await validaElenco(oreDaValidare.map((o) => ({ ...o, oraId: o.id })), document.getElementById('valida-tutte-btn'));
+            await validaElenco(operative.map((o) => ({ ...o, oraId: o.id })), document.getElementById('valida-tutte-btn'));
         };
 
         function oreFiltrateArchivio() {
