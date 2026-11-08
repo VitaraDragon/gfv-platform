@@ -7605,6 +7605,11 @@ if (typeof window !== 'undefined') {
         closeBtn.addEventListener('click', function() {
             isWaitingForTonyResponse = false;
             if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: false, reason: 'panel_close' });
+            if (window.TonyFormInjector && typeof window.TonyFormInjector.stopLavoroCreationFlow === 'function') {
+                window.TonyFormInjector.stopLavoroCreationFlow();
+            } else {
+                window.__tonyLavoroCreationFlow = false;
+            }
             panel.classList.remove('is-open');
             pendingVoiceText = null;
             toggleAutoMode(false, 'panel-close');

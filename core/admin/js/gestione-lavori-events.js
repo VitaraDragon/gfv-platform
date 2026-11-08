@@ -178,10 +178,23 @@ function preparaAperturaModaleLavoro() {
     return lavoroModalSessione;
 }
 
+function fermaFlussoCreazioneLavoroTony() {
+    try {
+        if (window.TonyFormInjector && typeof window.TonyFormInjector.stopLavoroCreationFlow === 'function') {
+            window.TonyFormInjector.stopLavoroCreationFlow();
+        } else {
+            window.__tonyLavoroCreationFlow = false;
+        }
+    } catch (err) {
+        window.__tonyLavoroCreationFlow = false;
+    }
+}
+
 function chiudiModaleLavoroSeSessione(sessione, closeLavoroModalCallback) {
     if (sessione !== lavoroModalSessione) return;
     const modal = document.getElementById('lavoro-modal');
     if (!modal || !modal.classList.contains('active')) return;
+    fermaFlussoCreazioneLavoroTony();
     if (typeof closeLavoroModalCallback === 'function') {
         try {
             closeLavoroModalCallback();
@@ -852,6 +865,7 @@ export async function openCreaModal(
 export function closeLavoroModal(state, updateState) {
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.remove('active');
+    fermaFlussoCreazioneLavoroTony();
     applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), { solaLettura: false });
     try {
         resetLavoroFormContoTerziLock();
