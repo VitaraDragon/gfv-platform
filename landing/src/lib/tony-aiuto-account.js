@@ -64,6 +64,7 @@ export function messaggioHaTerreno(domanda) {
   const d = String(domanda || '');
   if (/\b(\d+(?:[.,]\d+)?)\s*(?:ha|ettar)/i.test(d)) return true;
   if (/\b(\d+(?:[.,]\d+)?)\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return true;
+  if (/\b(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|di\b)[a-zà-öø-ÿ]/i.test(d)) return true;
   return /\bterren|campo|cappezz|coltiv|semin/i.test(d);
 }
 
@@ -125,6 +126,41 @@ function colturaDetta(grezzo) {
   return normalizzaColturaCatalogo(testo) || inizialeMaiuscola(testo);
 }
 
+/** Restano nel nome: «campo vecchio», «vigna alta». Trebbiano e sangiovese no. */
+const PAROLE_NEL_NOME = Object.freeze([
+  'vecchio',
+  'vecchia',
+  'nuovo',
+  'nuova',
+  'grande',
+  'piccolo',
+  'piccola',
+  'alto',
+  'alta',
+  'basso',
+  'bassa',
+  'lungo',
+  'lunga',
+  'primo',
+  'prima',
+  'secondo',
+  'seconda',
+]);
+
+function restaNelNome(parola) {
+  return PAROLE_NEL_NOME.indexOf(String(parola || '').toLowerCase()) >= 0;
+}
+
+function staccaVarietaDalNome(nome) {
+  const parole = String(nome || '')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parole.length < 2) return { nome: parole.join(' '), varieta: '' };
+  const ultima = parole[parole.length - 1];
+  if (restaNelNome(ultima)) return { nome: parole.join(' '), varieta: '' };
+  return { nome: parole.slice(0, -1).join(' '), varieta: ultima };
+}
+
 /**
  * «12 di seminativo» è una misura anche senza la parola ettari.
  * @param {string} pezzo
@@ -158,6 +194,16 @@ function misuraNelPezzo(pezzo) {
       superficie: Number(String(di[1]).replace(',', '.')),
       varieta: di[2],
       index: di.index,
+    };
+  }
+  const nudo = String(pezzo || '').match(
+    /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/i
+  );
+  if (nudo && STOP_NOME_TERRENO.indexOf(nudo[2].toLowerCase()) < 0) {
+    return {
+      superficie: Number(String(nudo[1]).replace(',', '.')),
+      varieta: nudo[2],
+      index: nudo.index,
     };
   }
   return null;
@@ -211,13 +257,10 @@ export function interpretaFraseTerreni(domanda) {
       }
     }
     if (nome && !varieta) {
-      const parole = nome.split(/\s+/);
-      if (parole.length >= 2) {
-        const ultima = parole[parole.length - 1];
-        if (normalizzaColturaCatalogo(ultima)) {
-          varieta = ultima;
-          nome = parole.slice(0, -1).join(' ');
-        }
+      const staccata = staccaVarietaDalNome(nome);
+      if (staccata.varieta) {
+        varieta = staccata.varieta;
+        nome = staccata.nome;
       }
     }
     if (nome && varieta && chiaveNome(nome) === chiaveNome(varieta)) nome = null;
@@ -552,6 +595,17 @@ function togliFrasiRiepilogo(testo) {
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function togliDomandaColturaGiaData(testo) {
+  const s = String(testo || '').trim();
+  if (!s) return s;
+  const pezzi = s.split(/(?<=[.!?])\s+/);
+  const filtrati = pezzi.filter(
+    (p) => !/che cosa ci coltivi|cosa ci coltivi|quale coltura/i.test(p)
+  );
+  const out = filtrati.join(' ').trim();
+  return out || 'Va bene.';
 }
 
 export function togliRichiestaNomeGiaDato(testo) {
@@ -1221,7 +1275,9 @@ export function preparaTurnoOnboarding(opts) {
       testo = domandaNomeTerreni(o.domanda, uniti.dati.terreni);
     }
   } else if (!mancanti.length && o.testo) {
-    const pulito = togliRichiestaNomeGiaDato(o.testo);
+    const varietaDetta = interpretaFraseTerreni(o.domanda).some((l) => l && l.varieta);
+    let pulito = togliRichiestaNomeGiaDato(o.testo);
+    if (varietaDetta) pulito = togliDomandaColturaGiaData(pulito);
     if (pulito !== String(o.testo).trim()) testo = pulito;
   }
 

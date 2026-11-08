@@ -1545,3 +1545,152 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     expect(chiesto.n).toBe(5);
   });
 });
+
+describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
+  it('il parser stacca la varietà prima degli ettari e il numero senza unità', () => {
+    expect(normalizzaColturaCatalogo('trebbiano')).toBeNull();
+    expect(normalizzaColturaCatalogo('sangiovese')).toBeNull();
+    expect(normalizzaColturaCatalogo('albicocche')).toBe('Albicocche');
+    expect(normalizzaColturaCatalogo('mandorlo')).toBe('Mandorlo');
+    expect(normalizzaColturaCatalogo('mais')).toBe('Mais');
+    expect(interpretaFraseTerreni('pozzo trebbiano 5 ha')[0]).toMatchObject({
+      nome: 'pozzo',
+      varieta: 'trebbiano',
+      superficie: 5,
+    });
+    expect(interpretaFraseTerreni('collina sangiovese 4 ha')[0]).toMatchObject({
+      nome: 'collina',
+      varieta: 'sangiovese',
+      superficie: 4,
+    });
+    expect(interpretaFraseTerreni('cancello mandorlo 7 ha')[0]).toMatchObject({
+      nome: 'cancello',
+      varieta: 'mandorlo',
+      superficie: 7,
+    });
+    expect(interpretaFraseTerreni('salita 12 mais')[0]).toMatchObject({
+      nome: 'salita',
+      varieta: 'mais',
+      superficie: 12,
+    });
+    expect(interpretaFraseTerreni('buca 5 ha albicocche')[0]).toMatchObject({
+      nome: 'buca',
+      varieta: 'albicocche',
+      superficie: 5,
+    });
+    expect(interpretaFraseTerreni('campo vecchio 5 ha')[0].nome).toBe('campo vecchio');
+    expect(interpretaFraseTerreni('faenza via monte coralli 8')[0].superficie).toBeNull();
+  });
+
+  function rigaBruciata(nome, superficie, coltura) {
+    return { nome, superficie, coltura, podere: 'Bruciata' };
+  }
+
+  function dialogoBruciata() {
+    const stato = statoPulito();
+    const visti = [];
+    const gira = (domanda, modello) => visti.push(turnoUi(stato, domanda, modello));
+    gira('faenza via monte coralli 8', {
+      testo: 'Ho registrato la sede. Ecco il riepilogo: controlla e conferma',
+      sede: { indirizzo: 'via monte coralli 8', citta: 'Faenza' },
+      poderi: [],
+      terreni: [],
+      fatto: true,
+    });
+    gira('bruciata', {
+      testo: 'Ok, il primo podere si chiama Bruciata. Ne hai altri o passiamo ai terreni?',
+      poderi: [{ nome: 'Bruciata' }],
+      terreni: [],
+      fatto: false,
+    });
+    gira('terreni', {
+      testo: 'Dimmi il nome di un terreno, la sua superficie in ettari e la coltura. Ne hai zero su 5.',
+      terreni: [],
+      fatto: false,
+    });
+    gira('pozzo trebbiano 5 ha', {
+      testo: 'Che cosa ci coltivi nel terreno Pozzo Trebbiano?',
+      terreni: [rigaBruciata('Pozzo Trebbiano', 5, null)],
+      fatto: false,
+    });
+    gira('collina sangiovese 4 ha', {
+      testo: 'Ne hai altri o vediamo il riepilogo? Ne hai due su 5.',
+      terreni: [rigaBruciata('Collina Sangiovese', 4, null)],
+      fatto: false,
+    });
+    gira('cancello mandorlo 7 ha', {
+      testo: 'Ne hai altri o vediamo il riepilogo? Ne hai tre su 5.',
+      terreni: [rigaBruciata('Cancello', 7, 'Mandorlo')],
+      fatto: false,
+    });
+    gira('salita 12 mais', {
+      testo: 'Come si chiama il terreno da 12 ettari?',
+      terreni: [rigaBruciata(null, 12, 'Mais')],
+      fatto: true,
+    });
+    gira('buca 5 ha albicocche', {
+      testo: 'Ne hai altri o vediamo il riepilogo? Ne hai cinque su 5.',
+      terreni: [rigaBruciata('Buca', 5, 'Albicocche')],
+      fatto: false,
+    });
+    return { stato, visti };
+  }
+
+  function schedaAttesa(righe) {
+    const per = (re) => righe.find((t) => re.test(String(t.nome || '')));
+    expect(per(/^pozzo$/i)).toMatchObject({ superficie: '5', coltura: 'Trebbiano' });
+    expect(per(/^pozzo$/i).nome).not.toMatch(/trebbiano/i);
+    expect(per(/^collina$/i)).toMatchObject({ superficie: '4', coltura: 'Sangiovese' });
+    expect(per(/^collina$/i).nome).not.toMatch(/sangiovese/i);
+    expect(per(/^cancello$/i)).toMatchObject({ superficie: '7', coltura: 'Mandorlo' });
+    expect(per(/^salita$/i)).toMatchObject({ superficie: '12', coltura: 'Mais' });
+    expect(per(/^buca$/i)).toMatchObject({ superficie: '5', coltura: 'Albicocche' });
+    expect(righe.every((t) => String(t.podere || '').toLowerCase() === 'bruciata')).toBe(true);
+    expect(new Set(righe.map((t) => String(t.nome || '').toLowerCase())).size).toBe(5);
+  }
+
+  it('due giri, cinque terreni in scheda e il sesto respinto', () => {
+    for (let giro = 0; giro < 2; giro++) {
+      const { stato, visti } = dialogoBruciata();
+      expect(visti[0].mostrato).toMatch(/Hai uno o più poderi/i);
+      expect(visti[0].mostrato).not.toMatch(/riepilogo/i);
+      expect(visti[0].scheda).toBe(false);
+      expect(visti[0].n).toBe(0);
+      expect(visti[1].passo).toBe('poderi');
+      expect(stato.dati.poderi.map((p) => p.nome)).toEqual(['Bruciata']);
+      expect(visti[2].passo).toBe('terreni');
+      expect(visti[2].n).toBe(0);
+      expect(visti[3].n).toBe(1);
+      expect(visti[3].scheda).toBe(false);
+      expect(visti[3].mostrato).not.toMatch(/ci coltivi/i);
+      expect(visti[3].mostrato).not.toMatch(/Pozzo Trebbiano/i);
+      expect(visti[3].righe[0]).toMatchObject({ nome: 'Pozzo', superficie: '5', coltura: 'Trebbiano' });
+      expect(visti[6].n).toBe(4);
+      expect(visti[6].scheda).toBe(false);
+      expect(visti[6].mostrato).not.toMatch(/come si chiama/i);
+      expect(visti[6].righe.find((t) => /^salita$/i.test(t.nome))).toMatchObject({
+        superficie: '12',
+        coltura: 'Mais',
+      });
+      expect(visti[7].n).toBe(5);
+      expect(visti[7].scheda).toBe(false);
+      schedaAttesa(visti[7].righe);
+      const sesto = turnoUi(stato, 'coriandolo 12 ha orzo', {
+        testo: "Con l'account gratuito arrivi a cinque terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+        terreni: [rigaBruciata('Coriandolo', 12, 'Orzo')],
+        fatto: true,
+      });
+      expect(sesto.n).toBe(5);
+      expect(sesto.troppi).toBe(true);
+      expect(sesto.srv.troppi).toBe(true);
+      expect(sesto.scheda).toBe(false);
+      expect(sesto.mostrato).toMatch(/account gratuito/i);
+      expect(sesto.righe.some((t) => /^coriandolo$/i.test(t.nome))).toBe(false);
+      expect(sesto.righe.find((t) => /^salita$/i.test(t.nome))).toMatchObject({
+        superficie: '12',
+        coltura: 'Mais',
+      });
+      schedaAttesa(sesto.righe);
+    }
+  });
+});

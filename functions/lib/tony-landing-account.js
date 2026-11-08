@@ -712,6 +712,46 @@ function normalizzaDecimaliPerGemini(domanda) {
   return String(domanda || "").replace(/(\d),(\d)/g, "$1.$2");
 }
 
+var PAROLE_NEL_NOME = Object.freeze([
+  "vecchio",
+  "vecchia",
+  "nuovo",
+  "nuova",
+  "grande",
+  "piccolo",
+  "piccola",
+  "alto",
+  "alta",
+  "basso",
+  "bassa",
+  "lungo",
+  "lunga",
+  "primo",
+  "prima",
+  "secondo",
+  "seconda"
+]);
+
+function restaNelNome(parola) {
+  return PAROLE_NEL_NOME.indexOf(String(parola || "").toLowerCase()) >= 0;
+}
+
+function inizialeMaiuscolaIt(s) {
+  const t = String(s || "");
+  if (!t) return t;
+  return t.charAt(0).toLocaleUpperCase("it") + t.slice(1);
+}
+
+function staccaVarietaDalNome(prima) {
+  const parole = String(prima || "")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parole.length < 2) return { nome: parole.join(" "), varieta: "" };
+  const ultima = parole[parole.length - 1];
+  if (restaNelNome(ultima)) return { nome: parole.join(" "), varieta: "" };
+  return { nome: parole.slice(0, -1).join(" "), varieta: ultima };
+}
+
 function eCategoriaColtura(parola) {
   const k = chiaveNome(parola);
   if (!k) return false;
@@ -733,10 +773,15 @@ function misureNellaDomanda(domanda) {
     /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:(?:di|a|ad|al|allo|alla)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)?/gi;
   let m;
   while ((m = reHa.exec(frase)) !== null) {
-    const parola = String(m[2] || "");
+    let parola = String(m[2] || "");
+    if (/^(di|da|a|ad|al|allo|alla|ha|ettari|ettaro|che)$/i.test(parola)) parola = "";
+    if (!parola) {
+      const prima = frase.slice(0, m.index);
+      parola = staccaVarietaDalNome(prima.replace(/^[\s:,\-–—.?!]+|[\s:,\-–—.?!]+$/g, "").trim()).varieta;
+    }
     out.push({
       superficie: Number(String(m[1]).replace(",", ".")),
-      parola: /^(di|da|a|ad|al|allo|alla|ha|ettari|ettaro)$/i.test(parola) ? "" : parola
+      parola: parola
     });
   }
   if (out.length) return out;
@@ -748,6 +793,15 @@ function misureNellaDomanda(domanda) {
     out.push({
       superficie: Number(String(m[1]).replace(",", ".")),
       parola: parola
+    });
+  }
+  if (out.length) return out;
+  const reNudo =
+    /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
+  while ((m = reNudo.exec(frase)) !== null) {
+    out.push({
+      superficie: Number(String(m[1]).replace(",", ".")),
+      parola: String(m[2] || "")
     });
   }
   return out;
@@ -764,7 +818,9 @@ function nomeEsplicitoNellaFrase(frase) {
     /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+([^,.]*)/i
   );
   if (chiama) return nomeTerrenoVisibile(chiama[1]);
-  const ha = s.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)/i);
+  const ha = s.match(
+    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)|(\d+(?:[.,]\d+)?)\s+di\s+|(?<![A-Za-zÀ-ÖØ-öø-ÿ])(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)[A-Za-zÀ-ÖØ-öø-ÿ]/i
+  );
   if (!ha) return "";
   let prima = s.slice(0, ha.index);
   prima = prima.replace(/^(?:ho|ci sono|c'è|ce)\s+/i, "");
@@ -773,11 +829,7 @@ function nomeEsplicitoNellaFrase(frase) {
   prima = prima.replace(/^[\s:,\-–—]+|[\s:,\-–—.?!]+$/g, "").trim();
   prima = nomeTerrenoVisibile(prima);
   if (!prima) return "";
-  const parole = prima.split(/\s+/);
-  if (parole.length >= 2 && risolviColturaConSinonimi(parole[parole.length - 1])) {
-    return parole.slice(0, -1).join(" ");
-  }
-  return prima;
+  return staccaVarietaDalNome(prima).nome;
 }
 
 /**
@@ -822,11 +874,19 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
           ? modello
           : nomeEsplicito;
     } else if (!nomeEsplicito) copia.nome = null;
+    else if (
+      nomeEsplicito &&
+      stessoAppezzamento(nomeTerrenoVisibile(copia.nome), nomeEsplicito) &&
+      chiaveNome(copia.nome) !== chiaveNome(nomeEsplicito)
+    ) {
+      copia.nome = nomeEsplicito;
+    }
     if ((copia.coltura == null || copia.coltura === "") && misura && misura.parola) {
       if (eCategoriaColtura(misura.parola)) {
         copia.categoria = copia.categoria || misura.parola;
       } else {
-        copia.coltura = risolviColturaConSinonimi(misura.parola) || misura.parola;
+        copia.coltura =
+          risolviColturaConSinonimi(misura.parola) || inizialeMaiuscolaIt(misura.parola);
       }
     }
     return copia;
@@ -843,6 +903,25 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
 }
 
 function testoSeMancaNomeTerreno(testo, dati) {
+  const terreni = dati && Array.isArray(dati.terreni) ? dati.terreni : [];
+  const mancaNome = terreni.some(function (t) {
+    return t && !nomeTerrenoVisibile(t.nome) && (t.coltura || typeof t.superficie === "number");
+  });
+  const completo = terreni.some(function (t) {
+    return t && nomeTerrenoVisibile(t.nome) && String(t.coltura || "").trim();
+  });
+  if (!mancaNome && completo) {
+    return String(testo || "")
+      .split(/(?<=[.!?])\s+/)
+      .filter(function (p) {
+        if (/che cosa ci coltivi|cosa ci coltivi|quale coltura/i.test(p)) return false;
+        if (/\b(come si chiama|come si chiamano|qual\s*è il nome|che nome)\b/i.test(p)) return false;
+        return true;
+      })
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
   if (!dati || dati.nomeTerrenoMancante !== true) return testo;
   const t = (Array.isArray(dati.terreni) ? dati.terreni : []).find(function (x) {
     return x && !nomeTerrenoVisibile(x.nome) && x.coltura;
@@ -965,7 +1044,10 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const chiedeChiusura = /riepilogo|basta|ho finito|^fatto\b/i.test(String(domanda || "").trim());
   const staDettando =
     !chiedeChiusura &&
-    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b|di\b)/i.test(String(domanda || ""));
+    (/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b|di\b)/i.test(String(domanda || "")) ||
+      /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)[A-Za-zÀ-ÖØ-öø-ÿ]/i.test(
+        String(domanda || "")
+      ));
   const fatto = parsed.fatto === true && !staDettando;
   const fuoriTema = parsed.fuoriTema === true;
 
