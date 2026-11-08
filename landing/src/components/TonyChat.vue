@@ -28,6 +28,7 @@ import { creaPlayerVoce } from '../lib/tony-voce-player.js';
 import {
   PASSI_AIUTO,
   allineaPassoAiuto,
+  aprireSchedaPerFatto,
   collegaTerreniAiPoderi,
   decidiDopoRisposta,
   erroriColturaTerreniForm,
@@ -967,10 +968,6 @@ async function inviaTesto(grezzo: string, daChip = false) {
   }
 
   if (inAccount && esito.codice === 'ok') {
-    if (esito.troppiTerreni) {
-      messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
-      void suonaFraseFissa('cinqueTerreni');
-    }
     const prima = JSON.stringify(datiAiuto.value);
     const turno = preparaTurnoOnboarding({
       domanda,
@@ -988,8 +985,10 @@ async function inviaTesto(grezzo: string, daChip = false) {
       if (ultimoTesto && ultimoTesto.ruolo === 'tony' && !ultimoTesto.live) {
         ultimoTesto.testo = turno.testo;
       }
+      const ultimaStoria = storia.value[storia.value.length - 1];
+      if (ultimaStoria && ultimaStoria.ruolo === 'tony') ultimaStoria.testo = turno.testo;
     }
-    if (uniti.troppiTerreni && !esito.troppiTerreni) {
+    if (uniti.troppiTerreni && !/account gratuito arrivi a/i.test(azione.testo)) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
       void suonaFraseFissa('cinqueTerreni');
     }
@@ -1048,7 +1047,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
       const prox = prossimoPasso(passoAiuto.value || '');
       if (prox) avviaPasso(prox);
       else apriScheda();
-    } else if (esito.dati && esito.dati.fatto === true) {
+    } else if (aprireSchedaPerFatto(domanda, esito.dati && esito.dati.fatto)) {
       const chiedeRiepilogo =
         typeof domanda === 'string' &&
         /riepilogo|basta|ho finito|fatto|^no\b/i.test(domanda.trim());
