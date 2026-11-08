@@ -43,7 +43,8 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 
 - `main.js`: `__tonyLavoroCreationFlow`, intercept «crea lavoro», segna ore senza orari; 0 CF sui turni intervista dove implementato.
 - Conferme salvataggio form prima di nuova intervista.
-- Domanda informativa caposquadra (`chi sono` / `quali sono` / `disponibili`): `localCaposquadraRosterReply` risponde da `lavoriState.caposquadraList` (query tenant + ruolo `caposquadra` + attivi), anche a modal chiuso, senza CF e senza aprire la scheda. Non legge gli operai né altri tenant. Durante l’intervista aggiunge la domanda in corso.
+- Domanda informativa caposquadra (`chi sono` / `quali sono` / `disponibili`): su Gestione lavori `localCaposquadraRosterReply` usa `lavoriState.caposquadraList`. Sulla Dashboard e sulle altre pagine, se quella lista non c’è, `answerCaposquadraRosterOffPage` legge `users` con la stessa query già usata da Gestione lavori (`tenantId` corrente, `ruoli` array-contains `caposquadra`, `stato` attivo). In chat restano solo nome e cognome. Niente CF, niente scheda, niente navigazione, niente operai né altri tenant. Durante l’intervista sulla scheda aggiunge la domanda in corso.
+- Nome durante l’intervista: «il nome del lavoro è …», «cambia il nome in …», «rinomina …», «chiamalo …» aggiornano solo `lavoro-nome` e riprendono il dato mancante. La frase iniziale «chiamato …» resta il primo inserimento.
 - Persona assente: il messaggio cita il token nome (`nomeCitatoPerAssenza`), non la frase grezza. Elenco vuoto: «elenco non è ancora pronto», senza chiedere di nuovo l’assegnazione.
 - Match univoco in memoria con select senza option: fino a 3 tentativi brevi, poi «tendina non è ancora pronta». I campi già scritti restano.
 - `stopLavoroCreationFlow`: chiusura modal (`closeLavoroModal` / chiusura dopo salvataggio) e pannello chat. Solo il flag. Non tocca `chatHistory` né `tony_session_state`.
