@@ -976,7 +976,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
       passo: passoAiuto.value || '',
       datiAttuali: datiAiuto.value,
       datiNuovi: esito.dati,
-      testo: azione.testo,
+      testo: typeof esito.testo === 'string' ? esito.testo : '',
     });
     const uniti = turno.dati;
     const novita = JSON.stringify(uniti.dati) !== prima;
