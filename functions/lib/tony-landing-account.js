@@ -10,7 +10,10 @@ const {
   costruisciPromptSistema
 } = require("./tony-landing-prompt");
 const { TESTO_KB, ELENCO_MODULI_KB } = require("../config/tony-landing-kb");
-const { COLTURE_PREDEFINITE } = require("../config/colture-predefinite");
+const {
+  COLTURE_PREDEFINITE,
+  CATEGORIE_COLTURE_PREDEFINITE
+} = require("../config/colture-predefinite");
 const { LIMITI, chiaveNome } = require("./tony-landing-setup-core");
 
 const PREFISSI_ESCLUSI = Object.freeze([
@@ -57,7 +60,7 @@ const SCHEMA_RISPOSTA_ACCOUNT = Object.freeze({
       items: Object.freeze({
         type: "OBJECT",
         properties: Object.freeze({
-          nome: Object.freeze({ type: "STRING" }),
+          nome: Object.freeze({ type: "STRING", nullable: true }),
           superficie: Object.freeze({ type: "NUMBER" }),
           coltura: Object.freeze({ type: "STRING", nullable: true }),
           podere: Object.freeze({ type: "STRING", nullable: true })
@@ -281,6 +284,13 @@ function taglia(testo, max) {
   return [...s].slice(0, max).join("");
 }
 
+/** «null» e «undefined» non sono nomi di terreno. */
+function nomeTerrenoVisibile(nome) {
+  const s = String(nome == null ? "" : nome).trim();
+  if (!s || /^(null|undefined|nullo)$/i.test(s)) return "";
+  return s;
+}
+
 function pulisciCap(valore) {
   const s = String(valore || "").trim();
   if (!s) return null;
@@ -468,6 +478,45 @@ function terreniDaRaccolti(raccolti) {
   return { nomi: nomi, conteggio: conteggio };
 }
 
+function superficieGrezza(t) {
+  if (!t || t.superficie == null || t.superficie === "") return null;
+  const n = Number(t.superficie);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Nella stessa risposta, «null» + nome vero con gli stessi ettari è un solo terreno. */
+function compattaTerreniGrezzi(lista) {
+  const out = [];
+  for (let i = 0; i < lista.length; i++) {
+    const t = lista[i];
+    if (!t || typeof t !== "object") continue;
+    const superficie = superficieGrezza(t);
+    const nome = nomeTerrenoVisibile(t.nome);
+    const voce = Object.assign({}, t, { nome: nome || null, superficie: superficie });
+    let idx = -1;
+    for (let j = 0; j < out.length; j++) {
+      const prev = out[j];
+      if (superficie == null || prev.superficie !== superficie) continue;
+      const ca = chiaveNome(prev.coltura || "");
+      const cb = chiaveNome(voce.coltura || "");
+      if (ca && cb && ca !== cb) continue;
+      const pa = chiaveNome(prev.podere || "");
+      const pb = chiaveNome(voce.podere || "");
+      if (pa && pb && pa !== pb) continue;
+      const na = nomeTerrenoVisibile(prev.nome);
+      const nb = nome;
+      if (na && nb && chiaveNome(na) !== chiaveNome(nb)) continue;
+      idx = j;
+      break;
+    }
+    if (idx < 0) out.push(voce);
+    else if (nome && !nomeTerrenoVisibile(out[idx].nome)) {
+      out[idx] = Object.assign({}, out[idx], { nome: nome });
+    }
+  }
+  return out;
+}
+
 /**
  * Pulisce i terreni della risposta. Il limite è «già raccolti + nuovi»:
  * i terreni già noti (stesso nome, anche con prefisso podere/tenuta…)
@@ -475,7 +524,23 @@ function terreniDaRaccolti(raccolti) {
  * @param {unknown} lista
  * @param {{ nomi?: string[], conteggio?: number }|string[]} [giaRaccolti]
  */
-function pulisciTerreni(lista, giaRaccolti) {
+function ordinaPerNomeDetto(lista, domanda) {
+  const frase = String(domanda || "").trim();
+  if (!frase || /\d/.test(frase) || frase.split(/\s+/).length > 4) return lista;
+  const detto = nomeTerrenoVisibile(frase);
+  if (!detto) return lista;
+  const copia = lista.slice();
+  copia.sort(function (a, b) {
+    const ma =
+      a && chiaveNome(nomeTerrenoVisibile(a.nome)) === chiaveNome(detto) ? 0 : 1;
+    const mb =
+      b && chiaveNome(nomeTerrenoVisibile(b.nome)) === chiaveNome(detto) ? 0 : 1;
+    return ma - mb;
+  });
+  return copia;
+}
+
+function pulisciTerreni(lista, giaRaccolti, domanda) {
   if (!Array.isArray(lista)) return { terreni: [], troppiTerreni: false };
   const info = Array.isArray(giaRaccolti)
     ? { nomi: giaRaccolti, conteggio: giaRaccolti.length }
@@ -497,14 +562,33 @@ function pulisciTerreni(lista, giaRaccolti) {
   let nuovi = 0;
   const visti = Object.create(null);
   const out = [];
-  for (let i = 0; i < lista.length; i++) {
-    const t = lista[i];
+  const listaUnica = ordinaPerNomeDetto(compattaTerreniGrezzi(lista), domanda);
+  for (let i = 0; i < listaUnica.length; i++) {
+    const t = listaUnica[i];
     if (!t || typeof t !== "object") continue;
-    const nome = taglia(t.nome, LIMITI.NOME_TERRENO_MAX);
-    if (!nome) continue;
-    const chiave = nomeSenzaPrefissoPodere(nome);
-    if (chiave && visti[chiave]) continue;
-    if (chiave) visti[chiave] = true;
+    let superficie = null;
+    if (t.superficie != null && t.superficie !== "") {
+      const n = Number(t.superficie);
+      if (Number.isFinite(n) && n > 0) superficie = n;
+    }
+    let colturaGrezza = null;
+    if (t.coltura != null && t.coltura !== "") {
+      colturaGrezza = risolviColturaConSinonimi(t.coltura);
+      if (!colturaGrezza && categoriaOrtiveDaTesto(t.coltura)) {
+        colturaGrezza = CATEGORIA_ORTIVE;
+      }
+    }
+    const nome = nomeTerrenoVisibile(taglia(t.nome, LIMITI.NOME_TERRENO_MAX));
+    if (!nome && superficie == null && !colturaGrezza) continue;
+    const chiave = nome ? nomeSenzaPrefissoPodere(nome) : "";
+    const dedupe =
+      chiave ||
+      "§" +
+        (superficie == null ? "" : String(superficie)) +
+        "|" +
+        (colturaGrezza || "");
+    if (visti[dedupe]) continue;
+    visti[dedupe] = true;
     if (!(chiave && noti[chiave])) {
       if (conteggio + nuovi >= limite) {
         troppiTerreni = true;
@@ -512,12 +596,7 @@ function pulisciTerreni(lista, giaRaccolti) {
       }
       nuovi += 1;
     }
-    let superficie = null;
-    if (t.superficie != null && t.superficie !== "") {
-      const n = Number(t.superficie);
-      if (Number.isFinite(n) && n > 0) superficie = n;
-    }
-    const voce = { nome: nome, superficie: superficie };
+    const voce = { nome: nome || null, superficie: superficie };
     if (t.coltura == null || t.coltura === "") {
       voce.coltura = null;
     } else {
@@ -591,64 +670,133 @@ function normalizzaDecimaliPerGemini(domanda) {
   return String(domanda || "").replace(/(\d),(\d)/g, "$1.$2");
 }
 
+function eCategoriaColtura(parola) {
+  const k = chiaveNome(parola);
+  if (!k) return false;
+  for (let i = 0; i < CATEGORIE_COLTURE_PREDEFINITE.length; i++) {
+    if (chiaveNome(CATEGORIE_COLTURE_PREDEFINITE[i].nome) === k) return true;
+  }
+  return false;
+}
+
 /**
- * «3 ha di trebbiano»: la varietà non è il nome. Un nome esplicito («si chiama …») resta.
- * Il client applica la stessa regola anche senza questo deploy.
+ * Misure dette dall'utente: «3 ha di trebbiano» e anche «12 di seminativo».
+ * @param {string} domanda
+ * @returns {Array<{ superficie: number, parola: string }>}
+ */
+function misureNellaDomanda(domanda) {
+  const frase = String(domanda || "");
+  const out = [];
+  const reHa =
+    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:di\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)?/gi;
+  let m;
+  while ((m = reHa.exec(frase)) !== null) {
+    const parola = String(m[2] || "");
+    out.push({
+      superficie: Number(String(m[1]).replace(",", ".")),
+      parola: /^(di|da|ha|ettari|ettaro)$/i.test(parola) ? "" : parola
+    });
+  }
+  if (out.length) return out;
+  const reDi =
+    /(\d+(?:[.,]\d+)?)\s+di\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
+  while ((m = reDi.exec(frase)) !== null) {
+    const parola = String(m[2] || "");
+    if (/^(di|da|ha|ettari|ettaro)$/i.test(parola)) continue;
+    out.push({
+      superficie: Number(String(m[1]).replace(",", ".")),
+      parola: parola
+    });
+  }
+  return out;
+}
+
+/**
+ * Nome detto prima degli ettari, o con «si chiama». La varietà dopo «di» no.
+ * @param {string} frase
+ * @returns {string}
+ */
+function nomeEsplicitoNellaFrase(frase) {
+  const s = String(frase || "");
+  const chiama = s.match(
+    /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+([^,.]*)/i
+  );
+  if (chiama) return nomeTerrenoVisibile(chiama[1]);
+  const ha = s.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)/i);
+  if (!ha) return "";
+  let prima = s.slice(0, ha.index);
+  prima = prima.replace(/^(?:ho|ci sono|c'è|ce)\s+/i, "");
+  prima = prima.replace(/^(?:un|uno|una|il|lo|la|i|gli|le)\s+/i, "");
+  prima = prima.replace(/^(?:terreno|appezzamento)\s+/i, "");
+  prima = prima.replace(/^[\s:,\-–—]+|[\s:,\-–—.?!]+$/g, "").trim();
+  return nomeTerrenoVisibile(prima);
+}
+
+/**
+ * Senza un nome esplicito il nome del modello non vale: si chiede dopo.
+ * «si chiama Vigna Alta» e «quercione 4 ha» restano. Il client applica la stessa regola.
  * @param {string} domanda
  * @param {{ terreni?: object[] }|null} dati
  */
 function applicaNomeTerrenoDaDomanda(domanda, dati) {
   if (!dati || typeof dati !== "object") return dati;
   const terreni = Array.isArray(dati.terreni) ? dati.terreni : null;
-  if (!terreni) return dati;
+  if (!terreni || !terreni.length) return dati;
   const frase = String(domanda || "");
-  const esplicito = frase.match(
-    /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+([^,.]*)/i
-  );
-  const nomeEsplicito = esplicito ? String(esplicito[1] || "").trim() : "";
-  const varieta = [];
-  const re =
-    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:di\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
-  let m;
-  while ((m = re.exec(frase)) !== null) {
-    const parola = String(m[2] || "");
-    if (/^(di|da|ha|ettari|ettaro)$/i.test(parola)) continue;
-    varieta.push({
-      superficie: Number(String(m[1]).replace(",", ".")),
-      nome: parola
-    });
-  }
-  if (!varieta.length) return dati;
-  let cambiato = false;
-  const outT = terreni.map(function (t) {
+  const nomeEsplicito = nomeEsplicitoNellaFrase(frase);
+  const misure = misureNellaDomanda(frase);
+  const terreniVisibili = terreni.map(function (t) {
     if (!t || typeof t !== "object") return t;
-    const nome = t.nome != null ? String(t.nome).trim() : "";
-    if (!nome) return t;
-    const hit = varieta.filter(function (v) {
-      return v.nome && nome.toLowerCase() === v.nome.toLowerCase();
+    const nome = nomeTerrenoVisibile(t.nome);
+    return Object.assign({}, t, { nome: nome || null });
+  });
+  if (!misure.length) {
+    return Object.assign({}, dati, { terreni: terreniVisibili });
+  }
+  const outT = terreniVisibili.map(function (t, indice) {
+    if (!t || typeof t !== "object") return t;
+    let misura = misure.find(function (v) {
+      return typeof t.superficie === "number" && v.superficie === t.superficie;
     });
-    if (!hit.length) return t;
-    if (nomeEsplicito && nomeEsplicito.toLowerCase() === nome.toLowerCase()) return t;
-    cambiato = true;
-    const copia = Object.assign({}, t, { nome: nomeEsplicito || null });
-    if ((copia.coltura == null || copia.coltura === "") && hit[0].nome) {
-      copia.coltura = hit[0].nome;
+    if (!misura && misure.length === terreni.length) misura = misure[indice];
+    if (!misura) return t;
+    const copia = Object.assign({}, t);
+    if (nomeEsplicito && terreni.length === 1) {
+      const modello = nomeTerrenoVisibile(t.nome);
+      copia.nome =
+        modello && chiaveNome(modello) === chiaveNome(nomeEsplicito)
+          ? modello
+          : nomeEsplicito;
+    } else if (!nomeEsplicito) copia.nome = null;
+    if ((copia.coltura == null || copia.coltura === "") && misura && misura.parola) {
+      if (eCategoriaColtura(misura.parola)) {
+        copia.categoria = copia.categoria || misura.parola;
+      } else {
+        copia.coltura = risolviColturaConSinonimi(misura.parola) || misura.parola;
+      }
     }
     return copia;
   });
-  if (!cambiato) return dati;
   const copiaDati = Object.assign({}, dati, { terreni: outT });
-  copiaDati.nomeTerrenoMancante = outT.some(function (t) {
-    return t && !t.nome && (t.superficie || t.coltura);
-  });
+  if (
+    outT.some(function (t) {
+      return t && !nomeTerrenoVisibile(t.nome) && t.coltura;
+    })
+  ) {
+    copiaDati.nomeTerrenoMancante = true;
+  }
   return copiaDati;
 }
 
 function testoSeMancaNomeTerreno(testo, dati) {
   if (!dati || dati.nomeTerrenoMancante !== true) return testo;
   const t = (Array.isArray(dati.terreni) ? dati.terreni : []).find(function (x) {
-    return x && !x.nome;
+    return x && !nomeTerrenoVisibile(x.nome) && x.coltura;
   });
+  if (!t) return testo;
+  if (!t.coltura && /che cosa ci coltivi|cosa ci coltivi|quale coltura/i.test(String(testo || ""))) {
+    return testo;
+  }
   const n = t && typeof t.superficie === "number" ? t.superficie : null;
   const ett = n == null ? "" : String(n).replace(".", ",") + (n === 1 ? " ettaro" : " ettari");
   const col = t && t.coltura ? String(t.coltura) : "";
@@ -708,7 +856,11 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const poderiRisposta = pulisciPoderi(parsed.poderi);
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
-  const puliti = pulisciTerreni(parsed.terreni, terreniDaRaccolti(raccolti));
+  const domanda =
+    opzioni && typeof opzioni === "object" && typeof opzioni.domanda === "string"
+      ? opzioni.domanda
+      : "";
+  const puliti = pulisciTerreni(parsed.terreni, terreniDaRaccolti(raccolti), domanda);
   const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
   const argomento =
     opzioni && typeof opzioni === "object" && typeof opzioni.argomento === "string"
