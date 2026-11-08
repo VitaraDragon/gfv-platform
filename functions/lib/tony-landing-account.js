@@ -236,7 +236,7 @@ function promptSistemaAccount(argomento, opzioni) {
     "I poderi sono facoltativi. Nel passo «poderi» chiedi una volta se ne ha. Un no non inventa poderi. Se ne dice uno, anche fuori dal passo, tienilo senza duplicarlo. Nel passo «terreni» non ripetere la domanda sui poderi.",
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
     "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
-    "Accetta fino a 5 terreni (il quinto va bene). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.» Con 5 terreni metti fatto: true.",
+    "Accetta fino a 5 terreni (il quinto va bene). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.» Non mettere fatto: true solo perché i terreni sono 5: il riepilogo si apre se l'utente lo chiede.",
     "Terreni già raccolti: " +
       terreniDaRaccolti(raccolti).conteggio +
       " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha, usa la forma «ne hai N su 5» con N esatto.",
@@ -614,7 +614,22 @@ function pulisciTerreni(lista, giaRaccolti, domanda) {
     }
     out.push(voce);
   }
-  return { terreni: out, troppiTerreni: troppiTerreni };
+  let terreniOut = out;
+  const misure = typeof domanda === "string" ? misureNellaDomanda(domanda) : [];
+  if (misure.length === 1) {
+    const parola = String(misure[0].parola || "").toLowerCase();
+    const stessa = terreniOut.filter(function (t) {
+      return t && t.superficie === misure[0].superficie;
+    });
+    if (parola && stessa.length > 1) {
+      terreniOut = terreniOut.filter(function (t) {
+        if (!t || t.superficie !== misure[0].superficie) return true;
+        const nome = t.nome ? nomeSenzaPrefissoPodere(t.nome).toLowerCase() : "";
+        return nome !== parola;
+      });
+    }
+  }
+  return { terreni: terreniOut, troppiTerreni: troppiTerreni };
 }
 
 /**
@@ -688,13 +703,13 @@ function misureNellaDomanda(domanda) {
   const frase = String(domanda || "");
   const out = [];
   const reHa =
-    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:di\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)?/gi;
+    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:(?:di|a|ad|al|allo|alla)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)?/gi;
   let m;
   while ((m = reHa.exec(frase)) !== null) {
     const parola = String(m[2] || "");
     out.push({
       superficie: Number(String(m[1]).replace(",", ".")),
-      parola: /^(di|da|ha|ettari|ettaro)$/i.test(parola) ? "" : parola
+      parola: /^(di|da|a|ad|al|allo|alla|ha|ettari|ettaro)$/i.test(parola) ? "" : parola
     });
   }
   if (out.length) return out;
@@ -846,7 +861,8 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   }
 
   let testo = typeof parsed.testo === "string" ? parsed.testo.trim() : "";
-  if (!testo) testo = TESTO_RIPIEGO;
+  const testoMancante = !testo;
+  if (testoMancante) testo = TESTO_RIPIEGO;
   testo = correggiUnoNelTesto(testo);
   if (/salvat|registrat/i.test(testo)) {
     testo = "Ecco il riepilogo: controlla e conferma";
@@ -877,7 +893,12 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   ) {
     testo = togliDomandaPodere(testo);
   }
-  const fatto = parsed.fatto === true;
+  if (testoMancante && puliti.terreni.length) testo = "";
+  const chiedeChiusura = /riepilogo|basta|ho finito|^fatto\b/i.test(String(domanda || "").trim());
+  const staDettando =
+    !chiedeChiusura &&
+    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b|di\b)/i.test(String(domanda || ""));
+  const fatto = parsed.fatto === true && !staDettando;
   const fuoriTema = parsed.fuoriTema === true;
 
   return {
