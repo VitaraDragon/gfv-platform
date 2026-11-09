@@ -215,6 +215,125 @@ describe('intervista — domanda caposquadra, token, tendina, chiusura', () => {
     expect(window.Tony.chatHistory.map((m) => m.parts[0].text)).toEqual(storia);
   });
 
+  it('a modal chiuso «chi sono i caposquadra?» elenca Capo QA e non Operaio QA', () => {
+    mount({
+      capi: [{ id: 'capo-qa', nome: 'Capo', cognome: 'QA', ruoli: ['caposquadra'], stato: 'attivo' }],
+      operai: [{ id: 'op-qa', nome: 'Operaio', cognome: 'QA', ruoli: ['operaio'], stato: 'attivo' }]
+    });
+    campiAcquisiti();
+    window.__tonyLavoroCreationFlow = false;
+    window.__lavoriFormDataReady = true;
+    document.getElementById('lavoro-modal').classList.remove('active');
+    expect(api.userCanReplyToLavoroInterview('chi sono i caposquadra?')).toBe(false);
+    const reply = api.localCaposquadraRosterReply('chi sono i caposquadra?');
+    expect(reply.handled).toBe(true);
+    expect(reply.message).toMatch(/Capo QA/);
+    expect(reply.message).not.toMatch(/Operaio QA/);
+    expect(reply.message).not.toMatch(/A quale caposquadra|A chi lo assegno/i);
+    expect(document.getElementById('lavoro-modal').classList.contains('active')).toBe(false);
+    expect(window.__tonyLavoroCreationFlow).toBe(false);
+    expectCampiRimasti();
+  });
+
+  it('«assegnalo a Operaio QA come caposquadra» cita Operaio QA', async () => {
+    mount({
+      capi: [{ id: 'capo-qa', nome: 'Capo', cognome: 'QA', ruoli: ['caposquadra'], stato: 'attivo' }],
+      operai: [{ id: 'op-qa', nome: 'Operaio', cognome: 'QA', ruoli: ['operaio'], stato: 'attivo' }]
+    });
+    campiAcquisiti();
+    window.__tonyLavoroAssignModeConfirmed = true;
+    window.__tonyLavoroConfirmedAssignMode = 'squadra';
+    const frase = 'assegnalo a Operaio QA come caposquadra';
+    const res = await api.applyLavoroInterviewFromUserReply(frase);
+    expect(res.message).toMatch(/Non ho trovato «Operaio QA»/);
+    expect(res.message).not.toMatch(/«QA come»/);
+    expect(document.getElementById('lavoro-caposquadra').value).toBe('');
+    expect(document.getElementById('lavoro-operaio').value).toBe('');
+    expectCampiRimasti();
+  });
+
+  it('dalla dashboard «chi sono i caposquadra?» elenca Capo QA e non Operaio QA', async () => {
+    window.history.pushState({}, '', '/core/dashboard-standalone.html');
+    document.getElementById('lavoro-modal').classList.remove('active');
+    window.lavoriState = {
+      operaiList: [{ id: 'op-qa', nome: 'Operaio', cognome: 'QA', ruoli: ['operaio'], stato: 'attivo' }]
+    };
+    window.__tonyLavoroCreationFlow = false;
+    window.__tonyLoadCaposquadraTenant = async () => ([
+      { id: 'capo-qa', nome: 'Capo', cognome: 'QA', ruoli: ['caposquadra'], stato: 'attivo' },
+      { id: 'op-qa', nome: 'Operaio', cognome: 'QA', ruoli: ['operaio'], stato: 'attivo' },
+      { id: 'spento', nome: 'Altro', cognome: 'Tenant', ruoli: ['caposquadra'], stato: 'sospeso' }
+    ]);
+    const probe = api.localCaposquadraRosterReply('chi sono i caposquadra?');
+    expect(probe.handled).toBe(true);
+    expect(probe.needsTenantRoster).toBe(true);
+    const reply = await api.answerCaposquadraRosterOffPage('chi sono i caposquadra?');
+    expect(reply.message).toMatch(/Capo QA/);
+    expect(reply.message).not.toMatch(/Operaio QA|Altro Tenant|Gestisci utenti|non ho informazioni/i);
+    expect(window.__tonyLavoroCreationFlow).toBe(false);
+    expect(document.getElementById('lavoro-modal').classList.contains('active')).toBe(false);
+    delete window.__tonyLoadCaposquadraTenant;
+  });
+
+  it('«il nome del lavoro è …» aggiorna solo il nome e riprende l’assegnazione', async () => {
+    mount({
+      capi: [{ id: 'capo-qa', nome: 'Capo', cognome: 'QA', ruoli: ['caposquadra'], stato: 'attivo' }],
+      operai: [{ id: 'op-qa', nome: 'Operaio', cognome: 'QA', ruoli: ['operaio'], stato: 'attivo' }]
+    });
+    document.getElementById('lavoro-nome').value = 'S354 Test Tony';
+    document.getElementById('lavoro-terreno').value = VIGNA.id;
+    document.getElementById('lavoro-tipo-lavoro').value = 'tipo-pot';
+    document.getElementById('lavoro-data-inizio').value = '2026-11-08';
+    window.__tonyLavoroAssignModeConfirmed = false;
+    window.__tonyLavoroConfirmedAssignMode = null;
+    window.__tonyLastLavoroInterviewQuestion = 'È un lavoro di squadra o lo assegno a una persona?';
+
+    const stessa = await api.applyLavoroInterviewFromUserReply('il nome del lavoro è S354 Test Tony');
+    expect(stessa.message).not.toMatch(/Non ho riconosciuto/i);
+    expect(stessa.message).toMatch(/squadra o lo assegno a una persona/i);
+    expect(document.getElementById('lavoro-nome').value).toBe('S354 Test Tony');
+    expect(document.getElementById('lavoro-terreno').value).toBe(VIGNA.id);
+    expect(document.getElementById('lavoro-tipo-lavoro').value).toBe('tipo-pot');
+    expect(document.getElementById('lavoro-data-inizio').value).toBe('2026-11-08');
+    expect(document.getElementById('lavoro-caposquadra').value).toBe('');
+    expect(document.getElementById('lavoro-operaio').value).toBe('');
+
+    const diversa = await api.applyLavoroInterviewFromUserReply('il nome del lavoro è Filare nuovo');
+    expect(diversa.message).not.toMatch(/Non ho riconosciuto/i);
+    expect(diversa.message).toMatch(/squadra o lo assegno a una persona/i);
+    expect(document.getElementById('lavoro-nome').value).toBe('Filare nuovo');
+    expect(document.getElementById('lavoro-terreno').value).toBe(VIGNA.id);
+    expect(document.getElementById('lavoro-tipo-lavoro').value).toBe('tipo-pot');
+    expect(document.getElementById('lavoro-data-inizio').value).toBe('2026-11-08');
+    expect(document.getElementById('lavoro-caposquadra').value).toBe('');
+    expect(document.getElementById('lavoro-operaio').value).toBe('');
+  });
+
+  it('Capo QA va nel caposquadra e Operaio QA nell’operaio', async () => {
+    mount({
+      capi: [{ id: 'capo-qa', nome: 'Capo', cognome: 'QA', ruoli: ['caposquadra'], stato: 'attivo' }],
+      operai: [{ id: 'op-qa', nome: 'Operaio', cognome: 'QA', ruoli: ['operaio'], stato: 'attivo' }]
+    });
+    campiAcquisiti();
+    window.__tonyLavoroAssignModeConfirmed = true;
+    window.__tonyLavoroConfirmedAssignMode = 'squadra';
+    const capo = await api.applyLavoroInterviewFromUserReply('Capo QA');
+    expect(document.getElementById('lavoro-caposquadra').value).toBe('capo-qa');
+    expect(document.getElementById('lavoro-operaio').value).toBe('');
+    expect(capo.message).not.toMatch(/Non ho trovato/i);
+    expectCampiRimasti();
+
+    document.getElementById('lavoro-caposquadra').value = '';
+    window.__tonyLavoroConfirmedAssignMode = 'autonomo';
+    document.getElementById('tipo-squadra').checked = false;
+    document.getElementById('tipo-autonomo').checked = true;
+    const operaio = await api.applyLavoroInterviewFromUserReply('Operaio QA');
+    expect(document.getElementById('lavoro-operaio').value).toBe('op-qa');
+    expect(document.getElementById('lavoro-caposquadra').value).toBe('');
+    expect(operaio.message).not.toMatch(/Non ho trovato/i);
+    expectCampiRimasti();
+  });
+
   it('modal, pannello e stop non cancellano chat né sessionStorage', () => {
     const events = readFileSync(resolve(process.cwd(), 'core/admin/js/gestione-lavori-events.js'), 'utf8');
     const closeAt = events.indexOf('export function closeLavoroModal');
@@ -231,6 +350,11 @@ describe('intervista — domanda caposquadra, token, tendina, chiusura', () => {
     const panelBody = main.slice(panelAt, panelAt + 700);
     expect(panelBody).toMatch(/stopLavoroCreationFlow/);
     expect(panelBody).not.toMatch(/chatHistory\s*=\s*\[\]|sessionStorage\.removeItem/);
+
+    const rosterAt = main.indexOf('Domanda sui caposquadra a scheda chiusa');
+    const rosterBody = main.slice(rosterAt, rosterAt + 1200);
+    expect(rosterBody).toMatch(/localCaposquadraRosterReply/);
+    expect(rosterBody).not.toMatch(/__tonyLavoroCreationFlow = true|openCreaModal|sessionStorage/);
 
     const injector = readFileSync(resolve(process.cwd(), 'core/js/tony-form-injector.js'), 'utf8');
     const stopAt = injector.indexOf('function stopLavoroCreationFlow');

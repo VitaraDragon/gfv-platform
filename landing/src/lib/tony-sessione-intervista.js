@@ -6,6 +6,8 @@
  * Si salva solo lo stato della conversazione e i dati azienda raccolti.
  */
 
+import { compattaTerreni, nomeTerrenoVisibile } from './tony-aiuto-account.js';
+
 export const CHIAVE_SESSIONE_INTERVISTA = 'gfv-landing-intervista';
 export const VERSIONE_SESSIONE_INTERVISTA = 1;
 export const TTL_SESSIONE_INTERVISTA_MS = 2 * 60 * 60 * 1000;
@@ -51,11 +53,17 @@ function pulisciDati(dati) {
     .slice(0, 10)
     .map((nome) => ({ nome }));
   const terreni = (Array.isArray(d.terreni) ? d.terreni : [])
-    .filter((t) => t && t.nome)
+    .filter(
+      (t) =>
+        t &&
+        (t.nome ||
+          (typeof t.superficie === 'number' && Number.isFinite(t.superficie)) ||
+          t.coltura)
+    )
     .slice(0, 10)
     .map((t) => {
       const voce = {
-        nome: testoSicuro(t.nome, 120),
+        nome: nomeTerrenoVisibile(testoSicuro(t.nome, 120)),
         superficie:
           typeof t.superficie === 'number' && Number.isFinite(t.superficie)
             ? t.superficie
@@ -67,12 +75,13 @@ function pulisciDati(dati) {
       if (categoria) voce.categoria = categoria;
       return voce;
     })
-    .filter((t) => t.nome);
+    .filter((t) => t.nome || t.superficie != null || t.coltura);
   return {
     sede: pulisciSede(d.sede),
     poderi,
-    terreni,
+    terreni: compattaTerreni(terreni),
     ultimoPodere: testoOpz(d.ultimoPodere, 120),
+    senzaPoderi: d.senzaPoderi === true,
   };
 }
 

@@ -281,8 +281,9 @@ Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e fluss
 - «**Assegnato al caposquadra** …» resta un **lavoro di squadra**. Se il nome detto non è un caposquadra (per esempio è un operaio), Tony dice che non l’ha trovato tra i caposquadra e non lo mette come operaio responsabile.  
 - Se il **tipo di lavoro** è già scelto, ripeterlo o rispondere «lavoro di squadra» o con il nome di una persona non riapre l’elenco dei tipi: Tony va avanti con la domanda successiva.  
 - Se l’elenco delle persone non è ancora caricato, Tony lo dice («L’elenco dei caposquadra non è ancora pronto…») e ti chiede di ripetere il nome tra un attimo; quello che hai già scritto resta.  
-- Se durante la creazione chiedi **«chi sono i caposquadra?»**, Tony elenca i caposquadra **della tua azienda** e continua da dove eri. Quella domanda non diventa un nome.  
-- Se chiudi la **scheda lavoro** o il **pannello** di Tony, la creazione guidata si interrompe. Quello che hai già scritto nella scheda e la **chat** restano.  
+- Se chiedi **«chi sono i caposquadra?»**, Tony elenca solo i **caposquadra attivi della tua azienda**, anche con la scheda chiusa e anche dalla **Dashboard**. Non mette in quell’elenco gli operai, non apre una scheda e non ti porta su Gestisci utenti. Durante la creazione continua da dove eri; quella domanda non diventa un nome.  
+- Se durante la creazione dici **«il nome del lavoro è …»**, Tony aggiorna solo il nome e riprende la domanda che manca. Gli altri campi restano.  
+- La **X** sospende la scheda: i campi restano in questa pagina e il pulsante diventa **Riprendi scheda lavoro**. Non è un lavoro registrato finché non premi **Salva**, e un ricaricamento della pagina li perde. **Annulla** scarta la bozza. Un nuovo «crea un lavoro» detto a Tony parte da scheda vuota. Se chiudi la **scheda lavoro** o il **pannello** di Tony, la creazione guidata si interrompe. La **chat** resta.  
 - Per le **ore**, se non indichi orari Tony chiede **data**, **inizio**, **fine** e **pause** prima di salvare.
 
 ---

@@ -4209,20 +4209,122 @@
     return buildNextLavoroInterviewMessage(getLavoroInterviewRequiredEmpty(), false);
   }
 
-  function messaggioElencoCaposquadra() {
+  function messaggioElencoCaposquadra(opts) {
+    opts = opts || {};
     var labels = etichetteCaposquadraRoster();
-    var follow = seguitoIntervistaDopoElenco();
     if (!labels.length) {
+      if (opts.soloElenco) return 'In questa azienda non risultano caposquadra attivi.';
+      var followVuoto = seguitoIntervistaDopoElenco();
       return 'In questo momento non ho l\'elenco dei caposquadra di questa azienda. I dati già inseriti restano. ' +
-        (follow || 'Quando l\'elenco è pronto, dimmi nome e cognome.');
+        (followVuoto || 'Quando l\'elenco è pronto, dimmi nome e cognome.');
     }
-    return 'I caposquadra di questa azienda sono: ' + labels.join(', ') + '. ' + follow;
+    var base = 'I caposquadra di questa azienda sono: ' + labels.join(', ') + '.';
+    if (opts.soloElenco) return base;
+    var follow = seguitoIntervistaDopoElenco();
+    return follow ? (base + ' ' + follow) : base;
+  }
+
+  /** Elenco caposquadra anche a scheda chiusa. Non apre il modal e non avvia la creazione. */
+  function localCaposquadraRosterReply(text) {
+    if (!isCaposquadraRosterQuestion(text)) return { handled: false };
+    var path = '';
+    try {
+      path = String((window.location && window.location.pathname) || '').toLowerCase();
+    } catch (ePath) { /* ignore */ }
+    var st = window.lavoriState;
+    var onLavori = path.indexOf('gestione-lavori') >= 0;
+    if (!onLavori && !(st && Array.isArray(st.caposquadraList))) {
+      return { handled: true, needsTenantRoster: true, rosterReady: false };
+    }
+    var modal = document.getElementById('lavoro-modal');
+    var aperto = !!(modal && modal.classList.contains('active'));
+    var message = messaggioElencoCaposquadra({ soloElenco: !aperto });
+    var pronto = !!(window.__lavoriFormDataReady || (st && Array.isArray(st.caposquadraList) && st.caposquadraList.length));
+    return { handled: true, message: message, voiceText: message, rosterReady: pronto };
+  }
+
+  function soloCaposquadraAttivi(list) {
+    return (list || []).filter(function (p) {
+      if (!p) return false;
+      if (p.stato && String(p.stato) !== 'attivo') return false;
+      if (Array.isArray(p.ruoli) && p.ruoli.indexOf('caposquadra') < 0) return false;
+      var label = formatPersonInterviewLabel({ nome: p.nome, cognome: p.cognome }, '');
+      return !!label;
+    });
+  }
+
+  function messaggioElencoDaCaposquadra(list) {
+    var seen = {};
+    var labels = [];
+    soloCaposquadraAttivi(list).forEach(function (p) {
+      var label = formatPersonInterviewLabel({ nome: p.nome, cognome: p.cognome }, '');
+      if (!label || seen[label]) return;
+      seen[label] = 1;
+      labels.push(label);
+    });
+    if (!labels.length) return 'In questa azienda non risultano caposquadra attivi.';
+    return 'I caposquadra di questa azienda sono: ' + labels.join(', ') + '.';
+  }
+
+  /**
+   * Stessa lettura di Gestione lavori: users del tenant corrente, ruolo caposquadra, stato attivo.
+   * Non allarga le rules. In risposta restano solo nome e cognome.
+   */
+  async function loadCaposquadraAttiviDelTenant() {
+    if (typeof window.__tonyLoadCaposquadraTenant === 'function') {
+      var stub = await window.__tonyLoadCaposquadraTenant();
+      return Array.isArray(stub) ? stub : [];
+    }
+    var tenantSvc = await import('../services/tenant-service.js');
+    var tenantId = tenantSvc.getCurrentTenantId && tenantSvc.getCurrentTenantId();
+    if (!tenantId) {
+      var noTenant = new Error('tenant assente');
+      noTenant.code = 'no-tenant';
+      throw noTenant;
+    }
+    var fb = await import('../services/firebase-service.js');
+    var snap = await fb.getDocs(fb.query(
+      fb.collection(fb.getDb(), 'users'),
+      fb.where('tenantId', '==', tenantId),
+      fb.where('ruoli', 'array-contains', 'caposquadra'),
+      fb.where('stato', '==', 'attivo')
+    ));
+    var list = [];
+    snap.forEach(function (docSnap) {
+      var data = docSnap.data() || {};
+      if (String(data.tenantId || '') !== String(tenantId)) return;
+      var ruoli = Array.isArray(data.ruoli) ? data.ruoli : [];
+      if (ruoli.indexOf('caposquadra') < 0) return;
+      if (String(data.stato || '') !== 'attivo') return;
+      list.push({
+        id: docSnap.id,
+        nome: data.nome || '',
+        cognome: data.cognome || '',
+        ruoli: ['caposquadra'],
+        stato: 'attivo'
+      });
+    });
+    return list;
+  }
+
+  /** Dashboard e altre pagine senza caposquadraList. Non apre la scheda e non naviga. */
+  async function answerCaposquadraRosterOffPage(text) {
+    if (!isCaposquadraRosterQuestion(text)) return { handled: false };
+    try {
+      var list = await loadCaposquadraAttiviDelTenant();
+      var message = messaggioElencoDaCaposquadra(list);
+      return { handled: true, message: message, voiceText: message, rosterReady: true };
+    } catch (err) {
+      var fail = 'In questa azienda non riesco a leggere l\'elenco dei caposquadra.';
+      return { handled: true, message: fail, voiceText: fail, rosterReady: true };
+    }
   }
 
   /** Nome da citare nell'errore: il token ricavato, non la frase intera. */
   function nomeCitatoPerAssenza(text) {
     var raw = String(text || '').trim().replace(/[?!.…]+$/g, '').trim();
     var token = String(extractPersonTokenFromInterviewText(raw) || '').replace(/[?!.…]+$/g, '').trim();
+    token = token.replace(/\s+(?:come|da)\s+(?:caposquadra|capo\s*squadra|operaio|operaia|operatore)\b.*$/i, '').trim();
     var tokParts = token.split(/\s+/).filter(Boolean);
     if (token && token !== raw && tokParts.length >= 1 && tokParts.length <= 2 &&
         !/caposquadra|capo\s*squadra/i.test(token)) {
@@ -5890,12 +5992,38 @@
     var m = text.match(/\b(?:per|a|ad|assegna?\w*\s+(?:a|ad|al|alla))\s+(.+)$/i);
     if (!m) return text;
     var rest = trimPersonInterviewToken(m[1].trim());
+    rest = rest.replace(/\s+(?:come|da)\s+(?:caposquadra|capo\s*squadra|operaio|operaia|operatore)\b.*$/i, '').trim();
     rest = rest.replace(/^(?:il|lo|la|i|gli|le|un|una)\s+/i, '');
-    rest = rest.replace(/^(?:caposquadra|capo\s*squadra|operaio|operaia|operatore)\s+/i, '');
+    rest = rest.replace(/^(?:caposquadra|capo\s*squadra)\s+/i, '');
+    var roleName = rest.match(/^(operaio|operaia|operatore)\s+(.+)$/i);
+    if (roleName && roleName[2].trim().split(/\s+/).filter(Boolean).length >= 2) {
+      rest = roleName[2].trim();
+    }
     var parts = rest.split(/\s+/).filter(Boolean);
     if (!parts.length) return text;
     if (parts.length > 2) parts = parts.slice(0, 2);
     return parts.join(' ');
+  }
+
+  /** Intenzione esplicita di dare o cambiare il nome, non un’assegnazione. */
+  function extractLavoroNomeCorrection(text) {
+    var raw = String(text || '').trim();
+    if (!raw) return '';
+    var patterns = [
+      /^(?:il\s+)?nome\s+(?:del\s+lavoro\s+)?(?:è|e'|e’|sia|diventa)\s+(.+)$/i,
+      /^cambia(?:re)?\s+il\s+nome(?:\s+del\s+lavoro)?\s+(?:in|a|con)\s+(.+)$/i,
+      /^rinomina(?:lo|la)?(?:\s+(?:il\s+)?lavoro)?\s+(?:in|a|come)?\s+(.+)$/i,
+      /^chiamal[oa]\s+(.+)$/i
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      var m = raw.match(patterns[i]);
+      if (!m) continue;
+      var nome = String(m[1] || '').replace(/^["'«\s]+|["'»\s]+$/g, '').replace(/[.?!]+$/g, '').trim();
+      if (!nome || nome.length > 80) return '';
+      if (nome.split(/\s+/).filter(Boolean).length > 8) return '';
+      return nome;
+    }
+    return '';
   }
 
   function extractExplicitLavoroNome(text) {
@@ -6861,6 +6989,8 @@
     var text = String(userText || '').trim();
     if (!text) return patch;
     if (/^(crea(\s+un)?\s+lavoro|nuovo\s+lavoro)\s*$/i.test(text)) return patch;
+    var nomeCorrezione = extractLavoroNomeCorrection(text);
+    if (nomeCorrezione) return { 'lavoro-nome': nomeCorrezione };
 
     rememberLavoroPendingCreationText(text);
     var parseText = lavoroInterviewParseText(text);
@@ -7804,6 +7934,8 @@
     promptLavoroInterviewMissing: promptLavoroInterviewMissing,
     resetLavoroInterviewSessionState: resetLavoroInterviewSessionState,
     stopLavoroCreationFlow: stopLavoroCreationFlow,
+    localCaposquadraRosterReply: localCaposquadraRosterReply,
+    answerCaposquadraRosterOffPage: answerCaposquadraRosterOffPage,
     isLavoroTipoCorrectionText: isLavoroTipoCorrectionText,
     isLavoroTerrenoCorrectionText: isLavoroTerrenoCorrectionText,
     mentionsLavoroTipoKeyword: mentionsLavoroTipoKeyword,

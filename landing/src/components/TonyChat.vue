@@ -28,14 +28,17 @@ import { creaPlayerVoce } from '../lib/tony-voce-player.js';
 import {
   PASSI_AIUTO,
   allineaPassoAiuto,
+  aprireSchedaPerFatto,
+  fraseTerrenoSenzaRiepilogo,
   collegaTerreniAiPoderi,
   decidiDopoRisposta,
   erroriColturaTerreniForm,
   esitoRipiegoAccount,
+  preparaTurnoOnboarding,
   prossimoPasso,
   serializzaRaccolti,
   storiaDopoRiepilogo,
-  unisciDati,
+  utenteChiedeRiepilogo,
 } from '../lib/tony-aiuto-account.js';
 import {
   leggiSessioneIntervista,
@@ -967,15 +970,27 @@ async function inviaTesto(grezzo: string, daChip = false) {
   }
 
   if (inAccount && esito.codice === 'ok') {
-    if (esito.troppiTerreni) {
-      messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
-      void suonaFraseFissa('cinqueTerreni');
-    }
     const prima = JSON.stringify(datiAiuto.value);
-    const uniti = unisciDati(datiAiuto.value, esito.dati, passoAiuto.value || '');
+    const turno = preparaTurnoOnboarding({
+      domanda,
+      passo: passoAiuto.value || '',
+      datiAttuali: datiAiuto.value,
+      datiNuovi: esito.dati,
+      testo: typeof esito.testo === 'string' ? esito.testo : '',
+    });
+    const uniti = turno.dati;
     const novita = JSON.stringify(uniti.dati) !== prima;
     datiAiuto.value = uniti.dati;
-    if (uniti.troppiTerreni && !esito.troppiTerreni) {
+    if (turno.testo) {
+      azione.testo = turno.testo;
+      const ultimoTesto = messaggi.value[messaggi.value.length - 1];
+      if (ultimoTesto && ultimoTesto.ruolo === 'tony' && !ultimoTesto.live) {
+        ultimoTesto.testo = turno.testo;
+      }
+      const ultimaStoria = storia.value[storia.value.length - 1];
+      if (ultimaStoria && ultimaStoria.ruolo === 'tony') ultimaStoria.testo = turno.testo;
+    }
+    if (uniti.troppiTerreni && !/account gratuito arrivi a/i.test(azione.testo)) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
       void suonaFraseFissa('cinqueTerreni');
     }
@@ -992,7 +1007,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
     } else {
       turniSenzaNovitaNelPasso.value += 1;
     }
-    const passoAllineato = allineaPassoAiuto(
+    const passoAllineato = turno.passo || allineaPassoAiuto(
       passoAiuto.value || '',
       datiAiuto.value,
       esito.dati,
@@ -1014,7 +1029,16 @@ async function inviaTesto(grezzo: string, daChip = false) {
       passo: passoAiuto.value || '',
       giaRiaperturaLimiteDomande,
     });
-    if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
+    if (turno.bloccaAvanti) {
+      campoAttivo.value = true;
+      chipVisibili.value = true;
+    } else if (turno.vaiATerreni) {
+      avviaPasso('terreni');
+    } else if (
+      (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) &&
+      !fraseTerrenoSenzaRiepilogo(domanda) &&
+      passoAiuto.value !== 'sede'
+    ) {
       if (dopoRisposta.perLimiteDomande) giaRiaperturaLimiteDomande = true;
       if (dopoRisposta.messaggio) {
         messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
@@ -1028,8 +1052,15 @@ async function inviaTesto(grezzo: string, daChip = false) {
       // Solo la domanda del passo successivo (niente doppia domanda sui poderi).
       const prox = prossimoPasso(passoAiuto.value || '');
       if (prox) avviaPasso(prox);
-      else apriScheda();
-    } else if (esito.dati && esito.dati.fatto === true) {
+      else if (!fraseTerrenoSenzaRiepilogo(domanda)) apriScheda();
+      else {
+        campoAttivo.value = true;
+        chipVisibili.value = true;
+      }
+    } else if (
+      aprireSchedaPerFatto(domanda, esito.dati && esito.dati.fatto) ||
+      utenteChiedeRiepilogo(domanda)
+    ) {
       const chiedeRiepilogo =
         typeof domanda === 'string' &&
         /riepilogo|basta|ho finito|fatto|^no\b/i.test(domanda.trim());
@@ -1037,9 +1068,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
         campoAttivo.value = true;
         chipVisibili.value = true;
       } else {
-        const prox = prossimoPasso(passoAiuto.value || '');
-        if (prox) avviaPasso(prox);
-        else apriScheda();
+        apriScheda();
       }
     } else {
       campoAttivo.value = true;
