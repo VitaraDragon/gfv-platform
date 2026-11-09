@@ -291,6 +291,35 @@ function nomeTerrenoVisibile(nome) {
   return s;
 }
 
+/** Via/civico/comune: non è un terreno (il civico non è ettari). */
+function sembraIndirizzo(domanda) {
+  const d = String(domanda || "");
+  if (!d) return false;
+  if (/\b(?:ha\b|ettari?\b)\b/i.test(d)) return false;
+  if (/\b\d+(?:[.,]\d+)?\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return false;
+  return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
+    d
+  );
+}
+
+function nomeSembraIndirizzo(nome) {
+  return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada)\b/i.test(
+    String(nome || "")
+  );
+}
+
+function domandaTerrenoEsplicita(domanda) {
+  const d = String(domanda || "");
+  if (!d || sembraIndirizzo(d)) return false;
+  if (/\b(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)/i.test(d)) return true;
+  if (/\b(\d+(?:[.,]\d+)?)\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return true;
+  return false;
+}
+
+/** Refusi comuni di «si chiama». */
+const RE_SI_CHIAMA =
+  /(?:si\s+(?:chiama|piama|kiama|chama)|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+/i;
+
 function pulisciCap(valore) {
   const s = String(valore || "").trim();
   if (!s) return null;
@@ -769,6 +798,7 @@ function eCategoriaColtura(parola) {
 function misureNellaDomanda(domanda) {
   const frase = String(domanda || "");
   const out = [];
+  if (sembraIndirizzo(frase)) return out;
   const reHa =
     /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)\s*(?:,\s*)?(?:(?:di|a|ad|al|allo|alla)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)?/gi;
   let m;
@@ -796,12 +826,20 @@ function misureNellaDomanda(domanda) {
     });
   }
   if (out.length) return out;
+  // «5 faenza»: civico+comune, non ettari. Solo se la parola è coltura/categoria nota.
   const reNudo =
     /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
   while ((m = reNudo.exec(frase)) !== null) {
+    const parola = String(m[2] || "");
+    if (
+      !parola ||
+      (!risolviColturaConSinonimi(parola) && !eCategoriaColtura(parola))
+    ) {
+      continue;
+    }
     out.push({
       superficie: Number(String(m[1]).replace(",", ".")),
-      parola: String(m[2] || "")
+      parola: parola
     });
   }
   return out;
@@ -814,14 +852,21 @@ function misureNellaDomanda(domanda) {
  */
 function nomeEsplicitoNellaFrase(frase) {
   const s = String(frase || "");
-  const chiama = s.match(
-    /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+([^,.]*)/i
-  );
+  if (sembraIndirizzo(s)) return "";
+  const chiama = s.match(new RegExp(RE_SI_CHIAMA.source + "([^,.]*)", "i"));
   if (chiama) return nomeTerrenoVisibile(chiama[1]);
   const ha = s.match(
     /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)|(\d+(?:[.,]\d+)?)\s+di\s+|(?<![A-Za-zÀ-ÖØ-öø-ÿ])(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)[A-Za-zÀ-ÖØ-öø-ÿ]/i
   );
   if (!ha) return "";
+  // Match nudo (gruppo 3): solo se la parola dopo è coltura nota, altrimenti è un civico.
+  if (ha[3] != null && ha[0] && !/\b(?:ha\b|ettari?\b)|\s+di\s+/i.test(ha[0])) {
+    const dopo = s.slice(ha.index).match(
+      /^\d+(?:[.,]\d+)?\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/i
+    );
+    const parola = dopo && dopo[1] ? dopo[1] : "";
+    if (!risolviColturaConSinonimi(parola) && !eCategoriaColtura(parola)) return "";
+  }
   let prima = s.slice(0, ha.index);
   prima = prima.replace(/^(?:ho|ci sono|c'è|ce)\s+/i, "");
   prima = prima.replace(/^(?:un|uno|una|il|lo|la|i|gli|le)\s+/i, "");
@@ -885,8 +930,12 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
       if (eCategoriaColtura(misura.parola)) {
         copia.categoria = copia.categoria || misura.parola;
       } else {
-        copia.coltura =
-          risolviColturaConSinonimi(misura.parola) || inizialeMaiuscolaIt(misura.parola);
+        const canon = risolviColturaConSinonimi(misura.parola);
+        if (canon) copia.coltura = canon;
+        else if (domandaTerrenoEsplicita(frase)) {
+          // Varietà libera solo con ha/di («3 ha di sangiovese»), non da civico+comune.
+          copia.coltura = inizialeMaiuscolaIt(misura.parola);
+        }
       }
     }
     return copia;
@@ -1023,12 +1072,22 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const poderiRisposta = pulisciPoderi(parsed.poderi);
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
-  const puliti = pulisciTerreni(parsed.terreni, terreniDaRaccolti(raccolti), domanda);
-  const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
   const argomento =
     opzioni && typeof opzioni === "object" && typeof opzioni.argomento === "string"
       ? opzioni.argomento
       : "";
+  // Testo già consumato come sede/podere: mai terreni (né civico→ettari).
+  const bloccaTerreni =
+    sembraIndirizzo(domanda) ||
+    ((argomento === "sede" || argomento === "poderi") &&
+      !domandaTerrenoEsplicita(domanda));
+  const grezziTerreni = bloccaTerreni
+    ? []
+    : (Array.isArray(parsed.terreni) ? parsed.terreni : []).filter(function (t) {
+        return !(t && nomeSembraIndirizzo(t.nome));
+      });
+  const puliti = pulisciTerreni(grezziTerreni, terreniDaRaccolti(raccolti), domanda);
+  const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
   if (argomento === "sede") {
     testo = togliDomandaCapProvincia(testo);
   }
@@ -1095,5 +1154,9 @@ module.exports = {
   poderiDaRaccolti,
   togliDomandaPodere,
   togliRiaperturaPoderi,
-  togliDomandaCapProvincia
+  togliDomandaCapProvincia,
+  sembraIndirizzo,
+  nomeSembraIndirizzo,
+  domandaTerrenoEsplicita,
+  RE_SI_CHIAMA
 };
