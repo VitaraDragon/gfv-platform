@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: 4 correzioni post-prova Pier.**
+**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: parsing terreni Quercie/Melograno.**
+
+## 2026-11-09 — Landing: parsing/merge terreni robusto (post-prova Quercie/Melograno)
+
+Su `fix/landing-tony-dialogo-quercie-melograno` (PR verso develop), dopo la prova reale Quercie/Melograno su `prova-tony` (build f25fe5fa / develop c84a2a52):
+
+1. **Nome** — `togliConnettiviFinaliNome` toglie anche verbi/copule del parlato (`sono`, `è`, `ha`, `fa`, `c'è`/`cè`, `misura`, `sarebbe`, `ed`, …) in coda e in testa; niente «Quercie sono» / coltura fantasma «È».
+2. **Forme nome** — `RE_SI_CHIAMA` estesa: `lo/la chiamo|chiamiamo|chiamano`, `chiamiamol[oa]`, `il nome è`, `nome`/`detto`/`chiamato` X (+ refusi già tollerati); `troncaNomePrimaDiMisura` invariato.
+3. **Merge incompleto** — un solo terreno incompleto riceve i pezzi mancanti (nome/ettari/coltura) senza perdere i dati già noti; ettari diversi ⇒ appezzamento nuovo (Lago non eredita Melograno).
+4. **Domanda nome** — risposta breve dopo «Come si chiama…?» è il nome anche se è una coltura del catalogo; al più una richiesta per terreno (`nomeChiesto`), poi si prosegue col nome vuoto in riepilogo.
+5. **Quinto contato** — conteggio e apertura riepilogo invariati (anche con nome ancora vuoto dopo regola f). Bussata automatica resta spenta.
+
+Test: `landing-dialogo-quercie-melograno.test.js` (varianti + dialogo Pier) + suite `tests/landing` e `tony-aiuto-account` verdi. Client `tony-aiuto-account.js` + function `tony-landing-account.js` allineati. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: 4 correzioni post-prova Pier.**
 
 ## 2026-11-09 — Landing: 4 correzioni post-prova Pier (bussata, 5°, nome Lago, coltura)
 
