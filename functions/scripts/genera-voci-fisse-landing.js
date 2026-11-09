@@ -30,13 +30,14 @@ const FRASI = Object.freeze({
   domandaSede: "Dov'è la sede legale della tua azienda? Mi bastano via e comune.",
   domandaPoderi: "Hai uno o più poderi? Dimmi come li chiami.",
   domandaTerreni:
-    'Ora i terreni: per ognuno dimmi nome, superficie e coltura, per esempio "Campo grande: 2,34 ettari, grano" o "Meleto: 1,2 ettari, mele". Con l\'account gratuito ne puoi inserire fino a 5.',
+    "Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi? Con l'account gratuito ne puoi inserire fino a 5.",
   schedaIntro:
     "Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.",
   cinqueTerreni:
     "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
   passaggioSede: "Andiamo avanti: hai dei poderi?",
-  passaggioPoderi: "Ok, passiamo ai terreni: nome, ettari e coltura.",
+  passaggioPoderi:
+    "Ok, passiamo ai terreni. Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?",
   passaggioTerreni: "Facciamo così: controlla il riepilogo e completa lì.",
   tornaDalRiepilogo:
     "Ok, continuiamo. Dimmi pure un altro terreno oppure riapri il riepilogo quando vuoi."

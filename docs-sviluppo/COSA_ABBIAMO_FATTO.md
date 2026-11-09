@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: nomi «con», CAP, audio 409, video.**
+**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: coltura canonica, Prugneto, primo terreno.**
+
+## 2026-11-09 — Landing intervista: coltura catalogo, maiuscola nome, niente «quanti terreni»
+
+Su `fix/tony-landing-intervista-coltura-nome-primo` (PR verso develop), dialogo reale Monte Coralli 7 / Bruciata:
+
+1. **Coltura** — plurali comuni (`noci`→`Noce`, `pesche`/`peschi`→`Pesco`, `mele`→`Melo`, `albicocco`→`Albicocche`, `pompelmi`→`Pompelmo`, …) in `SINONIMI_COLTURA` (function + client). Il riepilogo tiene il nome canonico del catalogo usato in chat, non il grezzo utente (`Noci` + «coltura non trovata»).
+2. **Nome** — `nomeTerrenoVisibile` applica la prima lettera maiuscola (es. `prugneto`→`Prugneto`), con i connettivi finali già tolti.
+3. **Primo terreno** — niente «Quanti terreni hai e come si chiamano?»; domanda fissa/prompt «Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?». Su sola risposta numerica (`7 terreni`) non si apre il riepilogo: avviso limite se >5 e richiesta del primo terreno. Formule successive invariate («Ne hai altri…», «ne hai N su 5»).
+
+Test: `landing-nome-terreno-runtime` (dialogo Pier), sinonimi in `tony-landing-ask-account`; suite `tests/landing` + ask account verde. Cambia **function** (`tony-landing-account.js` / `tonyLandingAsk`) **e** client landing. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no. Nessun merge né deploy. Audio fissa `domandaTerreni`/`passaggioPoderi`: testo aggiornato nello script; mp3 da rigenerare a parte.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: nomi «con», CAP, audio 409, video.**
 
 ## 2026-11-09 — Landing intervista: nomi senza «con», CAP, audio 409, video gitignore
 

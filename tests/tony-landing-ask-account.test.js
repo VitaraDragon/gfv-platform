@@ -435,6 +435,11 @@ describe('prompt e pulizia', () => {
     );
     expect(pulisciPoderi([{ nome: 'Podere Colle' }])[0].nome).toBe('Podere Colle');
     expect(risolviColturaConSinonimi('mele')).toBe('Melo');
+    expect(risolviColturaConSinonimi('noci')).toBe('Noce');
+    expect(risolviColturaConSinonimi('pesche')).toBe('Pesco');
+    expect(risolviColturaConSinonimi('peschi')).toBe('Pesco');
+    expect(risolviColturaConSinonimi('albicocco')).toBe('Albicocche');
+    expect(risolviColturaConSinonimi('pompelmi')).toBe('Pompelmo');
     expect(risolviColturaConSinonimi('piscina')).toBeNull();
     expect(correggiUnoNelTesto('uno terreno')).toBe('un terreno');
     expect(SCHEMA_RISPOSTA_ACCOUNT.type).toBe('OBJECT');
