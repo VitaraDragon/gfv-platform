@@ -433,6 +433,9 @@ export function percorsoVoceFatto() {
   };
 }
 
+/** Query su mp3 aiuto: bump quando si rigenerano voci fisse (evita cache browser). */
+const VERSIONE_VOCI_AIUTO = '2026-11-09a';
+
 /**
  * Voce fissa dell'aiuto account (mp3 statici, costo zero a regime).
  * @param {string} chiave
@@ -440,7 +443,9 @@ export function percorsoVoceFatto() {
  */
 export function percorsoVoceAiuto(chiave) {
   const k = String(chiave || '').replace(/[^a-zA-Z0-9_-]/g, '');
-  return { mp3: '/tony-live/voci/tony-aiuto-' + k + '.mp3' };
+  return {
+    mp3: '/tony-live/voci/tony-aiuto-' + k + '.mp3?v=' + VERSIONE_VOCI_AIUTO,
+  };
 }
 
 /**

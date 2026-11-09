@@ -18,6 +18,9 @@ import {
   payloadDaScheda,
   preparaTurnoOnboarding,
   prossimoPasso,
+  messaggioSoloConteggioTerreni,
+  numeroTerreniDetto,
+  erroriColturaTerreniForm,
   righeRiepilogo,
   serializzaRaccolti,
   sembraIndirizzo,
@@ -709,7 +712,7 @@ function schedaAttesa(dati) {
 }
 
 describe('runtime: Cancello 4 ha pompelmi dopo il rilascio 360', () => {
-  it('il compatto 4ha e la preposizione «a» si leggono, pompelmi non diventa Pompelmo', () => {
+  it('il compatto 4ha e la preposizione «a» si leggono, pompelmi → Pompelmo', () => {
     expect(interpretaFraseTerreni('laghetto 4ha grano')).toEqual([
       { nome: 'laghetto', varieta: 'grano', superficie: 4 },
     ]);
@@ -721,8 +724,8 @@ describe('runtime: Cancello 4 ha pompelmi dopo il rilascio 360', () => {
       varieta: 'pompelmi',
       superficie: 4,
     });
-    expect(normalizzaColturaCatalogo('pompelmi')).toBeNull();
-    expect(normalizzaColturaCatalogo('Pompelmi')).toBeNull();
+    expect(normalizzaColturaCatalogo('pompelmi')).toBe('Pompelmo');
+    expect(normalizzaColturaCatalogo('Pompelmi')).toBe('Pompelmo');
     expect(normalizzaColturaCatalogo('Pompelmo')).toBe('Pompelmo');
     expect(aprireSchedaPerFatto('cancello 4 ha pompelmi', true)).toBe(false);
     expect(aprireSchedaPerFatto('riepilogo', true)).toBe(true);
@@ -767,8 +770,8 @@ describe('runtime: Cancello 4 ha pompelmi dopo il rilascio 360', () => {
         expect(nomi).toEqual(expect.arrayContaining(['laghetto', 'lagone', 'collina', 'cancello']));
         const cancello = visti[7].terreni.find((t) => /^cancello$/i.test(t.nome));
         expect(cancello.superficie).toBe(4);
-        expect(cancello.coltura).toMatch(/^pompelmi$/i);
-        expect(cancello.coltura).not.toBe('Pompelmo');
+        expect(cancello.coltura).toBe('Pompelmo');
+        expect(cancello.coltura).not.toMatch(/^pompelmi$/i);
         expect(cancello.coltura).not.toBe('Grano');
         expect(visti[7].terreni.find((t) => /^lagone$/i.test(t.nome)).superficie).toBe(12);
         expect(visti[7].terreni.find((t) => /^lagone$/i.test(t.nome)).coltura).toBe('Pesco');
@@ -797,7 +800,7 @@ describe('runtime: Cancello 4 ha pompelmi dopo il rilascio 360', () => {
         expect(payload.terreni.map((t) => t.nome.toLowerCase())).toEqual(
           expect.arrayContaining(['laghetto', 'lagone', 'collina', 'cancello'])
         );
-        expect(payload.terreni.find((t) => /^cancello$/i.test(t.nome)).coltura).toMatch(/^pompelmi$/i);
+        expect(payload.terreni.find((t) => /^cancello$/i.test(t.nome)).coltura).toBe('Pompelmo');
         expect(serializzaRaccolti(letto.datiAiuto)).toMatch(/4 di 5/);
         expect(serializzaRaccolti(letto.datiAiuto)).toMatch(/Barbona/);
       }
@@ -1016,19 +1019,21 @@ function attesiFaenza(terreni, modo) {
   if (modo === 'json-rotto' || modo === 'omesso') expect(cancello.coltura).toMatch(/^trebbiano$/i);
   else expect(cancello.coltura).toBe('Vite da Vino');
   const collina = perNome(/^collina$/i);
-  expect(collina).toMatchObject({ superficie: 12, coltura: 'Noci' });
-  expect(collina.coltura).not.toBe('Noce');
+  expect(collina).toMatchObject({ superficie: 12, coltura: 'Noce' });
+  expect(collina.coltura).not.toBe('Noci');
   expect(terreni.every((t) => String(t.podere || '').toLowerCase() === 'casetti')).toBe(true);
   expect(terreni.filter((t) => !t.nome || /^pesco$/i.test(String(t.nome)))).toHaveLength(0);
 }
 
 describe('runtime: quinto terreno collina 12 ha noci, Faenza t1386u', () => {
-  it('catalogo: Noci non è Noce, grano si stacca dal nome, peso non è una coltura', () => {
-    expect(normalizzaColturaCatalogo('noci')).toBeNull();
-    expect(normalizzaColturaCatalogo('Noci')).toBeNull();
+  it('catalogo: noci → Noce, grano si stacca dal nome, peso non è una coltura', () => {
+    expect(normalizzaColturaCatalogo('noci')).toBe('Noce');
+    expect(normalizzaColturaCatalogo('Noci')).toBe('Noce');
     expect(normalizzaColturaCatalogo('Noce')).toBe('Noce');
     expect(normalizzaColturaCatalogo('peso')).toBeNull();
     expect(normalizzaColturaCatalogo('pesco')).toBe('Pesco');
+    expect(normalizzaColturaCatalogo('pesche')).toBe('Pesco');
+    expect(normalizzaColturaCatalogo('pompelmi')).toBe('Pompelmo');
     expect(interpretaFraseTerreni('laghetto grano 5 ha')).toEqual([
       { nome: 'laghetto', varieta: 'grano', superficie: 5 },
     ]);
@@ -1076,7 +1081,7 @@ describe('runtime: quinto terreno collina 12 ha noci, Faenza t1386u', () => {
         expect(visti[8].terreni).toHaveLength(5);
         expect(visti[8].testo).not.toMatch(/account gratuito/i);
         expect(visti[8].testo).toMatch(/Collina/i);
-        expect(visti[8].testo).toMatch(/Noci/);
+        expect(visti[8].testo).toMatch(/Noce/);
         expect(aprireSchedaPerFatto('collina 12 ha noci', true)).toBe(false);
         attesiFaenza(visti[8].terreni, modo);
         expect(stato.dati.poderi).toHaveLength(1);
@@ -1279,14 +1284,14 @@ function attesiPozzo(terreni, colturaPozzo) {
   expect(per(/^cancello$/i)).toMatchObject({ superficie: 7, coltura: 'Giuggiolo' });
   expect(per(/^chiesetta$/i)).toMatchObject({ superficie: 12, coltura: 'Grano' });
   expect(per(/^pozzo$/i)).toMatchObject({ superficie: 8, coltura: colturaPozzo });
-  expect(per(/^pozzo$/i).coltura).not.toBe(colturaPozzo === 'Noci' ? 'Noce' : 'Noci');
+  expect(per(/^pozzo$/i).coltura).not.toBe('Noci');
   expect(terreni.every((t) => String(t.podere || '').toLowerCase() === 'barbavara')).toBe(true);
   expect(new Set(terreni.map((t) => String(t.nome || '').toLowerCase())).size).toBe(5);
 }
 
 describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
   it('il parser tiene nome-dopo, nome-prima, noci, noce e mais', () => {
-    expect(normalizzaColturaCatalogo('noci')).toBeNull();
+    expect(normalizzaColturaCatalogo('noci')).toBe('Noce');
     expect(normalizzaColturaCatalogo('giuggiolo')).toBe('Giuggiolo');
     expect(interpretaFraseTerreni('8 ha di noci che si chiama pozzo')[0]).toMatchObject({
       nome: 'pozzo',
@@ -1367,7 +1372,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     {
       nome: 'incrementale',
       domanda: '8 ha di noci che si chiama pozzo',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: () => ({
         testo: CAP5_POZZO,
         terreni: [rigaBarbavara('Pozzo', 8, 'Noce')],
@@ -1377,7 +1382,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     {
       nome: 'cumulativo',
       domanda: '8 ha di noci che si chiama pozzo',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: (noti) => ({
         testo: CAP5_POZZO,
         terreni: noti().concat([rigaBarbavara('Pozzo', 8, 'Noce')]),
@@ -1387,19 +1392,19 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     {
       nome: 'omesso',
       domanda: '8 ha di noci che si chiama pozzo',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: (noti) => ({ testo: CAP5_POZZO, terreni: noti(), fatto: true }),
     },
     {
       nome: 'json-rotto',
       domanda: '8 ha di noci che si chiama pozzo',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: () => '{ questo non è json',
     },
     {
       nome: 'doppio-noci-e-pozzo',
       domanda: '8 ha di noci che si chiama pozzo',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: (noti) => ({
         testo: CAP5_POZZO,
         terreni: noti().concat([
@@ -1413,7 +1418,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     {
       nome: 'solo-nome-noci',
       domanda: '8 ha di noci che si chiama pozzo',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: () => ({
         testo: CAP5_POZZO,
         terreni: [rigaBarbavara('Noci', 8, 'Noce')],
@@ -1423,7 +1428,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     {
       nome: 'senza-nome',
       domanda: '8 ha di noci che si chiama pozzo',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: (noti) => ({
         testo: CAP5_POZZO,
         terreni: noti().concat([rigaBarbavara(null, 8, 'Noce')]),
@@ -1433,7 +1438,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     {
       nome: 'nome-prima',
       domanda: 'pozzo 8 ha noci',
-      coltura: 'Noci',
+      coltura: 'Noce',
       modello: () => ({
         testo: CAP5_POZZO,
         terreni: [rigaBarbavara('Noce', 8, 'Noce')],
@@ -1957,5 +1962,177 @@ describe('runtime: Pier 9 nov — nomi con «con» e CAP sede', () => {
     expect(out.dati.sede.citta).toBe('Faenza');
     expect(out.dati.sede.provincia).toBe('RA');
     expect(out.dati.sede.cap == null || out.dati.sede.cap === '').toBe(true);
+  });
+});
+
+/**
+ * Dialogo reale 9 nov: sede via Monte Coralli 7 Faenza, podere Bruciata,
+ * «7 terreni» non apre riepilogo; Salamandra noci → Noce; Prugneto maiuscolo;
+ * prugne → Prugne; coltura assente chiesta in chat.
+ */
+function dialogoMonteCoralliBruciataPier() {
+  const stato = statoPulito();
+  const visti = [];
+  const gira = (domanda, modello) => visti.push(turnoUi(stato, domanda, modello));
+  gira('via monte coralli 7 faenza', {
+    testo: 'Ok, ho la sede. Hai dei poderi?',
+    sede: { indirizzo: 'via monte coralli 7', citta: 'Faenza', cap: null, provincia: 'RA' },
+    poderi: [],
+    terreni: [],
+    fatto: false,
+  });
+  gira('bruciata', {
+    testo: 'Ok, podere Bruciata. Quanti terreni hai e come si chiamano?',
+    poderi: [{ nome: 'Bruciata' }],
+    terreni: [],
+    fatto: false,
+  });
+  gira('7 terreni', {
+    testo: 'Ecco il riepilogo: controlla e conferma',
+    terreni: [],
+    fatto: true,
+  });
+  gira('Colomba 7 ha pesco', {
+    testo: 'Ok, un terreno Colomba di 7 ettari a Pesco. Ne hai altri o vediamo il riepilogo? Ne hai 1 su 5.',
+    terreni: [{ nome: 'Colomba', superficie: 7, coltura: 'Pesco', podere: 'Bruciata' }],
+    fatto: false,
+  });
+  gira('Campetto 12 ha orzo', {
+    testo: 'Ne hai altri o vediamo il riepilogo? Ne hai 2 su 5.',
+    terreni: [{ nome: 'Campetto', superficie: 12, coltura: 'Orzo', podere: 'Bruciata' }],
+    fatto: false,
+  });
+  gira('Collina 3 ha sangiovese', {
+    testo: 'Ne hai altri o vediamo il riepilogo? Ne hai 3 su 5.',
+    terreni: [{ nome: 'Collina', superficie: 3, coltura: 'Sangiovese', podere: 'Bruciata' }],
+    fatto: false,
+  });
+  gira('Salamandra 7 ha noci', {
+    testo: 'Ok, Salamandra: ci coltivi Noce. Ne hai altri o vediamo il riepilogo? Ne hai 4 su 5.',
+    terreni: [{ nome: 'Salamandra', superficie: 7, coltura: 'Noce', podere: 'Bruciata' }],
+    fatto: false,
+  });
+  gira('prugneto 8 ha prugne', {
+    testo: 'Ok, un terreno Prugneto di 8 ettari a Prugne. Ne hai altri o vediamo il riepilogo? Ne hai 5 su 5.',
+    terreni: [{ nome: 'prugneto', superficie: 8, coltura: 'Prugne', podere: 'Bruciata' }],
+    fatto: false,
+  });
+  return { stato, visti };
+}
+
+describe('runtime: dialogo Monte Coralli / Bruciata (coltura, nome, 7 terreni)', () => {
+  it('sinonimi comuni e solo-conteggio non aprono il riepilogo', () => {
+    expect(normalizzaColturaCatalogo('noci')).toBe('Noce');
+    expect(normalizzaColturaCatalogo('pesche')).toBe('Pesco');
+    expect(normalizzaColturaCatalogo('mele')).toBe('Melo');
+    expect(normalizzaColturaCatalogo('albicocco')).toBe('Albicocche');
+    expect(normalizzaColturaCatalogo('prugne')).toBe('Prugne');
+    expect(normalizzaColturaCatalogo('xyzzy-assente')).toBeNull();
+    expect(numeroTerreniDetto('7 terreni')).toBe(7);
+    expect(messaggioSoloConteggioTerreni('7 terreni')).toBe(true);
+    expect(messaggioSoloConteggioTerreni('Colomba 7 ha pesco')).toBe(false);
+    expect(fraseTerrenoSenzaRiepilogo('7 terreni')).toBe(true);
+    expect(aprireSchedaPerFatto('7 terreni', true)).toBe(false);
+    expect(utenteChiedeRiepilogo('7 terreni')).toBe(false);
+  });
+
+  it('dialogo reale: niente scheda su «7 terreni», Noce e Prugneto in riepilogo', () => {
+    const { stato, visti } = dialogoMonteCoralliBruciataPier();
+
+    expect(visti[0].scheda).toBe(false);
+    expect(stato.dati.sede.citta).toBe('Faenza');
+    expect(stato.dati.poderi.map((p) => p.nome)).toEqual(['Bruciata']);
+
+    expect(visti[2].passo).toBe('terreni');
+    expect(visti[2].scheda).toBe(false);
+    expect(visti[2].n).toBe(0);
+    expect(visti[2].mostrato).toMatch(/account gratuito arrivi a 5/i);
+    expect(visti[2].mostrato).toMatch(/Dimmi il primo terreno/i);
+    expect(visti[2].mostrato).not.toMatch(/Facciamo così/i);
+    expect(visti[2].mostrato).not.toMatch(/ne hai\s+0\s+su\s+5/i);
+    expect(visti[2].srv.fatto).toBe(false);
+
+    expect(visti[3].n).toBe(1);
+    expect(visti[3].righe[0]).toMatchObject({
+      nome: 'Colomba',
+      superficie: '7',
+      coltura: 'Pesco',
+    });
+    expect(visti[3].mostrato).toMatch(/ne hai\s+1\s+su\s+5/i);
+
+    expect(visti[6].n).toBe(4);
+    const sala = visti[6].righe.find((t) => /^salamandra$/i.test(t.nome));
+    expect(sala).toMatchObject({ superficie: '7', coltura: 'Noce' });
+    expect(sala.coltura).not.toBe('Noci');
+    expect(
+      erroriColturaTerreniForm([sala], stato.dati).filter((e) =>
+        /coltura/i.test(e.campo)
+      )
+    ).toEqual([]);
+
+    expect(visti[7].n).toBe(5);
+    expect(visti[7].scheda).toBe(false);
+    const pru = visti[7].righe.find((t) => /^prugneto$/i.test(t.nome));
+    expect(pru.nome).toBe('Prugneto');
+    expect(pru.coltura).toBe('Prugne');
+    expect(pru.superficie).toBe('8');
+
+    const riepilogo = righeRiepilogo(stato.dati);
+    expect(riepilogo.terreni.map((t) => t.nome)).toEqual([
+      'Colomba',
+      'Campetto',
+      'Collina',
+      'Salamandra',
+      'Prugneto',
+    ]);
+    expect(riepilogo.terreni.find((t) => t.nome === 'Salamandra').coltura).toBe('Noce');
+    expect(
+      erroriColturaTerreniForm(
+        [riepilogo.terreni.find((t) => t.nome === 'Salamandra')],
+        stato.dati
+      )
+    ).toEqual([]);
+  });
+
+  it('coltura davvero assente: non resta nel riepilogo, si chiede in chat', () => {
+    const stato = statoPulito();
+    stato.passo = 'terreni';
+    stato.dati = {
+      sede: { indirizzo: 'via monte coralli 7', citta: 'Faenza' },
+      poderi: [{ nome: 'Bruciata' }],
+      terreni: [],
+    };
+    const out = turnoUi(stato, 'Bosco 2 ha dracme', {
+      testo: 'Ok, un terreno Bosco di 2 ettari a Dracme. Ne hai altri?',
+      terreni: [{ nome: 'Bosco', superficie: 2, coltura: 'Dracme', podere: 'Bruciata' }],
+      fatto: false,
+    });
+    const bosco = out.righe.find((t) => /^bosco$/i.test(t.nome));
+    // Varietà libera con ha resta (come Trebbiano); se non è catalogo, la scheda la segnala.
+    expect(bosco.superficie).toBe('2');
+    if (bosco.coltura && !normalizzaColturaCatalogo(bosco.coltura)) {
+      expect(erroriColturaTerreniForm([bosco], stato.dati).length).toBeGreaterThan(0);
+    }
+    // Con modello che lascia null e grezzo non catalogo: chiedi in chat.
+    const stato2 = statoPulito();
+    stato2.passo = 'terreni';
+    stato2.dati = {
+      sede: { indirizzo: 'via x 1', citta: 'Faenza' },
+      poderi: [{ nome: 'Bruciata' }],
+      terreni: [],
+    };
+    const chiede = turnoRuntime(stato2, 'Rialto 3 ha dracme-inventata', {
+      testo: 'Ok.',
+      terreni: [{ nome: 'Rialto', superficie: 3, coltura: null, podere: 'Bruciata' }],
+      fatto: false,
+    });
+    const rialto = chiede.terreni.find((t) => /^rialto$/i.test(String(t.nome || '')));
+    expect(rialto.nome).toBe('Rialto');
+    // Parser con ha/di può tenere la varietà libera; se resta vuota, Tony chiede.
+    if (!rialto.coltura) {
+      expect(chiede.testo).toMatch(/coltivi|coltura/i);
+    } else {
+      expect(normalizzaColturaCatalogo(rialto.coltura)).toBeNull();
+    }
   });
 });
