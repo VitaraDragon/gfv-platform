@@ -165,6 +165,20 @@ export function corpoRichiestaVoce({ idVoce, sessione, testo }) {
 }
 
 /**
+ * Testo da mandare a tonyLandingAudio: deve coincidere col biglietto
+ * firmato in tonyLandingAsk (esito.testo). Non usare il testo riscritto
+ * dal client (preparaTurnoOnboarding), altrimenti hash → 409 voce-non-valida.
+ * @param {{ testo?: string }|null|undefined} esito
+ * @param {string} [azioneTesto]
+ * @returns {string}
+ */
+export function testoPerBigliettoVoce(esito, azioneTesto) {
+  const e = esito && typeof esito === 'object' ? esito : {};
+  if (typeof e.testo === 'string' && e.testo) return e.testo;
+  return typeof azioneTesto === 'string' ? azioneTesto : '';
+}
+
+/**
  * Come trattare la voce di una risposta.
  * @param {{
  *   esito: { codice?: string, voce?: boolean, idVoce?: string, testo?: string },
