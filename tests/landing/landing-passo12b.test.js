@@ -11,6 +11,7 @@ import {
   MAX_RISPOSTE_VOCE_AUTOMATICHE,
   corpoRichiestaVoce,
   modoVoce,
+  testoPerBigliettoVoce,
 } from '../../landing/src/lib/tony-chat-logica.js';
 import { chiediVoce } from '../../landing/src/lib/tony-voce-client.js';
 import { creaPlayerVoce } from '../../landing/src/lib/tony-voce-player.js';
@@ -44,6 +45,19 @@ const PAROLE_VIETATE = [
 ];
 
 const ID = 'a1b2c3d4e5f6789012345678abcdef01';
+
+describe('testoPerBigliettoVoce', () => {
+  it('preferisce esito.testo anche se azione.testo è stato riscritto', () => {
+    expect(
+      testoPerBigliettoVoce(
+        { testo: 'Ok, campo largo. Ne hai altri?' },
+        'Ok, campo largo. Ne hai altri? Dimmi nome, ettari e coltura.'
+      )
+    ).toBe('Ok, campo largo. Ne hai altri?');
+    expect(testoPerBigliettoVoce({ testo: '' }, 'fallback')).toBe('fallback');
+    expect(testoPerBigliettoVoce(null, 'solo-azione')).toBe('solo-azione');
+  });
+});
 
 describe('modoVoce e corpo', () => {
   it('combinazioni automatica/pulsante/nessuna', () => {

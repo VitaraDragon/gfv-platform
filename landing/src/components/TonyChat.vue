@@ -21,6 +21,7 @@ import {
   messaggioAttesaLunga,
   modoVoce,
   nuovaSessione,
+  testoPerBigliettoVoce,
   validaDomanda,
 } from '../lib/tony-chat-logica.js';
 import { chiediVoce } from '../lib/tony-voce-client.js';
@@ -1085,8 +1086,11 @@ async function inviaTesto(grezzo: string, daChip = false) {
     chipVisibili.value = false;
   }
 
+  // Biglietto firmato su esito.testo; azione.testo può essere riscritto dal client → 409.
+  const testoBigliettoVoce = testoPerBigliettoVoce(esito, azione.testo);
+
   const modo = modoVoce({
-    esito: { ...esito, testo: azione.testo },
+    esito: { ...esito, testo: testoBigliettoVoce },
     altoparlante: altoparlante.value,
     risposteVocaliAutomatiche,
     riduciMovimento: props.riduciMovimento,
@@ -1096,13 +1100,13 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   if (esito.voce === true && typeof esito.idVoce === 'string') {
     altoparlanteVisibile.value = true;
-    metaVoce = { idVoce: esito.idVoce, testo: azione.testo };
+    metaVoce = { idVoce: esito.idVoce, testo: testoBigliettoVoce };
   }
 
   if (modo === 'automatica') {
     scorriInBasso();
     if (azione.campoAttivo) focalizzaCampoSeConsentito();
-    void gestisciVoceAutomatica(esito, azione.testo);
+    void gestisciVoceAutomatica(esito, testoBigliettoVoce);
   } else if (modo === 'pulsante') {
     mostraAscolta.value = true;
     emit('rispostaFinita');

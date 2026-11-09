@@ -264,12 +264,33 @@ function misuraNelPezzo(pezzo) {
   return null;
 }
 
+/**
+ * Toglie connettivi finali lasciati da «campo largo con 12 ha…».
+ * «a»/«e» solo se minuscoli (così «Campo A» resta un nome valido).
+ * @param {string} grezzo
+ * @returns {string}
+ */
+export function togliConnettiviFinaliNome(grezzo) {
+  let t = String(grezzo || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!t) return '';
+  while (true) {
+    const m = t.match(/\s+(con|di|da|a|e)$/i);
+    if (!m) break;
+    const w = m[1];
+    if (/^[ae]$/i.test(w) && w !== w.toLowerCase()) break;
+    t = t.slice(0, m.index).trim();
+  }
+  return t;
+}
+
 function pulisciNomeCandidato(grezzo) {
   let t = String(grezzo || '').replace(/\s+/g, ' ').trim();
   t = t.replace(/^(?:ho|ci sono|c'è|ce)\s+/i, '');
   t = t.replace(/^(?:un|uno|una|il|lo|la|i|gli|le)\s+/i, '');
   t = t.replace(/^(?:terreno|appezzamento)\s+/i, '');
-  t = t.replace(/\s+(?:da|di)$/i, '');
+  t = togliConnettiviFinaliNome(t);
   t = t.replace(/^[\s:,\-–—]+|[\s:,\-–—.?!]+$/g, '').trim();
   if (!t || [...t].length > 80) return null;
   if (!nomeTerrenoVisibile(t)) return null;
@@ -836,7 +857,7 @@ export function chiaveNome(nome) {
  * @returns {string}
  */
 export function nomeTerrenoVisibile(nome) {
-  const s = String(nome == null ? '' : nome).trim();
+  const s = togliConnettiviFinaliNome(String(nome == null ? '' : nome).trim());
   if (!s || /^(null|undefined|nullo)$/i.test(s)) return '';
   return s;
 }
