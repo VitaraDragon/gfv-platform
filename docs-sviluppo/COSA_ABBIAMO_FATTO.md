@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: niente terreno fantasma dalla sede.**
+**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: nomi «con», CAP, audio 409, video.**
+
+## 2026-11-09 — Landing intervista: nomi senza «con», CAP, audio 409, video gitignore
+
+Su `fix/tony-landing-intervista-pier-9nov` (PR verso develop), dopo la prova reale di Pier sul canale `prova-tony`:
+
+1. **Nomi** — «campo largo con 12 ha di fava» / «campo alto con 5 ha di melograno»: il riepilogo non tiene più il «con» finale (`togliConnettiviFinaliNome` in function + client; «a»/«e» solo minuscoli così «Campo A» resta).
+2. **CAP** — nessuna tabella comuni CAP in repo: con «via monte coralli 8 faenza» restano Faenza + RA e CAP vuoto, senza errore.
+3. **Audio 409** — causa nel client: `TonyChat` mandava a `tonyLandingAudio` il testo riscritto da `preparaTurnoOnboarding` invece di `esito.testo` (hash del biglietto) → `voce-non-valida`. Fix: `testoPerBigliettoVoce`. AudioContext / blob 404 erano effetto a cascata. Nessun deploy function richiesto per questo fix.
+4. **Video 404** — `*.mp4`/`*.webm` in `landing/public/video/` sono gitignored (README: file locali ~25 MB); poster/VTT sì. Non è un bug di build: sul canale mancano i file non versionati.
+
+Test: `landing-nome-terreno-runtime` (frasi Pier), `landing-passo12b` (`testoPerBigliettoVoce`); suite `tests/landing` verde. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: niente terreno fantasma dalla sede.**
 
 ## 2026-11-09 — Landing intervista account: sede ≠ terreno, contatore reale
 
