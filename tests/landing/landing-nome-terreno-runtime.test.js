@@ -6,6 +6,7 @@
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   aprireSchedaPerFatto,
@@ -19,6 +20,7 @@ import {
   prossimoPasso,
   righeRiepilogo,
   serializzaRaccolti,
+  sembraIndirizzo,
   utenteChiedeRiepilogo,
 } from '../../landing/src/lib/tony-aiuto-account.js';
 import { azionePerEsito, MESSAGGI_CHAT } from '../../landing/src/lib/tony-chat-logica.js';
@@ -1315,6 +1317,13 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
       superficie: 12,
     });
     expect(interpretaFraseTerreni('faenza via monte coralli 5')[0].superficie).toBeNull();
+    expect(sembraIndirizzo('via monte coralli 5 faenza')).toBe(true);
+    expect(interpretaFraseTerreni('via monte coralli 5 faenza')[0].superficie).toBeNull();
+    expect(interpretaFraseTerreni('ho 3 ha di sangiovese che si piama paletto')[0]).toMatchObject({
+      nome: 'paletto',
+      varieta: 'sangiovese',
+      superficie: 3,
+    });
     expect(aprireSchedaPerFatto('faenza via monte coralli 5', true)).toBe(false);
     expect(aprireSchedaPerFatto('8 ha di noci che si chiama pozzo', true)).toBe(false);
     expect(utenteChiedeRiepilogo('8 ha di noci che si chiama pozzo')).toBe(false);
@@ -1322,7 +1331,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
 
   it('la chat non sostituisce il testo vuoto della sede con l errore', () => {
     const src = fs.readFileSync(
-      path.join(path.dirname(new URL(import.meta.url).pathname), '../../landing/src/components/TonyChat.vue'),
+      path.join(path.dirname(fileURLToPath(import.meta.url)), '../../landing/src/components/TonyChat.vue'),
       'utf8'
     );
     expect(src).toMatch(/typeof esito\.testo === 'string' \? esito\.testo/);
@@ -1692,5 +1701,144 @@ describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
       });
       schedaAttesa(sesto.righe);
     }
+  });
+});
+
+/**
+ * Dialogo reale prova-tony (main 25dd0175): sede «via monte coralli 5 faenza»
+ * generava un terreno fantasma (5 ha, coltura Faenza), contatore sfalsato,
+ * Chiesetta respinta come sesto. Verifica function + client sullo stesso turno.
+ */
+function dialogoMonteCoralliLoghetto() {
+  const stato = statoPulito();
+  const visti = [];
+  const gira = (domanda, modello) => {
+    visti.push(turnoRuntime(stato, domanda, modello));
+  };
+  gira('via monte coralli 5 faenza', {
+    testo: 'Ok, ho la sede. Hai dei poderi?',
+    sede: { indirizzo: 'via monte coralli 5', citta: 'Faenza', cap: null, provincia: 'RA' },
+    poderi: [],
+    terreni: [{ nome: 'Via monte coralli', superficie: 5, coltura: 'Faenza' }],
+    fatto: false,
+  });
+  gira('loghetto', {
+    testo: 'Ok, ho un podere. Passiamo ai terreni.',
+    poderi: [{ nome: 'loghetto' }],
+    terreni: [],
+    fatto: false,
+  });
+  gira('passiamo ai terreni', {
+    testo: 'Dimmi nome, ettari e coltura. Ne hai zero su 5.',
+    terreni: [],
+    fatto: false,
+  });
+  gira('quercia 3 ha sorgo', {
+    testo: 'Ok. Ne hai due su 5.',
+    terreni: [{ nome: 'Quercia', superficie: 3, coltura: 'Sorgo', podere: 'loghetto' }],
+    fatto: false,
+  });
+  gira('ho 3 ha di sangiovese che si piama paletto', {
+    testo: 'Come si chiama questo terreno?',
+    terreni: [{ nome: null, superficie: 3, coltura: 'Sangiovese', podere: 'loghetto' }],
+    fatto: false,
+  });
+  gira('ho un campo di grano che si chiama collina', {
+    testo: 'Ne hai cinque su 5.',
+    terreni: [{ nome: 'Collina', superficie: null, coltura: 'Grano', podere: 'loghetto' }],
+    fatto: false,
+  });
+  gira('12', {
+    testo: 'Ok, 12 ettari.',
+    terreni: [{ nome: 'Collina', superficie: 12, coltura: 'Grano', podere: 'loghetto' }],
+    fatto: false,
+  });
+  gira('3 ha di prugne chiamato lago', {
+    testo: 'Ok, aggiunto.',
+    terreni: [{ nome: 'Lago', superficie: 3, coltura: 'Prugne', podere: 'loghetto' }],
+    fatto: false,
+  });
+  gira('6 ha di mele che si chiama chiesetta', {
+    testo:
+      "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+    terreni: [{ nome: 'Chiesetta', superficie: 6, coltura: 'Melo', podere: 'loghetto' }],
+    fatto: true,
+  });
+  gira('2 ha di orzo chiamato extra', {
+    testo:
+      "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+    terreni: [{ nome: 'Extra', superficie: 2, coltura: 'Orzo', podere: 'loghetto' }],
+    fatto: true,
+  });
+  return { stato, visti };
+}
+
+describe('runtime: dialogo Monte Coralli / Loghetto (fantasma sede)', () => {
+  it('nessun terreno dalla sede, contatore reale, Chiesetta quinto, sesto respinto', () => {
+    const { stato, visti } = dialogoMonteCoralliLoghetto();
+
+    expect(visti[0].terreni).toHaveLength(0);
+    expect(stato.dati.sede.citta).toBe('Faenza');
+    expect(visti[1].poderi).toEqual(['loghetto']);
+
+    expect(visti[3].terreni).toHaveLength(1);
+    expect(visti[3].terreni[0].nome).toMatch(/^quercia$/i);
+    expect(visti[3].testo).toMatch(/ne hai\s+1\s+su\s+5/i);
+    expect(visti[3].testo).not.toMatch(/ne hai\s+due\s+su\s+5/i);
+
+    expect(visti[4].terreni.map((t) => String(t.nome || '').toLowerCase())).toEqual([
+      'quercia',
+      'paletto',
+    ]);
+
+    expect(visti[5].terreni).toHaveLength(3);
+    expect(visti[5].testo).toMatch(/ne hai\s+3\s+su\s+5/i);
+
+    expect(visti[7].terreni).toHaveLength(4);
+    expect(visti[7].terreni.map((t) => String(t.nome || '').toLowerCase())).toEqual([
+      'quercia',
+      'paletto',
+      'collina',
+      'lago',
+    ]);
+
+    expect(visti[8].troppi).toBe(false);
+    expect(visti[8].terreni).toHaveLength(5);
+    expect(visti[8].terreni.map((t) => String(t.nome || '').toLowerCase())).toEqual([
+      'quercia',
+      'paletto',
+      'collina',
+      'lago',
+      'chiesetta',
+    ]);
+    expect(visti[8].testo).not.toMatch(/account gratuito/i);
+
+    expect(visti[9].troppi).toBe(true);
+    expect(visti[9].terreni).toHaveLength(5);
+    expect(visti[9].terreni.some((t) => /^extra$/i.test(String(t.nome || '')))).toBe(false);
+    expect(visti[9].testo).toMatch(/account gratuito/i);
+
+    expect(
+      stato.dati.terreni.some(
+        (t) =>
+          /monte coralli/i.test(String(t.nome || '')) ||
+          /faenza/i.test(String(t.coltura || ''))
+      )
+    ).toBe(false);
+  });
+
+  it('function: sede con terreno fantasma nel JSON non passa terreni', () => {
+    const out = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'Ok sede',
+        sede: { indirizzo: 'via monte coralli 5', citta: 'Faenza' },
+        poderi: [],
+        terreni: [{ nome: 'Via monte coralli', superficie: 5, coltura: 'Faenza' }],
+        fatto: false,
+      }),
+      { argomento: 'sede', domanda: 'via monte coralli 5 faenza', raccolti: '' }
+    );
+    expect(out.dati.terreni).toEqual([]);
+    expect(out.dati.sede.citta).toBe('Faenza');
   });
 });
