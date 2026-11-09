@@ -245,11 +245,11 @@ function promptSistemaAccount(argomento, opzioni) {
     "I poderi sono facoltativi. Nel passo «poderi» chiedi una volta se ne ha. Un no non inventa poderi. Se ne dice uno, anche fuori dal passo, tienilo senza duplicarlo. Nel passo «terreni» non ripetere la domanda sui poderi.",
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
     "Quando passi ai terreni e non ne hai ancora raccolti, chiedi il primo così: «Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?». Non chiedere «Quanti terreni hai e come si chiamano?». Se l'utente risponde solo con un numero di terreni (es. «7 terreni», «ne ho 4», «cinque»), non mettere fatto: true e non parlare di riepilogo: se il numero è >5 avvisa del limite gratuito, poi chiedi comunque il primo terreno (nome, ettari, coltura).",
-    "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true. Usa la forma «Ne hai N su cinque terreni» / «ne hai N su 5» con N esatto.",
-    "Accetta fino a 5 terreni (il quinto va bene). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.» Non mettere fatto: true solo perché i terreni sono 5: il riepilogo si apre se l'utente lo chiede.",
+    "Quando l'argomento è «terreni» e hai almeno un terreno completo in elenco ma meno di 5, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true. Usa la forma «Ne hai N su cinque terreni» / «ne hai N su 5» con N esatto (solo se N < 5).",
+    "Accetta fino a 5 terreni (il quinto va bene). Quando il quinto terreno è completo (nome + ettari + coltura), NON chiedere «Ne hai altri?»: di' che è stato raggiunto il limite di cinque terreni e metti fatto: true (il client apre il riepilogo). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.»",
     "Terreni già raccolti: " +
       terreniDaRaccolti(raccolti).conteggio +
-      " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha, usa la forma «ne hai N su 5» con N esatto.",
+      " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha (e N < 5), usa la forma «ne hai N su 5» con N esatto.",
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
     "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); nel JSON usa SEMPRE il nome canonico del catalogo, mai il plurale grezzo dell'utente. Esempi: «noci» → «Noce», «pesche»/«peschi» → «Pesco», «mele» → «Melo», «pere» → «Pero», «albicocco» → «Albicocche», «prugne» → «Prugne», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano». Se la coltura non è in elenco (né come sinonimo), lascia null e chiedila in chat; non inventarla. «seminativo» e «frutteto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
@@ -931,11 +931,26 @@ function misureNellaDomanda(domanda) {
  * @param {string} frase
  * @returns {string}
  */
+/**
+ * Ferma il capture di «si chiama X…» prima di «N ha / N ettari / N di …».
+ * @param {string} grezzo
+ * @returns {string}
+ */
+function troncaNomePrimaDiMisura(grezzo) {
+  const t = String(grezzo || "");
+  if (!t) return "";
+  const m = t.match(
+    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)|(\d+(?:[.,]\d+)?)\s+di\s+/i
+  );
+  if (!m || m.index == null) return t.trim();
+  return t.slice(0, m.index).trim();
+}
+
 function nomeEsplicitoNellaFrase(frase) {
   const s = String(frase || "");
   if (sembraIndirizzo(s)) return "";
   const chiama = s.match(new RegExp(RE_SI_CHIAMA.source + "([^,.]*)", "i"));
-  if (chiama) return nomeTerrenoVisibile(chiama[1]);
+  if (chiama) return nomeTerrenoVisibile(troncaNomePrimaDiMisura(chiama[1]));
   const ha = s.match(
     /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)|(\d+(?:[.,]\d+)?)\s+di\s+|(?<![A-Za-zÀ-ÖØ-öø-ÿ])(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)[A-Za-zÀ-ÖØ-öø-ÿ]/i
   );
@@ -1260,5 +1275,6 @@ module.exports = {
   numeroTerreniDetto,
   RE_SI_CHIAMA,
   togliConnettiviFinaliNome,
+  troncaNomePrimaDiMisura,
   nomeTerrenoVisibile
 };

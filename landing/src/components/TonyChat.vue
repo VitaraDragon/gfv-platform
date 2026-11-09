@@ -1035,6 +1035,10 @@ async function inviaTesto(grezzo: string, daChip = false) {
       chipVisibili.value = true;
     } else if (turno.vaiATerreni) {
       avviaPasso('terreni');
+    } else if (turno.apriRiepilogo) {
+      // 5° terreno completo: niente «Ne hai altri?», apre subito il riepilogo.
+      void suonaFraseFissa('limiteCinqueRaggiunto');
+      apriScheda();
     } else if (
       (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) &&
       !fraseTerrenoSenzaRiepilogo(domanda) &&

@@ -316,6 +316,22 @@ export function togliConnettiviFinaliNome(grezzo) {
   return t;
 }
 
+/**
+ * Ferma il capture di «si chiama X…» prima di «N ha / N ettari / N di …».
+ * Così «si chiama lago 12 ha kiwi» → nome «lago», non «lago 12 ha kiwi».
+ * @param {string} grezzo
+ * @returns {string}
+ */
+export function troncaNomePrimaDiMisura(grezzo) {
+  const s = String(grezzo || '');
+  if (!s) return '';
+  const m = s.match(
+    /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)|(\d+(?:[.,]\d+)?)\s+di\s+/i
+  );
+  if (!m || m.index == null) return s.trim();
+  return s.slice(0, m.index).trim();
+}
+
 function pulisciNomeCandidato(grezzo) {
   let t = String(grezzo || '').replace(/\s+/g, ' ').trim();
   t = t.replace(/^(?:ho|ci sono|c'è|ce)\s+/i, '');
@@ -342,7 +358,9 @@ export function interpretaFraseTerreni(domanda) {
   const chiama = raw.match(
     new RegExp(RE_SI_CHIAMA.source + '(.+?)(?:[,.]|$)', 'i')
   );
-  const nomeDetto = chiama ? pulisciNomeCandidato(chiama[1]) : null;
+  const nomeDetto = chiama
+    ? pulisciNomeCandidato(troncaNomePrimaDiMisura(chiama[1]))
+    : null;
   const parti = raw.split(/\s+e\s+/i);
   const conSuperficie = parti.filter((p) => misuraNelPezzo(p));
   const pezzi = conSuperficie.length >= 2 ? conSuperficie : [raw];
@@ -577,11 +595,14 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
       const dalModello = lista.find(
         (t) => t && nomeTerrenoVisibile(t.nome) && stessoNome(t.nome, nomeLibero)
       );
+      const colturaGrezza =
+        (base && base.coltura) || (dalModello && dalModello.coltura) || null;
       return [
         {
           nome: dalModello ? nomeTerrenoVisibile(dalModello.nome) : nomeLibero,
           superficie: typeof base.superficie === 'number' ? base.superficie : null,
-          coltura: base.coltura || null,
+          // Sempre canonica (es. noci → Noce, albicocche → Albicocche).
+          coltura: colturaAccettata(colturaGrezza, null),
           podere: base.podere || null,
           categoria: base.categoria,
         },
@@ -1337,7 +1358,34 @@ export function aprireSchedaPerFatto(domanda, fatto) {
   return fatto === true && utenteChiedeRiepilogo(domanda);
 }
 
-function confermaTerrenoRaccolto(t) {
+/** Nome + superficie + coltura: conta per il limite gratuito. */
+export function terrenoRealeCompleto(t) {
+  return !!(
+    t &&
+    nomeTerrenoVisibile(t.nome) &&
+    typeof t.superficie === 'number' &&
+    String(t.coltura || '').trim()
+  );
+}
+
+/**
+ * @param {Array<object>|undefined} terreni
+ * @returns {number}
+ */
+export function contaTerreniRealiCompleti(terreni) {
+  return (Array.isArray(terreni) ? terreni : []).filter(terrenoRealeCompleto).length;
+}
+
+/** Frase fissa quando il 5° terreno completo chiude l'intervista terreni. */
+export function testoLimiteCinqueRaggiunto() {
+  const ta = testiLanding && testiLanding.tonyBussa && testiLanding.tonyBussa.aiuto;
+  return (
+    (ta && ta.limiteCinqueRaggiunto) ||
+    'Hai raggiunto il limite di cinque terreni. Controlliamo il riepilogo.'
+  );
+}
+
+function confermaTerrenoRaccolto(t, opts) {
   const nome = nomeTerrenoVisibile(t && t.nome);
   const n = t && typeof t.superficie === 'number' ? t.superficie : null;
   const ett =
@@ -1346,7 +1394,29 @@ function confermaTerrenoRaccolto(t) {
   const pezzi = ['Ok, un terreno' + (nome ? ' ' + nome : '')];
   if (ett) pezzi.push('di ' + ett);
   if (col) pezzi.push('a ' + col);
-  return pezzi.join(' ') + '. Ne hai altri o vediamo il riepilogo?';
+  const coda =
+    opts && opts.limiteRaggiunto
+      ? testoLimiteCinqueRaggiunto()
+      : 'Ne hai altri o vediamo il riepilogo?';
+  return pezzi.join(' ') + '. ' + coda;
+}
+
+/**
+ * Toglie «Ne hai altri…» / «ne hai N su 5…» quando il limite è già pieno.
+ * @param {string} testo
+ * @returns {string}
+ */
+export function togliInvitoAltriTerreni(testo) {
+  return String(testo || '')
+    .split(/(?<=[.!?])\s+/)
+    .filter(
+      (p) =>
+        !/\bne hai altri\b/i.test(p) &&
+        !/\bne hai\s+\S+\s+su\s+(?:cinque|5)\b/i.test(p)
+    )
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -1514,6 +1584,15 @@ export function preparaTurnoOnboarding(opts) {
     if (pulito !== String(o.testo).trim()) testo = pulito;
   }
 
+  const nCompletiPrima = contaTerreniRealiCompleti(attuali.terreni);
+  const nCompleti = contaTerreniRealiCompleti(uniti.dati.terreni);
+  // Solo al passaggio 4→5: non al rifiuto del sesto (troppiTerreni).
+  const appenaRaggiuntoLimite =
+    !mancanti.length &&
+    nCompleti >= LIMITI.MAX_TERRENI_PER_RICHIESTA &&
+    nCompletiPrima < LIMITI.MAX_TERRENI_PER_RICHIESTA &&
+    uniti.troppiTerreni !== true;
+
   const soloColtura = normalizzaColturaCatalogo(String(o.domanda || '').trim());
   if (
     soloColtura &&
@@ -1533,7 +1612,9 @@ export function preparaTurnoOnboarding(opts) {
         /account gratuito arrivi a/i.test(mostratoOra) ||
         mostratoOra.trim() === 'Va bene.'
       ) {
-        testo = confermaTerrenoRaccolto(colpiti[0]);
+        testo = confermaTerrenoRaccolto(colpiti[0], {
+          limiteRaggiunto: appenaRaggiuntoLimite,
+        });
       }
     }
   }
@@ -1566,8 +1647,29 @@ export function preparaTurnoOnboarding(opts) {
           return !nome && ultimo.superficie != null && t && t.superficie === ultimo.superficie;
         })
       : null;
-    if (tenuto && nomeTerrenoVisibile(tenuto.nome)) testo = confermaTerrenoRaccolto(tenuto);
+    if (tenuto && nomeTerrenoVisibile(tenuto.nome)) {
+      testo = confermaTerrenoRaccolto(tenuto, {
+        limiteRaggiunto: appenaRaggiuntoLimite,
+      });
+    }
   }
+
+  let apriRiepilogo = false;
+  if (
+    appenaRaggiuntoLimite &&
+    (passo === 'terreni' || passo0 === 'terreni') &&
+    !devePoderi
+  ) {
+    apriRiepilogo = true;
+    let t = testo != null ? testo : String(o.testo || '');
+    t = togliInvitoAltriTerreni(t);
+    if (!/raggiunto il limite di cinque|controlliamo il riepilogo/i.test(t)) {
+      const lim = testoLimiteCinqueRaggiunto();
+      t = t ? t.replace(/[.!?]?$/, '.') + ' ' + lim : lim;
+    }
+    testo = t;
+  }
+
   if (testo == null && o.testo !== testoIngresso) testo = o.testo;
 
   return {
@@ -1576,6 +1678,7 @@ export function preparaTurnoOnboarding(opts) {
     testo,
     bloccaAvanti,
     vaiATerreni,
+    apriRiepilogo,
   };
 }
 

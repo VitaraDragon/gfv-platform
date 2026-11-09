@@ -276,6 +276,8 @@ export const testiLanding = {
         'Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi? Con l\'account gratuito ne puoi inserire fino a 5.',
       cinqueTerreni:
         "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+      limiteCinqueRaggiunto:
+        'Hai raggiunto il limite di cinque terreni. Controlliamo il riepilogo.',
       categoria: 'Che cosa ci coltivi? Grano, mais, orzo…',
       schedaIntro:
         'Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.',
