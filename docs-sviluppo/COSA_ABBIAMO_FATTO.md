@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — Trattamenti: schede mobile, Mostra archiviati.**
+**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: niente terreno fantasma dalla sede.**
+
+## 2026-11-09 — Landing intervista account: sede ≠ terreno, contatore reale
+
+Su `fix/tony-landing-intervista-terreni-fantasma` (PR verso develop): la risposta alla sede (`via monte coralli 5 faenza`) non crea più un terreno (civico letto come ettari, comune come coltura). Stesso blocco lato function (`tony-landing-account.js`) e client (`tony-aiuto-account.js`); nomi tipo «Via …» scartati; coltura non da civico senza `ha`/`di`; refusi `si piama` / `si kiama` / `si chama`. Contatore e limite 5 solo sui terreni reali (Chiesetta accettata come quinto). Test runtime del dialogo in `tests/landing/landing-nome-terreno-runtime.test.js`. Nessun deploy. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Trattamenti: schede mobile, Mostra archiviati.**
 
 ## 2026-11-07 — Trattamenti: Modifica sulle schede e storico archiviati
 

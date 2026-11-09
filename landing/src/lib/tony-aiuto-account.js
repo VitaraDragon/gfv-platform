@@ -60,11 +60,54 @@ export function normalizzaColturaCatalogo(grezzo) {
   return trovata.ok ? trovata.nome : null;
 }
 
+/** Via/civico/comune: non è un terreno (il civico non è ettari). */
+export function sembraIndirizzo(domanda) {
+  const d = String(domanda || '');
+  if (!d) return false;
+  if (/\b(?:ha\b|ettari?\b)\b/i.test(d)) return false;
+  if (/\b\d+(?:[.,]\d+)?\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return false;
+  return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
+    d
+  );
+}
+
+/** Nome inventato dal modello a partire da una via. */
+export function nomeSembraIndirizzo(nome) {
+  return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada)\b/i.test(
+    String(nome || '')
+  );
+}
+
+/**
+ * Misura terreno chiara (ha / «N di coltura»), non un civico.
+ * @param {string} domanda
+ */
+export function domandaTerrenoEsplicita(domanda) {
+  const d = String(domanda || '');
+  if (!d || sembraIndirizzo(d)) return false;
+  if (/\b(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)/i.test(d)) return true;
+  if (/\b(\d+(?:[.,]\d+)?)\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return true;
+  return false;
+}
+
+/** Refusi comuni di «si chiama». */
+export const RE_SI_CHIAMA =
+  /(?:si\s+(?:chiama|piama|kiama|chama)|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+/i;
+
 export function messaggioHaTerreno(domanda) {
   const d = String(domanda || '');
+  if (sembraIndirizzo(d)) return false;
   if (/\b(\d+(?:[.,]\d+)?)\s*(?:ha|ettar)/i.test(d)) return true;
   if (/\b(\d+(?:[.,]\d+)?)\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return true;
-  if (/\b(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|di\b)[a-zà-öø-ÿ]/i.test(d)) return true;
+  if (/\b(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|di\b)[a-zà-öø-ÿ]/i.test(d)) {
+    // Numero + parola senza ha: solo se non è un indirizzo (già escluso) e
+    // la parola è una coltura/categoria nota, altrimenti è civico+comune.
+    const m = d.match(
+      /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/i
+    );
+    if (m && (normalizzaColturaCatalogo(m[2]) || soloCategoriaColtura(m[2]))) return true;
+    return false;
+  }
   return /\bterren|campo|cappezz|coltiv|semin/i.test(d);
 }
 
@@ -120,10 +163,15 @@ function soloCategoriaColtura(grezzo) {
   return !trovata.ok && trovata.errore === ERRORI.CATEGORIA_NON_COLTURA;
 }
 
-function colturaDetta(grezzo) {
+function colturaDetta(grezzo, opts) {
   const testo = String(grezzo || '').trim();
   if (!testo || soloCategoriaColtura(testo)) return null;
-  return normalizzaColturaCatalogo(testo) || inizialeMaiuscola(testo);
+  const catalogo = normalizzaColturaCatalogo(testo);
+  if (catalogo) return catalogo;
+  // Varietà libera solo se la frase ha ha/di («3 ha di sangiovese»);
+  // altrimenti non creare una coltura fantasma (es. «Faenza» da un civico).
+  if (opts && opts.consentiLibera === true) return inizialeMaiuscola(testo);
+  return null;
 }
 
 /** Restano nel nome: «campo vecchio», «vigna alta». Trebbiano e sangiovese no. */
@@ -167,6 +215,7 @@ function staccaVarietaDalNome(nome) {
  * @returns {{ superficie: number|null, varieta: string|null, index: number }|null}
  */
 function misuraNelPezzo(pezzo) {
+  if (sembraIndirizzo(pezzo)) return null;
   const ha = String(pezzo || '').match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)/i);
   if (ha) {
     let varieta = null;
@@ -196,10 +245,16 @@ function misuraNelPezzo(pezzo) {
       index: di.index,
     };
   }
+  // «5 faenza» / civico+comune: senza ha/di non inventare ettari, salvo coltura nota
+  // («12 mais» / «3 sorgo»).
   const nudo = String(pezzo || '').match(
     /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/i
   );
-  if (nudo && STOP_NOME_TERRENO.indexOf(nudo[2].toLowerCase()) < 0) {
+  if (
+    nudo &&
+    STOP_NOME_TERRENO.indexOf(nudo[2].toLowerCase()) < 0 &&
+    (normalizzaColturaCatalogo(nudo[2]) || soloCategoriaColtura(nudo[2]))
+  ) {
     return {
       superficie: Number(String(nudo[1]).replace(',', '.')),
       varieta: nudo[2],
@@ -231,8 +286,9 @@ function pulisciNomeCandidato(grezzo) {
 export function interpretaFraseTerreni(domanda) {
   const raw = String(domanda || '').trim();
   if (!raw) return [];
+  if (sembraIndirizzo(raw)) return [{ nome: null, varieta: null, superficie: null }];
   const chiama = raw.match(
-    /(?:si chiama|il nome (?:del terreno\s+)?(?:è|e')|chiamat[oa]|chiamalo)\s+(.+?)(?:[,.]|$)/i
+    new RegExp(RE_SI_CHIAMA.source + '(.+?)(?:[,.]|$)', 'i')
   );
   const nomeDetto = chiama ? pulisciNomeCandidato(chiama[1]) : null;
   const parti = raw.split(/\s+e\s+/i);
@@ -296,7 +352,8 @@ export function nomeLiberoSeInAttesa(domanda, terreniAttuali) {
   return pulisciNomeCandidato(s);
 }
 
-function assegnaColtura(out, detto) {
+function assegnaColtura(out, detto, opts) {
+  const libera = !!(opts && opts.consentiLibera);
   const grezzo =
     out.coltura != null && String(out.coltura).trim() ? String(out.coltura).trim() : '';
   if (grezzo && soloCategoriaColtura(grezzo)) {
@@ -305,17 +362,19 @@ function assegnaColtura(out, detto) {
   } else if (grezzo) {
     const norm = normalizzaColturaCatalogo(grezzo);
     if (norm) out.coltura = norm;
+    else if (libera && !detto) out.coltura = inizialeMaiuscola(grezzo);
+    else out.coltura = null;
   }
   if (!out.coltura && detto) {
     if (soloCategoriaColtura(detto)) out.categoria = out.categoria || detto;
-    else out.coltura = colturaDetta(detto);
+    else out.coltura = colturaDetta(detto, { consentiLibera: libera });
   } else if (out.coltura && detto && !normalizzaColturaCatalogo(detto)) {
     // «noci» non è nel catalogo: non diventa Noce. «peschi» non tocca Pesco.
     const kd = chiaveNome(detto);
     const km = chiaveNome(out.coltura);
     const radice = kd.replace(/i$/, '');
     if (kd && km && km !== kd && radice && (km.startsWith(radice) || kd.startsWith(km))) {
-      out.coltura = inizialeMaiuscola(detto);
+      out.coltura = libera ? inizialeMaiuscola(detto) : null;
     }
   }
 }
@@ -326,7 +385,7 @@ function inizialeMaiuscola(s) {
   return t.charAt(0).toLocaleUpperCase('it') + t.slice(1);
 }
 
-function voceDaMisura(l) {
+function voceDaMisura(l, domanda) {
   const varieta = l && l.varieta ? l.varieta : null;
   const out = {
     nome: l && l.nome ? inizialeMaiuscola(l.nome) : null,
@@ -334,7 +393,8 @@ function voceDaMisura(l) {
     coltura: null,
     podere: null,
   };
-  assegnaColtura(out, varieta);
+  const libera = domandaTerrenoEsplicita(domanda);
+  assegnaColtura(out, varieta, { consentiLibera: libera });
   if (out.coltura && varieta && out.coltura === varieta) out.coltura = inizialeMaiuscola(out.coltura);
   return out;
 }
@@ -389,7 +449,7 @@ function correzioneColturaBreve(domanda, attuali) {
  * @param {Array<object>} lista
  * @param {Array<object>} attuali
  */
-function allineaListaAllaFrase(letti, lista, attuali) {
+function allineaListaAllaFrase(letti, lista, attuali, domanda) {
   const misure = (Array.isArray(letti) ? letti : []).filter(
     (l) => l && (l.superficie != null || l.varieta)
   );
@@ -421,7 +481,7 @@ function allineaListaAllaFrase(letti, lista, attuali) {
       if (l.nome) voce.nome = inizialeMaiuscola(l.nome);
       tenuti.push(voce);
     } else {
-      tenuti.push(voceDaMisura(l));
+      tenuti.push(voceDaMisura(l, domanda));
     }
   }
   for (let i = 0; i < lista.length; i++) {
@@ -472,9 +532,10 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
     }
   }
 
+  const liberaColtura = domandaTerrenoEsplicita(domanda);
   if (!lista.length) {
     const misure = letti.filter((l) => l && (l.superficie != null || l.varieta));
-    if (misure.length) return misure.map(voceDaMisura);
+    if (misure.length) return misure.map((l) => voceDaMisura(l, domanda));
   }
 
   const usati = Object.create(null);
@@ -501,6 +562,9 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
     const giaDato = nomeModello
       ? attuali.some((a) => a && stessoNome(a.nome, nomeModello))
       : false;
+    if (nomeModello && nomeSembraIndirizzo(nomeModello) && !giaDato) {
+      return null;
+    }
     let nome = nomeModello;
     if (letto && letto.nome) {
       if (nomeModello && giaDato && !stessoNome(nomeModello, letto.nome)) nome = nomeModello;
@@ -520,7 +584,7 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
       nomeModello && giaDato && letto && letto.nome && !stessoNome(nomeModello, letto.nome);
     const lettoUtile = lettoAltrui ? null : letto;
     const out = Object.assign({}, t, { nome: nome || null });
-    assegnaColtura(out, lettoUtile && lettoUtile.varieta);
+    assegnaColtura(out, lettoUtile && lettoUtile.varieta, { consentiLibera: liberaColtura });
     if (
       (out.superficie == null || out.superficie === '') &&
       lettoUtile &&
@@ -528,9 +592,21 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
     ) {
       out.superficie = lettoUtile.superficie;
     }
+    // Coltura non in catalogo e senza misura esplicita: non creare in silenzio.
+    if (
+      !liberaColtura &&
+      out.coltura &&
+      !normalizzaColturaCatalogo(out.coltura) &&
+      !giaDato
+    ) {
+      out.coltura = null;
+      if (!out.categoria && !nomeTerrenoVisibile(out.nome) && out.superficie == null) {
+        return null;
+      }
+    }
     return out;
-  });
-  return allineaListaAllaFrase(letti, mapped, attuali);
+  }).filter(Boolean);
+  return allineaListaAllaFrase(letti, mapped, attuali, domanda);
 }
 
 function descriviTerrenoSenzaNome(t, letto) {
@@ -1184,6 +1260,13 @@ export function preparaTurnoOnboarding(opts) {
   const attuali = o.datiAttuali && typeof o.datiAttuali === 'object' ? o.datiAttuali : {};
   const nuoviIn =
     o.datiNuovi && typeof o.datiNuovi === 'object' ? Object.assign({}, o.datiNuovi) : {};
+  // Sede/podere (o testo già consumato come indirizzo): mai terreni in questo turno.
+  const bloccaTerreniDaPasso =
+    sembraIndirizzo(o.domanda) ||
+    ((passo0 === 'sede' || passo0 === 'poderi') && !domandaTerrenoEsplicita(o.domanda));
+  if (bloccaTerreniDaPasso) {
+    nuoviIn.terreni = [];
+  }
   if (!Array.isArray(nuoviIn.terreni)) {
     const haMisura = interpretaFraseTerreni(o.domanda).some(
       (l) => l && (l.superficie != null || l.varieta)
@@ -1196,7 +1279,7 @@ export function preparaTurnoOnboarding(opts) {
       o.domanda,
       nuoviIn.terreni,
       attuali.terreni
-    );
+    ).filter((t) => t && !nomeSembraIndirizzo(t.nome));
   }
   if (messaggioNegaPoderi(o.domanda, passo0)) nuoviIn.senzaPoderi = true;
   const uniti = unisciDati(
@@ -1273,6 +1356,35 @@ export function preparaTurnoOnboarding(opts) {
     const aspettaColtura = mancanti.some((t) => !String(t.coltura || '').trim());
     if (!(aspettaColtura && chiedeColtura)) {
       testo = domandaNomeTerreni(o.domanda, uniti.dati.terreni);
+    }
+  } else if (
+    passo === 'terreni' &&
+    !mancanti.length &&
+    !chiedeRiepilogoEsplicito(o.domanda)
+  ) {
+    // Coltura non riconosciuta: non lasciare il terreno in silenzio, chiedila.
+    const senzaColtura = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
+      (t) =>
+        t &&
+        nomeTerrenoVisibile(t.nome) &&
+        typeof t.superficie === 'number' &&
+        !String(t.coltura || '').trim() &&
+        !t.categoria
+    );
+    const giaChiede = /che cosa ci coltivi|cosa ci coltivi|quale coltura/i.test(
+      String(o.testo || '')
+    );
+    if (senzaColtura.length === 1 && !giaChiede) {
+      bloccaAvanti = true;
+      const n = senzaColtura[0].superficie;
+      const ett =
+        String(n).replace('.', ',') + (n === 1 ? ' ettaro' : ' ettari');
+      testo =
+        'Che cosa ci coltivi nel terreno «' +
+        nomeTerrenoVisibile(senzaColtura[0].nome) +
+        '» da ' +
+        ett +
+        '? Grano, mais, orzo…';
     }
   } else if (!mancanti.length && o.testo) {
     const varietaDetta = interpretaFraseTerreni(o.domanda).some((l) => l && l.varieta);
