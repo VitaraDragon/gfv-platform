@@ -455,7 +455,7 @@ Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pa
 - **Superficie Totale Terreni (ha)** — somma della superficie dei terreni non archiviati.  
 - **Terreni coperti (ha)** — i terreni su cui c’è almeno un lavoro con superficie lavorata, ciascuno contato una volta sola. Di ogni terreno conta l’**intera superficie**, anche se il lavoro ne ha fatta solo una parte; sotto leggi quanti sono e che parte della superficie totale rappresentano, per esempio «3 terreni · 42.5% della superficie». Questa percentuale non supera mai il 100%.
 
-**Statistiche terreni:** **Terreni Totali**, **Di Proprietà**, **In Affitto** e le superfici (**Superficie Totale**, proprietà, affitto) contano solo i terreni **dell’azienda ancora attivi**: un terreno archiviato esce da questi totali (lo storico dei suoi lavori resta), e i terreni dei clienti del Conto terzi non ci entrano.
+**Statistiche terreni:** **Terreni Totali**, **Di Proprietà**, **In Affitto** e le superfici (**Superficie Totale**, proprietà, affitto) oggi contano i terreni **dell’azienda ancora attivi**: un terreno archiviato esce da questi totali (lo storico dei suoi lavori resta), e i terreni dei clienti del Conto terzi non ci entrano.
 
 **Ore da Validare** non conta le ore dei lavori in sola lettura (terreno archiviato o lavoro chiuso da un cambio coltura).
 

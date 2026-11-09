@@ -485,6 +485,8 @@ Le azioni automatiche dipendono dal **modulo Tony**, dal **ruolo** e dalla **pag
 
 ### I primi 7 giorni: Tony ti accompagna
 
+All’**iscrizione**, se preparate l’azienda con Tony: sede, poderi e terreni restano una bozza sul dispositivo finché, già collegati, aprite il riepilogo **«Confermi?»** e salvate (così entrano in azienda insieme a sede e poderi). La sola registrazione crea l’account e l’azienda, non i terreni; se non finite, la bozza sparisce dopo qualche ora. Sul piano gratuito al massimo **5 terreni** (il **+** del riepilogo si spegne a 5). Tony chiede il **nome** di ogni terreno; i **poderi** sono facoltativi.
+
 Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore; non nella schermata in campo di operaio e caposquadra) e scrive: «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» Se manca ancora il pin della sede aggiunge «(il pin della sede manca ancora: lo mettiamo al passo 1)». Su telefono il pannello si apre senza far salire la tastiera.
 
 Sotto il messaggio trovi tre pulsanti, uno per passo, e **Chiudi percorso**:

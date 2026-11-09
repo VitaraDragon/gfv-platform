@@ -124,6 +124,8 @@ Sul **piano gratuito** Tony Guida c’è **solo nei primi 7 giorni** dalla regis
 
 ### I primi 7 giorni: il percorso guidato
 
+All’iscrizione con Tony i terreni restano una bozza sul dispositivo fino al riepilogo **«Confermi?»** e al salvataggio (già collegati); Free max **5 terreni**; nome terreno obbligatorio, poderi facoltativi. Dettaglio nella guida Core.
+
 Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore) con «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» e tre pulsanti: **1) Mappa / sede**, **2) Terreni (coltura e confini)**, **3) Primo lavoro / attività nel Diario**, più **Chiudi percorso**. Il passo 3 porta al **Diario attività** senza Manodopera; con **Manodopera** porta a **Gestione lavori** e **Segnatura ore**. Ogni pulsante apre la pagina con qualsiasi piano, anche gratuito o Base. Se manca il pin della sede lo dice («lo mettiamo al passo 1»). Nei giorni dopo, una volta al giorno, riprende dal passo che non avete ancora aperto. Il percorso resta salvato nell’azienda e vale su tutti i telefoni e computer. Dettaglio nella guida Core, sezione Tony.
 
 ---
