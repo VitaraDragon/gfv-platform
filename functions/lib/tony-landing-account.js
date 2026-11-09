@@ -25,9 +25,18 @@ const PREFISSI_ESCLUSI = Object.freeze([
 const TESTO_RIPIEGO =
   "Non ho capito bene. Riprova con via e comune, oppure un podere, oppure un terreno con nome, ettari e coltura.";
 
+/** Plurali e nomi comuni → nome canonico del catalogo GFV. */
 const SINONIMI_COLTURA = Object.freeze([
   { chiavi: ["vigna", "uva", "vite"], nome: "Vite da Vino" },
   { chiavi: ["mele", "melo"], nome: "Melo" },
+  { chiavi: ["pere", "pero"], nome: "Pero" },
+  { chiavi: ["pesche", "peschi", "pesco"], nome: "Pesco" },
+  { chiavi: ["noci", "noce"], nome: "Noce" },
+  { chiavi: ["albicocco", "albicocchi"], nome: "Albicocche" },
+  { chiavi: ["susini", "susino"], nome: "Susino" },
+  { chiavi: ["ciliegie", "ciliegi", "ciliegio"], nome: "Ciliegio" },
+  { chiavi: ["fichi", "fico"], nome: "Fico" },
+  { chiavi: ["pompelmi", "pompelmo"], nome: "Pompelmo" },
   { chiavi: ["olive", "olivo"], nome: "Olivo" },
   { chiavi: ["grano duro", "grano tenero", "grano"], nome: "Grano" }
 ]);
@@ -235,14 +244,16 @@ function promptSistemaAccount(argomento, opzioni) {
     "Il nome del terreno non è la coltura, la varietà né gli ettari. «3 ha di trebbiano» ha superficie 3 e varietà trebbiano, ma nome null: chiedi come si chiama quel terreno e tieni ettari e coltura. «laghetto grano 5 ha» è nome laghetto, coltura Grano, 5 ha: la coltura può stare prima degli ettari. Se il nome è già esplicito («si chiama Vigna Alta», «Vigna Alta: 3 ha»), scrivilo e non chiedere di nuovo il nome. Una sola parola che è una coltura («pesco») corregge il terreno in attesa, non ne crea uno nuovo.",
     "I poderi sono facoltativi. Nel passo «poderi» chiedi una volta se ne ha. Un no non inventa poderi. Se ne dice uno, anche fuori dal passo, tienilo senza duplicarlo. Nel passo «terreni» non ripetere la domanda sui poderi.",
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
-    "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
+    "Quando passi ai terreni e non ne hai ancora raccolti, chiedi il primo così: «Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?». Non chiedere «Quanti terreni hai e come si chiamano?». Se l'utente risponde solo con un numero di terreni (es. «7 terreni», «ne ho 4», «cinque»), non mettere fatto: true e non parlare di riepilogo: se il numero è >5 avvisa del limite gratuito, poi chiedi comunque il primo terreno (nome, ettari, coltura).",
+    "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true. Usa la forma «Ne hai N su cinque terreni» / «ne hai N su 5» con N esatto.",
     "Accetta fino a 5 terreni (il quinto va bene). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.» Non mettere fatto: true solo perché i terreni sono 5: il riepilogo si apre se l'utente lo chiede.",
     "Terreni già raccolti: " +
       terreniDaRaccolti(raccolti).conteggio +
       " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha, usa la forma «ne hai N su 5» con N esatto.",
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
-    "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); «mele» → «Melo», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano»; «seminativo» e «frutteto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
+    "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); nel JSON usa SEMPRE il nome canonico del catalogo, mai il plurale grezzo dell'utente. Esempi: «noci» → «Noce», «pesche»/«peschi» → «Pesco», «mele» → «Melo», «pere» → «Pero», «albicocco» → «Albicocche», «prugne» → «Prugne», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano». Se la coltura non è in elenco (né come sinonimo), lascia null e chiedila in chat; non inventarla. «seminativo» e «frutteto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
+    "Il nome del terreno nel JSON ha la prima lettera maiuscola (es. «Prugneto»), come lo confermi a voce.",
     "Ortaggi: «ortaggi», «orto», «ortive», «verdure» sono la categoria Ortive, non una coltura salvabile. " +
       (/categoria Ortive/i.test(raccolti)
         ? "Hai GIÀ chiesto quali ortaggi: NON richiederlo di nuovo. Se l'utente dice «vari», «misti» o simili, proponi di scegliere un ortaggio concreto dall'elenco (es. Insalata, Pomodoro, Zucchine); non mettere fatto:true né mandare al riepilogo finché non c'è una coltura catalogo."
@@ -305,11 +316,11 @@ function togliConnettiviFinaliNome(grezzo) {
   return t;
 }
 
-/** «null» e «undefined» non sono nomi di terreno. */
+/** «null» e «undefined» non sono nomi di terreno. Prima lettera maiuscola. */
 function nomeTerrenoVisibile(nome) {
   const s = togliConnettiviFinaliNome(String(nome == null ? "" : nome).trim());
   if (!s || /^(null|undefined|nullo)$/i.test(s)) return "";
-  return s;
+  return inizialeMaiuscolaIt(s);
 }
 
 /** Via/civico/comune: non è un terreno (il civico non è ettari). */
@@ -335,6 +346,55 @@ function domandaTerrenoEsplicita(domanda) {
   if (/\b(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b)/i.test(d)) return true;
   if (/\b(\d+(?:[.,]\d+)?)\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return true;
   return false;
+}
+
+const NUMERI_TERRANI_PAROLA = Object.freeze({
+  un: 1,
+  uno: 1,
+  una: 1,
+  due: 2,
+  tre: 3,
+  quattro: 4,
+  cinque: 5,
+  sei: 6,
+  sette: 7,
+  otto: 8,
+  nove: 9,
+  dieci: 10
+});
+
+/**
+ * «7 terreni», «ne ho 4», «cinque» — solo conteggio, senza nome/ettari/coltura.
+ * @param {string} domanda
+ * @returns {number|null}
+ */
+function numeroTerreniDetto(domanda) {
+  const d = String(domanda || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[?!.,;:]+$/g, "")
+    .replace(/\s+/g, " ");
+  if (!d) return null;
+  if (/\b(?:ha\b|ettari?\b)\b/.test(d)) return null;
+  if (/\bdi\s+[a-zà-öø-ÿ]/.test(d)) return null;
+  const cifra = d.match(
+    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+|ce\s+n'è\s+)?(\d{1,2})\s*(?:terren[io]|campi|appezzamenti?)?$/i
+  );
+  if (cifra) return Number(cifra[1]);
+  const parola = d.match(
+    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s*(?:terren[io]|campi|appezzamenti?)?$/i
+  );
+  if (parola) {
+    const k = String(parola[1] || "").toLowerCase();
+    return Object.prototype.hasOwnProperty.call(NUMERI_TERRANI_PAROLA, k)
+      ? NUMERI_TERRANI_PAROLA[k]
+      : null;
+  }
+  return null;
+}
+
+function messaggioSoloConteggioTerreni(domanda) {
+  return numeroTerreniDetto(domanda) != null;
 }
 
 /** Refusi comuni di «si chiama». */
@@ -1123,13 +1183,29 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   }
   if (testoMancante && puliti.terreni.length) testo = "";
   const chiedeChiusura = /riepilogo|basta|ho finito|^fatto\b/i.test(String(domanda || "").trim());
+  const soloConteggioTerreni = messaggioSoloConteggioTerreni(domanda);
   const staDettando =
     !chiedeChiusura &&
+    !soloConteggioTerreni &&
     (/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari?\b|di\b)/i.test(String(domanda || "")) ||
       /(\d+(?:[.,]\d+)?)\s+(?!ha\b|ettari?\b|ettaro\b|di\b)[A-Za-zÀ-ÖØ-öø-ÿ]/i.test(
         String(domanda || "")
       ));
-  const fatto = parsed.fatto === true && !staDettando;
+  let fatto = parsed.fatto === true && !staDettando && !soloConteggioTerreni;
+  if (soloConteggioTerreni) {
+    fatto = false;
+    const nDetto = numeroTerreniDetto(domanda);
+    const pezzi = [];
+    if (nDetto != null && nDetto > LIMITI.MAX_TERRENI_PER_RICHIESTA) {
+      pezzi.push(
+        "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi."
+      );
+    }
+    pezzi.push(
+      "Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?"
+    );
+    testo = pezzi.join(" ");
+  }
   const fuoriTema = parsed.fuoriTema === true;
 
   return {
@@ -1180,6 +1256,8 @@ module.exports = {
   sembraIndirizzo,
   nomeSembraIndirizzo,
   domandaTerrenoEsplicita,
+  messaggioSoloConteggioTerreni,
+  numeroTerreniDetto,
   RE_SI_CHIAMA,
   togliConnettiviFinaliNome,
   nomeTerrenoVisibile
