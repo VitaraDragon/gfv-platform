@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: coltura canonica, Prugneto, primo terreno.**
+**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: 4 correzioni post-prova Pier.**
+
+## 2026-11-09 — Landing: 4 correzioni post-prova Pier (bussata, 5°, nome Lago, coltura)
+
+Su `fix/landing-tony-correzioni-pier-prova` (PR verso develop), dopo la prova reale su `prova-tony` / PR371:
+
+1. **Bussata** — `BUSSATA_AUTOMATICA_ATTIVA = false`: niente ingresso a timer al mount; Tony entra solo dal clic su «Vuoi provare GFV?» (precarico clip e `TONY_BUSSA_ATTIVO` invariati).
+2. **5° terreno** — al quinto completo (nome+ha+coltura) niente «Ne hai altri?»; frase `limiteCinqueRaggiunto` + apre subito il riepilogo. Il sesto resta rifiutato con `cinqueTerreni`. Prompt server allineato.
+3. **Nome** — «si chiama lago 12 ha kiwi» → nome `Lago` (tronca prima di N ha / N di), client + `applicaNomeTerrenoDaDomanda`.
+4. **Coltura** — nel ramo nome libero in attesa la coltura passa da `colturaAccettata` (es. `albicocche`/`albicocco`→`Albicocche`, `noci`→`Noce`). Catalogo ufficiale resta «Albicocche».
+
+Test: `landing-correzioni-pier-prova.test.js` (bussata, Lago, coltura, 5°, giro Faenza/Carisa). Cache voci `?v=2026-11-09b`; mp3 `limiteCinqueRaggiunto` da generare con lo script (nessuna chiave in sessione agente). LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: coltura canonica, Prugneto, primo terreno.**
 
 ## 2026-11-09 — Landing intervista: coltura catalogo, maiuscola nome, niente «quanti terreni»
 

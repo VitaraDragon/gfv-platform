@@ -35,6 +35,8 @@ const FRASI = Object.freeze({
     "Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.",
   cinqueTerreni:
     "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+  limiteCinqueRaggiunto:
+    "Hai raggiunto il limite di cinque terreni. Controlliamo il riepilogo.",
   passaggioSede: "Andiamo avanti: hai dei poderi?",
   passaggioPoderi:
     "Ok, passiamo ai terreni. Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?",
