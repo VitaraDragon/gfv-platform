@@ -10,7 +10,7 @@ Su `fix/tony-landing-intervista-coltura-nome-primo` (PR verso develop), dialogo 
 2. **Nome** — `nomeTerrenoVisibile` applica la prima lettera maiuscola (es. `prugneto`→`Prugneto`), con i connettivi finali già tolti.
 3. **Primo terreno** — niente «Quanti terreni hai e come si chiamano?»; domanda fissa/prompt «Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?». Su sola risposta numerica (`7 terreni`) non si apre il riepilogo: avviso limite se >5 e richiesta del primo terreno. Formule successive invariate («Ne hai altri…», «ne hai N su 5»).
 
-Test: `landing-nome-terreno-runtime` (dialogo Pier), sinonimi in `tony-landing-ask-account`; suite `tests/landing` + ask account verde. Cambia **function** (`tony-landing-account.js` / `tonyLandingAsk`) **e** client landing. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no. Nessun merge né deploy. Audio fissa `domandaTerreni`/`passaggioPoderi`: testo aggiornato nello script; mp3 da rigenerare a parte.
+Test: `landing-nome-terreno-runtime` (dialogo Pier), sinonimi in `tony-landing-ask-account`; suite `tests/landing` + ask account verde. Cambia **function** (`tony-landing-account.js` / `tonyLandingAsk`) **e** client landing. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no. Nessun merge né deploy. Audio fissa `tony-aiuto-domandaTerreni.mp3` / `tony-aiuto-passaggioPoderi.mp3` rigenerati (ElevenLabs, stessi settings); client `percorsoVoceAiuto` con `?v=2026-11-09a`.
 
 ---
 

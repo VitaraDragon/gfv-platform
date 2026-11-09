@@ -76,7 +76,21 @@ async function main() {
   if (!fs.existsSync(OUT_DIR)) {
     fs.mkdirSync(OUT_DIR, { recursive: true });
   }
-  const chiavi = Object.keys(FRASI);
+  const richieste = process.argv.slice(2).filter(Boolean);
+  const tutte = Object.keys(FRASI);
+  let chiavi = tutte;
+  if (richieste.length) {
+    chiavi = [];
+    for (let i = 0; i < richieste.length; i++) {
+      const k = richieste[i];
+      if (!Object.prototype.hasOwnProperty.call(FRASI, k)) {
+        console.error("Chiave sconosciuta: " + k + " (valide: " + tutte.join(", ") + ")");
+        process.exitCode = 1;
+        return;
+      }
+      chiavi.push(k);
+    }
+  }
   for (let i = 0; i < chiavi.length; i++) {
     const k = chiavi[i];
     const out = path.join(OUT_DIR, "tony-aiuto-" + k + ".mp3");
