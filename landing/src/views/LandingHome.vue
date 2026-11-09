@@ -22,6 +22,7 @@ import {
 } from '../config/landing-config.js';
 import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
 import {
+  BUSSATA_AUTOMATICA_ATTIVA,
   bussataAutomaticaConsentita,
   CHIAVE_BUSSATA_SESSIONE,
   CHIAVE_RINUNCIA_AVVISO,
@@ -1268,16 +1269,20 @@ onMounted(() => {
   }, PRECARICA_SCENA_MS);
   timerIds.push(idPrecarica);
 
-  const varianteMount = varianteScena(
-    typeof window !== 'undefined' ? window.innerWidth : 1024
-  );
-  const ritardoBussata = ritardoBussataAutomaticaMs(varianteMount);
-  const idBussataAuto = window.setTimeout(() => {
-    marcaPerf('tony-bussata-timer');
-    const esito = tentaBussataAutomatica();
-    if (esito === 'riprova-visibile') aspettaVisibilePerBussata = true;
-  }, ritardoBussata);
-  timerIds.push(idBussataAuto);
+  // Solo ingresso a timer: spegnibile con BUSSATA_AUTOMATICA_ATTIVA.
+  // Il clic su «Vuoi provare GFV?» (onVuoiProvare → avviaScena) resta attivo.
+  if (BUSSATA_AUTOMATICA_ATTIVA) {
+    const varianteMount = varianteScena(
+      typeof window !== 'undefined' ? window.innerWidth : 1024
+    );
+    const ritardoBussata = ritardoBussataAutomaticaMs(varianteMount);
+    const idBussataAuto = window.setTimeout(() => {
+      marcaPerf('tony-bussata-timer');
+      const esito = tentaBussataAutomatica();
+      if (esito === 'riprova-visibile') aspettaVisibilePerBussata = true;
+    }, ritardoBussata);
+    timerIds.push(idBussataAuto);
+  }
   window.addEventListener('resize', onResizeFinestra);
 });
 
