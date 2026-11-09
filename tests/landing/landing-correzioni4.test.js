@@ -91,8 +91,12 @@ describe('correzioni 4 – Saluta Tony e pillola', () => {
 
 describe('correzioni 4 – voci fisse e whoosh', () => {
   it('percorsoVoceAiuto e niente whoosh in entrata', () => {
-    expect(percorsoVoceAiuto('invito').mp3).toBe('/tony-live/voci/tony-aiuto-invito.mp3');
+    expect(percorsoVoceAiuto('invito').mp3).toMatch(
+      /^\/tony-live\/voci\/tony-aiuto-invito\.mp3\?v=/
+    );
     expect(percorsoVoceAiuto('tornaDalRiepilogo').mp3).toContain('tornaDalRiepilogo');
+    expect(percorsoVoceAiuto('domandaTerreni').mp3).toContain('domandaTerreni');
+    expect(percorsoVoceAiuto('passaggioPoderi').mp3).toContain('passaggioPoderi');
     const home = leggi('landing/src/views/LandingHome.vue');
     const fnEntrata = home.match(/function vaiEntrata\(\)[\s\S]*?\n\}/);
     expect(fnEntrata?.[0] || '').not.toContain('audioWhoosh');

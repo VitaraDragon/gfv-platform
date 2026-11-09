@@ -25,9 +25,29 @@ const PREFISSI_PODERE = Object.freeze([
 
 const MESSAGGI_PASSAGGIO = Object.freeze({
   sede: 'Andiamo avanti: hai dei poderi?',
-  poderi: 'Ok, passiamo ai terreni: nome, ettari e coltura.',
+  poderi:
+    'Ok, passiamo ai terreni. Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?',
   terreni: 'Facciamo così: controlla il riepilogo e completa lì.',
 });
+
+/** Allineato a functions/lib/tony-landing-account.js (SINONIMI_COLTURA). */
+const SINONIMI_COLTURA = Object.freeze([
+  { chiavi: ['vigna', 'uva', 'vite'], nome: 'Vite da Vino' },
+  { chiavi: ['mele', 'melo'], nome: 'Melo' },
+  { chiavi: ['pere', 'pero'], nome: 'Pero' },
+  { chiavi: ['pesche', 'peschi', 'pesco'], nome: 'Pesco' },
+  { chiavi: ['noci', 'noce'], nome: 'Noce' },
+  { chiavi: ['albicocco', 'albicocchi'], nome: 'Albicocche' },
+  { chiavi: ['susini', 'susino'], nome: 'Susino' },
+  { chiavi: ['ciliegie', 'ciliegi', 'ciliegio'], nome: 'Ciliegio' },
+  { chiavi: ['fichi', 'fico'], nome: 'Fico' },
+  { chiavi: ['pompelmi', 'pompelmo'], nome: 'Pompelmo' },
+  { chiavi: ['olive', 'olivo'], nome: 'Olivo' },
+  { chiavi: ['grano duro', 'grano tenero', 'grano'], nome: 'Grano' },
+]);
+
+export const DOMANDA_PRIMO_TERRENO =
+  'Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?';
 
 /**
  * @param {string} passo
@@ -57,7 +77,18 @@ export function normalizzaColturaCatalogo(grezzo) {
   const testo = String(grezzo == null ? '' : grezzo).trim();
   if (!testo || colturaOrtaggiGenerica(testo)) return null;
   const trovata = trovaColtura(testo, []);
-  return trovata.ok ? trovata.nome : null;
+  if (trovata.ok) return trovata.nome;
+  const chiave = chiaveNome(testo);
+  for (let i = 0; i < SINONIMI_COLTURA.length; i++) {
+    const voce = SINONIMI_COLTURA[i];
+    for (let j = 0; j < voce.chiavi.length; j++) {
+      if (chiaveNome(voce.chiavi[j]) === chiave) {
+        const canon = trovaColtura(voce.nome, []);
+        return canon.ok ? canon.nome : voce.nome;
+      }
+    }
+  }
+  return null;
 }
 
 /** Via/civico/comune: non è un terreno (il civico non è ettari). */
@@ -388,15 +419,20 @@ function assegnaColtura(out, detto, opts) {
   }
   if (!out.coltura && detto) {
     if (soloCategoriaColtura(detto)) out.categoria = out.categoria || detto;
-    else out.coltura = colturaDetta(detto, { consentiLibera: libera });
-  } else if (out.coltura && detto && !normalizzaColturaCatalogo(detto)) {
-    // «noci» non è nel catalogo: non diventa Noce. «peschi» non tocca Pesco.
-    const kd = chiaveNome(detto);
-    const km = chiaveNome(out.coltura);
-    const radice = kd.replace(/i$/, '');
-    if (kd && km && km !== kd && radice && (km.startsWith(radice) || kd.startsWith(km))) {
-      out.coltura = libera ? inizialeMaiuscola(detto) : null;
+    else {
+      const canon = normalizzaColturaCatalogo(detto);
+      if (canon) out.coltura = canon;
+      else if (libera) {
+        // Varietà libera (es. Trebbiano) solo con ha/di; altrimenti chiedi in chat.
+        out.coltura = colturaDetta(detto, { consentiLibera: true });
+      } else {
+        out.coltura = null;
+      }
     }
+  } else if (out.coltura && detto) {
+    // Preferisci il nome canonico del catalogo (noci → Noce), non il grezzo.
+    const daDetto = normalizzaColturaCatalogo(detto);
+    if (daDetto) out.coltura = daDetto;
   }
 }
 
@@ -859,7 +895,7 @@ export function chiaveNome(nome) {
 export function nomeTerrenoVisibile(nome) {
   const s = togliConnettiviFinaliNome(String(nome == null ? '' : nome).trim());
   if (!s || /^(null|undefined|nullo)$/i.test(s)) return '';
-  return s;
+  return inizialeMaiuscola(s);
 }
 
 /**
@@ -1231,9 +1267,59 @@ function chiedeRiepilogoEsplicito(domanda) {
   return /riepilogo|basta|ho finito|^fatto\b/i.test(String(domanda || '').trim());
 }
 
+const NUMERI_TERRANI_PAROLA = Object.freeze({
+  un: 1,
+  uno: 1,
+  una: 1,
+  due: 2,
+  tre: 3,
+  quattro: 4,
+  cinque: 5,
+  sei: 6,
+  sette: 7,
+  otto: 8,
+  nove: 9,
+  dieci: 10,
+});
+
+/**
+ * «7 terreni», «ne ho 4», «cinque» — solo conteggio, senza nome/ettari/coltura.
+ * @param {string} domanda
+ * @returns {number|null}
+ */
+export function numeroTerreniDetto(domanda) {
+  const d = String(domanda || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[?!.,;:]+$/g, '')
+    .replace(/\s+/g, ' ');
+  if (!d) return null;
+  if (/\b(?:ha\b|ettari?\b)\b/.test(d)) return null;
+  if (/\bdi\s+[a-zà-öø-ÿ]/.test(d)) return null;
+  const cifra = d.match(
+    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+|ce\s+n'è\s+)?(\d{1,2})\s*(?:terren[io]|campi|appezzamenti?)?$/i
+  );
+  if (cifra) return Number(cifra[1]);
+  const parola = d.match(
+    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s*(?:terren[io]|campi|appezzamenti?)?$/i
+  );
+  if (parola) {
+    const k = String(parola[1] || '').toLowerCase();
+    return Object.prototype.hasOwnProperty.call(NUMERI_TERRANI_PAROLA, k)
+      ? NUMERI_TERRANI_PAROLA[k]
+      : null;
+  }
+  return null;
+}
+
+export function messaggioSoloConteggioTerreni(domanda) {
+  return numeroTerreniDetto(domanda) != null;
+}
+
 /** La frase aggiunge un terreno e non chiede il riepilogo. */
 export function fraseTerrenoSenzaRiepilogo(domanda) {
   if (chiedeRiepilogoEsplicito(domanda)) return false;
+  if (messaggioSoloConteggioTerreni(domanda)) return true;
   return interpretaFraseTerreni(domanda).some(
     (l) => l && (l.superficie != null || l.varieta)
   );
@@ -1333,6 +1419,8 @@ export function preparaTurnoOnboarding(opts) {
   let testo = null;
   let bloccaAvanti = false;
   let vaiATerreni = false;
+  const nSoloConteggio = numeroTerreniDetto(o.domanda);
+  const soloConteggio = nSoloConteggio != null;
 
   if (devePoderi) {
     bloccaAvanti = true;
@@ -1357,6 +1445,18 @@ export function preparaTurnoOnboarding(opts) {
       const base = String(o.testo || '').trim();
       testo = base ? base + ' ' + DOMANDA_PODERI : DOMANDA_PODERI;
     }
+  } else if (soloConteggio && (passo === 'terreni' || passo0 === 'terreni' || passo0 === 'poderi')) {
+    // «7 terreni»: non aprire il riepilogo; avvisa se >5 e chiedi il primo.
+    passo = 'terreni';
+    bloccaAvanti = true;
+    const pezzi = [];
+    if (nSoloConteggio > LIMITI.MAX_TERRENI_PER_RICHIESTA) {
+      pezzi.push(
+        "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi."
+      );
+    }
+    pezzi.push(DOMANDA_PRIMO_TERRENO);
+    testo = pezzi.join(' ');
   } else if (
     messaggioNegaPoderi(o.domanda, passo0) &&
     (passo0 === 'poderi' || passo0 === 'sede')
