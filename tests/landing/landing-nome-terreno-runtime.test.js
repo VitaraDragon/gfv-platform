@@ -1192,7 +1192,9 @@ function turnoUi(stato, domanda, modello, meta) {
   const frase = fraseTerrenoSenzaRiepilogo(domanda);
   let scheda = false;
   if (!client.bloccaAvanti && !client.vaiATerreni) {
-    if ((dopo.azione === 'riepilogo' || dopo.apriRiepilogo) && !frase && stato.passo !== 'sede') {
+    if (client.apriRiepilogo) {
+      scheda = true;
+    } else if ((dopo.azione === 'riepilogo' || dopo.apriRiepilogo) && !frase && stato.passo !== 'sede') {
       scheda = true;
     } else if (dopo.azione === 'prossimoPasso' && !prossimoPasso(stato.passo) && !frase) {
       scheda = true;
@@ -1489,8 +1491,10 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
         expect(quinto.n).toBe(5);
         expect(quinto.righe).toHaveLength(5);
         expect(quinto.troppi).toBe(false);
-        expect(quinto.scheda).toBe(false);
-        expect(quinto.mostrato).not.toMatch(/account gratuito/i);
+        // Al 5° completo si apre il riepilogo (post-prova Pier).
+        expect(quinto.scheda).toBe(true);
+        expect(quinto.mostrato).not.toMatch(/Ne hai altri/i);
+        expect(quinto.mostrato).toMatch(/limite di cinque terreni/i);
         expect(quinto.mostrato).not.toMatch(/^Va bene\.$/);
         if (spec.nome !== 'quinto-noce') {
           expect(quinto.mostrato).toMatch(/Pozzo/);
@@ -1526,7 +1530,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     });
   }
 
-  it('solo il sesto è respinto, il riepilogo solo se chiesto', () => {
+  it('al 5° apre il riepilogo; solo il sesto è respinto', () => {
     const { stato, visti } = dialogoPozzo({
       domanda: '8 ha di noci che si chiama pozzo',
       modello: (noti) => ({
@@ -1539,7 +1543,8 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
       }),
     });
     expect(visti[7].n).toBe(5);
-    expect(visti[7].scheda).toBe(false);
+    expect(visti[7].scheda).toBe(true);
+    expect(visti[7].mostrato).toMatch(/limite di cinque terreni/i);
     const sesto = turnoUi(stato, 'bosco 1 ha di orzo', {
       testo: CAP5_POZZO,
       terreni: [rigaBarbavara('Bosco', 1, 'Orzo')],
@@ -1689,7 +1694,8 @@ describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
         coltura: 'Mais',
       });
       expect(visti[7].n).toBe(5);
-      expect(visti[7].scheda).toBe(false);
+      expect(visti[7].scheda).toBe(true);
+      expect(visti[7].mostrato).toMatch(/limite di cinque terreni/i);
       schedaAttesa(visti[7].righe);
       const sesto = turnoUi(stato, 'coriandolo 12 ha orzo', {
         testo: "Con l'account gratuito arrivi a cinque terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
@@ -2071,7 +2077,9 @@ describe('runtime: dialogo Monte Coralli / Bruciata (coltura, nome, 7 terreni)',
     ).toEqual([]);
 
     expect(visti[7].n).toBe(5);
-    expect(visti[7].scheda).toBe(false);
+    expect(visti[7].scheda).toBe(true);
+    expect(visti[7].mostrato).toMatch(/limite di cinque terreni/i);
+    expect(visti[7].mostrato).not.toMatch(/Ne hai altri/i);
     const pru = visti[7].righe.find((t) => /^prugneto$/i.test(t.nome));
     expect(pru.nome).toBe('Prugneto');
     expect(pru.coltura).toBe('Prugne');
