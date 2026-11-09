@@ -21,6 +21,7 @@ import {
   righeRiepilogo,
   serializzaRaccolti,
   sembraIndirizzo,
+  togliConnettiviFinaliNome,
   utenteChiedeRiepilogo,
 } from '../../landing/src/lib/tony-aiuto-account.js';
 import { azionePerEsito, MESSAGGI_CHAT } from '../../landing/src/lib/tony-chat-logica.js';
@@ -35,6 +36,7 @@ const {
   applicaSuperficieDaDomanda,
   rispostaAccountDaTesto,
   testoSeMancaNomeTerreno,
+  togliConnettiviFinaliNome: togliConnettiviFinaliNomeFn,
 } = require('../../functions/lib/tony-landing-account.js');
 
 function storageFinto() {
@@ -1840,5 +1842,120 @@ describe('runtime: dialogo Monte Coralli / Loghetto (fantasma sede)', () => {
     );
     expect(out.dati.terreni).toEqual([]);
     expect(out.dati.sede.citta).toBe('Faenza');
+  });
+});
+
+/**
+ * Prova reale Pier 9 nov 2026 (canale prova-tony): nomi con «con» finale
+ * e CAP vuoto su Faenza (nessuna tabella comuni CAP in repo).
+ */
+describe('runtime: Pier 9 nov — nomi con «con» e CAP sede', () => {
+  it('togliConnettiviFinaliNome allineato client/function', () => {
+    expect(togliConnettiviFinaliNome('Campo largo con')).toBe('Campo largo');
+    expect(togliConnettiviFinaliNomeFn('Campo alto con')).toBe('Campo alto');
+    expect(togliConnettiviFinaliNome('Vigna di')).toBe('Vigna');
+    expect(togliConnettiviFinaliNome('Podere da a e')).toBe('Podere');
+    expect(togliConnettiviFinaliNome('Campo A')).toBe('Campo A');
+    expect(togliConnettiviFinaliNomeFn('Campo E')).toBe('Campo E');
+  });
+
+  it('«campo largo con 12 ha di fava» e «campo alto con 5 ha di melograno» → riepilogo senza «con»', () => {
+    const stato = statoPulito();
+    turnoRuntime(stato, 'via monte coralli 8 faenza', {
+      testo: 'Ok, sede a Faenza. Hai dei poderi?',
+      sede: {
+        indirizzo: 'via monte coralli 8',
+        citta: 'Faenza',
+        cap: null,
+        provincia: 'RA',
+      },
+      poderi: [],
+      terreni: [],
+      fatto: false,
+    });
+    turnoRuntime(stato, 'no', {
+      testo: 'Va bene, senza poderi. Dimmi i terreni.',
+      senzaPoderi: true,
+      terreni: [],
+      fatto: false,
+    });
+    const largo = turnoRuntime(stato, 'campo largo con 12 ha di fava', {
+      testo: 'Ok, campo largo. Ne hai altri?',
+      terreni: [
+        { nome: 'Campo largo con', superficie: 12, coltura: 'Fava' },
+      ],
+      fatto: false,
+    });
+    expect(largo.terreni).toHaveLength(1);
+    expect(String(largo.terreni[0].nome)).toMatch(/^campo largo$/i);
+    expect(String(largo.terreni[0].nome)).not.toMatch(/\bcon$/i);
+
+    const alto = turnoRuntime(stato, 'campo alto con 5 ha di melograno', {
+      testo: 'Ok, campo alto. Ne hai altri?',
+      terreni: [
+        { nome: 'Campo alto con', superficie: 5, coltura: 'Melograno' },
+      ],
+      fatto: false,
+    });
+    expect(alto.terreni.map((t) => String(t.nome || '').toLowerCase())).toEqual([
+      'campo largo',
+      'campo alto',
+    ]);
+
+    const letti = interpretaFraseTerreni('campo largo con 12 ha di fava');
+    expect(letti[0].nome).toMatch(/^campo largo$/i);
+    expect(letti[0].superficie).toBe(12);
+
+    const riepilogo = righeRiepilogo(stato.dati);
+    expect(riepilogo.terreni.map((t) => String(t.nome || '').toLowerCase())).toEqual([
+      'campo largo',
+      'campo alto',
+    ]);
+    expect(riepilogo.terreni.every((t) => !/\bcon$/i.test(String(t.nome || '')))).toBe(
+      true
+    );
+  });
+
+  it('sede «via monte coralli 8 faenza»: Faenza + RA, CAP vuoto senza errore', () => {
+    const stato = statoPulito();
+    const sede = turnoRuntime(stato, 'via monte coralli 8 faenza', {
+      testo: 'Ok, sede a Faenza. Hai dei poderi?',
+      sede: {
+        indirizzo: 'via monte coralli 8',
+        citta: 'Faenza',
+        cap: null,
+        provincia: 'RA',
+      },
+      poderi: [],
+      terreni: [{ nome: 'Via monte coralli', superficie: 8, coltura: 'Faenza' }],
+      fatto: false,
+    });
+    expect(sede.terreni).toHaveLength(0);
+    expect(stato.dati.sede.citta).toBe('Faenza');
+    expect(stato.dati.sede.provincia).toBe('RA');
+    expect(stato.dati.sede.cap == null || stato.dati.sede.cap === '').toBe(true);
+
+    const out = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'Ok sede',
+        sede: {
+          indirizzo: 'via monte coralli 8',
+          citta: 'Faenza',
+          cap: null,
+          provincia: 'RA',
+        },
+        poderi: [],
+        terreni: [],
+        fatto: false,
+      }),
+      {
+        argomento: 'sede',
+        domanda: 'via monte coralli 8 faenza',
+        raccolti: '',
+      }
+    );
+    expect(out.dati.sede.citta).toBe('Faenza');
+    expect(out.dati.sede.provincia).toBe('RA');
+    expect(out.dati.sede.cap == null || out.dati.sede.cap === '').toBe(true);
   });
 });

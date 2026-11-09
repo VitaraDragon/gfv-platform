@@ -284,9 +284,30 @@ function taglia(testo, max) {
   return [...s].slice(0, max).join("");
 }
 
+/**
+ * Toglie connettivi finali lasciati da «campo largo con 12 ha…».
+ * «a»/«e» solo se minuscoli (così «Campo A» resta un nome valido).
+ * @param {string} grezzo
+ * @returns {string}
+ */
+function togliConnettiviFinaliNome(grezzo) {
+  let t = String(grezzo || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!t) return "";
+  while (true) {
+    const m = t.match(/\s+(con|di|da|a|e)$/i);
+    if (!m) break;
+    const w = m[1];
+    if (/^[ae]$/i.test(w) && w !== w.toLowerCase()) break;
+    t = t.slice(0, m.index).trim();
+  }
+  return t;
+}
+
 /** «null» e «undefined» non sono nomi di terreno. */
 function nomeTerrenoVisibile(nome) {
-  const s = String(nome == null ? "" : nome).trim();
+  const s = togliConnettiviFinaliNome(String(nome == null ? "" : nome).trim());
   if (!s || /^(null|undefined|nullo)$/i.test(s)) return "";
   return s;
 }
@@ -872,6 +893,7 @@ function nomeEsplicitoNellaFrase(frase) {
   prima = prima.replace(/^(?:un|uno|una|il|lo|la|i|gli|le)\s+/i, "");
   prima = prima.replace(/^(?:terreno|appezzamento)\s+/i, "");
   prima = prima.replace(/^[\s:,\-–—]+|[\s:,\-–—.?!]+$/g, "").trim();
+  prima = togliConnettiviFinaliNome(prima);
   prima = nomeTerrenoVisibile(prima);
   if (!prima) return "";
   return staccaVarietaDalNome(prima).nome;
@@ -1158,5 +1180,7 @@ module.exports = {
   sembraIndirizzo,
   nomeSembraIndirizzo,
   domandaTerrenoEsplicita,
-  RE_SI_CHIAMA
+  RE_SI_CHIAMA,
+  togliConnettiviFinaliNome,
+  nomeTerrenoVisibile
 };
