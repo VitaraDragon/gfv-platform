@@ -598,7 +598,7 @@
       "modules": [
         "CORE"
       ],
-      "label": "Landing / marketing"
+      "label": "Landing / marketing e onboarding Tony (guide: solo tecnica; utente parla di iscrizione)"
     },
     {
       "prefix": "firebase.json",
@@ -1959,14 +1959,16 @@
     {
       "prefix": "functions/tony-landing-setup.js",
       "modules": [
-        "TONY"
+        "TONY",
+        "CORE"
       ],
-      "label": "Landing: tonyLandingSetup (dietro flag, nessun deploy; solo tecnica)"
+      "label": "Landing: tonyLandingSetup unico scrittura azienda (sede/poderi/terreni; solo tecnica)"
     },
     {
       "prefix": "functions/lib/tony-landing-setup-core.js",
       "modules": [
-        "TONY"
+        "TONY",
+        "CORE"
       ],
       "label": "Landing: controlli puri tonyLandingSetup (solo tecnica)"
     },
@@ -2302,6 +2304,62 @@
         "MAGAZZINO"
       ],
       "label": "Test schede Trattamenti e Mostra archiviati"
+    },
+    {
+      "prefix": "landing/src/lib/tony-sessione-intervista.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Landing onboarding: bozza sessionStorage gfv-landing-intervista (TTL 2h; solo tecnica)"
+    },
+    {
+      "prefix": "landing/src/components/TonyChat.vue",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Landing onboarding: ordine registrazione → aiuto → scheda Confermi (solo tecnica)"
+    },
+    {
+      "prefix": "landing/src/components/TonySchedaConferma.vue",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Landing onboarding: scheda Confermi / tetto 5 terreni Free (solo tecnica)"
+    },
+    {
+      "prefix": "landing/src/lib/tony-aiuto-account.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Landing onboarding: nome terreno, poderi facoltativi, senza riepilogo (solo tecnica)"
+    },
+    {
+      "prefix": "landing/src/lib/tony-registrazione.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Landing onboarding: registrazione in chat (crea utente/azienda, non terreni; solo tecnica)"
+    },
+    {
+      "prefix": "tests/landing/landing-onboarding-nome-poderi.test.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Test landing onboarding nome/poderi (solo tecnica)"
+    },
+    {
+      "prefix": "tests/landing/landing-nome-terreno-runtime.test.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Test landing nome terreno runtime (solo tecnica)"
     }
   ]
 }
