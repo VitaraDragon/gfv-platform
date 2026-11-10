@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-10 — Landing Tony: ettari ≠ conteggio, riepilogo solo al 5°, informativa bloccante.**
+**Ultimo aggiornamento documentazione: 2026-11-10 — Landing: informativa bloccante solo se il riquadro è visibile (fix regressione #377).**
+
+## 2026-11-10 — Landing: informativa bloccante solo se visibile (non in invito)
+
+Su `fix/landing-informativa-blocca-solo-se-visibile` (PR verso develop): regressione della #377 — il flag `informativaAiutoVisibile` nasceva true all’apertura pannello e dopo registrazione, ma il riquadro compare solo con `faseAiuto && informativaAiutoVisibile`. I guard/template che usavano solo il flag nascondevano i chip demo e bloccavano «Sì, iniziamo» / «Salta tutto» senza uscita.
+
+1. **`informativaBloccante`** — computed: `faseAiuto && informativaAiutoVisibile && passoAiuto !== 'invito'`. Usato in guardie chip/scheda/invio/mic, template chip+campo e bottone Riepilogo.
+2. **Invariati** — riquadro informativa, link privacy, testi legali, ettari/riepilogo #377, flag landing/bussata.
+3. **Test** — mount `@vue/test-utils` (`landing-informativa-bloccante-comportamento.test.js`); `tests/landing` incluso in `sim:tony:vitest`.
+
+Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing Tony: ettari ≠ conteggio, riepilogo solo al 5°, informativa bloccante.**
 
 ## 2026-11-10 — Landing: ettari ≠ conteggio, riepilogo solo al quinto, informativa visibile
 
