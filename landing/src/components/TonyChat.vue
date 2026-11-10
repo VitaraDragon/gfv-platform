@@ -152,6 +152,13 @@ const mostraAscolta = ref(false);
 const voceInCorso = ref(false);
 const voceParlandoSr = ref(false);
 const informativaAiutoVisibile = ref(false);
+/** Blocca chip/campo/mic solo quando l'informativa è davvero mostrata (non in 'invito'). */
+const informativaBloccante = computed(
+  () =>
+    faseAiuto.value &&
+    informativaAiutoVisibile.value &&
+    passoAiuto.value !== 'invito'
+);
 const attesaLungaVisibile = ref(false);
 const mostraConsensoInvio = ref(false);
 const testoInvioInAttesa = ref<{ testo: string; daChip: boolean } | null>(null);
@@ -642,7 +649,7 @@ function avviaPasso(passo: string) {
 }
 
 function onChipAiuto(etichetta: string) {
-  if (informativaAiutoVisibile.value) return;
+  if (informativaBloccante.value) return;
   if (inAttesa.value || invioInCorso.value) return;
   if (etichetta === ta.chipSi) {
     avviaPasso('sede');
@@ -672,7 +679,7 @@ function onChipAiuto(etichetta: string) {
 }
 
 function apriScheda() {
-  if (informativaAiutoVisibile.value) return;
+  if (informativaBloccante.value) return;
   // Una sola intro: non ripetere se la scheda è già aperta.
   if (schedaAperta.value) return;
   tornatoDalRiepilogo = false;
@@ -786,7 +793,7 @@ function onVaiDashboard() {
 async function inviaTesto(grezzo: string, daChip = false) {
   if (moduloAperto.value || schedaAperta.value) return;
   if (faseAiuto.value && passoAiuto.value === 'invito') return;
-  if (informativaAiutoVisibile.value) return;
+  if (informativaBloccante.value) return;
   if (inAttesa.value || !campoAttivo.value || modalitàStatica.value) return;
   if (aiutoFatto.value || aiutoSospeso.value) return;
   if (!presaVisioneOk()) {
@@ -1285,7 +1292,7 @@ function fermaMicrofono() {
 }
 
 function avviaMicrofono() {
-  if (moduloAperto.value || informativaAiutoVisibile.value) return;
+  if (moduloAperto.value || informativaBloccante.value) return;
   if (microfonoNascosto.value || !microfonoDisponibile.value || inAttesa.value) return;
   const SR =
     window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -1512,7 +1519,7 @@ defineExpose({ interrompi });
           {{ ta.informativaHoCapito }}
         </button>
       </div>
-      <template v-if="!informativaAiutoVisibile">
+      <template v-if="!informativaBloccante">
         <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
           <template v-if="faseAiuto">
             <button
@@ -1642,7 +1649,7 @@ defineExpose({ interrompi });
         {{ t.ctaAccount }}
       </a>
       <button
-        v-if="faseAiuto && !schedaAperta && !aiutoFatto && !informativaAiutoVisibile"
+        v-if="faseAiuto && !schedaAperta && !aiutoFatto && !informativaBloccante"
         type="button"
         class="btn-account"
         @click="apriScheda"
