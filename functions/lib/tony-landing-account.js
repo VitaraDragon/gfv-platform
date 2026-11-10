@@ -249,7 +249,8 @@ function promptSistemaAccount(argomento, opzioni) {
     "Accetta fino a 5 terreni (il quinto va bene). Quando il quinto terreno è completo (nome + ettari + coltura), NON chiedere «Ne hai altri?»: di' che è stato raggiunto il limite di cinque terreni e metti fatto: true (il client apre il riepilogo). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.»",
     "Terreni già raccolti: " +
       terreniDaRaccolti(raccolti).conteggio +
-      " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha (e N < 5), usa la forma «ne hai N su 5» con N esatto.",
+      " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha (e N < 5), usa la forma «ne hai N su 5» o «ne hai N su cinque» con N esatto. Se compare «in attesa del nome», quel terreno è già nel conteggio: quando l'utente dice il nome, NON è un terreno in più.",
+    "L'utente ha già creato l'account gratuito ed è collegato: non dire mai di cliccare «Crea il tuo account gratuito», di registrarsi o di scrivere email e password. Se chiede cosa fare adesso o come continuare, rispondi in una frase: se ha meno di 5 terreni chiedi «Ne hai altri o vediamo il riepilogo?»; se li ha già detti tutti, di' che il riepilogo è qui sotto, lo controlla e preme «Sì, salva».",
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
     "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); nel JSON usa SEMPRE il nome canonico del catalogo, mai il plurale grezzo dell'utente. Esempi: «noci» → «Noce», «pesche»/«peschi» → «Pesco», «mele» → «Melo», «pere» → «Pero», «albicocco» → «Albicocche», «prugne» → «Prugne», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano». Se la coltura non è in elenco (né come sinonimo), lascia null e chiedila in chat; non inventarla. «seminativo» e «frutteto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
@@ -1255,6 +1256,148 @@ function testoSeMancaNomeTerreno(testo, dati) {
     : "Come si chiama questo terreno?";
 }
 
+const CONTEGGIO_IN_PAROLE = Object.freeze({
+  un: 1,
+  uno: 1,
+  due: 2,
+  tre: 3,
+  quattro: 4,
+  cinque: 5
+});
+
+const CONTEGGIO_IN_LETTERE = Object.freeze({
+  1: "uno",
+  2: "due",
+  3: "tre",
+  4: "quattro",
+  5: "cinque"
+});
+
+/**
+ * N = nomi già raccolti + nomi nuovi di questo turno (dopo il limite).
+ * Il conteggio di serializzaRaccolti include il terreno senza nome: il nome
+ * che lo completa è un nome nuovo rispetto all'elenco, ma non si somma
+ * anche al conteggio (sarebbe un terreno in più).
+ * @param {string} raccolti
+ * @param {object[]} terreniTurno
+ * @returns {number}
+ */
+function contaTerreniConNomeDopoTurno(raccolti, terreniTurno) {
+  const info = terreniDaRaccolti(raccolti);
+  const noti = Object.create(null);
+  const nomi = Array.isArray(info.nomi) ? info.nomi : [];
+  for (let i = 0; i < nomi.length; i++) {
+    const k = nomeSenzaPrefissoPodere(nomi[i]);
+    if (k) noti[k] = true;
+  }
+  let nuovi = 0;
+  const visti = Object.create(null);
+  const lista = Array.isArray(terreniTurno) ? terreniTurno : [];
+  for (let i = 0; i < lista.length; i++) {
+    const nome = nomeTerrenoVisibile(lista[i] && lista[i].nome);
+    if (!nome) continue;
+    const k = nomeSenzaPrefissoPodere(nome);
+    if (!k || noti[k] || visti[k]) continue;
+    visti[k] = true;
+    nuovi += 1;
+  }
+  return nomi.length + nuovi;
+}
+
+function riscriviConteggioTerreni(testo, n) {
+  if (typeof n !== "number" || !Number.isFinite(n)) return String(testo || "");
+  return String(testo || "").replace(
+    /\b(ne hai)\s+(\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(5|cinque)(\s+terreni)?\b/gi,
+    function (tutto, neHai, detto, den, terreni) {
+      const lettere = !/^\d+$/.test(detto);
+      const valore = lettere
+        ? CONTEGGIO_IN_PAROLE[String(detto).toLowerCase()]
+        : Number(detto);
+      if (valore === n) return tutto;
+      const nuovo = lettere ? CONTEGGIO_IN_LETTERE[n] || String(n) : String(n);
+      return neHai + " " + nuovo + " su " + den + (terreni || "");
+    }
+  );
+}
+
+/** «Raggiunto il limite» con meno di 5 terreni con nome: non è il quinto. */
+function togliLimiteNonRaggiunto(testo, n) {
+  if (typeof n !== "number" || n >= 5) return String(testo || "");
+  const originale = String(testo || "");
+  const avvisoProspettico = /arrivi a\s+(?:5|cinque)\s+terreni/i.test(originale);
+  const giaConteggio =
+    /\bne hai\s+(?:\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(?:5|cinque)\b/i.test(
+      originale
+    );
+  let tolto = false;
+  let messoConteggio = false;
+  const pezzi = originale.split(/(?<=[.!?])\s+/);
+  const filtrati = [];
+  for (let i = 0; i < pezzi.length; i++) {
+    const p = pezzi[i];
+    if (/raggiunto il limite/i.test(p)) {
+      tolto = true;
+      if (!giaConteggio && !messoConteggio) {
+        const parola = CONTEGGIO_IN_LETTERE[n] || String(n);
+        filtrati.push("Ne hai " + parola + " su cinque terreni.");
+        messoConteggio = true;
+      }
+      continue;
+    }
+    if (
+      !avvisoProspettico &&
+      /passando al Base/i.test(p) &&
+      /raggiunto il limite/i.test(originale)
+    ) {
+      tolto = true;
+      continue;
+    }
+    filtrati.push(p);
+  }
+  let s = filtrati.join(" ").replace(/\s+/g, " ").trim();
+  if (tolto && !/ne hai altri o vediamo il riepilogo/i.test(s)) {
+    if (s && !/[.!?]$/.test(s)) s += ".";
+    s = (s ? s + " " : "") + "Ne hai altri o vediamo il riepilogo?";
+  }
+  return s;
+}
+
+/** Invito a creare l'account. Non basta «clicca», «accedere all'app» o email+password. */
+function fraseInvitoRegistrazione(p) {
+  return (
+    /crea(?:re|i|te)?(?:\s+\S+){0,4}\s+account/i.test(p) ||
+    /\bregistr\w*/i.test(p) ||
+    /\biscriv\w*/i.test(p)
+  );
+}
+
+function togliInvitoRegistrazioneAccount(testo, n) {
+  const originale = String(testo || "").trim();
+  if (!originale) return originale;
+  let tolto = false;
+  const filtrati = originale.split(/(?<=[.!?])\s+/).filter(function (p) {
+    if (!fraseInvitoRegistrazione(p)) return true;
+    tolto = true;
+    return false;
+  });
+  let s = filtrati.join(" ").replace(/\s+/g, " ").trim();
+  if (tolto && !s) {
+    s =
+      typeof n === "number" && n >= 5
+        ? "Il riepilogo è qui sotto: controllalo e premi «Sì, salva»."
+        : "Ne hai altri o vediamo il riepilogo?";
+  }
+  return s;
+}
+
+/** Stesso testo del client (allineaConteggioTerreni): voce e chat coincidono. */
+function allineaTestoTurnoAccount(testo, n) {
+  return togliInvitoRegistrazioneAccount(
+    togliLimiteNonRaggiunto(riscriviConteggioTerreni(testo, n), n),
+    n
+  );
+}
+
 function togliRiepilogoNonChiesto(testo) {
   return String(testo || "")
     .split(/(?<=[.!?])\s+/)
@@ -1397,6 +1540,8 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
     testo = pezzi.join(" ");
   }
   const fuoriTema = parsed.fuoriTema === true;
+  const nConNome = contaTerreniConNomeDopoTurno(raccolti, puliti.terreni);
+  testo = allineaTestoTurnoAccount(testo, nConNome);
 
   return {
     testo: testo,
