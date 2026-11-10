@@ -1,5 +1,5 @@
 /**
- * Wiring del saluto landing in main.js: locale (zero CF), apertura compatta senza focus, step via APRI_PAGINA.
+ * Wiring del saluto landing in main.js: locale (zero CF), apertura compatta senza focus, niente pulsanti.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -37,12 +37,25 @@ describe('main.js: saluto landing', () => {
     expect(show).toMatch(/panel\.classList\.add\('is-open'\)/);
   });
 
-  it('step: APRI_PAGINA su impostazioni/terreni/attivita via helper; chiudi percorso persiste', () => {
-    expect(show).toMatch(/type: 'APRI_PAGINA', target: p\.target/);
-    expect(show).toMatch(/percorsoChiuso = true/);
-    expect(show).toMatch(/passiVisti\[p\.id\] = true/);
+  it('niente pulsanti del percorso né Chiudi percorso; il saluto resta persistito', () => {
+    expect(show).not.toMatch(/APRI_PAGINA/);
+    expect(show).not.toMatch(/tony-landing-passo/);
+    expect(show).not.toMatch(/tony-landing-chiudi/);
+    expect(show).not.toMatch(/Chiudi percorso/);
+    expect(show).not.toMatch(/Usa i pulsanti qui sotto/);
     expect(show).toMatch(/salutoFatto = true/);
     expect(show).toMatch(/ultimoRiprendiGiorno = oggi/);
+  });
+
+  it('riprendi non mostra niente: solo tipo saluto arriva ad appendMessage', () => {
+    const guard = show.indexOf("if (args.tipo !== 'saluto') return false;");
+    const append = show.indexOf("appendMessage(testo, 'tony')");
+    expect(guard).toBeGreaterThanOrEqual(0);
+    expect(append).toBeGreaterThan(guard);
+    const schedGuard = sched.indexOf("if (dec.tipo !== 'saluto') return;");
+    const schedShow = sched.indexOf('__tonyLandingSalutoShow({');
+    expect(schedGuard).toBeGreaterThanOrEqual(0);
+    expect(schedShow).toBeGreaterThan(schedGuard);
   });
 
   it('scheduler: aspetta __gfvTenantData e richiede il marker setup landing', () => {
