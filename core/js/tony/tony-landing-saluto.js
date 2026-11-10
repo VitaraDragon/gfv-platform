@@ -127,30 +127,13 @@ export function costruisciMessaggioSaluto(opts) {
   const ciao = nome ? 'Ciao ' + nome + '!' : 'Ciao!';
   const pinNota = o.haPinSede
     ? ''
-    : ' (il pin della sede manca ancora: lo mettiamo al passo 1)';
+    : ' (il pin della sede manca ancora: lo metti in Impostazioni, con l\u2019ingranaggio in alto a destra)';
   const testo =
     ciao +
     ' Per 7 giorni ti guido dentro l’app, a passi brevi.' +
     pinNota +
     ' Usa la graffetta in alto a sinistra per aprire i moduli.';
-  const passi = [
-    {
-      id: 'sede',
-      label: '1) Mappa / sede',
-      target: 'impostazioni',
-    },
-    {
-      id: 'terreni',
-      label: '2) Terreni (coltura e confini)',
-      target: 'terreni',
-    },
-    {
-      id: 'diario',
-      label: '3) Primo lavoro / attività nel Diario',
-      target: 'attivita',
-    },
-  ];
-  return { testo, passi };
+  return { testo, passi: [] };
 }
 
 /**
