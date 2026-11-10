@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-10 — Landing: conteggio terreni e finale allineati tra voce e chat.**
+**Ultimo aggiornamento documentazione: 2026-11-10 — Tony: saluto landing senza pulsanti del percorso (demo EIMA).**
+
+## 2026-11-10 — Tony: saluto landing senza i tre pulsanti del percorso
+
+Su `fix/tony-togli-chip-percorso-gratuito` (PR verso develop), per la demo EIMA: al primo accesso dopo il setup dalla landing Tony dice ancora il saluto (una volta sola, con la graffetta), senza i tre pulsanti «Mappa / sede», «Terreni», «Diario» e senza «Chiudi percorso». Quei pulsanti chiamavano `APRI_PAGINA` e, senza Tony Avanzato, rispondevano «richiede il modulo Tony Avanzato». Vale per tutti i piani. I giorni dopo non compare più il «riprendi». Se manca il pin della sede, la nota indica Impostazioni (ingranaggio in alto a destra). `decidiSalutoLanding` e `messaggioRiprendi` invariati. Nessun bump di `TONY_CLIENT_BUILD`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing: conteggio terreni e finale allineati tra voce e chat.**
 
 ## 2026-11-10 — Landing: conteggio terreni, domanda primo terreno, finale fuori contesto
 
