@@ -146,17 +146,18 @@ describe('decidiDopoRisposta', () => {
     expect(r.messaggio).toMatch(/terreni/i);
   });
 
-  it('da terreni apre il riepilogo', () => {
+  it('da terreni in raccolta (N < 5) non apre il riepilogo per stallo', () => {
     const r = decidiDopoRisposta({
       turniSenzaNovitaNelPasso: 2,
       domandeRimaste: 10,
       passo: 'terreni',
+      nTerreni: 2,
     });
-    expect(r.azione).toBe('riepilogo');
-    expect(r.apriRiepilogo).toBe(true);
+    expect(r.azione).toBe('resta');
+    expect(r.apriRiepilogo).toBe(false);
   });
 
-  it('con poche domande rimaste apre il riepilogo', () => {
+  it('con poche domande rimaste apre il riepilogo (non in raccolta terreni)', () => {
     const r = decidiDopoRisposta({ domandeRimaste: 3, passo: 'sede' });
     expect(r.azione).toBe('riepilogo');
     expect(r.apriRiepilogo).toBe(true);
@@ -164,13 +165,20 @@ describe('decidiDopoRisposta', () => {
     expect(r.messaggio).toMatch(/riepilogo/i);
   });
 
-  it('domandeRimaste ≤ 3 riapre una sola volta', () => {
-    const prima = decidiDopoRisposta({ domandeRimaste: 2, passo: 'terreni' });
-    expect(prima.azione).toBe('riepilogo');
-    expect(prima.perLimiteDomande).toBe(true);
-    const dopo = decidiDopoRisposta({
+  it('domandeRimaste ≤ 3 non interrompe la raccolta terreni', () => {
+    const inRaccolta = decidiDopoRisposta({
       domandeRimaste: 2,
       passo: 'terreni',
+      nTerreni: 2,
+    });
+    expect(inRaccolta.azione).toBe('resta');
+    expect(inRaccolta.apriRiepilogo).toBe(false);
+    const sede = decidiDopoRisposta({ domandeRimaste: 2, passo: 'sede' });
+    expect(sede.azione).toBe('riepilogo');
+    expect(sede.perLimiteDomande).toBe(true);
+    const dopo = decidiDopoRisposta({
+      domandeRimaste: 2,
+      passo: 'sede',
       giaRiaperturaLimiteDomande: true,
       turniSenzaNovitaNelPasso: 0,
       fuoriTema: 0,
