@@ -1567,11 +1567,24 @@ function togliLimiteNonRaggiunto(testo, n) {
   if (typeof n !== 'number' || n >= 5) return String(testo || '');
   const originale = String(testo || '');
   const avvisoProspettico = /arrivi a\s+(?:5|cinque)\s+terreni/i.test(originale);
+  const giaConteggio =
+    /\bne hai\s+(?:\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(?:5|cinque)\b/i.test(
+      originale
+    );
   let tolto = false;
-  const filtrati = originale.split(/(?<=[.!?])\s+/).filter((p) => {
+  let messoConteggio = false;
+  const pezzi = originale.split(/(?<=[.!?])\s+/);
+  const filtrati = [];
+  for (let i = 0; i < pezzi.length; i++) {
+    const p = pezzi[i];
     if (/raggiunto il limite/i.test(p)) {
       tolto = true;
-      return false;
+      if (!giaConteggio && !messoConteggio) {
+        const parola = CONTEGGIO_IN_LETTERE[n] || String(n);
+        filtrati.push('Ne hai ' + parola + ' su cinque terreni.');
+        messoConteggio = true;
+      }
+      continue;
     }
     if (
       !avvisoProspettico &&
@@ -1579,10 +1592,10 @@ function togliLimiteNonRaggiunto(testo, n) {
       /raggiunto il limite/i.test(originale)
     ) {
       tolto = true;
-      return false;
+      continue;
     }
-    return true;
-  });
+    filtrati.push(p);
+  }
   let s = filtrati.join(' ').replace(/\s+/g, ' ').trim();
   if (tolto && !/ne hai altri o vediamo il riepilogo/i.test(s)) {
     if (s && !/[.!?]$/.test(s)) s += '.';
@@ -1591,15 +1604,12 @@ function togliLimiteNonRaggiunto(testo, n) {
   return s;
 }
 
+/** Invito a creare l'account. Non basta «clicca», «accedere all'app» o email+password. */
 function fraseInvitoRegistrazione(p) {
   return (
-    /crea il tuo account/i.test(p) ||
-    /\bregistrart/i.test(p) ||
-    (/email\b/i.test(p) && /password/i.test(p)) ||
-    /accedere all['’]app/i.test(p) ||
-    /abbiamo inserito i tuoi/i.test(p) ||
-    /iniziare a gestire la tua azienda/i.test(p) ||
-    /clicca sul pulsante/i.test(p)
+    /crea(?:re|i|te)?(?:\s+\S+){0,4}\s+account/i.test(p) ||
+    /\bregistr\w*/i.test(p) ||
+    /\biscriv\w*/i.test(p)
   );
 }
 

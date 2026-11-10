@@ -220,12 +220,16 @@ describe('dialogo Calanchi — conteggio e finale', () => {
     expect(visti[6].voce).not.toMatch(/quattro su cinque/i);
 
     const ciliegi = visti[7];
+    const attesoCiliegi =
+      'Ok, hai un terreno che si chiama Ciliegi, di tre ettari a Ciliegio. Ne hai quattro su cinque terreni. Ne hai altri o vediamo il riepilogo?';
+    expect(ciliegi.voce).toBe(attesoCiliegi);
+    expect(ciliegi.testoChat).toBe(attesoCiliegi);
+    expect(ciliegi.voce).toMatch(/quattro su cinque/);
+    expect(ciliegi.testoChat).toMatch(/quattro su cinque/);
     expect(ciliegi.voce).not.toMatch(/raggiunto il limite/i);
     expect(ciliegi.testoChat).not.toMatch(/raggiunto il limite/i);
     expect(ciliegi.voce).not.toMatch(/passando al Base/i);
     expect(ciliegi.testoChat).not.toMatch(/passando al Base/i);
-    expect(ciliegi.voce).toMatch(/Ne hai altri o vediamo il riepilogo\?/);
-    expect(ciliegi.testoChat).toMatch(/Ne hai altri o vediamo il riepilogo\?/);
     expect(ciliegi.apriRiepilogo).toBe(false);
     expect(ciliegi.terreni).toHaveLength(4);
 
@@ -255,19 +259,58 @@ describe('dialogo Calanchi — conteggio e finale', () => {
     expect(testo).toMatch(/NON è un terreno in più/);
   });
 
-  it('C: «e adesso?» e «come faccio?» non rimandano alla registrazione', () => {
+  it('C: solo l’invito a creare l’account esce; app e profilo restano', () => {
     const { visti } = gira();
-    for (const t of [visti[8], visti[9]]) {
-      const blob = t.voce + '\n' + t.testoChat;
-      expect(blob).not.toMatch(/Crea il tuo account/i);
-      expect(blob).not.toMatch(/registr/i);
-      expect(blob).not.toMatch(/email/i);
-      expect(blob).not.toMatch(/password/i);
-      expect(blob).not.toMatch(/cinque terreni/i);
-      expect(t.voce).toMatch(/Ne hai altri o vediamo il riepilogo\?/);
-      expect(t.testoChat).toMatch(/Ne hai altri o vediamo il riepilogo\?/);
-      expect(t.apriRiepilogo).toBe(false);
-    }
+    const adesso = visti[8];
+    expect(adesso.voce).toBe(adesso.testoChat);
+    expect(adesso.voce).toMatch(/accedere all'app/i);
+    expect(adesso.voce).toMatch(/iniziare a gestire la tua azienda/i);
+    expect(adesso.voce).not.toMatch(/Crea il tuo account/i);
+    expect(adesso.voce).not.toMatch(/registr/i);
+    expect(adesso.apriRiepilogo).toBe(false);
+
+    const come = visti[9];
+    expect(come.voce).toBe(come.testoChat);
+    expect(come.voce).not.toMatch(/Crea il tuo account/i);
+    expect(come.voce).toBe(
+      'Ti chiederà la tua email, una password e il nome della tua azienda agricola.'
+    );
+    expect(come.apriRiepilogo).toBe(false);
+
+    const lecite =
+      'Quando vedi il riepilogo, clicca sul pulsante «Sì, salva» per confermare. Email e password le cambi dal tuo profilo.';
+    const conInvito =
+      'Quando vedi il riepilogo, clicca sul pulsante «Sì, salva» per confermare. Per iniziare, clicca sul pulsante «Crea il tuo account gratuito». Email e password le cambi dal tuo profilo.';
+    const statoFrasi = {
+      passo: 'terreni',
+      dati: {
+        sede: { indirizzo: 'via Roma 1', citta: 'Faenza', provincia: 'RA' },
+        poderi: [{ nome: 'Calanchi' }],
+        terreni: [{ nome: 'Ponte', superficie: 12, coltura: 'Grano', podere: 'Calanchi' }],
+      },
+    };
+    const tiene = turno(statoFrasi, 'vediamo il riepilogo', {
+      testo: lecite,
+      terreni: [],
+      fatto: false,
+    });
+    expect(tiene.voce).toBe(lecite);
+    expect(tiene.testoChat).toBe(lecite);
+    const pulito = turno(
+      {
+        passo: 'terreni',
+        dati: {
+          sede: { indirizzo: 'via Roma 1', citta: 'Faenza', provincia: 'RA' },
+          poderi: [{ nome: 'Calanchi' }],
+          terreni: [{ nome: 'Ponte', superficie: 12, coltura: 'Grano', podere: 'Calanchi' }],
+        },
+      },
+      'vediamo il riepilogo',
+      { testo: conInvito, terreni: [], fatto: false }
+    );
+    expect(pulito.voce).toBe(lecite);
+    expect(pulito.testoChat).toBe(lecite);
+
     const prompt = promptSistemaAccount('terreni', {
       raccolti: 'Terreni già raccolti: 4 di 5\nTerreno «Ponte»',
     });
