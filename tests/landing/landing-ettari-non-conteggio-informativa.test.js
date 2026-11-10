@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { turno } from '../allenatore/turno-intervista.js';
 import {
   BUSSATA_AUTOMATICA_ATTIVA,
   bussataAutomaticaConsentita,
@@ -18,8 +19,6 @@ import {
   messaggioSoloConteggioTerreni,
   numeroEttariDetto,
   numeroTerreniDetto,
-  preparaTurnoOnboarding,
-  serializzaRaccolti,
 } from '../../landing/src/lib/tony-aiuto-account.js';
 import { LANDING_ATTIVA, TONY_BUSSA_ATTIVO } from '../../landing/src/config/landing-config.js';
 
@@ -27,52 +26,9 @@ const require = createRequire(import.meta.url);
 const {
   numeroTerreniDetto: numeroTerreniDettoServer,
   messaggioSoloConteggioTerreni: soloConteggioServer,
-  rispostaAccountDaTesto,
-  applicaNomeTerrenoDaDomanda,
 } = require('../../functions/lib/tony-landing-account.js');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-
-function turno(stato, domanda, modello) {
-  const raccolti = serializzaRaccolti(stato.dati);
-  const grezzo = typeof modello === 'string' ? modello : JSON.stringify(modello);
-  let pulita = rispostaAccountDaTesto(grezzo, {
-    raccolti,
-    argomento: stato.passo,
-    domanda,
-  });
-  if (pulita.dati) {
-    pulita.dati = applicaNomeTerrenoDaDomanda(domanda, pulita.dati);
-  }
-  const client = preparaTurnoOnboarding({
-    domanda,
-    passo: stato.passo,
-    datiAttuali: stato.dati,
-    datiNuovi: pulita.dati,
-    testo: pulita.testo,
-  });
-  stato.dati = client.dati.dati;
-  stato.passo = client.passo || stato.passo;
-  const nTerreni = (stato.dati.terreni || []).filter(
-    (t) => t && (t.nome || typeof t.superficie === 'number' || t.coltura)
-  ).length;
-  const dopo = decidiDopoRisposta({
-    passo: stato.passo,
-    nTerreni,
-    domanda,
-    turniSenzaNovitaNelPasso: 0,
-    domandeRimaste: 20,
-    terreni: stato.dati.terreni,
-  });
-  return {
-    testo: client.testo != null ? client.testo : pulita.testo,
-    apriRiepilogo: client.apriRiepilogo === true || dopo.apriRiepilogo === true,
-    azioneDopo: dopo.azione,
-    terreni: stato.dati.terreni || [],
-    sede: stato.dati.sede,
-    poderi: stato.dati.poderi,
-  };
-}
 
 describe('flag invariati', () => {
   it('non riattiva landing/bussata/ingresso automatico', () => {

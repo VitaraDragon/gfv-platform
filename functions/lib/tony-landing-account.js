@@ -38,7 +38,8 @@ const SINONIMI_COLTURA = Object.freeze([
   { chiavi: ["fichi", "fico"], nome: "Fico" },
   { chiavi: ["pompelmi", "pompelmo"], nome: "Pompelmo" },
   { chiavi: ["olive", "olivo"], nome: "Olivo" },
-  { chiavi: ["grano duro", "grano tenero", "grano"], nome: "Grano" }
+  { chiavi: ["grano duro", "grano tenero", "grano"], nome: "Grano" },
+  { chiavi: ["melogrno"], nome: "Melograno" }
 ]);
 
 const SCHEMA_RISPOSTA_ACCOUNT = Object.freeze({
@@ -335,11 +336,13 @@ const RUMORE_PARLATO_NOME = Object.freeze([
   "ettaro",
   "ettari",
   "ettar",
+  "etari",
   "si",
   "chiama",
   "piama",
   "kiama",
   "chama",
+  "ciama",
   "chiamo",
   "chiamiamo",
   "chiamano",
@@ -403,9 +406,9 @@ function nomeTerrenoVisibile(nome) {
 function sembraIndirizzo(domanda) {
   const d = String(domanda || "");
   if (!d) return false;
-  if (/\b(?:ha\b|ettari?\b)\b/i.test(d)) return false;
+  if (/\b(?:ha\b|ettari?\b|etari\b)\b/i.test(d)) return false;
   if (/\b\d+(?:[.,]\d+)?\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return false;
-  return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
+  return /\b(?:via|viale|v\.le|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
     d
   );
 }
@@ -439,27 +442,48 @@ const NUMERI_TERRANI_PAROLA = Object.freeze({
   dieci: 10
 });
 
+/** Allineato a landing/src/lib/tony-aiuto-account.js (PAROLE_CONTEGGIO_TERRENI). */
+const PAROLE_CONTEGGIO_TERRENI =
+  "terren[io]|tereni|terenri|terrni|campi|appezzamenti?";
+
+function normalizzaDomandaConteggio(domanda) {
+  return String(domanda || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u00B4]/g, "'")
+    .replace(/[?!.,;:]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
 /**
  * Conteggio esplicito — mai un numero nudo o in parole da solo («6», «sei»).
  * Accetta: «7 terreni», «ne ho 4», «ce ne sono 6», «ho 8 campi».
+ * Refusi leggeri sulla parola terreni (tereni, terenri, terrni) se resta inequivocabile.
+ * «6 etari» è un refuso di ettari, non un conteggio.
  * @param {string} domanda
  * @returns {number|null}
  */
 function numeroTerreniDetto(domanda) {
-  const d = String(domanda || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[?!.,;:]+$/g, "")
-    .replace(/\s+/g, " ");
+  const d = normalizzaDomandaConteggio(domanda);
   if (!d) return null;
-  if (/\b(?:ha\b|ettari?\b)\b/.test(d)) return null;
+  if (/\b(?:ha\b|ettari?\b|etari\b)\b/.test(d)) return null;
   if (/\bdi\s+[a-zà-öø-ÿ]/.test(d)) return null;
   const cifraConParola = d.match(
-    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+|ce\s+n'è\s+)?(\d{1,2})\s+(?:terren[io]|campi|appezzamenti?)$/i
+    new RegExp(
+      "^(?:ne\\s+ho\\s+|ho\\s+|sono\\s+|ce\\s+ne\\s+sono\\s+|ce\\s+n'è\\s+)?(\\d{1,2})\\s+(?:" +
+        PAROLE_CONTEGGIO_TERRENI +
+        ")$",
+      "i"
+    )
   );
   if (cifraConParola) return Number(cifraConParola[1]);
   const parolaConParola = d.match(
-    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+(?:terren[io]|campi|appezzamenti?)$/i
+    new RegExp(
+      "^(?:ne\\s+ho\\s+|ho\\s+|sono\\s+|ce\\s+ne\\s+sono\\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\\s+(?:" +
+        PAROLE_CONTEGGIO_TERRENI +
+        ")$",
+      "i"
+    )
   );
   if (parolaConParola) {
     const k = String(parolaConParola[1] || "").toLowerCase();
@@ -492,7 +516,7 @@ function messaggioSoloConteggioTerreni(domanda) {
  * Allineato a landing/src/lib/tony-aiuto-account.js.
  */
 const RE_SI_CHIAMA =
-  /(?:si\s+(?:chiama|piama|kiama|chama)|(?:lo|la)\s+chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato))\s+/i;
+  /(?:si\s+(?:chiama|piama|kiama|chama|ciama)|(?:lo|la)\s+chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato))\s+/i;
 
 function pulisciCap(valore) {
   const s = String(valore || "").trim();
@@ -858,7 +882,7 @@ function scartaFantasmaColtura(lista, domanda) {
  */
 function superficieDaDomanda(domanda) {
   const s = String(domanda || "");
-  const re = /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettar)/gi;
+  const re = /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettar|etari\b)/gi;
   const out = [];
   let m;
   while ((m = re.exec(s)) !== null) {

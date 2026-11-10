@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-10 — Landing Tony: ettari ≠ conteggio, riepilogo solo al 5°, informativa bloccante.**
+**Ultimo aggiornamento documentazione: 2026-11-10 — Allenatore Tony: telaio a pacchetti e primo pacchetto landing.**
+
+## 2026-11-10 — Allenatore Tony: telaio condiviso e primo pacchetto landing
+
+Su `feat/allenatore-tony-telaio-pacchetto-landing` (PR verso develop). Non è un addestramento del modello e non entra un motore di valutazione esterno.
+
+1. **Telaio** — `tests/allenatore/turno-intervista.js` è lo stesso giro già usato dai test landing (server `rispostaAccountDaTesto` → `preparaTurnoOnboarding` → `decidiDopoRisposta`). Un pacchetto = situazioni, varianti, esito strutturato, dialoghi congelati. Il primo pacchetto è l'intervista account (`pacchetto-landing.test.js`). Niente enciclopedia agricola e niente pacchetto del Tony in-app.
+2. **Varianti** — oltre ai 57 casi della PR #377: refusi (`6 etari`, `tereni`, `si ciama`, `melogrno`), sede che sembra un campo (e indirizzo ambiguo, in cui Tony chiede), fuori tema a metà dialogo, correzione del turno. Il dialogo del ritest 10 nov resta congelato per intero.
+3. **CI** — job Vitest `allenatore landing` in `simulator-ci.yml` (`npm run sim:allenatore:vitest`), con `landing/**` nei path filter. Niente Playwright aggiunto per questo pacchetto.
+
+Come aggiungere un dialogo incollato da Pier: `tests/allenatore/README.md`. I test sintetici non dichiarano esiti di voce o browser. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing Tony: ettari ≠ conteggio, riepilogo solo al 5°, informativa bloccante.**
 
 ## 2026-11-10 — Landing: ettari ≠ conteggio, riepilogo solo al quinto, informativa visibile
 
