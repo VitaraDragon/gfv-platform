@@ -440,7 +440,8 @@ const NUMERI_TERRANI_PAROLA = Object.freeze({
 });
 
 /**
- * «7 terreni», «ne ho 4», «cinque» — solo conteggio, senza nome/ettari/coltura.
+ * Conteggio esplicito — mai un numero nudo o in parole da solo («6», «sei»).
+ * Accetta: «7 terreni», «ne ho 4», «ce ne sono 6», «ho 8 campi».
  * @param {string} domanda
  * @returns {number|null}
  */
@@ -453,15 +454,28 @@ function numeroTerreniDetto(domanda) {
   if (!d) return null;
   if (/\b(?:ha\b|ettari?\b)\b/.test(d)) return null;
   if (/\bdi\s+[a-zà-öø-ÿ]/.test(d)) return null;
-  const cifra = d.match(
-    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+|ce\s+n'è\s+)?(\d{1,2})\s*(?:terren[io]|campi|appezzamenti?)?$/i
+  const cifraConParola = d.match(
+    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+|ce\s+n'è\s+)?(\d{1,2})\s+(?:terren[io]|campi|appezzamenti?)$/i
   );
-  if (cifra) return Number(cifra[1]);
-  const parola = d.match(
-    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s*(?:terren[io]|campi|appezzamenti?)?$/i
+  if (cifraConParola) return Number(cifraConParola[1]);
+  const parolaConParola = d.match(
+    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+(?:terren[io]|campi|appezzamenti?)$/i
   );
-  if (parola) {
-    const k = String(parola[1] || "").toLowerCase();
+  if (parolaConParola) {
+    const k = String(parolaConParola[1] || "").toLowerCase();
+    return Object.prototype.hasOwnProperty.call(NUMERI_TERRANI_PAROLA, k)
+      ? NUMERI_TERRANI_PAROLA[k]
+      : null;
+  }
+  const cifraPrefisso = d.match(
+    /^(?:ne\s+ho\s+|ce\s+ne\s+sono\s+|ce\s+n'è\s+)(\d{1,2})$/i
+  );
+  if (cifraPrefisso) return Number(cifraPrefisso[1]);
+  const parolaPrefisso = d.match(
+    /^(?:ne\s+ho\s+|ce\s+ne\s+sono\s+)(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)$/i
+  );
+  if (parolaPrefisso) {
+    const k = String(parolaPrefisso[1] || "").toLowerCase();
     return Object.prototype.hasOwnProperty.call(NUMERI_TERRANI_PAROLA, k)
       ? NUMERI_TERRANI_PAROLA[k]
       : null;
@@ -1366,15 +1380,20 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   if (soloConteggioTerreni) {
     fatto = false;
     const nDetto = numeroTerreniDetto(domanda);
+    const nGia = terreniDaRaccolti(raccolti).conteggio;
     const pezzi = [];
     if (nDetto != null && nDetto > LIMITI.MAX_TERRENI_PER_RICHIESTA) {
       pezzi.push(
         "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi."
       );
     }
-    pezzi.push(
-      "Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?"
-    );
+    if (nGia <= 0) {
+      pezzi.push(
+        "Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?"
+      );
+    } else if (nGia < LIMITI.MAX_TERRENI_PER_RICHIESTA) {
+      pezzi.push("Ne hai altri o vediamo il riepilogo?");
+    }
     testo = pezzi.join(" ");
   }
   const fuoriTema = parsed.fuoriTema === true;
