@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-10 — Landing: informativa bloccante solo se il riquadro è visibile (fix regressione #377).**
+**Ultimo aggiornamento documentazione: 2026-11-10 — Landing: conteggio terreni e finale allineati tra voce e chat.**
+
+## 2026-11-10 — Landing: conteggio terreni, domanda primo terreno, finale fuori contesto
+
+Su `fix/landing-conteggio-terreni-finale` (PR verso develop), dopo il ritest Pier su prova-tony (main 604c7872, podere Calanchi):
+
+1. **Voce = chat** — la domanda del primo terreno non viene più tagliata in chat (`togliRichiestaNomeGiaDato` tiene «Dimmi il primo terreno»). Il passo passa a terreni senza una seconda domanda.
+2. **Conteggio** — `rispostaAccountDaTesto` riscrive «ne hai N su 5/cinque» sul numero di terreni con nome (un nome che completa il «senza nome» non aggiunge 1). Sotto i 5 toglie «raggiunto il limite» e «passando al Base». Stessa frase nel client. `serializzaRaccolti` avvisa che il terreno in attesa del nome è già nel conteggio.
+3. **Finale** — chi ha già l'account non sente più «Crea il tuo account» / email / password; «e adesso?» torna a «Ne hai altri o vediamo il riepilogo?».
+
+Test: `landing-dialogo-calanchi-conteggio`. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Dopo il merge serve il deploy di `tonyLandingAsk` (e il canale prova-tony): lo fa il coordinatore.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing: informativa bloccante solo se il riquadro è visibile (fix regressione #377).**
 
 ## 2026-11-10 — Landing: informativa bloccante solo se visibile (non in invito)
 
