@@ -29,7 +29,7 @@ describe('ordine aiuto account', () => {
     expect(b.dati.sede.indirizzo).toBe('Via Roma 1');
   });
 
-  it('2 turni senza novità: sede→poderi, poderi→terreni, terreni→riepilogo', () => {
+  it('2 turni senza novità: sede→poderi, poderi→terreni; terreni in raccolta resta', () => {
     expect(
       decidiDopoRisposta({
         turniSenzaNovitaNelPasso: 2,
@@ -49,14 +49,18 @@ describe('ordine aiuto account', () => {
         turniSenzaNovitaNelPasso: 2,
         domandeRimaste: 10,
         passo: 'terreni',
+        nTerreni: 2,
       }).azione
-    ).toBe('riepilogo');
+    ).toBe('resta');
   });
 
-  it('con 3 domande rimaste → riepilogo', () => {
+  it('con 3 domande rimaste → riepilogo (non in raccolta terreni)', () => {
     expect(
       decidiDopoRisposta({ domandeRimaste: 3, passo: 'sede' }).azione
     ).toBe('riepilogo');
+    expect(
+      decidiDopoRisposta({ domandeRimaste: 3, passo: 'terreni', nTerreni: 2 }).azione
+    ).toBe('resta');
   });
 
   it('TonyChat usa azione prossimoPasso di decidiDopoRisposta', () => {

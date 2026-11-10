@@ -58,14 +58,21 @@ describe('correzioni 4 – riepilogo e torna-chat', () => {
     expect(chat).toMatch(/riepilogo\|basta\|ho finito\|fatto\|\^no\\b/);
   });
 
-  it('decidiDopoRisposta con domandeRimaste 2 una sola volta', () => {
-    expect(decidiDopoRisposta({ domandeRimaste: 2, passo: 'terreni' }).azione).toBe(
-      'riepilogo'
-    );
+  it('decidiDopoRisposta: domandeRimaste 2 non apre scheda in raccolta terreni', () => {
+    expect(
+      decidiDopoRisposta({ domandeRimaste: 2, passo: 'terreni', nTerreni: 2 }).azione
+    ).toBe('resta');
     expect(
       decidiDopoRisposta({
         domandeRimaste: 2,
-        passo: 'terreni',
+        passo: 'sede',
+        nTerreni: 0,
+      }).azione
+    ).toBe('riepilogo');
+    expect(
+      decidiDopoRisposta({
+        domandeRimaste: 2,
+        passo: 'sede',
         giaRiaperturaLimiteDomande: true,
       }).azione
     ).toBe('resta');

@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-09 — Landing Tony: parsing terreni Quercie/Melograno.**
+**Ultimo aggiornamento documentazione: 2026-11-10 — Landing Tony: ettari ≠ conteggio, riepilogo solo al 5°, informativa bloccante.**
+
+## 2026-11-10 — Landing: ettari ≠ conteggio, riepilogo solo al quinto, informativa visibile
+
+Su `fix/landing-tony-ettari-non-conteggio-informativa` (PR verso develop), dopo il ritest reale Pier 10 nov (Melograno «Quanti ettari ha?» → «6» deragliato):
+
+1. **Ettari ≠ conteggio** — `numeroTerreniDetto` (client + `tony-landing-account.js`) non tratta più come conteggio un numero nudo/in parole (`6`, `sei`, `sono 6`, `ho 6`). Conteggio solo con parola `terreni`/`campi`/`appezzamenti` o prefisso `ne ho` / `ce ne sono`. In attesa di ettari, anche `ne ho 6` è superficie (salvo parola esplicita). Dopo completamento: «Ne hai altri…»; avviso limite + «primo terreno» solo con conteggio esplicito >5 e zero raccolti.
+2. **Riepilogo** — `decidiDopoRisposta` non apre la scheda per `domandeRimaste ≤ 3` né per stallo/fuori tema mentre si raccolgono terreni con N < 5. Apertura automatica solo al 5° contato o su richiesta utente. `schedaIntro` una sola volta (`apriScheda` idempotente).
+3. **Informativa intervista** — overlay più grande/contrasto; finché non si preme «Ho capito, chiedi» niente campo, mic, chip Dopo/riepilogo; tolta la × che accettava in silenzio. Testo legale invariato. Consenso prima domanda invariato.
+
+Test: `landing-ettari-non-conteggio-informativa.test.js` (varianti + dialogo Pier) + suite `tests/landing` e `tony-aiuto-account` verdi. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / bussata invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: parsing terreni Quercie/Melograno.**
 
 ## 2026-11-09 — Landing: parsing/merge terreni robusto (post-prova Quercie/Melograno)
 
