@@ -945,12 +945,21 @@ function togliDomandaColturaGiaData(testo) {
   return out || 'Va bene.';
 }
 
+/** Domanda di un terreno nuovo: non è la richiesta del nome già dato. */
+function tieneDomandaTerrenoNuovo(frase) {
+  const p = String(frase || '');
+  if (p.indexOf(DOMANDA_PRIMO_TERRENO) !== -1) return true;
+  return /\bdimmi il (primo|secondo|terzo|quarto|quinto|prossimo) terreno\b/i.test(p);
+}
+
 export function togliRichiestaNomeGiaDato(testo) {
   const s = String(testo || '').trim();
   if (!s) return s;
   const pezzi = s.split(/(?<=[.!?])\s+/);
   const filtrati = pezzi.filter(
-    (p) => !/\b(come si chiama|come si chiamano|qual\s*è il nome|che nome)\b/i.test(p)
+    (p) =>
+      tieneDomandaTerrenoNuovo(p) ||
+      !/\b(come si chiama|come si chiamano|qual\s*è il nome|che nome)\b/i.test(p)
   );
   const out = filtrati.join(' ').trim();
   return out || 'Va bene.';
@@ -1516,17 +1525,101 @@ const CONTEGGIO_IN_PAROLE = Object.freeze({
   cinque: 5,
 });
 
+const CONTEGGIO_IN_LETTERE = Object.freeze({
+  1: 'uno',
+  2: 'due',
+  3: 'tre',
+  4: 'quattro',
+  5: 'cinque',
+});
+
+/**
+ * Stesso testo di functions/lib/tony-landing-account.js (allineaTestoTurnoAccount):
+ * la voce legge il server, la chat non deve riscriverlo in un'altra forma.
+ * @param {string} testo
+ * @param {number} n terreni con nome
+ */
 function allineaConteggioTerreni(testo, n) {
+  return togliInvitoRegistrazioneAccount(
+    togliLimiteNonRaggiunto(riscriviConteggioTerreni(testo, n), n),
+    n
+  );
+}
+
+function riscriviConteggioTerreni(testo, n) {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return String(testo || '');
   return String(testo || '').replace(
-    /\bne hai\s+(\d+|un|uno|due|tre|quattro|cinque)\s+su\s+5\b/gi,
-    (tutto, detto) => {
-      const valore = /^\d+$/.test(detto)
-        ? Number(detto)
-        : CONTEGGIO_IN_PAROLE[String(detto).toLowerCase()];
+    /\b(ne hai)\s+(\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(5|cinque)(\s+terreni)?\b/gi,
+    (tutto, neHai, detto, den, terreni) => {
+      const lettere = !/^\d+$/.test(detto);
+      const valore = lettere
+        ? CONTEGGIO_IN_PAROLE[String(detto).toLowerCase()]
+        : Number(detto);
       if (valore === n) return tutto;
-      return 'ne hai ' + n + ' su 5';
+      const nuovo = lettere ? CONTEGGIO_IN_LETTERE[n] || String(n) : String(n);
+      return neHai + ' ' + nuovo + ' su ' + den + (terreni || '');
     }
   );
+}
+
+/** «Raggiunto il limite» con meno di 5 terreni con nome: non è il quinto. */
+function togliLimiteNonRaggiunto(testo, n) {
+  if (typeof n !== 'number' || n >= 5) return String(testo || '');
+  const originale = String(testo || '');
+  const avvisoProspettico = /arrivi a\s+(?:5|cinque)\s+terreni/i.test(originale);
+  let tolto = false;
+  const filtrati = originale.split(/(?<=[.!?])\s+/).filter((p) => {
+    if (/raggiunto il limite/i.test(p)) {
+      tolto = true;
+      return false;
+    }
+    if (
+      !avvisoProspettico &&
+      /passando al Base/i.test(p) &&
+      /raggiunto il limite/i.test(originale)
+    ) {
+      tolto = true;
+      return false;
+    }
+    return true;
+  });
+  let s = filtrati.join(' ').replace(/\s+/g, ' ').trim();
+  if (tolto && !/ne hai altri o vediamo il riepilogo/i.test(s)) {
+    if (s && !/[.!?]$/.test(s)) s += '.';
+    s = (s ? s + ' ' : '') + 'Ne hai altri o vediamo il riepilogo?';
+  }
+  return s;
+}
+
+function fraseInvitoRegistrazione(p) {
+  return (
+    /crea il tuo account/i.test(p) ||
+    /\bregistrart/i.test(p) ||
+    (/email\b/i.test(p) && /password/i.test(p)) ||
+    /accedere all['’]app/i.test(p) ||
+    /abbiamo inserito i tuoi/i.test(p) ||
+    /iniziare a gestire la tua azienda/i.test(p) ||
+    /clicca sul pulsante/i.test(p)
+  );
+}
+
+function togliInvitoRegistrazioneAccount(testo, n) {
+  const originale = String(testo || '').trim();
+  if (!originale) return originale;
+  let tolto = false;
+  const filtrati = originale.split(/(?<=[.!?])\s+/).filter((p) => {
+    if (!fraseInvitoRegistrazione(p)) return true;
+    tolto = true;
+    return false;
+  });
+  let s = filtrati.join(' ').replace(/\s+/g, ' ').trim();
+  if (tolto && !s) {
+    s =
+      typeof n === 'number' && n >= 5
+        ? 'Il riepilogo è qui sotto: controllalo e premi «Sì, salva».'
+        : 'Ne hai altri o vediamo il riepilogo?';
+  }
+  return s;
 }
 
 function chiedeRiepilogoEsplicito(domanda) {
@@ -2120,8 +2213,11 @@ export function preparaTurnoOnboarding(opts) {
   const nTerreni = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
     (t) => t && (nomeTerrenoVisibile(t.nome) || typeof t.superficie === 'number' || t.coltura)
   ).length;
+  const nConNome = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
+    (t) => t && nomeTerrenoVisibile(t.nome)
+  ).length;
   const mostrato = testo != null ? testo : String(o.testo || '');
-  const allineato = allineaConteggioTerreni(mostrato, nTerreni);
+  const allineato = allineaConteggioTerreni(mostrato, nConNome);
   if (allineato !== mostrato) testo = allineato;
   const testoBase = testo != null ? testo : String(o.testo || '');
   const modelloIncerto =
@@ -2170,6 +2266,18 @@ export function preparaTurnoOnboarding(opts) {
 
   if (testo == null && o.testo !== testoIngresso) testo = o.testo;
 
+  // Il server ha già chiesto il primo terreno: il passo segue, senza una seconda domanda.
+  if (
+    passo0 === 'poderi' &&
+    !devePoderi &&
+    Array.isArray(uniti.dati.poderi) &&
+    uniti.dati.poderi.length > 0 &&
+    tieneDomandaTerrenoNuovo(testoIngresso)
+  ) {
+    passo = 'terreni';
+    vaiATerreni = false;
+  }
+
   return {
     dati: uniti,
     passo,
@@ -2212,6 +2320,17 @@ export function serializzaRaccolti(dati) {
     if (nTerreni > 0) {
       righe.push(
         'Terreni già raccolti: ' + nTerreni + ' di ' + LIMITI.MAX_TERRENI_PER_RICHIESTA
+      );
+    }
+    const inAttesaNome = d.terreni.some(
+      (t) =>
+        t &&
+        !nomeTerrenoVisibile(t.nome) &&
+        (typeof t.superficie === 'number' || t.coltura || t.categoria)
+    );
+    if (inAttesaNome) {
+      righe.push(
+        '(Uno di questi è in attesa del nome: quando l\'utente dice il nome, NON è un terreno in più.)'
       );
     }
     for (const t of d.terreni) {
