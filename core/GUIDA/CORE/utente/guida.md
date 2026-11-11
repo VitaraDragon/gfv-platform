@@ -487,17 +487,9 @@ Le azioni automatiche dipendono dal **modulo Tony**, dal **ruolo** e dalla **pag
 
 All’**iscrizione**, se preparate l’azienda con Tony: sede, poderi e terreni restano una bozza sul dispositivo finché, già collegati, aprite il riepilogo **«Confermi?»** e salvate (così entrano in azienda insieme a sede e poderi). La sola registrazione crea l’account e l’azienda, non i terreni; se non finite, la bozza sparisce dopo qualche ora. Sul piano gratuito al massimo **5 terreni** (il **+** del riepilogo si spegne a 5). Tony chiede il **nome** di ogni terreno; i **poderi** sono facoltativi.
 
-Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore; non nella schermata in campo di operaio e caposquadra) e scrive: «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» Se manca ancora il pin della sede aggiunge «(il pin della sede manca ancora: lo mettiamo al passo 1)». Su telefono il pannello si apre senza far salire la tastiera.
+Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo, **una volta sola**, dopo il primo accesso (manager e amministratore; non nella schermata in campo di operaio e caposquadra) e scrive: «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» Se manca ancora il pin della sede aggiunge «(il pin della sede manca ancora: lo metti in Impostazioni, con l’ingranaggio in alto a destra)». Su telefono il pannello si apre senza far salire la tastiera.
 
-Sotto il messaggio trovi tre pulsanti, uno per passo, e **Chiudi percorso**:
-
-1. **1) Mappa / sede** — porta a **Impostazioni**, dove mettete il pin della sede.
-2. **2) Terreni (coltura e confini)** — porta a **Terreni**: categoria coltura, coltura e, se volete, i confini.
-3. **3) Primo lavoro / attività nel Diario** — per la prima giornata in campo: **senza Manodopera** porta al **Diario attività**; **con Manodopera** attivo porta invece a **Gestione lavori** e **Segnatura ore**, dove si registrano le giornate (non al Diario).
-
-Ogni pulsante apre direttamente la sua pagina con qualsiasi piano, anche gratuito o Base: non serve **Tony Avanzato**.
-
-Nei giorni seguenti, al massimo una volta al giorno, Tony riprende dal primo passo che non avete ancora aperto (per esempio «Riprendiamo dai terreni. Usa i pulsanti qui sotto o la graffetta in alto a sinistra.») e mostra solo i passi che restano. Con **Chiudi percorso** Tony risponde «Ok, chiudo il percorso guidato. Se ti serve, chiedimi pure.» e non lo ripropone più. Il percorso resta salvato nei dati dell’azienda: i passi già aperti e **Chiudi percorso** valgono su tutti i telefoni e computer con cui entrate.
+Il messaggio è solo testo: **non ci sono pulsanti** né «Chiudi percorso», e nei giorni seguenti Tony non ripropone il saluto. Per muoverti usa la **graffetta in alto a sinistra** (Terreni, Diario attività o Gestione lavori, secondo i moduli attivi) e l’**ingranaggio in alto a destra** per **Impostazioni**, dove si mette il pin della sede. Se ti serve, chiedi a Tony: ti spiega dove andare.
 
 ### Salutare Tony quando hai finito
 
