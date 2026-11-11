@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   attesaPrimaDiParlareMs,
+  BUSSATA_AUTOMATICA_ATTIVA,
   bussataAutomaticaConsentita,
   PRECARICA_SCENA_MS,
   precaricoScenaConsentito,
@@ -122,33 +123,45 @@ describe('MIN_SCRIVE e bussata automatica', () => {
   it('bussataAutomaticaConsentita con contatore e interazione', () => {
     expect(BUSSATA_AUTOMATICA_MS).toBe(8000);
     expect(PRECARICA_SCENA_MS).toBe(400);
-    expect(bussataAutomaticaConsentita({})).toBe(true);
-    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(true);
-    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 1 })).toBe(true);
-    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 2 })).toBe(false);
-    expect(bussataAutomaticaConsentita({ utenteHaInteragito: true })).toBe(false);
-    expect(bussataAutomaticaConsentita({ sessioneGiaBussato: true })).toBe(false);
-    expect(bussataAutomaticaConsentita({ rinunciaSalvata: true })).toBe(false);
-    expect(bussataAutomaticaConsentita({ paginaNascosta: true })).toBe(false);
-    expect(bussataAutomaticaConsentita({ stageAperto: true })).toBe(false);
-    expect(bussataAutomaticaConsentita({ avvisoAperto: true })).toBe(false);
+    // Con flag off (default post-Pier) il timer non parte; i gate restano testabili sul core via precarico.
+    if (BUSSATA_AUTOMATICA_ATTIVA !== true) {
+      expect(bussataAutomaticaConsentita({})).toBe(false);
+      expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(false);
+    } else {
+      expect(bussataAutomaticaConsentita({})).toBe(true);
+      expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(true);
+      expect(bussataAutomaticaConsentita({ bussateAutomatiche: 1 })).toBe(true);
+      expect(bussataAutomaticaConsentita({ bussateAutomatiche: 2 })).toBe(false);
+      expect(bussataAutomaticaConsentita({ utenteHaInteragito: true })).toBe(false);
+      expect(bussataAutomaticaConsentita({ sessioneGiaBussato: true })).toBe(false);
+      expect(bussataAutomaticaConsentita({ rinunciaSalvata: true })).toBe(false);
+      expect(bussataAutomaticaConsentita({ paginaNascosta: true })).toBe(false);
+      expect(bussataAutomaticaConsentita({ stageAperto: true })).toBe(false);
+      expect(bussataAutomaticaConsentita({ avvisoAperto: true })).toBe(false);
+    }
   });
 
   it('precarico e riprova bussata quando la pagina torna visibile', () => {
     expect(precaricoScenaConsentito({ paginaNascosta: true })).toBe(true);
     expect(precaricoScenaConsentito({ utenteHaInteragito: true })).toBe(false);
-    expect(
-      deveRiprovareBussataQuandoVisibile({ paginaNascosta: true, bussateAutomatiche: 0 })
-    ).toBe(true);
-    expect(
-      deveRiprovareBussataQuandoVisibile({ paginaNascosta: false, bussateAutomatiche: 0 })
-    ).toBe(false);
-    expect(
-      deveRiprovareBussataQuandoVisibile({
-        paginaNascosta: true,
-        utenteHaInteragito: true,
-      })
-    ).toBe(false);
+    if (BUSSATA_AUTOMATICA_ATTIVA === true) {
+      expect(
+        deveRiprovareBussataQuandoVisibile({ paginaNascosta: true, bussateAutomatiche: 0 })
+      ).toBe(true);
+      expect(
+        deveRiprovareBussataQuandoVisibile({ paginaNascosta: false, bussateAutomatiche: 0 })
+      ).toBe(false);
+      expect(
+        deveRiprovareBussataQuandoVisibile({
+          paginaNascosta: true,
+          utenteHaInteragito: true,
+        })
+      ).toBe(false);
+    } else {
+      expect(
+        deveRiprovareBussataQuandoVisibile({ paginaNascosta: true, bussateAutomatiche: 0 })
+      ).toBe(false);
+    }
   });
 
   it('precarica thinking e scrive prima dell’ascolto', () => {

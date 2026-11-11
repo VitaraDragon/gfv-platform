@@ -1,6 +1,124 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-07 — Trattamenti: schede mobile, Mostra archiviati.**
+**Ultimo aggiornamento documentazione: 2026-11-10 — Tony: saluto landing senza pulsanti del percorso (demo EIMA).**
+
+## 2026-11-10 — Tony: saluto landing senza i tre pulsanti del percorso
+
+Su `fix/tony-togli-chip-percorso-gratuito` (PR verso develop), per la demo EIMA: al primo accesso dopo il setup dalla landing Tony dice ancora il saluto (una volta sola, con la graffetta), senza i tre pulsanti «Mappa / sede», «Terreni», «Diario» e senza «Chiudi percorso». Quei pulsanti chiamavano `APRI_PAGINA` e, senza Tony Avanzato, rispondevano «richiede il modulo Tony Avanzato». Vale per tutti i piani. I giorni dopo non compare più il «riprendi». Se manca il pin della sede, la nota indica Impostazioni (ingranaggio in alto a destra). `decidiSalutoLanding` e `messaggioRiprendi` invariati. Nessun bump di `TONY_CLIENT_BUILD`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing: conteggio terreni e finale allineati tra voce e chat.**
+
+## 2026-11-10 — Landing: conteggio terreni, domanda primo terreno, finale fuori contesto
+
+Su `fix/landing-conteggio-terreni-finale` (PR verso develop), dopo il ritest Pier su prova-tony (main 604c7872, podere Calanchi):
+
+1. **Voce = chat** — la domanda del primo terreno non viene più tagliata in chat (`togliRichiestaNomeGiaDato` tiene «Dimmi il primo terreno»). Il passo passa a terreni senza una seconda domanda.
+2. **Conteggio** — `rispostaAccountDaTesto` riscrive «ne hai N su 5/cinque» sul numero di terreni con nome (un nome che completa il «senza nome» non aggiunge 1). Sotto i 5 toglie «raggiunto il limite» e «passando al Base». Stessa frase nel client. `serializzaRaccolti` avvisa che il terreno in attesa del nome è già nel conteggio.
+3. **Finale** — chi ha già l'account non sente più «Crea il tuo account» / email / password; «e adesso?» torna a «Ne hai altri o vediamo il riepilogo?».
+
+Test: `landing-dialogo-calanchi-conteggio`. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Dopo il merge serve il deploy di `tonyLandingAsk` (e il canale prova-tony): lo fa il coordinatore.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing: informativa bloccante solo se il riquadro è visibile (fix regressione #377).**
+
+## 2026-11-10 — Landing: informativa bloccante solo se visibile (non in invito)
+
+Su `fix/landing-informativa-blocca-solo-se-visibile` (PR verso develop): regressione della #377 — il flag `informativaAiutoVisibile` nasceva true all’apertura pannello e dopo registrazione, ma il riquadro compare solo con `faseAiuto && informativaAiutoVisibile`. I guard/template che usavano solo il flag nascondevano i chip demo e bloccavano «Sì, iniziamo» / «Salta tutto» senza uscita.
+
+1. **`informativaBloccante`** — computed: `faseAiuto && informativaAiutoVisibile && passoAiuto !== 'invito'`. Usato in guardie chip/scheda/invio/mic, template chip+campo e bottone Riepilogo.
+2. **Invariati** — riquadro informativa, link privacy, testi legali, ettari/riepilogo #377, flag landing/bussata.
+3. **Test** — mount `@vue/test-utils` (`landing-informativa-bloccante-comportamento.test.js`); `tests/landing` incluso in `sim:tony:vitest`.
+
+Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing Tony: ettari ≠ conteggio, riepilogo solo al 5°, informativa bloccante.**
+
+## 2026-11-10 — Landing: ettari ≠ conteggio, riepilogo solo al quinto, informativa visibile
+
+Su `fix/landing-tony-ettari-non-conteggio-informativa` (PR verso develop), dopo il ritest reale Pier 10 nov (Melograno «Quanti ettari ha?» → «6» deragliato):
+
+1. **Ettari ≠ conteggio** — `numeroTerreniDetto` (client + `tony-landing-account.js`) non tratta più come conteggio un numero nudo/in parole (`6`, `sei`, `sono 6`, `ho 6`). Conteggio solo con parola `terreni`/`campi`/`appezzamenti` o prefisso `ne ho` / `ce ne sono`. In attesa di ettari, anche `ne ho 6` è superficie (salvo parola esplicita). Dopo completamento: «Ne hai altri…»; avviso limite + «primo terreno» solo con conteggio esplicito >5 e zero raccolti.
+2. **Riepilogo** — `decidiDopoRisposta` non apre la scheda per `domandeRimaste ≤ 3` né per stallo/fuori tema mentre si raccolgono terreni con N < 5. Apertura automatica solo al 5° contato o su richiesta utente. `schedaIntro` una sola volta (`apriScheda` idempotente).
+3. **Informativa intervista** — overlay più grande/contrasto; finché non si preme «Ho capito, chiedi» niente campo, mic, chip Dopo/riepilogo; tolta la × che accettava in silenzio. Testo legale invariato. Consenso prima domanda invariato.
+
+Test: `landing-ettari-non-conteggio-informativa.test.js` (varianti + dialogo Pier) + suite `tests/landing` e `tony-aiuto-account` verdi. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / bussata invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: parsing terreni Quercie/Melograno.**
+
+## 2026-11-09 — Landing: parsing/merge terreni robusto (post-prova Quercie/Melograno)
+
+Su `fix/landing-tony-dialogo-quercie-melograno` (PR verso develop), dopo la prova reale Quercie/Melograno su `prova-tony` (build f25fe5fa / develop c84a2a52):
+
+1. **Nome** — `togliConnettiviFinaliNome` toglie anche verbi/copule del parlato (`sono`, `è`, `ha`, `fa`, `c'è`/`cè`, `misura`, `sarebbe`, `ed`, …) in coda e in testa; niente «Quercie sono» / coltura fantasma «È».
+2. **Forme nome** — `RE_SI_CHIAMA` estesa: `lo/la chiamo|chiamiamo|chiamano`, `chiamiamol[oa]`, `il nome è`, `nome`/`detto`/`chiamato` X (+ refusi già tollerati); `troncaNomePrimaDiMisura` invariato.
+3. **Merge incompleto** — un solo terreno incompleto riceve i pezzi mancanti (nome/ettari/coltura) senza perdere i dati già noti; ettari diversi ⇒ appezzamento nuovo (Lago non eredita Melograno).
+4. **Domanda nome** — risposta breve dopo «Come si chiama…?» è il nome anche se è una coltura del catalogo; al più una richiesta per terreno (`nomeChiesto`), poi si prosegue col nome vuoto in riepilogo.
+5. **Quinto contato** — conteggio e apertura riepilogo invariati (anche con nome ancora vuoto dopo regola f). Bussata automatica resta spenta.
+
+Test: `landing-dialogo-quercie-melograno.test.js` (varianti + dialogo Pier) + suite `tests/landing` e `tony-aiuto-account` verdi. Client `tony-aiuto-account.js` + function `tony-landing-account.js` allineati. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: 4 correzioni post-prova Pier.**
+
+## 2026-11-09 — Landing: 4 correzioni post-prova Pier (bussata, 5°, nome Lago, coltura)
+
+Su `fix/landing-tony-correzioni-pier-prova` (PR verso develop), dopo la prova reale su `prova-tony` / PR371:
+
+1. **Bussata** — `BUSSATA_AUTOMATICA_ATTIVA = false`: niente ingresso a timer al mount; Tony entra solo dal clic su «Vuoi provare GFV?» (precarico clip e `TONY_BUSSA_ATTIVO` invariati).
+2. **5° terreno** — al quinto completo (nome+ha+coltura) niente «Ne hai altri?»; frase `limiteCinqueRaggiunto` + apre subito il riepilogo. Il sesto resta rifiutato con `cinqueTerreni`. Prompt server allineato.
+3. **Nome** — «si chiama lago 12 ha kiwi» → nome `Lago` (tronca prima di N ha / N di), client + `applicaNomeTerrenoDaDomanda`.
+4. **Coltura** — nel ramo nome libero in attesa la coltura passa da `colturaAccettata` (es. `albicocche`/`albicocco`→`Albicocche`, `noci`→`Noce`). Catalogo ufficiale resta «Albicocche».
+
+Test: `landing-correzioni-pier-prova.test.js` (bussata, Lago, coltura, 5°, giro Faenza/Carisa). Cache voci `?v=2026-11-09b`; mp3 `limiteCinqueRaggiunto` da generare con lo script (nessuna chiave in sessione agente). LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: coltura canonica, Prugneto, primo terreno.**
+
+## 2026-11-09 — Landing intervista: coltura catalogo, maiuscola nome, niente «quanti terreni»
+
+Su `fix/tony-landing-intervista-coltura-nome-primo` (PR verso develop), dialogo reale Monte Coralli 7 / Bruciata:
+
+1. **Coltura** — plurali comuni (`noci`→`Noce`, `pesche`/`peschi`→`Pesco`, `mele`→`Melo`, `albicocco`→`Albicocche`, `pompelmi`→`Pompelmo`, …) in `SINONIMI_COLTURA` (function + client). Il riepilogo tiene il nome canonico del catalogo usato in chat, non il grezzo utente (`Noci` + «coltura non trovata»).
+2. **Nome** — `nomeTerrenoVisibile` applica la prima lettera maiuscola (es. `prugneto`→`Prugneto`), con i connettivi finali già tolti.
+3. **Primo terreno** — niente «Quanti terreni hai e come si chiamano?»; domanda fissa/prompt «Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?». Su sola risposta numerica (`7 terreni`) non si apre il riepilogo: avviso limite se >5 e richiesta del primo terreno. Formule successive invariate («Ne hai altri…», «ne hai N su 5»).
+
+Test: `landing-nome-terreno-runtime` (dialogo Pier), sinonimi in `tony-landing-ask-account`; suite `tests/landing` + ask account verde. Cambia **function** (`tony-landing-account.js` / `tonyLandingAsk`) **e** client landing. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no. Nessun merge né deploy. Audio fissa `tony-aiuto-domandaTerreni.mp3` / `tony-aiuto-passaggioPoderi.mp3` rigenerati (ElevenLabs, stessi settings); client `percorsoVoceAiuto` con `?v=2026-11-09a`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: nomi «con», CAP, audio 409, video.**
+
+## 2026-11-09 — Landing intervista: nomi senza «con», CAP, audio 409, video gitignore
+
+Su `fix/tony-landing-intervista-pier-9nov` (PR verso develop), dopo la prova reale di Pier sul canale `prova-tony`:
+
+1. **Nomi** — «campo largo con 12 ha di fava» / «campo alto con 5 ha di melograno»: il riepilogo non tiene più il «con» finale (`togliConnettiviFinaliNome` in function + client; «a»/«e» solo minuscoli così «Campo A» resta).
+2. **CAP** — nessuna tabella comuni CAP in repo: con «via monte coralli 8 faenza» restano Faenza + RA e CAP vuoto, senza errore.
+3. **Audio 409** — causa nel client: `TonyChat` mandava a `tonyLandingAudio` il testo riscritto da `preparaTurnoOnboarding` invece di `esito.testo` (hash del biglietto) → `voce-non-valida`. Fix: `testoPerBigliettoVoce`. AudioContext / blob 404 erano effetto a cascata. Nessun deploy function richiesto per questo fix.
+4. **Video 404** — `*.mp4`/`*.webm` in `landing/public/video/` sono gitignored (README: file locali ~25 MB); poster/VTT sì. Non è un bug di build: sul canale mancano i file non versionati.
+
+Test: `landing-nome-terreno-runtime` (frasi Pier), `landing-passo12b` (`testoPerBigliettoVoce`); suite `tests/landing` verde. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-09 — Landing Tony: niente terreno fantasma dalla sede.**
+
+## 2026-11-09 — Landing intervista account: sede ≠ terreno, contatore reale
+
+Su `fix/tony-landing-intervista-terreni-fantasma` (PR verso develop): la risposta alla sede (`via monte coralli 5 faenza`) non crea più un terreno (civico letto come ettari, comune come coltura). Stesso blocco lato function (`tony-landing-account.js`) e client (`tony-aiuto-account.js`); nomi tipo «Via …» scartati; coltura non da civico senza `ha`/`di`; refusi `si piama` / `si kiama` / `si chama`. Contatore e limite 5 solo sui terreni reali (Chiesetta accettata come quinto). Test runtime del dialogo in `tests/landing/landing-nome-terreno-runtime.test.js`. Nessun deploy. LANDING_ATTIVA / TONY_BUSSA_ATTIVO, rules e indici no.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-07 — Trattamenti: schede mobile, Mostra archiviati.**
 
 ## 2026-11-07 — Trattamenti: Modifica sulle schede e storico archiviati
 

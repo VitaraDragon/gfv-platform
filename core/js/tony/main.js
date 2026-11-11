@@ -10001,7 +10001,8 @@ if (typeof window !== 'undefined') {
             sendMessage(String(text || '').trim(), proactiveOpts);
         };
         /**
-         * Saluto / «riprendi» del percorso 7 giorni dopo setup da landing.
+         * Saluto del percorso 7 giorni dopo setup da landing (una volta sola).
+         * Niente pulsanti e niente «riprendi»: un tipo diverso da «saluto» non mostra nulla.
          * Solo locale: nessuna CF, nessun conteggio domanda giornaliera (come proactive `_displayOnly`).
          * Apre il pannello senza focus sull'input su schermi stretti / touch (niente tastiera addosso).
          * @param {{ tipo: 'saluto'|'riprendi', tenantId: string, stato: object, nome?: string, pinSede?: boolean }} args
@@ -10010,7 +10011,7 @@ if (typeof window !== 'undefined') {
             args = args || {};
             var tenantId = String(args.tenantId || '').trim();
             if (!tenantId || !messagesEl) return false;
-            if (args.tipo !== 'saluto' && args.tipo !== 'riprendi') return false;
+            if (args.tipo !== 'saluto') return false;
             var stato = Object.assign({ salutoFatto: false, percorsoChiuso: false, passiVisti: {}, ultimoRiprendiGiorno: '' }, args.stato || {});
             stato.passiVisti = Object.assign({}, stato.passiVisti || {});
             var d = new Date();
@@ -10021,51 +10022,12 @@ if (typeof window !== 'undefined') {
             salvaStatoPercorsoLocale(tenantId, stato);
 
             var built = costruisciMessaggioSaluto({ nome: args.nome || '', haPinSede: args.pinSede === true });
-            var testo = args.tipo === 'saluto'
-                ? built.testo
-                : messaggioRiprendi(stato) + ' Usa i pulsanti qui sotto o la graffetta in alto a sinistra.';
-            var passi = args.tipo === 'saluto'
-                ? built.passi
-                : built.passi.filter(function(p) { return !stato.passiVisti[p.id]; });
+            var testo = built.testo;
 
             appendMessage(testo, 'tony');
             if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
                 window.Tony.chatHistory.push({ role: 'model', parts: [{ text: testo }] });
             }
-
-            var box = document.createElement('div');
-            box.className = 'tony-landing-passi';
-            passi.forEach(function(p) {
-                var b = document.createElement('button');
-                b.type = 'button';
-                b.className = 'tony-landing-passo';
-                b.textContent = p.label;
-                b.addEventListener('click', function() {
-                    try {
-                        var st = leggiStatoPercorsoLocale(tenantId);
-                        st.passiVisti = Object.assign({}, st.passiVisti || {});
-                        st.passiVisti[p.id] = true;
-                        salvaStatoPercorsoLocale(tenantId, st);
-                    } catch (eSt) { /* ignore */ }
-                    processTonyCommand({ type: 'APRI_PAGINA', target: p.target, _tonySkipConfirm: true });
-                });
-                box.appendChild(b);
-            });
-            var chiudi = document.createElement('button');
-            chiudi.type = 'button';
-            chiudi.className = 'tony-landing-chiudi';
-            chiudi.textContent = 'Chiudi percorso';
-            chiudi.addEventListener('click', function() {
-                try {
-                    var st2 = leggiStatoPercorsoLocale(tenantId);
-                    st2.percorsoChiuso = true;
-                    salvaStatoPercorsoLocale(tenantId, st2);
-                } catch (eCl) { /* ignore */ }
-                if (box.parentNode) box.parentNode.removeChild(box);
-                appendMessage('Ok, chiudo il percorso guidato. Se ti serve, chiedimi pure.', 'tony');
-            });
-            box.appendChild(chiudi);
-            messagesEl.appendChild(box);
             messagesEl.scrollTop = messagesEl.scrollHeight;
 
             var stretto = tonyIsCoarsePointerOrMobile() || (window.innerWidth && window.innerWidth <= 768);
@@ -11081,7 +11043,7 @@ window.addEventListener('tony-module-updated', function(e) {
                     logProntoIfNeeded();
                     setTimeout(function() { logProntoIfNeeded(); }, 2500);
                     if (typeof window.__tonyRestoreSession === 'function') window.__tonyRestoreSession();
-                    // Saluto landing (percorso 7 giorni): messaggio locale, zero CF, una volta (riprendi max 1/giorno).
+                    // Saluto landing (percorso 7 giorni): messaggio locale, zero CF, solo il primo «saluto». «riprendi» non si mostra.
                     (function scheduleTonyLandingSaluto() {
                         if (window.__tonyLandingSalutoScheduled) return;
                         window.__tonyLandingSalutoScheduled = true;
@@ -11116,7 +11078,7 @@ window.addEventListener('tony-module-updated', function(e) {
                                     sedeCoordinate: td.sedeCoordinate || null,
                                     statoLocale: stato
                                 });
-                                if (dec.tipo !== 'saluto' && dec.tipo !== 'riprendi') return;
+                                if (dec.tipo !== 'saluto') return;
                                 // G1: pin mancante → attende l'auto-pin (max ~3,5 s) prima di scegliere la frase.
                                 var attesaPin = await attendiPinSedeAutoPin(
                                     function() { return window.__gfvTenantData; },

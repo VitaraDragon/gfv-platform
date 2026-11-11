@@ -21,6 +21,7 @@ import {
   messaggioAttesaLunga,
   modoVoce,
   nuovaSessione,
+  testoPerBigliettoVoce,
   validaDomanda,
 } from '../lib/tony-chat-logica.js';
 import { chiediVoce } from '../lib/tony-voce-client.js';
@@ -151,6 +152,13 @@ const mostraAscolta = ref(false);
 const voceInCorso = ref(false);
 const voceParlandoSr = ref(false);
 const informativaAiutoVisibile = ref(false);
+/** Blocca chip/campo/mic solo quando l'informativa è davvero mostrata (non in 'invito'). */
+const informativaBloccante = computed(
+  () =>
+    faseAiuto.value &&
+    informativaAiutoVisibile.value &&
+    passoAiuto.value !== 'invito'
+);
 const attesaLungaVisibile = ref(false);
 const mostraConsensoInvio = ref(false);
 const testoInvioInAttesa = ref<{ testo: string; daChip: boolean } | null>(null);
@@ -261,6 +269,7 @@ function segnaInformativaAiutoVista() {
 function onHoCapitoInformativaAiuto() {
   informativaAiutoVisibile.value = false;
   segnaInformativaAiutoVista();
+  focalizzaCampoSeConsentito();
 }
 
 function onHoCapitoConsensoInvio() {
@@ -640,6 +649,7 @@ function avviaPasso(passo: string) {
 }
 
 function onChipAiuto(etichetta: string) {
+  if (informativaBloccante.value) return;
   if (inAttesa.value || invioInCorso.value) return;
   if (etichetta === ta.chipSi) {
     avviaPasso('sede');
@@ -669,6 +679,9 @@ function onChipAiuto(etichetta: string) {
 }
 
 function apriScheda() {
+  if (informativaBloccante.value) return;
+  // Una sola intro: non ripetere se la scheda è già aperta.
+  if (schedaAperta.value) return;
   tornatoDalRiepilogo = false;
   statoPrimaDellaScheda = {
     campoAttivo: campoAttivo.value,
@@ -780,6 +793,7 @@ function onVaiDashboard() {
 async function inviaTesto(grezzo: string, daChip = false) {
   if (moduloAperto.value || schedaAperta.value) return;
   if (faseAiuto.value && passoAiuto.value === 'invito') return;
+  if (informativaBloccante.value) return;
   if (inAttesa.value || !campoAttivo.value || modalitàStatica.value) return;
   if (aiutoFatto.value || aiutoSospeso.value) return;
   if (!presaVisioneOk()) {
@@ -1020,6 +1034,11 @@ async function inviaTesto(grezzo: string, daChip = false) {
     ) {
       passoAiuto.value = passoAllineato;
     }
+    const nTerreniOra = Array.isArray(datiAiuto.value.terreni)
+      ? datiAiuto.value.terreni.filter(
+          (t) => t && (t.nome || typeof t.superficie === 'number' || t.coltura)
+        ).length
+      : 0;
     const dopoRisposta = decidiDopoRisposta({
       nuoviDati: novita,
       fuoriTema: consecutiviFuoriTema.value,
@@ -1028,12 +1047,19 @@ async function inviaTesto(grezzo: string, daChip = false) {
         typeof esito.domandeRimaste === 'number' ? esito.domandeRimaste : undefined,
       passo: passoAiuto.value || '',
       giaRiaperturaLimiteDomande,
+      nTerreni: nTerreniOra,
+      domanda,
+      terreni: datiAiuto.value.terreni,
     });
     if (turno.bloccaAvanti) {
       campoAttivo.value = true;
       chipVisibili.value = true;
     } else if (turno.vaiATerreni) {
       avviaPasso('terreni');
+    } else if (turno.apriRiepilogo) {
+      // 5° terreno completo: niente «Ne hai altri?», apre subito il riepilogo.
+      void suonaFraseFissa('limiteCinqueRaggiunto');
+      apriScheda();
     } else if (
       (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) &&
       !fraseTerrenoSenzaRiepilogo(domanda) &&
@@ -1085,8 +1111,11 @@ async function inviaTesto(grezzo: string, daChip = false) {
     chipVisibili.value = false;
   }
 
+  // Biglietto firmato su esito.testo; azione.testo può essere riscritto dal client → 409.
+  const testoBigliettoVoce = testoPerBigliettoVoce(esito, azione.testo);
+
   const modo = modoVoce({
-    esito: { ...esito, testo: azione.testo },
+    esito: { ...esito, testo: testoBigliettoVoce },
     altoparlante: altoparlante.value,
     risposteVocaliAutomatiche,
     riduciMovimento: props.riduciMovimento,
@@ -1096,13 +1125,13 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   if (esito.voce === true && typeof esito.idVoce === 'string') {
     altoparlanteVisibile.value = true;
-    metaVoce = { idVoce: esito.idVoce, testo: azione.testo };
+    metaVoce = { idVoce: esito.idVoce, testo: testoBigliettoVoce };
   }
 
   if (modo === 'automatica') {
     scorriInBasso();
     if (azione.campoAttivo) focalizzaCampoSeConsentito();
-    void gestisciVoceAutomatica(esito, azione.testo);
+    void gestisciVoceAutomatica(esito, testoBigliettoVoce);
   } else if (modo === 'pulsante') {
     mostraAscolta.value = true;
     emit('rispostaFinita');
@@ -1263,7 +1292,7 @@ function fermaMicrofono() {
 }
 
 function avviaMicrofono() {
-  if (moduloAperto.value) return;
+  if (moduloAperto.value || informativaBloccante.value) return;
   if (microfonoNascosto.value || !microfonoDisponibile.value || inAttesa.value) return;
   const SR =
     window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -1478,17 +1507,10 @@ defineExpose({ interrompi });
       <div
         v-if="faseAiuto && informativaAiutoVisibile"
         class="informativa-aiuto"
-        role="region"
+        role="dialog"
+        aria-modal="true"
         aria-label="Informativa aiuto account"
       >
-        <button
-          type="button"
-          class="informativa-chiudi"
-          :aria-label="ta.informativaChiudi"
-          @click="onHoCapitoInformativaAiuto"
-        >
-          ×
-        </button>
         <p>
           {{ ta.informativa }}
           <a href="/privacy#tony">{{ ta.informativaLink }}</a>
@@ -1497,90 +1519,92 @@ defineExpose({ interrompi });
           {{ ta.informativaHoCapito }}
         </button>
       </div>
-      <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
-        <template v-if="faseAiuto">
-          <button
-            type="button"
-            class="chip"
-            :disabled="inAttesa"
-            @click="onChipAiuto(ta.chipDopo)"
-          >
-            {{ ta.chipDopo }}
-          </button>
-          <button
-            v-if="haDatiAiuto()"
-            type="button"
-            class="chip"
-            :disabled="inAttesa"
-            @click="onChipAiuto(ta.chipAvanti)"
-          >
-            {{ ta.chipAvanti }}
-          </button>
-          <button
-            type="button"
-            class="chip"
-            :disabled="inAttesa"
-            @click="onChipAiuto(ta.chipRiepilogo)"
-          >
-            {{ ta.chipRiepilogo }}
-          </button>
-        </template>
-        <template v-else>
-          <button
-            v-for="c in t.chip"
-            :key="c"
-            type="button"
-            class="chip"
-            :disabled="inAttesa"
-            @click="onChip(c)"
-          >
-            {{ c }}
-          </button>
-        </template>
-      </div>
+      <template v-if="!informativaBloccante">
+        <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
+          <template v-if="faseAiuto">
+            <button
+              type="button"
+              class="chip"
+              :disabled="inAttesa"
+              @click="onChipAiuto(ta.chipDopo)"
+            >
+              {{ ta.chipDopo }}
+            </button>
+            <button
+              v-if="haDatiAiuto()"
+              type="button"
+              class="chip"
+              :disabled="inAttesa"
+              @click="onChipAiuto(ta.chipAvanti)"
+            >
+              {{ ta.chipAvanti }}
+            </button>
+            <button
+              type="button"
+              class="chip"
+              :disabled="inAttesa"
+              @click="onChipAiuto(ta.chipRiepilogo)"
+            >
+              {{ ta.chipRiepilogo }}
+            </button>
+          </template>
+          <template v-else>
+            <button
+              v-for="c in t.chip"
+              :key="c"
+              type="button"
+              class="chip"
+              :disabled="inAttesa"
+              @click="onChip(c)"
+            >
+              {{ c }}
+            </button>
+          </template>
+        </div>
 
-      <div class="campo-riga">
-        <label class="sr-only" for="tony-domanda">{{ t.etichettaCampo }}</label>
-        <input
-          id="tony-domanda"
-          ref="inputEl"
-          v-model="campo"
-          type="text"
-          class="campo"
-          :placeholder="microfonoAscolta ? t.ascolto : t.segnapostoCampo"
-          :maxlength="MAX_CARATTERI_DOMANDA"
-          :disabled="inAttesa"
-          autocomplete="off"
-          @focus="onFocusCampo"
-          @blur="onBlurCampo"
-          @input="onInputCampo"
-          @keydown="onKeydown"
-        />
-        <span v-if="contatoreVisibile" class="contatore">{{ campo.length }}/{{ MAX_CARATTERI_DOMANDA }}</span>
-        <button
-          type="button"
-          class="btn-invia"
-          :disabled="inAttesa || !campo.trim()"
-          @click="onInvia"
-        >
-          {{ t.invia }}
-        </button>
-        <button
-          v-if="microfonoDisponibile && !microfonoNascosto"
-          type="button"
-          class="btn-mic"
-          :class="{ 'btn-mic--on': microfonoAscolta }"
-          :aria-label="mobile ? t.microfonoMobile : t.microfono"
-          :disabled="inAttesa"
-          @click="onMicClick"
-          @pointerdown="onMicDown"
-          @pointerup="onMicUp"
-          @pointercancel="onMicUp"
-          @pointerleave="onMicUp"
-        >
-          {{ mobile ? '🎙' : '🎙' }}
-        </button>
-      </div>
+        <div class="campo-riga">
+          <label class="sr-only" for="tony-domanda">{{ t.etichettaCampo }}</label>
+          <input
+            id="tony-domanda"
+            ref="inputEl"
+            v-model="campo"
+            type="text"
+            class="campo"
+            :placeholder="microfonoAscolta ? t.ascolto : t.segnapostoCampo"
+            :maxlength="MAX_CARATTERI_DOMANDA"
+            :disabled="inAttesa"
+            autocomplete="off"
+            @focus="onFocusCampo"
+            @blur="onBlurCampo"
+            @input="onInputCampo"
+            @keydown="onKeydown"
+          />
+          <span v-if="contatoreVisibile" class="contatore">{{ campo.length }}/{{ MAX_CARATTERI_DOMANDA }}</span>
+          <button
+            type="button"
+            class="btn-invia"
+            :disabled="inAttesa || !campo.trim()"
+            @click="onInvia"
+          >
+            {{ t.invia }}
+          </button>
+          <button
+            v-if="microfonoDisponibile && !microfonoNascosto"
+            type="button"
+            class="btn-mic"
+            :class="{ 'btn-mic--on': microfonoAscolta }"
+            :aria-label="mobile ? t.microfonoMobile : t.microfono"
+            :disabled="inAttesa"
+            @click="onMicClick"
+            @pointerdown="onMicDown"
+            @pointerup="onMicUp"
+            @pointercancel="onMicUp"
+            @pointerleave="onMicUp"
+          >
+            {{ mobile ? '🎙' : '🎙' }}
+          </button>
+        </div>
+      </template>
     </template>
 
     <div v-if="chatVisibile && (aiutoFatto || aiutoSospeso)" class="fumetto-azioni">
@@ -1625,7 +1649,7 @@ defineExpose({ interrompi });
         {{ t.ctaAccount }}
       </a>
       <button
-        v-if="faseAiuto && !schedaAperta && !aiutoFatto"
+        v-if="faseAiuto && !schedaAperta && !aiutoFatto && !informativaBloccante"
         type="button"
         class="btn-account"
         @click="apriScheda"
@@ -1654,43 +1678,43 @@ defineExpose({ interrompi });
   flex: 1 1 auto;
 }
 
-/* Sovrapposta in alto: non sposta Invia / Saluta Tony. */
+/* Overlay bloccante: testo evidente, niente chat sotto finché non si accetta. */
 .informativa-aiuto {
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
-  z-index: 6;
+  bottom: 0;
+  z-index: 8;
   margin: 0;
-  padding: 0.45rem 1.6rem 0.45rem 0.55rem;
-  font-size: 0.72rem;
-  line-height: 1.3;
-  color: #3d4a3a;
-  background: #f7faf8;
-  border: 1px solid rgba(15, 77, 50, 0.18);
-  border-radius: 10px;
+  padding: 1rem 1.1rem 1.15rem;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #102418;
+  background: #fff8e8;
+  border: 2px solid #0f4d32;
+  border-radius: 12px;
   max-height: none;
-  overflow: visible;
-  box-shadow: 0 4px 14px rgba(7, 25, 16, 0.12);
+  overflow: auto;
+  box-shadow: 0 8px 28px rgba(7, 25, 16, 0.28);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
 }
 .informativa-aiuto a {
-  color: inherit;
+  color: #0a3d28;
+  font-weight: 600;
   text-decoration: underline;
 }
-.informativa-chiudi {
-  position: absolute;
-  top: 0.15rem;
-  right: 0.25rem;
-  border: 0;
-  background: transparent;
-  font-size: 1.15rem;
-  line-height: 1;
-  cursor: pointer;
-  color: #0f4d32;
-  padding: 0.15rem 0.35rem;
-}
 .informativa-aiuto .chip--capito {
-  margin-top: 0.35rem;
+  margin-top: 0.15rem;
+  align-self: flex-start;
+  font-size: 1rem;
+  padding: 0.55rem 1rem;
+  background: #0f4d32;
+  color: #fff;
+  border-color: #0f4d32;
 }
 
 .riga-altoparlante {

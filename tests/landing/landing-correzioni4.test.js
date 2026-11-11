@@ -58,14 +58,21 @@ describe('correzioni 4 – riepilogo e torna-chat', () => {
     expect(chat).toMatch(/riepilogo\|basta\|ho finito\|fatto\|\^no\\b/);
   });
 
-  it('decidiDopoRisposta con domandeRimaste 2 una sola volta', () => {
-    expect(decidiDopoRisposta({ domandeRimaste: 2, passo: 'terreni' }).azione).toBe(
-      'riepilogo'
-    );
+  it('decidiDopoRisposta: domandeRimaste 2 non apre scheda in raccolta terreni', () => {
+    expect(
+      decidiDopoRisposta({ domandeRimaste: 2, passo: 'terreni', nTerreni: 2 }).azione
+    ).toBe('resta');
     expect(
       decidiDopoRisposta({
         domandeRimaste: 2,
-        passo: 'terreni',
+        passo: 'sede',
+        nTerreni: 0,
+      }).azione
+    ).toBe('riepilogo');
+    expect(
+      decidiDopoRisposta({
+        domandeRimaste: 2,
+        passo: 'sede',
         giaRiaperturaLimiteDomande: true,
       }).azione
     ).toBe('resta');
@@ -91,8 +98,12 @@ describe('correzioni 4 – Saluta Tony e pillola', () => {
 
 describe('correzioni 4 – voci fisse e whoosh', () => {
   it('percorsoVoceAiuto e niente whoosh in entrata', () => {
-    expect(percorsoVoceAiuto('invito').mp3).toBe('/tony-live/voci/tony-aiuto-invito.mp3');
+    expect(percorsoVoceAiuto('invito').mp3).toMatch(
+      /^\/tony-live\/voci\/tony-aiuto-invito\.mp3\?v=/
+    );
     expect(percorsoVoceAiuto('tornaDalRiepilogo').mp3).toContain('tornaDalRiepilogo');
+    expect(percorsoVoceAiuto('domandaTerreni').mp3).toContain('domandaTerreni');
+    expect(percorsoVoceAiuto('passaggioPoderi').mp3).toContain('passaggioPoderi');
     const home = leggi('landing/src/views/LandingHome.vue');
     const fnEntrata = home.match(/function vaiEntrata\(\)[\s\S]*?\n\}/);
     expect(fnEntrata?.[0] || '').not.toContain('audioWhoosh');

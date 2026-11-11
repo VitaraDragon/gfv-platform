@@ -273,9 +273,11 @@ export const testiLanding = {
         "Dov'è la sede legale della tua azienda? Mi bastano via, numero civico e comune.",
       domandaPoderi: 'Hai uno o più poderi? Dimmi come li chiami.',
       domandaTerreni:
-        'Ora i terreni: per ognuno dimmi nome, superficie e coltura, per esempio "Campo grande: 2,34 ettari, grano" o "Meleto: 1,2 ettari, mele". Con l\'account gratuito ne puoi inserire fino a 5.',
+        'Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi? Con l\'account gratuito ne puoi inserire fino a 5.',
       cinqueTerreni:
         "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+      limiteCinqueRaggiunto:
+        'Hai raggiunto il limite di cinque terreni. Controlliamo il riepilogo.',
       categoria: 'Che cosa ci coltivi? Grano, mais, orzo…',
       schedaIntro:
         'Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.',

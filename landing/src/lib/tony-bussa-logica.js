@@ -87,6 +87,13 @@ export const BUSSATA_AUTOMATICA_MS = 8000;
 export const BUSSATA_AUTOMATICA_MOBILE_MS = 5000;
 
 /**
+ * Ingresso a timer dopo il mount. Spento: Tony entra solo dal clic CTA
+ * («Vuoi provare GFV?» / conferma avviso / «Fai entrare Tony»).
+ * Indipendente da TONY_BUSSA_ATTIVO (che gestisce la visibilità dei pulsanti).
+ */
+export const BUSSATA_AUTOMATICA_ATTIVA = false;
+
+/**
  * @param {'desktop' | 'mobile' | string} [variante]
  * @returns {number}
  */
@@ -102,6 +109,8 @@ export const CHIAVE_RINUNCIA_AVVISO = 'gfv-tony-rinuncia-avviso';
 export const CHIAVE_INFORMATIVA_AIUTO = 'gfv-tony-informativa-aiuto';
 
 /**
+ * Gate condiviso (sessione, rinuncia, stage…). Usato anche dal precarico clip,
+ * che resta attivo anche con BUSSATA_AUTOMATICA_ATTIVA === false.
  * @param {{
  *   sessioneGiaBussato?: boolean,
  *   bussateAutomatiche?: number,
@@ -113,7 +122,7 @@ export const CHIAVE_INFORMATIVA_AIUTO = 'gfv-tony-informativa-aiuto';
  * }} opts
  * @returns {boolean}
  */
-export function bussataAutomaticaConsentita({
+function bussataAutomaticaConsentitaCore({
   sessioneGiaBussato,
   bussateAutomatiche,
   utenteHaInteragito,
@@ -137,13 +146,31 @@ export function bussataAutomaticaConsentita({
 }
 
 /**
- * Precarico clip/chunk: stessi divieti della bussata, ma la pagina nascosta non blocca.
+ * @param {{
+ *   sessioneGiaBussato?: boolean,
+ *   bussateAutomatiche?: number,
+ *   utenteHaInteragito?: boolean,
+ *   rinunciaSalvata?: boolean,
+ *   avvisoAperto?: boolean,
+ *   stageAperto?: boolean,
+ *   paginaNascosta?: boolean
+ * }} opts
+ * @returns {boolean}
+ */
+export function bussataAutomaticaConsentita(opts) {
+  if (BUSSATA_AUTOMATICA_ATTIVA !== true) return false;
+  return bussataAutomaticaConsentitaCore(opts && typeof opts === 'object' ? opts : {});
+}
+
+/**
+ * Precarico clip/chunk: stessi divieti della bussata (sessione/rinuncia),
+ * ma indipendente da BUSSATA_AUTOMATICA_ATTIVA; la pagina nascosta non blocca.
  * @param {Parameters<typeof bussataAutomaticaConsentita>[0]} opts
  * @returns {boolean}
  */
 export function precaricoScenaConsentito(opts) {
   const o = opts && typeof opts === 'object' ? opts : {};
-  return bussataAutomaticaConsentita({ ...o, paginaNascosta: false });
+  return bussataAutomaticaConsentitaCore({ ...o, paginaNascosta: false });
 }
 
 /**
@@ -152,9 +179,10 @@ export function precaricoScenaConsentito(opts) {
  * @returns {boolean}
  */
 export function deveRiprovareBussataQuandoVisibile(opts) {
+  if (BUSSATA_AUTOMATICA_ATTIVA !== true) return false;
   const o = opts && typeof opts === 'object' ? opts : {};
   if (o.paginaNascosta !== true) return false;
-  return bussataAutomaticaConsentita({ ...o, paginaNascosta: false });
+  return bussataAutomaticaConsentitaCore({ ...o, paginaNascosta: false });
 }
 
 const FORMATI = Object.freeze(['webm', 'webp', 'stacked']);
@@ -433,6 +461,9 @@ export function percorsoVoceFatto() {
   };
 }
 
+/** Query su mp3 aiuto: bump quando si rigenerano voci fisse (evita cache browser). */
+const VERSIONE_VOCI_AIUTO = '2026-11-09b';
+
 /**
  * Voce fissa dell'aiuto account (mp3 statici, costo zero a regime).
  * @param {string} chiave
@@ -440,7 +471,9 @@ export function percorsoVoceFatto() {
  */
 export function percorsoVoceAiuto(chiave) {
   const k = String(chiave || '').replace(/[^a-zA-Z0-9_-]/g, '');
-  return { mp3: '/tony-live/voci/tony-aiuto-' + k + '.mp3' };
+  return {
+    mp3: '/tony-live/voci/tony-aiuto-' + k + '.mp3?v=' + VERSIONE_VOCI_AIUTO,
+  };
 }
 
 /**

@@ -30,13 +30,16 @@ const FRASI = Object.freeze({
   domandaSede: "Dov'è la sede legale della tua azienda? Mi bastano via e comune.",
   domandaPoderi: "Hai uno o più poderi? Dimmi come li chiami.",
   domandaTerreni:
-    'Ora i terreni: per ognuno dimmi nome, superficie e coltura, per esempio "Campo grande: 2,34 ettari, grano" o "Meleto: 1,2 ettari, mele". Con l\'account gratuito ne puoi inserire fino a 5.',
+    "Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi? Con l'account gratuito ne puoi inserire fino a 5.",
   schedaIntro:
     "Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.",
   cinqueTerreni:
     "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+  limiteCinqueRaggiunto:
+    "Hai raggiunto il limite di cinque terreni. Controlliamo il riepilogo.",
   passaggioSede: "Andiamo avanti: hai dei poderi?",
-  passaggioPoderi: "Ok, passiamo ai terreni: nome, ettari e coltura.",
+  passaggioPoderi:
+    "Ok, passiamo ai terreni. Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?",
   passaggioTerreni: "Facciamo così: controlla il riepilogo e completa lì.",
   tornaDalRiepilogo:
     "Ok, continuiamo. Dimmi pure un altro terreno oppure riapri il riepilogo quando vuoi."
@@ -75,7 +78,21 @@ async function main() {
   if (!fs.existsSync(OUT_DIR)) {
     fs.mkdirSync(OUT_DIR, { recursive: true });
   }
-  const chiavi = Object.keys(FRASI);
+  const richieste = process.argv.slice(2).filter(Boolean);
+  const tutte = Object.keys(FRASI);
+  let chiavi = tutte;
+  if (richieste.length) {
+    chiavi = [];
+    for (let i = 0; i < richieste.length; i++) {
+      const k = richieste[i];
+      if (!Object.prototype.hasOwnProperty.call(FRASI, k)) {
+        console.error("Chiave sconosciuta: " + k + " (valide: " + tutte.join(", ") + ")");
+        process.exitCode = 1;
+        return;
+      }
+      chiavi.push(k);
+    }
+  }
   for (let i = 0; i < chiavi.length; i++) {
     const k = chiavi[i];
     const out = path.join(OUT_DIR, "tony-aiuto-" + k + ".mp3");
