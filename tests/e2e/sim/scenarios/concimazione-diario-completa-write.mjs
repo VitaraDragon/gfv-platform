@@ -366,8 +366,9 @@ async function completeConcimazioneStubFromAttivita(page) {
 
   await page.waitForFunction(() => {
     const span = document.querySelector('#tbody-prodotti-trattamento .prodotto-quantita');
-    const t = (span?.textContent || '').trim();
-    return t !== '-' && !Number.isNaN(parseFloat(t)) && parseFloat(t) > 0;
+    const raw = span?.getAttribute('data-valore');
+    const n = raw == null || raw === '' ? NaN : Number(raw);
+    return Number.isFinite(n) && n > 0;
   }, { timeout: 15_000 });
 
   await page.locator('#trattamento-note').fill(E2E_CONCIMAZIONE_DIARIO_NOTE);

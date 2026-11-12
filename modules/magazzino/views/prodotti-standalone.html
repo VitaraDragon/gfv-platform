@@ -271,6 +271,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, g
         } from '../../../core/js/prodotto-form-required.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { htmlSemaforoLetturaScheda } from '../../../shared/js/registro-trattamenti.js';
+        import { formatQuantita } from '../../../shared/js/formato-quantita.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
         try {
@@ -642,8 +643,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, g
         }
 
         function formatNum(n) {
-            if (n == null) return '-';
-            return Number(n);
+            return formatQuantita(n, '', '-');
         }
 
         window.editProdotto = function(id) {

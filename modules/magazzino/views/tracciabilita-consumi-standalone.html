@@ -155,6 +155,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, query, orderBy } from '../../../core/services/firebase-service.js';
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { nomeAppezzamentoConsumo, terreniPerFiltro } from '../../../shared/js/filtri-storico.js';
+        import { formatQuantita } from '../../../shared/js/formato-quantita.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { CATEGORIE_PRODOTTO } from '../config/categorie-prodotto.js';
 
@@ -202,9 +203,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
         }
 
         function formatQty(n) {
-            const x = Number(n);
-            if (!Number.isFinite(x)) return '—';
-            return x.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+            return formatQuantita(n, '', '—');
         }
 
         function round3(n) {

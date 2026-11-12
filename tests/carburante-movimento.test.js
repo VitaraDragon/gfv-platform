@@ -9,6 +9,7 @@ import {
   carburanteMovimentoSearchFromDraft,
   dashboardLinkForCategoria,
   righeScortaCarburante,
+  formatGiacenzaCarburante,
   lavoroRichiedeRifornimento,
 } from '../modules/magazzino/lib/carburante-movimento.js';
 
@@ -145,5 +146,13 @@ describe('dashboard sottopagine carburante', () => {
       expect(html).toContain('id="link-dashboard-sezione"');
       expect(html).toContain('dashboard-sezione-link.js');
     }
+  });
+});
+
+describe('formatGiacenzaCarburante', () => {
+  it('non arrotonda 0,25 L a un decimale e usa la virgola', () => {
+    expect(formatGiacenzaCarburante(0.25)).toBe('0,25');
+    expect(formatGiacenzaCarburante(10)).toBe('10');
+    expect(formatGiacenzaCarburante(Number.NaN)).toBe('0');
   });
 });
