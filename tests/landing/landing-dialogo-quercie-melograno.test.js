@@ -4,6 +4,7 @@
  */
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { turno } from '../allenatore/turno-intervista.js';
 import {
   BUSSATA_AUTOMATICA_ATTIVA,
   bussataAutomaticaConsentita,
@@ -11,17 +12,13 @@ import {
 import {
   interpretaFraseTerreni,
   nomeLiberoSeInAttesa,
-  preparaTurnoOnboarding,
   RE_SI_CHIAMA,
-  serializzaRaccolti,
   togliConnettiviFinaliNome,
   unisciDati,
 } from '../../landing/src/lib/tony-aiuto-account.js';
 
 const require = createRequire(import.meta.url);
 const {
-  applicaNomeTerrenoDaDomanda,
-  rispostaAccountDaTesto,
   togliConnettiviFinaliNome: togliServer,
   RE_SI_CHIAMA: RE_SI_CHIAMA_SERVER,
 } = require('../../functions/lib/tony-landing-account.js');
@@ -34,34 +31,6 @@ function statoPulito() {
       poderi: [{ nome: 'Carisa' }],
       terreni: [],
     },
-  };
-}
-
-function turno(stato, domanda, modello) {
-  const raccolti = serializzaRaccolti(stato.dati);
-  const grezzo = typeof modello === 'string' ? modello : JSON.stringify(modello);
-  let pulita = rispostaAccountDaTesto(grezzo, {
-    raccolti,
-    argomento: stato.passo,
-    domanda,
-  });
-  if (pulita.dati) {
-    pulita.dati = applicaNomeTerrenoDaDomanda(domanda, pulita.dati);
-  }
-  const client = preparaTurnoOnboarding({
-    domanda,
-    passo: stato.passo,
-    datiAttuali: stato.dati,
-    datiNuovi: pulita.dati,
-    testo: pulita.testo,
-  });
-  stato.dati = client.dati.dati;
-  stato.passo = client.passo || stato.passo;
-  return {
-    testo: client.testo != null ? client.testo : pulita.testo,
-    apriRiepilogo: client.apriRiepilogo === true,
-    bloccaAvanti: client.bloccaAvanti === true,
-    terreni: stato.dati.terreni || [],
   };
 }
 
