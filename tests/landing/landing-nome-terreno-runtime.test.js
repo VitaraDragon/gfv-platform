@@ -1569,8 +1569,8 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
 
 describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
   it('il parser stacca la varietà prima degli ettari e il numero senza unità', () => {
-    expect(normalizzaColturaCatalogo('trebbiano')).toBeNull();
-    expect(normalizzaColturaCatalogo('sangiovese')).toBeNull();
+    expect(normalizzaColturaCatalogo('trebbiano')).toBe('Vite da Vino');
+    expect(normalizzaColturaCatalogo('sangiovese')).toBe('Vite da Vino');
     expect(normalizzaColturaCatalogo('albicocche')).toBe('Albicocche');
     expect(normalizzaColturaCatalogo('mandorlo')).toBe('Mandorlo');
     expect(normalizzaColturaCatalogo('mais')).toBe('Mais');
