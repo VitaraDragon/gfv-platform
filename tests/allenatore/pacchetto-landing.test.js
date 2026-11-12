@@ -30,11 +30,14 @@ import {
   bussataAutomaticaConsentita,
 } from '../../landing/src/lib/tony-bussa-logica.js';
 import {
+  domandaDiRientro,
+  interpretaFraseTerreni,
   messaggioSoloConteggioTerreni,
   numeroEttariDetto,
   numeroTerreniDetto,
   righeRiepilogo,
 } from '../../landing/src/lib/tony-aiuto-account.js';
+import { MESSAGGI_CHAT, testoVisibileAccount } from '../../landing/src/lib/tony-chat-logica.js';
 import { LANDING_ATTIVA, TONY_BUSSA_ATTIVO } from '../../landing/src/config/landing-config.js';
 import { testiLanding } from '../../landing/src/content/testi-landing.js';
 
@@ -556,7 +559,13 @@ describe('sede senza la parola via', () => {
     expect(esito.voce, inp).toBe(esito.testo);
     expect(esito.terreni, inp).toHaveLength(0);
     expect(esito.apriRiepilogo, inp).toBe(false);
-    expect(esito.passo, inp).toBe('poderi');
+    if (/\d/.test(inp)) {
+      expect(esito.passo, inp).toBe('poderi');
+    } else {
+      expect(esito.passo, inp).toBe('sede');
+      expect(esito.testo, inp).toBe("Il numero civico, se ce l'hai, dimmelo pure.");
+      expect(esito.testo, inp).not.toMatch(/poder/i);
+    }
     expect(esito.testo, inp).not.toBe(testiLanding.tonyBussa.aiuto.domandaSede);
     expect(esito.testo, inp).not.toMatch(/riprova con via/i);
     expect(esito.sede == null, inp).toBe(false);
@@ -598,10 +607,11 @@ describe('sede senza la parola via', () => {
     expect(esito.testo.match(/numero civico/gi)).toHaveLength(1);
   });
 
-  it('Faenza, RA e il solo comune si accettano; il civico si chiede una volta', () => {
+  it('Faenza, RA e il solo comune si accettano; il civico si chiede una volta e si resta sulla sede', () => {
     const faenza = accetta('Faenza, RA');
     expect(faenza.sede).toMatchObject({ citta: 'Faenza', provincia: 'RA', indirizzo: null });
-    expect(faenza.testo.match(/numero civico/gi)).toHaveLength(1);
+    expect(faenza.testo).toBe("Il numero civico, se ce l'hai, dimmelo pure.");
+    expect(faenza.testo).not.toMatch(/poder/i);
 
     const stato = { passo: 'sede', dati: { sede: null, poderi: [], terreni: [] } };
     const solo = turno(stato, 'Brisighella', RIFIUTO);
@@ -609,8 +619,18 @@ describe('sede senza la parola via', () => {
     expect(solo.sede).toMatchObject({ citta: 'Brisighella', indirizzo: null });
     expect(solo.sede.cap == null || solo.sede.cap === '').toBe(true);
     expect(solo.terreni).toHaveLength(0);
-    expect(solo.passo).toBe('poderi');
-    expect(solo.testo.match(/numero civico/gi)).toHaveLength(1);
+    expect(solo.passo).toBe('sede');
+    expect(solo.testo).toBe("Il numero civico, se ce l'hai, dimmelo pure.");
+
+    const salta = turno(stato, "non ce l'ho", {
+      testo: 'Ok, andiamo ai poderi.',
+      poderi: [],
+      terreni: [],
+    });
+    expect(salta.voce).toBe(salta.testo);
+    expect(salta.testo).toBe('Hai uno o più poderi? Dimmi come li chiami.');
+    expect(salta.passo).toBe('poderi');
+    expect(salta.testo.match(/poderi/gi)).toHaveLength(1);
 
     const dopo = turno(stato, 'calanchi', {
       testo: 'Ok, Calanchi. Dimmi il primo terreno.',
@@ -771,5 +791,466 @@ describe('dialogo congelato — ritest Calanchi 10 nov 2026, dopo la #380', () =
     expect(visti[9].testo).not.toMatch(/Crea il tuo account/i);
     expect(visti[9].testo).toMatch(/email, una password/i);
     expect(visti[9].apriRiepilogo).toBe(false);
+  });
+});
+
+const CIVICO = "Il numero civico, se ce l'hai, dimmelo pure.";
+const PODERI = 'Hai uno o più poderi? Dimmi come li chiami.';
+const ERRORE_VUOTO = 'In questo momento non riesco a risponderti. Intanto prova GFV!';
+
+function statoSede() {
+  return { passo: 'sede', dati: { sede: null, poderi: [], terreni: [] } };
+}
+
+function conta(testo, re) {
+  return (String(testo || '').match(re) || []).length;
+}
+
+describe('dialogo congelato — ritest Pier 12 nov 2026', () => {
+  function gira(modelloTrebbiano, modelloChiesetta, modelloSalitona) {
+    const stato = statoSede();
+    const visti = [];
+    const g = (domanda, modello) => {
+      visti.push(turno(stato, domanda, modello));
+    };
+    g('faenza ,RA', {
+      testo: 'Perfetto, sede a Faenza. Hai uno o più poderi? Dimmi come li chiami.',
+      sede: { citta: 'Faenza', provincia: 'RA', indirizzo: null },
+      poderi: [],
+      terreni: [],
+    });
+    g('via pergola 85', {
+      testo: 'Hai uno o più poderi? Dimmi come li chiami. Hai uno o più poderi?',
+      sede: { indirizzo: 'via pergola 85', citta: 'Faenza', provincia: 'RA' },
+      poderi: [{ nome: 'Pergola' }],
+      terreni: [{ nome: 'Pergola', superficie: 85, coltura: 'Grano' }],
+    });
+    g('castaldo', {
+      testo:
+        'Ok, il podere si chiama Castaldo. Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?',
+      poderi: [{ nome: 'Castaldo' }],
+      terreni: [],
+    });
+    g('castagno sono 4 ha di orzo', {
+      testo:
+        'Il terreno si chiama Castagno, ha quattro ettari e ci coltivi Orzo. Ne hai uno su cinque terreni. Ne hai altri o vediamo il riepilogo?',
+      terreni: [{ nome: 'Castagno', superficie: 4, coltura: 'Orzo' }],
+    });
+    g('ho 3 ha di sangiovese', {
+      testo: '',
+      terreni: [{ nome: null, superficie: 3, coltura: 'Vite da Vino' }],
+    });
+    g('pallina', {
+      testo:
+        'Il terreno si chiama Pallina, ha tre ettari e ci coltivi Vite da Vino. Ne hai due su cinque terreni. Ne hai altri o vediamo il riepilogo?',
+      terreni: [{ nome: 'Pallina', superficie: 3, coltura: 'Vite da Vino' }],
+    });
+    g('ho 6 ha di trebbiano', {
+      testo: '',
+      terreni: [{ nome: null, superficie: 6, coltura: 'Vite da Vino' }],
+    });
+    g('trebbiano', modelloTrebbiano);
+    g('ho 4 ha di giuggole che si chiama chiesetta', modelloChiesetta);
+    g('ho 7 ha di mais e si chiama salitona', modelloSalitona);
+    return { stato, visti };
+  }
+
+  const trebbianoVuoto = {
+    testo: '',
+    terreni: [{ nome: null, superficie: 6, coltura: 'Vite da Vino' }],
+  };
+  const chiesettaVuota = {
+    testo: '',
+    terreni: [{ nome: 'Chiesetta', superficie: 4, coltura: 'Giuggole' }],
+  };
+  const salitonaRegistrata = {
+    testo: 'Ho registrato Salitona, 7 ettari a Mais.',
+    terreni: [{ nome: 'Salitona', superficie: 7, coltura: 'Mais' }],
+  };
+
+  it('sede una domanda, nome = coltura, conferme con conteggio, cinque terreni', () => {
+    const { stato, visti } = gira(trebbianoVuoto, chiesettaVuota, salitonaRegistrata);
+
+    const sede = visti[0];
+    expect(sede.voce).toBe(sede.testo);
+    expect(sede.testo).toBe(CIVICO);
+    expect(sede.testo).not.toMatch(/poder/i);
+    expect(sede.passo).toBe('sede');
+    expect(sede.sede).toMatchObject({ citta: 'Faenza', provincia: 'RA' });
+
+    const via = visti[1];
+    expect(via.voce).toBe(via.testo);
+    expect(via.sede.indirizzo).toMatch(/pergola 85/i);
+    expect(via.sede.citta).toBe('Faenza');
+    expect(via.sede.provincia).toBe('RA');
+    expect(via.testo).toBe(PODERI);
+    expect(conta(via.testo, /poderi/gi)).toBe(1);
+    expect(via.passo).toBe('poderi');
+    expect(via.terreni).toHaveLength(0);
+
+    expect(visti[2].testo).toMatch(/Dimmi il primo terreno/);
+    expect(visti[2].passo).toBe('terreni');
+    expect(visti[2].poderi.map((p) => p.nome)).toEqual(['Castaldo']);
+
+    expect(visti[3].terreni[0]).toMatchObject({
+      nome: 'Castagno',
+      superficie: 4,
+      coltura: 'Orzo',
+    });
+
+    expect(visti[4].testo).toMatch(/Come si chiama/i);
+    expect(visti[4].terreni[1].nome).toBeFalsy();
+
+    const trebbiano = visti[7];
+    expect(trebbiano.terreni.find((t) => t.nome === 'Trebbiano')).toMatchObject({
+      superficie: 6,
+      coltura: 'Vite da Vino',
+    });
+    expect(trebbiano.testo).toMatch(/Il terreno si chiama Trebbiano/i);
+    expect(trebbiano.testo).toMatch(/Ne hai tre su cinque terreni/i);
+    expect(trebbiano.testo).not.toMatch(/non riesco a risponderti/i);
+    expect(trebbiano.voce).toBeTruthy();
+    expect(trebbiano.voce).toBe(trebbiano.testo);
+
+    const chiesetta = visti[8];
+    expect(chiesetta.testo).toMatch(/Il terreno si chiama Chiesetta/i);
+    expect(chiesetta.testo).toMatch(/Ne hai quattro su cinque terreni/i);
+    expect(chiesetta.testo).toMatch(/Giuggole/);
+    expect(chiesetta.voce).toBeTruthy();
+    expect(chiesetta.voce).toBe(chiesetta.testo);
+    expect(chiesetta.terreni.find((t) => t.nome === 'Chiesetta').coltura).toBe('Giuggole');
+
+    const salitona = visti[9];
+    expect(salitona.apriRiepilogo).toBe(true);
+    expect(conta(salitona.testo, /limite di cinque terreni/gi)).toBe(1);
+    expect(salitona.testo).not.toMatch(/Ne hai altri/i);
+    expect(salitona.testo).toMatch(/Il terreno si chiama Salitona/i);
+    expect(salitona.voce).toBe(salitona.testo);
+
+    expect(stato.dati.terreni).toHaveLength(5);
+    expect(stato.dati.terreni.map((t) => [t.nome, t.superficie, t.coltura])).toEqual([
+      ['Castagno', 4, 'Orzo'],
+      ['Pallina', 3, 'Vite da Vino'],
+      ['Trebbiano', 6, 'Vite da Vino'],
+      ['Chiesetta', 4, 'Giuggole'],
+      ['Salitona', 7, 'Mais'],
+    ]);
+    expect(stato.dati.poderi.map((p) => p.nome)).toEqual(['Castaldo']);
+    expect(ERRORE_VUOTO).not.toBe(salitona.testo);
+  });
+
+  it('«Ho registrato…» sul nome nudo e su Chiesetta dà la stessa conferma', () => {
+    const { visti } = gira(
+      {
+        testo: 'Ho registrato il terreno Trebbiano.',
+        terreni: [{ nome: 'Trebbiano', superficie: 6, coltura: 'Vite da Vino' }],
+      },
+      {
+        testo: 'Ho registrato Chiesetta di 4 ettari a Giuggole.',
+        terreni: [{ nome: null, superficie: 4, coltura: 'Giuggole' }],
+      },
+      {
+        testo: '',
+        terreni: [{ nome: 'Salitona', superficie: 7, coltura: 'Mais' }],
+      }
+    );
+    expect(visti[7].testo).toMatch(/Il terreno si chiama Trebbiano/i);
+    expect(visti[7].testo).toMatch(/Ne hai tre su cinque terreni/i);
+    expect(visti[7].voce).toBe(visti[7].testo);
+    expect(visti[8].testo).toMatch(/Il terreno si chiama Chiesetta/i);
+    expect(visti[8].testo).toMatch(/Giuggole/);
+    expect(visti[8].voce).toBeTruthy();
+    expect(visti[9].apriRiepilogo).toBe(true);
+    expect(visti[9].testo).not.toMatch(/Ne hai altri/i);
+  });
+});
+
+describe('sede senza civico: una domanda, poi il civico o il salto', () => {
+  it.each(['faenza ,RA', 'Faenza, RA', 'Faenza (RA)', 'faenza', 'località Casale'])(
+    '%j → solo il civico, si resta sulla sede',
+    (inp) => {
+      const esito = turno(statoSede(), inp, {
+        testo: 'Perfetto. Hai uno o più poderi? Dimmi come li chiami.',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Casale', superficie: 1, coltura: 'Grano' }],
+      });
+      expect(esito.voce).toBe(esito.testo);
+      expect(esito.testo).toBe(CIVICO);
+      expect(esito.testo).not.toMatch(/poder/i);
+      expect(esito.passo).toBe('sede');
+      expect(esito.terreni).toHaveLength(0);
+      expect(esito.sede == null).toBe(false);
+    }
+  );
+
+  it.each([
+    ['85', /85/],
+    ['via pergola 85', /pergola 85/i],
+    ["non ce l'ho", null],
+    ['dopo', null],
+  ])('dopo Faenza, %j completa o salta e chiede i poderi una volta', (risposta, indirizzo) => {
+    const stato = statoSede();
+    turno(stato, 'Faenza, RA', { testo: '', sede: null, poderi: [], terreni: [] });
+    const esito = turno(stato, risposta, {
+      testo: '',
+      sede: null,
+      poderi: [{ nome: 'Fantasma' }],
+      terreni: [],
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).toBe(PODERI);
+    expect(conta(esito.testo, /poderi/gi)).toBe(1);
+    expect(esito.passo).toBe('poderi');
+    expect(esito.poderi || []).toHaveLength(0);
+    if (indirizzo) expect(esito.sede.indirizzo).toMatch(indirizzo);
+    expect(esito.sede.citta).toBe('Faenza');
+  });
+});
+
+describe('nome uguale alla coltura, solo in risposta a «Come si chiama…?»', () => {
+  function dopoDomanda(domandaNome, modello) {
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { indirizzo: 'via pergola 85', citta: 'Faenza', provincia: 'RA' },
+        poderi: [{ nome: 'Castaldo' }],
+        terreni: [
+          { nome: 'Castagno', superficie: 4, coltura: 'Orzo' },
+          { nome: 'Pallina', superficie: 3, coltura: 'Vite da Vino' },
+          { nome: null, superficie: 6, coltura: 'Vite da Vino', nomeChiesto: true },
+        ],
+      },
+    };
+    if (domandaNome === 'mais' || domandaNome === 'sangiovese') {
+      stato.dati.terreni[2] = {
+        nome: null,
+        superficie: domandaNome === 'mais' ? 7 : 6,
+        coltura: domandaNome === 'mais' ? 'Mais' : 'Vite da Vino',
+        nomeChiesto: true,
+      };
+    }
+    return turno(stato, domandaNome, modello);
+  }
+
+  it.each(['trebbiano', 'Trebbiano'])('%j tiene il nome e conferma con il conteggio', (inp) => {
+    const esito = dopoDomanda(inp, {
+      testo: '',
+      terreni: [{ nome: null, superficie: 6, coltura: 'Vite da Vino' }],
+    });
+    expect(esito.terreni.find((t) => /trebbiano/i.test(t.nome || ''))).toMatchObject({
+      superficie: 6,
+      coltura: 'Vite da Vino',
+    });
+    expect(esito.testo).toMatch(/Il terreno si chiama Trebbiano/i);
+    expect(esito.testo).toMatch(/Ne hai tre su cinque terreni/i);
+    expect(esito.testo).not.toMatch(/non riesco/i);
+    expect(esito.voce).toBe(esito.testo);
+  });
+
+  it('mais dopo «ho 7 ha di mais» è il nome', () => {
+    const esito = dopoDomanda('mais', {
+      testo: '',
+      terreni: [{ nome: null, superficie: 7, coltura: 'Mais' }],
+    });
+    expect(esito.terreni.find((t) => t.nome === 'Mais')).toMatchObject({
+      superficie: 7,
+      coltura: 'Mais',
+    });
+    expect(esito.testo).toMatch(/Ne hai tre su cinque terreni/i);
+    expect(esito.voce).toBeTruthy();
+  });
+
+  it('sangiovese nudo è il nome, non una coltura nuova', () => {
+    const esito = dopoDomanda('sangiovese', {
+      testo: 'Ho registrato Sangiovese.',
+      terreni: [{ nome: null, superficie: 6, coltura: 'Vite da Vino' }],
+    });
+    expect(esito.terreni.find((t) => t.nome === 'Sangiovese')).toMatchObject({
+      superficie: 6,
+      coltura: 'Vite da Vino',
+    });
+    expect(esito.testo).toMatch(/Il terreno si chiama Sangiovese/i);
+    expect(esito.voce).toBe(esito.testo);
+  });
+
+  it('«4 ha di trebbiano» senza nome esplicito chiede ancora come si chiama', () => {
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { citta: 'Faenza', indirizzo: 'via pergola 85' },
+        poderi: [{ nome: 'Castaldo' }],
+        terreni: [],
+      },
+    };
+    const esito = turno(stato, '4 ha di trebbiano', {
+      testo: '',
+      terreni: [{ nome: 'Trebbiano', superficie: 4, coltura: 'Vite da Vino' }],
+    });
+    expect(esito.terreni[0].nome).toBeFalsy();
+    expect(esito.testo).toMatch(/Come si chiama/i);
+  });
+});
+
+describe('nome nella stessa frase: che chiamiamo e chiamto', () => {
+  function terreno(frase, modello) {
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { citta: 'Faenza', indirizzo: 'via pergola 85' },
+        poderi: [{ nome: 'Castaldo' }],
+        terreni: [],
+      },
+    };
+    return turno(stato, frase, modello || { testo: '', terreni: [] });
+  }
+
+  it('4 ha di trebbiano che chiamiamo vitaccia → Vitaccia, Vite da Vino', () => {
+    const esito = terreno('4 ha di trebbiano che chiamiamo vitaccia', {
+      testo: 'Come si chiama il terreno da 4 ettari di trebbiano?',
+      terreni: [{ nome: 'Trebbiano', superficie: 4, coltura: 'Vite da Vino' }],
+    });
+    expect(esito.terreni[0]).toMatchObject({
+      nome: 'Vitaccia',
+      superficie: 4,
+      coltura: 'Vite da Vino',
+    });
+    expect(esito.testo).not.toMatch(/Come si chiama/i);
+    expect(esito.testo).toMatch(/Il terreno si chiama Vitaccia/i);
+    expect(esito.voce).toBeTruthy();
+  });
+
+  it('ho 5 ha di mandorli chiamto collina → Collina, Mandorlo', () => {
+    const esito = terreno('ho 5 ha di mandorli chiamto collina', {
+      testo: 'Come si chiama?',
+      terreni: [{ nome: null, superficie: 5, coltura: null }],
+    });
+    expect(esito.terreni[0]).toMatchObject({
+      nome: 'Collina',
+      superficie: 5,
+      coltura: 'Mandorlo',
+    });
+    expect(esito.testo).not.toMatch(/Come si chiama/i);
+  });
+
+  it.each([
+    ['chiamato discesona 4 ha di sangiovese', 'Discesona'],
+    ['ho 4 ha di sangiovese che si chiama discesona', 'Discesona'],
+    ['lo chiamiamo melograno 3 ha', 'Melograno'],
+    ['3 ha di albicocche che si chiama discesa', 'Discesa'],
+    ['detto vitaccia 4 ha di trebbiano', 'Vitaccia'],
+    ['nome vitaccia 4 ha di trebbiano', 'Vitaccia'],
+    ['lo chiamiamo vitaccia 4 ha di trebbiano', 'Vitaccia'],
+  ])('%j tiene il nome %j', (frase, nome) => {
+    const letto = interpretaFraseTerreni(frase)[0];
+    expect(String(letto.nome || '').toLowerCase()).toBe(nome.toLowerCase());
+    const esito = terreno(frase, {
+      testo: '',
+      terreni: [{ nome: null, superficie: letto.superficie, coltura: null }],
+    });
+    expect(String(esito.terreni[0].nome || '').toLowerCase()).toBe(nome.toLowerCase());
+    expect(esito.testo).not.toMatch(/Come si chiama/i);
+  });
+
+  it('«4 ha di trebbiano» e «come lo chiamiamo?» non diventano il nome', () => {
+    expect(interpretaFraseTerreni('4 ha di trebbiano')[0].nome).toBeFalsy();
+    expect(interpretaFraseTerreni('come lo chiamiamo?')[0].nome).toBeFalsy();
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { citta: 'Faenza', indirizzo: 'via 1' },
+        poderi: [],
+        terreni: [{ nome: null, superficie: 4, coltura: 'Vite da Vino', nomeChiesto: true }],
+      },
+    };
+    const esito = turno(stato, 'come lo chiamiamo?', {
+      testo: '',
+      terreni: [{ nome: 'Come lo chiamiamo', superficie: 4, coltura: 'Vite da Vino' }],
+    });
+    expect(esito.terreni[0].nome).toBeFalsy();
+  });
+
+  it('chiamto da solo non è un nome', () => {
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { citta: 'Faenza', indirizzo: 'via 1' },
+        poderi: [],
+        terreni: [{ nome: null, superficie: 5, coltura: 'Mandorlo', nomeChiesto: true }],
+      },
+    };
+    const esito = turno(stato, 'chiamto', {
+      testo: '',
+      terreni: [{ nome: 'Chiamto', superficie: 5, coltura: 'Mandorlo' }],
+    });
+    expect(esito.terreni[0].nome).toBeFalsy();
+  });
+});
+
+describe('coltura fuori catalogo: conferma con conteggio, scheda segnala dopo', () => {
+  it.each([
+    ['ho 4 ha di giuggole che si chiama chiesetta', 'Chiesetta', 4, 'Giuggole', ''],
+    [
+      '3 ha di zafferano che chiamiamo orto',
+      'Orto',
+      3,
+      'Zafferano',
+      'Come si chiama il terreno?',
+    ],
+    ['chiesetta 4 ha di giuggiolo', 'Chiesetta', 4, 'Giuggiolo', 'Ho registrato Chiesetta.'],
+  ])('%j tiene la coltura detta', (frase, nome, ha, coltura, testoModello) => {
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { citta: 'Faenza', indirizzo: 'via pergola 85' },
+        poderi: [{ nome: 'Castaldo' }],
+        terreni: [{ nome: 'Castagno', superficie: 4, coltura: 'Orzo' }],
+      },
+    };
+    const esito = turno(stato, frase, {
+      testo: testoModello,
+      terreni: [{ nome, superficie: ha, coltura }],
+    });
+    expect(esito.terreni.find((t) => t.nome === nome)).toMatchObject({
+      superficie: ha,
+      coltura,
+    });
+    expect(esito.testo).toMatch(new RegExp('Il terreno si chiama ' + nome, 'i'));
+    expect(esito.testo).toMatch(/su cinque terreni/i);
+    expect(esito.voce).toBeTruthy();
+    expect(esito.voce).toBe(esito.testo);
+  });
+});
+
+describe('schedaIntro una volta, e niente frase di errore su ok vuoto', () => {
+  it('la frase sta nell’intro della scheda e non viene spinta in chat', () => {
+    const chat = fs.readFileSync(path.join(root, 'landing/src/components/TonyChat.vue'), 'utf8');
+    const scheda = fs.readFileSync(
+      path.join(root, 'landing/src/components/TonySchedaConferma.vue'),
+      'utf8'
+    );
+    const intro = testiLanding.tonyBussa.aiuto.schedaIntro;
+    expect(scheda).toContain('t.schedaIntro');
+    expect(intro).toBe(
+      'Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.'
+    );
+    const corpo = chat.slice(chat.indexOf('function apriScheda'), chat.indexOf('function onTornaDallaScheda'));
+    expect(corpo).not.toMatch(/messaggi\.value\.push\(\{\s*ruolo:\s*'tony',\s*testo:\s*ta\.schedaIntro/);
+    expect(corpo).toContain("suonaFraseFissa('schedaIntro')");
+    expect(chat).toContain("suonaFraseFissa('limiteCinqueRaggiunto')");
+    expect(chat).toContain('introDopoVoce');
+  });
+
+  it('un esito ok in fase account con testo vuoto non mostra l’errore', () => {
+    const rientro = domandaDiRientro('terreni', {
+      terreni: [{ nome: 'Castagno', superficie: 4, coltura: 'Orzo' }],
+    });
+    const vis = testoVisibileAccount('', null, rientro);
+    expect(vis.testo).toBe(rientro);
+    expect(vis.testo).not.toBe(MESSAGGI_CHAT.errore);
+    expect(vis.testo).not.toMatch(/non riesco a risponderti/i);
+    expect(testoVisibileAccount('Il terreno si chiama Castagno.', '', rientro).testo).toBe(
+      'Il terreno si chiama Castagno.'
+    );
   });
 });

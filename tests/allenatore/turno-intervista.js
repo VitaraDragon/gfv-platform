@@ -27,6 +27,7 @@ import {
 const require = createRequire(import.meta.url);
 const {
   applicaNomeTerrenoDaDomanda,
+  chiudiTestoAccount,
   rispostaAccountDaTesto,
 } = require('../../functions/lib/tony-landing-account.js');
 
@@ -40,6 +41,8 @@ export function turno(stato, domanda, modello) {
   });
   if (pulita.dati) {
     pulita.dati = applicaNomeTerrenoDaDomanda(domanda, pulita.dati);
+    pulita.testo = chiudiTestoAccount(pulita.testo, pulita.dati, raccolti);
+    if (pulita.dati.nomeTerrenoMancante != null) delete pulita.dati.nomeTerrenoMancante;
   }
   const client = preparaTurnoOnboarding({
     domanda,

@@ -179,6 +179,24 @@ export function testoPerBigliettoVoce(esito, azioneTesto) {
 }
 
 /**
+ * Testo mostrato in fase account. Un esito ok con testo vuoto non diventa
+ * la frase di errore: se il turno non ha scritto nulla, si usa la domanda
+ * di rientro del passo.
+ * @param {string} esitoTesto
+ * @param {string|null|undefined} turnoTesto
+ * @param {string} rientro
+ * @returns {{ testo: string, sostituisci: boolean }}
+ */
+export function testoVisibileAccount(esitoTesto, turnoTesto, rientro) {
+  const turno = typeof turnoTesto === 'string' ? turnoTesto.trim() : '';
+  if (turno) return { testo: turno, sostituisci: true };
+  const server = typeof esitoTesto === 'string' ? esitoTesto.trim() : '';
+  if (server) return { testo: server, sostituisci: false };
+  const r = typeof rientro === 'string' ? rientro.trim() : '';
+  return { testo: r, sostituisci: true };
+}
+
+/**
  * Come trattare la voce di una risposta.
  * @param {{
  *   esito: { codice?: string, voce?: boolean, idVoce?: string, testo?: string },

@@ -47,7 +47,7 @@ const {
   rispostaAccountDaTesto,
   applicaSuperficieDaDomanda,
   applicaNomeTerrenoDaDomanda,
-  testoSeMancaNomeTerreno,
+  chiudiTestoAccount,
   normalizzaDecimaliPerGemini
 } = require("./lib/tony-landing-account");
 const {
@@ -870,7 +870,14 @@ async function handleFaseAccount(req, res, ctx) {
     if (pulita.dati) {
       pulita.dati = applicaSuperficieDaDomanda(domanda, pulita.dati);
       pulita.dati = applicaNomeTerrenoDaDomanda(domanda, pulita.dati);
-      pulita.testo = testoSeMancaNomeTerreno(pulita.testo, pulita.dati);
+      // Dopo il nome definitivo: se il modello ha lasciato il testo vuoto
+      // (o testoSeMancaNomeTerreno lo ha svuotato) la conferma si firma qui,
+      // così il biglietto voce non resta muto.
+      pulita.testo = chiudiTestoAccount(
+        pulita.testo,
+        pulita.dati,
+        validata.raccolti
+      );
       if (pulita.dati && pulita.dati.nomeTerrenoMancante != null) {
         delete pulita.dati.nomeTerrenoMancante;
       }
