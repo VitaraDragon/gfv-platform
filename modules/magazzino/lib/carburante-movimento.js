@@ -6,6 +6,7 @@
  */
 
 import { normalizeCategoriaProdottoId } from '../config/categorie-prodotto.js';
+import { formatQuantita } from '../../../shared/js/formato-quantita.js';
 
 export const ORIGINE_CARICO_CISTERNA = 'carico_cisterna';
 export const ORIGINE_PIENO = 'pieno';
@@ -234,8 +235,7 @@ export function dashboardLinkForCategoria(categoria) {
  * @returns {string}
  */
 export function formatGiacenzaCarburante(n) {
-  if (!Number.isFinite(n)) return '0';
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  return formatQuantita(n, '', '0');
 }
 
 /**

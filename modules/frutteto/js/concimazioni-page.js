@@ -11,6 +11,7 @@ import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
+import { formatQuantita, valoreQuantitaGrezzo } from '../../../shared/js/formato-quantita.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -263,6 +264,7 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
         const unita = r.unitaDosaggio || prodottiAnagrafica.find(p => p.id === r.prodottoId)?.unitaMisura || '-';
         const opts = prodottiAnagrafica.map(p => `<option value="${p.id}" ${r.prodottoId === p.id ? 'selected' : ''}>${(p.nome || p.codice || p.id)}</option>`).join('');
         const isAltro = !r.prodottoId && r.prodotto;
+        const grezzo = valoreQuantitaGrezzo(qta);
         return `<tr data-idx="${idx}">
             <td style="padding: 6px 8px;">
                 <select class="prodotto-select" data-idx="${idx}" style="width: 100%; max-width: 180px;">
@@ -272,7 +274,7 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
             </td>
             <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
             <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
-            <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '-'}</span></td>
+            <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}"${grezzo !== '' ? ` data-valore="${grezzo}"` : ''}>${formatQuantita(qta, '', '-')}</span></td>
             <td style="padding: 6px 8px;"><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" style="width: 100px; min-width: 100px; box-sizing: border-box;" ${r.prodottoId && prezzoUnit ? 'readonly' : ''} title="${r.prodottoId ? 'Calcolato da anagrafica' : 'Inserisci manuale'}"></td>
             <td style="padding: 6px 8px;"><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
         </tr>`;
@@ -389,7 +391,12 @@ function ricalcolaQuantitaCostoProdotti() {
         const quantitaSpan = tr.querySelector('.prodotto-quantita');
         const costoInp = tr.querySelector('.prodotto-costo');
         if (unitaSpan) unitaSpan.textContent = prodAnag?.unitaMisura || '-';
-        if (quantitaSpan) quantitaSpan.textContent = qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '-';
+        if (quantitaSpan) {
+            quantitaSpan.textContent = formatQuantita(qta, '', '-');
+            const grezzo = valoreQuantitaGrezzo(qta);
+            if (grezzo !== '') quantitaSpan.setAttribute('data-valore', grezzo);
+            else quantitaSpan.removeAttribute('data-valore');
+        }
         if (costoInp) {
             costoInp.value = (Number(costoCalc) || 0).toFixed(2);
             costoInp.readOnly = !!(r.prodottoId && prezzoUnit != null);
