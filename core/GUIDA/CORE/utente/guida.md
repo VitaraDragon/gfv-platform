@@ -489,7 +489,7 @@ All’**iscrizione**, se preparate l’azienda con Tony: sede, poderi e terreni 
 
 Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo, **una volta sola**, dopo il primo accesso (manager e amministratore; non nella schermata in campo di operaio e caposquadra) e scrive: «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» Se manca ancora il pin della sede aggiunge «(il pin della sede manca ancora: lo metti in Impostazioni, con l’ingranaggio in alto a destra)». Su telefono il pannello si apre senza far salire la tastiera.
 
-Il messaggio è solo testo: **non ci sono pulsanti** né «Chiudi percorso», e nei giorni seguenti Tony non ripropone il saluto. Per muoverti usa la **graffetta in alto a sinistra** (Terreni, Diario attività o Gestione lavori, secondo i moduli attivi) e l’**ingranaggio in alto a destra** per **Impostazioni**, dove si mette il pin della sede. Se ti serve, chiedi a Tony: ti spiega dove andare.
+Il messaggio è solo testo: **non ci sono pulsanti** né «Chiudi percorso», e nei giorni seguenti Tony non ripropone il saluto. Su un altro telefono o computer Tony può salutarti di nuovo. Per muoverti usa la **graffetta in alto a sinistra** (Terreni, Diario attività o Gestione lavori, secondo i moduli attivi) e l’**ingranaggio in alto a destra** per **Impostazioni**, dove si mette il pin della sede. Se ti serve, chiedi a Tony: ti spiega dove andare.
 
 ### Salutare Tony quando hai finito
 
