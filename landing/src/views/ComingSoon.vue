@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import logo512 from '../../../icons/icon-512x512.png';
+import { EMAIL_CONTATTO } from '../config/landing-config.js';
 </script>
 
 <template>
@@ -63,10 +64,10 @@ import logo512 from '../../../icons/icon-512x512.png';
               >
             </li>
             <li>
-              <span class="benefit-title">Dati che diventano risparmio</span>
+              <span class="benefit-title">Tutto in un’unica app</span>
               <span class="benefit-text"
-                >Ogni attività quotidiana si traduce in indicazioni concrete per ridurre gli sprechi e
-                ottimizzare i margini.</span
+                >Lavorazioni, magazzino, manodopera e macchine nello stesso posto: ogni attività
+                registrata è già lì quando devi decidere.</span
               >
             </li>
             <li>
@@ -84,6 +85,10 @@ import logo512 from '../../../icons/icon-512x512.png';
           <p class="closing-body">
             Stiamo aprendo le porte a una nuova gestione: preparati a tenere l’intera azienda nel palmo
             della tua mano.
+          </p>
+          <p class="closing-contact">
+            Per informazioni:
+            <a :href="'mailto:' + EMAIL_CONTATTO">{{ EMAIL_CONTATTO }}</a>
           </p>
         </footer>
       </div>
@@ -414,6 +419,22 @@ import logo512 from '../../../icons/icon-512x512.png';
   font-weight: 600;
   line-height: 1.55;
   color: var(--ink-soft);
+}
+
+.closing-contact {
+  margin: 0.85rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.closing-contact a {
+  color: var(--green-mid);
+  font-weight: 700;
+  text-decoration-line: underline;
+  text-decoration-color: var(--gold);
+  text-underline-offset: 0.18em;
 }
 
 @media (prefers-reduced-motion: reduce) {
