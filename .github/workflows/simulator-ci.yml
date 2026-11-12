@@ -14,6 +14,7 @@ on:
       - 'sw-strategy.js'
       - 'manifest.json'
       - 'functions/**'
+      - 'landing/**'
       - 'simulator/**'
       - 'tests/**'
       - 'scripts/**'
@@ -36,6 +37,7 @@ on:
       - 'sw-strategy.js'
       - 'manifest.json'
       - 'functions/**'
+      - 'landing/**'
       - 'simulator/**'
       - 'tests/**'
       - 'scripts/**'
@@ -198,6 +200,27 @@ jobs:
 
       - name: Run Tony Vitest (matrix typo/forbidden + suite)
         run: npm run sim:tony:vitest
+
+  allenatore-landing-vitest:
+    name: allenatore landing (Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Pacchetto landing + suite landing (solo Vitest)
+        run: npm run sim:allenatore:vitest
 
   manodopera-roster-a2-canary:
     name: manodopera:roster-a2-canary (nav + A2)
