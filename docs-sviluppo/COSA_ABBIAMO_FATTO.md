@@ -1,6 +1,32 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-10 — Tony: saluto landing senza pulsanti del percorso (demo EIMA).**
+**Ultimo aggiornamento documentazione: 2026-11-12 — Allenatore landing: sede senza «via» e dialogo Calanchi nel pacchetto.**
+
+## 2026-11-12 — Allenatore: branch su develop, sede senza la parola via
+
+Su `feat/allenatore-tony-telaio-pacchetto-landing` (PR #379 verso develop). Nessun merge, nessun deploy.
+
+1. **Allineamento** — il branch include #380 (informativa bloccante solo se il riquadro è visibile), #382 (conteggio e finale, voce = chat) e #384 (saluto senza i pulsanti del percorso). Quei comportamenti restano il riferimento.
+2. **Pacchetto** — l'informativa si aspetta `informativaBloccante` (il passo invito non resta bloccato). Aggiunto il dialogo Calanchi del ritest 10 nov: dopo il podere arriva «Dimmi il primo terreno»; Prugneto, che è il secondo, non è «tre su cinque»; il limite resta 5 terreni, non 4; il finale non dice «Crea il tuo account». Il pacchetto non asseriva i pulsanti del percorso: restano tolti come in #384.
+3. **Sede senza «via»** — si accettano «località Casale 12», «strada Granarolo 5», «podere Sasso, Brisighella», «Faenza, RA» e il solo comune. Se manca il numero civico, Tony lo chiede una volta e va avanti. La sede non diventa un terreno; in questo passo «podere …, Comune» non è un podere. Il CAP vuoto non si inventa (niente tabella comuni). «monte coralli 3» e «coralli 3 faenza» restano ambigui.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Allenatore Tony: telaio a pacchetti e primo pacchetto landing.**
+
+## 2026-11-10 — Allenatore Tony: telaio condiviso e primo pacchetto landing
+
+Su `feat/allenatore-tony-telaio-pacchetto-landing` (PR verso develop). Non è un addestramento del modello e non entra un motore di valutazione esterno.
+
+1. **Telaio** — `tests/allenatore/turno-intervista.js` è lo stesso giro già usato dai test landing (server `rispostaAccountDaTesto` → `preparaTurnoOnboarding` → `decidiDopoRisposta`). Un pacchetto = situazioni, varianti, esito strutturato, dialoghi congelati. Il primo pacchetto è l'intervista account (`pacchetto-landing.test.js`). Niente enciclopedia agricola e niente pacchetto del Tony in-app.
+2. **Varianti** — oltre ai 57 casi della PR #377: refusi (`6 etari`, `tereni`, `si ciama`, `melogrno`), sede che sembra un campo («monte coralli 3» resta ambiguo), fuori tema a metà dialogo, correzione del turno. Il dialogo del ritest 10 nov resta congelato per intero.
+3. **CI** — job Vitest `allenatore landing` in `simulator-ci.yml` (`npm run sim:allenatore:vitest`), con `landing/**` nei path filter. Niente Playwright aggiunto per questo pacchetto.
+
+Come aggiungere un dialogo incollato da Pier: `tests/allenatore/README.md`. I test sintetici non dichiarano esiti di voce o browser. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Tony: saluto landing senza pulsanti del percorso (demo EIMA).**
 
 ## 2026-11-10 — Tony: saluto landing senza i tre pulsanti del percorso
 

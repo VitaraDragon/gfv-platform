@@ -38,7 +38,8 @@ const SINONIMI_COLTURA = Object.freeze([
   { chiavi: ["fichi", "fico"], nome: "Fico" },
   { chiavi: ["pompelmi", "pompelmo"], nome: "Pompelmo" },
   { chiavi: ["olive", "olivo"], nome: "Olivo" },
-  { chiavi: ["grano duro", "grano tenero", "grano"], nome: "Grano" }
+  { chiavi: ["grano duro", "grano tenero", "grano"], nome: "Grano" },
+  { chiavi: ["melogrno"], nome: "Melograno" }
 ]);
 
 const SCHEMA_RISPOSTA_ACCOUNT = Object.freeze({
@@ -230,14 +231,14 @@ function promptSistemaAccount(argomento, opzioni) {
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderiNoti = poderiDaRaccolti(raccolti);
   const regoleAiuto = [
-    "Aiuto all'account. Aiuti solo a dire sede legale (via con numero civico e comune), poderi (nomi) e terreni (nome, superficie in ha, coltura). L'argomento di adesso è «" +
+    "Aiuto all'account. Aiuti solo a dire sede legale (indirizzo o almeno il comune), poderi (nomi) e terreni (nome, superficie in ha, coltura). L'argomento di adesso è «" +
       arg +
       "».",
     "Flusso lineare e obbligatorio: sede → poderi → terreni → riepilogo. Non tornare indietro: se l'argomento è «poderi» non richiedere la sede; se è «terreni» non richiedere di nuovo sede né poderi, a meno che l'utente non lo chieda esplicitamente (es. «aggiungi un podere», «cambio indirizzo»).",
     "Mai dati fiscali (Partita IVA, codice fiscale), mai mezzi, operai o il numero di operai, mai dati di altre persone; se li danno, non usarli e ripeti la domanda.",
     "Non dire mai il nome di chi offre GFV né di altre persone.",
     "Scrivi i numeri piccoli in lettere con l'articolo giusto: «un terreno», «un podere», «due terreni»; mai «1 terreno» né «uno terreno».",
-    "Sede: bastano via (con numero civico) e comune. NON chiedere provincia né CAP. Se dal comune li conosci con ragionevole certezza, mettili nel JSON (provincia = sigla di due lettere, es. Bergamo → BG); se non li sai, lascia null. Non inventare.",
+    "Sede: bastano via (con numero civico) e comune. Va bene anche senza la parola «via»: località, strada, vicolo, corso, piazza, «podere Sasso, Brisighella», «Faenza, RA» o anche solo il comune. Non rifiutare e non richiedere la parola via. Se manca il numero civico, chiedilo una volta («Il numero civico, se ce l'hai, dimmelo pure.») e vai avanti. NON chiedere provincia né CAP. Il CAP lascialo null: compilalo solo se quel comune ha un unico CAP che conosci con certezza, altrimenti non inventarlo. La provincia, se la conosci (es. Bergamo → BG), mettila; se no, null. La sede non è un terreno. «podere …, Comune» in questo passo è l'indirizzo, non un podere.",
     "Fuori tema: se il messaggio non c'entra col passo (es. «piscina»), rispondi con UNA frase che lo riporta al passo e metti fuoriTema: true; non trattarlo come nome di podere o terreno.",
     "Non fare due volte di seguito la stessa domanda.",
     "Il nome di un podere o di un terreno va scritto esattamente come lo dice l'utente, comprese parole come Podere, Cascina, Tenuta, Campo: non accorciarlo.",
@@ -336,11 +337,13 @@ const RUMORE_PARLATO_NOME = Object.freeze([
   "ettaro",
   "ettari",
   "ettar",
+  "etari",
   "si",
   "chiama",
   "piama",
   "kiama",
   "chama",
+  "ciama",
   "chiamo",
   "chiamiamo",
   "chiamano",
@@ -404,9 +407,11 @@ function nomeTerrenoVisibile(nome) {
 function sembraIndirizzo(domanda) {
   const d = String(domanda || "");
   if (!d) return false;
-  if (/\b(?:ha\b|ettari?\b)\b/i.test(d)) return false;
+  if (/\b(?:ha\b|ettari?\b|etari\b)\b/i.test(d)) return false;
   if (/\b\d+(?:[.,]\d+)?\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return false;
-  return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
+  // «à» non è un carattere di parola per \b: «località » non chiude il confine.
+  if (/\blocalit[aà](?![a-zà-öø-ÿ])/i.test(d)) return true;
+  return /\b(?:via|viale|v\.le|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
     d
   );
 }
@@ -415,6 +420,182 @@ function nomeSembraIndirizzo(nome) {
   return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada)\b/i.test(
     String(nome || "")
   );
+}
+
+/**
+ * Sede detta senza la parola «via».
+ * Allineato a landing/src/lib/tony-aiuto-account.js.
+ */
+const PAROLE_NON_COMUNE = Object.freeze({
+  si: 1,
+  "sì": 1,
+  no: 1,
+  ok: 1,
+  okay: 1,
+  ciao: 1,
+  salve: 1,
+  boh: 1,
+  niente: 1,
+  nessuno: 1,
+  grazie: 1,
+  mah: 1,
+  va: 1,
+  bene: 1,
+  non: 1,
+  lo: 1,
+  la: 1,
+  il: 1,
+  un: 1,
+  una: 1,
+  di: 1,
+  da: 1,
+  a: 1,
+  che: 1,
+  allora: 1,
+  quindi: 1,
+  ecco: 1,
+  questo: 1,
+  quello: 1,
+  quella: 1,
+  sono: 1,
+  sei: 1,
+  ho: 1,
+  hai: 1,
+  ha: 1
+});
+
+const DOMANDA_CIVICO_FACOLTATIVA =
+  "Il numero civico, se ce l'hai, dimmelo pure.";
+
+function normalizzaSpaziSede(domanda) {
+  return String(domanda || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function parolaNonEComune(parola) {
+  return Object.prototype.hasOwnProperty.call(
+    PAROLE_NON_COMUNE,
+    String(parola || "").toLowerCase()
+  );
+}
+
+function sembraSoloComune(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  if (!d || /[?!]/.test(d) || /\d/.test(d)) return false;
+  if (
+    /\b(?:ha|ettar\w*|etari|terren\w*|campi?|coltur\w*|poder\w*|via|viale|corso|piazza\w*|strada|contrada|localit\w*|vicolo)\b/i.test(
+      d
+    )
+  ) {
+    return false;
+  }
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+$/.test(d)) return false;
+  const parole = d.split(/\s+/);
+  if (parole.length < 1 || parole.length > 4) return false;
+  if (parole.some(parolaNonEComune)) return false;
+  if (parole.length === 1 && parole[0].length < 4) return false;
+  if (parole.length === 1 && risolviColturaConSinonimi(parole[0])) return false;
+  return true;
+}
+
+function sembraComuneEProvincia(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  const m = d.match(/^(.+?)(?:,|\s)\s*\(?([A-Za-z]{2})\)?$/);
+  if (!m) return false;
+  const luogo = String(m[1] || "").trim();
+  if (!luogo || /\d/.test(luogo) || luogo.length < 3) return false;
+  return sembraSoloComune(luogo);
+}
+
+function sembraPodereComeIndirizzo(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  if (!d || /\b(?:ha|ettari?|etari|terren\w*)\b/i.test(d)) return false;
+  return /^podere\s+\S.+(?:,|\s+a\s+|\s+di\s+)\s*\S/i.test(d);
+}
+
+function sembraSedeDetta(domanda) {
+  if (!normalizzaSpaziSede(domanda) || domandaTerrenoEsplicita(domanda)) return false;
+  if (sembraIndirizzo(domanda)) return true;
+  if (sembraPodereComeIndirizzo(domanda)) return true;
+  if (sembraComuneEProvincia(domanda)) return true;
+  if (sembraSoloComune(domanda)) return true;
+  return false;
+}
+
+function inizialeMaiuscolaFraseSede(s) {
+  return String(s || "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(function (p) {
+      return p.charAt(0).toLocaleUpperCase("it") + p.slice(1);
+    })
+    .join(" ");
+}
+
+function sedeDaTesto(domanda) {
+  const raw = normalizzaSpaziSede(domanda);
+  if (sembraPodereComeIndirizzo(raw)) {
+    const m = raw.match(/^podere\s+(.+?)\s*(?:,|\s+a\s+|\s+di\s+)\s*(.+)$/i);
+    if (!m) return null;
+    return {
+      indirizzo: "podere " + inizialeMaiuscolaFraseSede(m[1].trim()),
+      citta: inizialeMaiuscolaFraseSede(m[2].trim()),
+      cap: null,
+      provincia: null
+    };
+  }
+  if (sembraComuneEProvincia(raw)) {
+    const m = raw.match(/^(.+?)(?:,|\s)\s*\(?([A-Za-z]{2})\)?$/);
+    if (!m) return null;
+    return {
+      indirizzo: null,
+      citta: inizialeMaiuscolaFraseSede(m[1].trim()),
+      cap: null,
+      provincia: String(m[2] || "").toUpperCase()
+    };
+  }
+  if (sembraSoloComune(raw)) {
+    return {
+      indirizzo: null,
+      citta: inizialeMaiuscolaFraseSede(raw),
+      cap: null,
+      provincia: null
+    };
+  }
+  if (sembraIndirizzo(raw)) {
+    return { indirizzo: raw, citta: null, cap: null, provincia: null };
+  }
+  return null;
+}
+
+function sedeHaQualcosa(sede) {
+  return !!(sede && (sede.indirizzo || sede.citta));
+}
+
+function testoRifiutaSedeAccettata(testo) {
+  const s = String(testo || "").trim();
+  if (!s) return false;
+  if (
+    /\bpoder/i.test(s) &&
+    !/riprova con via|non ho capito bene|dove['’]?è la sede legale/i.test(s)
+  ) {
+    return false;
+  }
+  return (
+    /^non ho capito bene/i.test(s) ||
+    /riprova con via/i.test(s) ||
+    /dove['’]?è la sede legale/i.test(s) ||
+    /mi bastano via/i.test(s)
+  );
+}
+
+function conDomandaCivico(testo) {
+  const s = String(testo || "").trim();
+  if (/numero civico/i.test(s)) return s;
+  if (!s) return DOMANDA_CIVICO_FACOLTATIVA;
+  const base = /[.!?]$/.test(s) ? s : s + ".";
+  return base + " " + DOMANDA_CIVICO_FACOLTATIVA;
 }
 
 function domandaTerrenoEsplicita(domanda) {
@@ -440,27 +621,48 @@ const NUMERI_TERRANI_PAROLA = Object.freeze({
   dieci: 10
 });
 
+/** Allineato a landing/src/lib/tony-aiuto-account.js (PAROLE_CONTEGGIO_TERRENI). */
+const PAROLE_CONTEGGIO_TERRENI =
+  "terren[io]|tereni|terenri|terrni|campi|appezzamenti?";
+
+function normalizzaDomandaConteggio(domanda) {
+  return String(domanda || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u00B4]/g, "'")
+    .replace(/[?!.,;:]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
 /**
  * Conteggio esplicito — mai un numero nudo o in parole da solo («6», «sei»).
  * Accetta: «7 terreni», «ne ho 4», «ce ne sono 6», «ho 8 campi».
+ * Refusi leggeri sulla parola terreni (tereni, terenri, terrni) se resta inequivocabile.
+ * «6 etari» è un refuso di ettari, non un conteggio.
  * @param {string} domanda
  * @returns {number|null}
  */
 function numeroTerreniDetto(domanda) {
-  const d = String(domanda || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[?!.,;:]+$/g, "")
-    .replace(/\s+/g, " ");
+  const d = normalizzaDomandaConteggio(domanda);
   if (!d) return null;
-  if (/\b(?:ha\b|ettari?\b)\b/.test(d)) return null;
+  if (/\b(?:ha\b|ettari?\b|etari\b)\b/.test(d)) return null;
   if (/\bdi\s+[a-zà-öø-ÿ]/.test(d)) return null;
   const cifraConParola = d.match(
-    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+|ce\s+n'è\s+)?(\d{1,2})\s+(?:terren[io]|campi|appezzamenti?)$/i
+    new RegExp(
+      "^(?:ne\\s+ho\\s+|ho\\s+|sono\\s+|ce\\s+ne\\s+sono\\s+|ce\\s+n'è\\s+)?(\\d{1,2})\\s+(?:" +
+        PAROLE_CONTEGGIO_TERRENI +
+        ")$",
+      "i"
+    )
   );
   if (cifraConParola) return Number(cifraConParola[1]);
   const parolaConParola = d.match(
-    /^(?:ne\s+ho\s+|ho\s+|sono\s+|ce\s+ne\s+sono\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+(?:terren[io]|campi|appezzamenti?)$/i
+    new RegExp(
+      "^(?:ne\\s+ho\\s+|ho\\s+|sono\\s+|ce\\s+ne\\s+sono\\s+)?(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\\s+(?:" +
+        PAROLE_CONTEGGIO_TERRENI +
+        ")$",
+      "i"
+    )
   );
   if (parolaConParola) {
     const k = String(parolaConParola[1] || "").toLowerCase();
@@ -493,7 +695,7 @@ function messaggioSoloConteggioTerreni(domanda) {
  * Allineato a landing/src/lib/tony-aiuto-account.js.
  */
 const RE_SI_CHIAMA =
-  /(?:si\s+(?:chiama|piama|kiama|chama)|(?:lo|la)\s+chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato))\s+/i;
+  /(?:si\s+(?:chiama|piama|kiama|chama|ciama)|(?:lo|la)\s+chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato))\s+/i;
 
 function pulisciCap(valore) {
   const s = String(valore || "").trim();
@@ -859,7 +1061,7 @@ function scartaFantasmaColtura(lista, domanda) {
  */
 function superficieDaDomanda(domanda) {
   const s = String(domanda || "");
-  const re = /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettar)/gi;
+  const re = /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettar|etari\b)/gi;
   const out = [];
   let m;
   while ((m = re.exec(s)) !== null) {
@@ -1478,14 +1680,22 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
     testo = togliRiepilogoNonChiesto(testo);
   }
 
-  const sede = pulisciSede(parsed.sede);
-  const poderiRisposta = pulisciPoderi(parsed.poderi);
+  let sede = pulisciSede(parsed.sede);
+  let poderiRisposta = pulisciPoderi(parsed.poderi);
   const raccolti = raccoltiDaOpzioni(opzioni);
-  const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   const argomento =
     opzioni && typeof opzioni === "object" && typeof opzioni.argomento === "string"
       ? opzioni.argomento
       : "";
+  const sedeDetta = argomento === "sede" && sembraSedeDetta(domanda);
+  if (sedeDetta && sembraPodereComeIndirizzo(domanda)) {
+    poderiRisposta = [];
+  }
+  if (sedeDetta && !sedeHaQualcosa(sede)) {
+    const dedotta = pulisciSede(sedeDaTesto(domanda));
+    if (dedotta) sede = dedotta;
+  }
+  const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   // Testo già consumato come sede/podere: mai terreni (né civico→ettari).
   const bloccaTerreni =
     sembraIndirizzo(domanda) ||
@@ -1542,6 +1752,10 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const fuoriTema = parsed.fuoriTema === true;
   const nConNome = contaTerreniConNomeDopoTurno(raccolti, puliti.terreni);
   testo = allineaTestoTurnoAccount(testo, nConNome);
+  if (sedeDetta) {
+    if (testoRifiutaSedeAccettata(testo)) testo = "Hai dei poderi?";
+    if (!/\d/.test(domanda)) testo = conDomandaCivico(testo);
+  }
 
   return {
     testo: testo,

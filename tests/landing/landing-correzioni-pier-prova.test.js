@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { turno } from '../allenatore/turno-intervista.js';
 import {
   BUSSATA_AUTOMATICA_ATTIVA,
   bussataAutomaticaConsentita,
@@ -16,7 +17,6 @@ import {
   correggiTerreniEstratti,
   interpretaFraseTerreni,
   preparaTurnoOnboarding,
-  serializzaRaccolti,
   testoLimiteCinqueRaggiunto,
 } from '../../landing/src/lib/tony-aiuto-account.js';
 import { testiLanding } from '../../landing/src/content/testi-landing.js';
@@ -25,7 +25,6 @@ import { LIMITI } from '../../landing/src/lib/generati/tony-landing-setup-core.j
 const require = createRequire(import.meta.url);
 const {
   applicaNomeTerrenoDaDomanda: applicaNomeServer,
-  rispostaAccountDaTesto,
   troncaNomePrimaDiMisura: troncaServer,
 } = require('../../functions/lib/tony-landing-account.js');
 
@@ -37,35 +36,6 @@ function leggi(rel) {
 
 function statoPulito() {
   return { passo: 'sede', dati: { sede: null, poderi: [], terreni: [] } };
-}
-
-function turno(stato, domanda, modello) {
-  const raccolti = serializzaRaccolti(stato.dati);
-  const grezzo = typeof modello === 'string' ? modello : JSON.stringify(modello);
-  let pulita = rispostaAccountDaTesto(grezzo, {
-    raccolti,
-    argomento: stato.passo,
-    domanda,
-  });
-  if (pulita.dati) {
-    pulita.dati = applicaNomeServer(domanda, pulita.dati);
-  }
-  const client = preparaTurnoOnboarding({
-    domanda,
-    passo: stato.passo,
-    datiAttuali: stato.dati,
-    datiNuovi: pulita.dati,
-    testo: pulita.testo,
-  });
-  stato.dati = client.dati.dati;
-  stato.passo = client.passo || stato.passo;
-  return {
-    testo: client.testo != null ? client.testo : pulita.testo,
-    apriRiepilogo: client.apriRiepilogo === true,
-    troppi: client.dati.troppiTerreni === true,
-    terreni: stato.dati.terreni || [],
-    passo: stato.passo,
-  };
 }
 
 describe('Pier – 1) bussata automatica spenta', () => {
