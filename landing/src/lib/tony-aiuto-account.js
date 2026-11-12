@@ -30,6 +30,78 @@ const MESSAGGI_PASSAGGIO = Object.freeze({
   terreni: 'Facciamo così: controlla il riepilogo e completa lì.',
 });
 
+/**
+ * Vitigni comuni → Vite da Vino. Chiave esatta: «ciliegiolo» è un vitigno,
+ * «ciliegio» resta la coltura Ciliegio. Allineato a functions/lib/tony-landing-account.js.
+ */
+const VITIGNI_VERSO_VITE = Object.freeze([
+  'trebbiano',
+  'sangiovese',
+  'albana',
+  'lambrusco',
+  'merlot',
+  'cabernet',
+  'cabernet sauvignon',
+  'cabernet franc',
+  'chardonnay',
+  'pinot',
+  'pinot grigio',
+  'pinot nero',
+  'pinot noir',
+  'pinot bianco',
+  'barbera',
+  'nebbiolo',
+  'montepulciano',
+  'primitivo',
+  'moscato',
+  'malvasia',
+  'vermentino',
+  'glera',
+  'ciliegiolo',
+  "nero d'avola",
+  'aglianico',
+  'corvina',
+  'negroamaro',
+  'dolcetto',
+  'cannonau',
+  'lagrein',
+  'teroldego',
+  'refosco',
+  'raboso',
+  'schiava',
+  'marzemino',
+  'sauvignon blanc',
+  'fiano',
+  'grechetto',
+  'garganega',
+  'cortese',
+  'verdicchio',
+  'pecorino',
+  'falanghina',
+  'gewürztraminer',
+  'riesling',
+  'syrah',
+  'grenache',
+  'tempranillo',
+  'zinfandel',
+  'malbec',
+  'carménère',
+  'viognier',
+  'sémillon',
+  'chenin blanc',
+  'albariño',
+  'müller-thurgau',
+]);
+
+function risolviVitigno(grezzo) {
+  const chiave = chiaveNome(grezzo);
+  if (!chiave) return null;
+  for (let i = 0; i < VITIGNI_VERSO_VITE.length; i++) {
+    if (chiaveNome(VITIGNI_VERSO_VITE[i]) === chiave) return 'Vite da Vino';
+  }
+  return null;
+}
+
 /** Allineato a functions/lib/tony-landing-account.js (SINONIMI_COLTURA). */
 const SINONIMI_COLTURA = Object.freeze([
   { chiavi: ['vigna', 'uva', 'vite'], nome: 'Vite da Vino' },
@@ -40,6 +112,7 @@ const SINONIMI_COLTURA = Object.freeze([
   { chiavi: ['albicocco', 'albicocchi'], nome: 'Albicocche' },
   { chiavi: ['susini', 'susino'], nome: 'Susino' },
   { chiavi: ['ciliegie', 'ciliegi', 'ciliegio'], nome: 'Ciliegio' },
+  { chiavi: ['giuggiole', 'giuggioli'], nome: 'Giuggiolo' },
   { chiavi: ['fichi', 'fico'], nome: 'Fico' },
   { chiavi: ['pompelmi', 'pompelmo'], nome: 'Pompelmo' },
   { chiavi: ['olive', 'olivo'], nome: 'Olivo' },
@@ -89,6 +162,11 @@ export function normalizzaColturaCatalogo(grezzo) {
         return canon.ok ? canon.nome : voce.nome;
       }
     }
+  }
+  const vitigno = risolviVitigno(testo);
+  if (vitigno) {
+    const canon = trovaColtura(vitigno, []);
+    return canon.ok ? canon.nome : vitigno;
   }
   return null;
 }
@@ -751,8 +829,120 @@ export function nomeLiberoSeInAttesa(domanda, terreniAttuali) {
   return null;
 }
 
+/** Catalogo e sinonimi. Un vitigno non diventa Vite da Vino in questo passaggio. */
+function canonSenzaVitigno(grezzo) {
+  if (risolviVitigno(grezzo)) return null;
+  return normalizzaColturaCatalogo(grezzo);
+}
+
+function indiceMisuraFrase(frase, superficie) {
+  if (typeof superficie !== 'number') return null;
+  const s = String(frase || '');
+  const re = /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari\b|ettaro\b)/gi;
+  const trovate = [];
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    trovate.push({
+      n: Number(String(m[1]).replace(',', '.')),
+      index: m.index,
+    });
+  }
+  for (let i = 0; i < trovate.length; i++) {
+    if (trovate[i].n === superficie) {
+      return {
+        da: trovate[i].index,
+        a: trovate[i + 1] ? trovate[i + 1].index : s.length,
+      };
+    }
+  }
+  return null;
+}
+
+function parolaDopoParticella(pezzo) {
+  const re =
+    /(?:c['’]?è\s+(?:del|della|dello|dei|la)|ce\s+(?:del|della|dello)|ci\s+coltivo|\bcoltivo\b|ci\s+ho|\bdi\b|\ba\b)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
+  let m;
+  const s = String(pezzo || '');
+  while ((m = re.exec(s)) !== null) {
+    if (!eRumoreParlatoNome(m[1])) return m[1];
+  }
+  return '';
+}
+
+function colturaNellaFinestra(frase, superficie) {
+  const finestra = indiceMisuraFrase(frase, superficie);
+  if (!finestra) return '';
+  return parolaDopoParticella(String(frase || '').slice(finestra.da, finestra.a));
+}
+
+function haSegnalePosizioneNome(frase) {
+  const s = String(frase || '').trim();
+  if (!s) return false;
+  if (new RegExp(RE_SI_CHIAMA.source, 'i').test(s)) return true;
+  return /^(?:(?:ho|c'è|cè|ce)\s+)?(?:(?:un|uno|una|il|lo|la)\s+)?(?:(?:terreno|appezzamento|campo)\s+)?[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’]*\s+(?:è|e'|sono|ha|ettari|ettaro|\d)/i.test(
+    s
+  );
+}
+
+function coltureRiconosciute(frase) {
+  const parole = String(frase || '').match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
+  const visti = [];
+  for (let i = 0; i < parole.length; i++) {
+    if (eRumoreParlatoNome(parole[i])) continue;
+    const canon = normalizzaColturaCatalogo(parole[i]);
+    if (!canon) continue;
+    const k = chiaveNome(canon);
+    if (visti.indexOf(k) < 0) visti.push(k);
+  }
+  return visti;
+}
+
+/**
+ * Coltura detta con particella (di, c'è del, a, coltivo…) contro il nome.
+ * Il vitigno va a Vite da Vino se il nome manca o è lui stesso una coltura.
+ * Un nome proprio tiene la varietà libera (Quercione / Sangiovese, Pozzo / Trebbiano).
+ * Due colture senza segnale di posizione: coltura vuota, si chiede.
+ * @returns {string} nome a cui chiedere la coltura, oppure ''
+ */
+function applicaColturaNomeEVitigno(out, domanda) {
+  if (!out || typeof out !== 'object') return '';
+  if (typeof out.superficie !== 'number') return '';
+  if (!indiceMisuraFrase(domanda, out.superficie)) return '';
+  const detta = colturaNellaFinestra(domanda, out.superficie);
+  const vitigno = detta ? risolviVitigno(detta) : null;
+  const canonDetta = detta ? canonSenzaVitigno(detta) : null;
+  if (vitigno || canonDetta) {
+    const nome = nomeTerrenoVisibile(out.nome);
+    const col = String(out.coltura || '');
+    const nomeEColtura = !!(nome && (canonSenzaVitigno(nome) || risolviVitigno(nome)));
+    const uguale = !!(nome && col && chiaveNome(col) === chiaveNome(nome));
+    const destinazione = vitigno || canonDetta;
+    if (vitigno) {
+      if (!nome || uguale || nomeEColtura) out.coltura = destinazione;
+    } else if (uguale || !col) {
+      out.coltura = destinazione;
+    }
+    return '';
+  }
+  if (haSegnalePosizioneNome(domanda)) {
+    const nome = nomeTerrenoVisibile(out.nome);
+    if (detta && nome && chiaveNome(out.coltura || '') === chiaveNome(nome)) {
+      out.coltura = null;
+      return nome;
+    }
+    return '';
+  }
+  if (coltureRiconosciute(domanda).length >= 2) {
+    const nome = nomeTerrenoVisibile(out.nome);
+    out.coltura = null;
+    return nome || '';
+  }
+  return '';
+}
+
 function assegnaColtura(out, detto, opts) {
   const libera = !!(opts && opts.consentiLibera);
+  const domanda = opts && opts.domanda ? opts.domanda : '';
   const grezzo =
     out.coltura != null && String(out.coltura).trim() ? String(out.coltura).trim() : '';
   if (grezzo && eRumoreParlatoNome(grezzo)) {
@@ -761,8 +951,9 @@ function assegnaColtura(out, detto, opts) {
     out.categoria = out.categoria || grezzo;
     out.coltura = null;
   } else if (grezzo) {
-    const norm = normalizzaColturaCatalogo(grezzo);
+    const norm = canonSenzaVitigno(grezzo);
     if (norm) out.coltura = norm;
+    else if (risolviVitigno(grezzo)) out.coltura = inizialeMaiuscola(grezzo);
     else if (libera && !detto) out.coltura = inizialeMaiuscola(grezzo);
     else out.coltura = null;
   }
@@ -770,20 +961,21 @@ function assegnaColtura(out, detto, opts) {
   if (!out.coltura && dettoUtile) {
     if (soloCategoriaColtura(dettoUtile)) out.categoria = out.categoria || dettoUtile;
     else {
-      const canon = normalizzaColturaCatalogo(dettoUtile);
+      const canon = canonSenzaVitigno(dettoUtile);
       if (canon) out.coltura = canon;
       else if (libera) {
-        // Varietà libera (es. Trebbiano) solo con ha/di; altrimenti chiedi in chat.
-        out.coltura = colturaDetta(dettoUtile, { consentiLibera: true });
+        // Varietà libera (es. Trebbiano senza particella) solo con ha/di.
+        out.coltura = inizialeMaiuscola(dettoUtile);
       } else {
         out.coltura = null;
       }
     }
   } else if (out.coltura && dettoUtile) {
     // Preferisci il nome canonico del catalogo (noci → Noce), non il grezzo.
-    const daDetto = normalizzaColturaCatalogo(dettoUtile);
+    const daDetto = canonSenzaVitigno(dettoUtile);
     if (daDetto) out.coltura = daDetto;
   }
+  if (domanda) applicaColturaNomeEVitigno(out, domanda);
 }
 
 function inizialeMaiuscola(s) {
@@ -801,7 +993,7 @@ function voceDaMisura(l, domanda) {
     podere: null,
   };
   const libera = domandaTerrenoEsplicita(domanda);
-  assegnaColtura(out, varieta, { consentiLibera: libera });
+  assegnaColtura(out, varieta, { consentiLibera: libera, domanda });
   if (out.coltura && varieta && out.coltura === varieta) out.coltura = inizialeMaiuscola(out.coltura);
   return out;
 }
@@ -903,6 +1095,9 @@ function allineaListaAllaFrase(letti, lista, attuali, domanda) {
       );
       tenuti.push(attuale || lista[i]);
     }
+  }
+  for (let i = 0; i < tenuti.length; i++) {
+    applicaColturaNomeEVitigno(tenuti[i], domanda);
   }
   return tenuti;
 }
@@ -1054,7 +1249,10 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
       nomeModello && giaDato && letto && letto.nome && !stessoNome(nomeModello, letto.nome);
     const lettoUtile = lettoAltrui ? null : letto;
     const out = Object.assign({}, t, { nome: nome || null });
-    assegnaColtura(out, lettoUtile && lettoUtile.varieta, { consentiLibera: liberaColtura });
+    assegnaColtura(out, lettoUtile && lettoUtile.varieta, {
+      consentiLibera: liberaColtura,
+      domanda,
+    });
     if (
       (out.superficie == null || out.superficie === '') &&
       lettoUtile &&
@@ -1133,15 +1331,17 @@ function togliErroreVuoto(testo) {
     .trim();
 }
 
-/** Toglie il riepilogo non chiesto. «Ne hai altri o vediamo il riepilogo?» e il limite restano. */
+/** Toglie il riepilogo non chiesto. «Ne hai altri o vediamo il riepilogo?» e il limite restano. L'intro della scheda non entra in chat. */
 function togliFrasiRiepilogo(testo) {
   return String(testo || '')
     .split(/(?<=[.!?])\s+/)
     .filter(
       (p) =>
-        !/riepilogo/i.test(p) ||
-        /ne hai altri/i.test(p) ||
-        /controlliamo il riepilogo/i.test(p)
+        !/ecco la tua azienda/i.test(p) &&
+        !/controlla e conferma:\s*se qualcosa non va/i.test(p) &&
+        (!/riepilogo/i.test(p) ||
+          /ne hai altri/i.test(p) ||
+          /controlliamo il riepilogo/i.test(p))
     )
     .join(' ')
     .replace(/\s+/g, ' ')
@@ -1364,7 +1564,8 @@ function chiaveElencoTerreno(t) {
 
 function colturaAccettata(nuova, precedente) {
   if (nuova == null || nuova === '') return precedente == null ? null : precedente;
-  const norm = normalizzaColturaCatalogo(nuova);
+  // Il vitigno resta la parola finché la regola di posizione non lo porta a Vite da Vino.
+  const norm = canonSenzaVitigno(nuova);
   if (norm) return norm;
   if (colturaOrtaggiGenerica(nuova)) return precedente == null ? null : precedente;
   return String(nuova);
@@ -1634,9 +1835,12 @@ export function unisciDati(attuali, nuovi, argomento) {
         } else if (!nome && typeof t.superficie === 'number') {
           const stessi = [];
           for (let j = 0; j < out.terreni.length; j++) {
-            if (stessoBloccoTerreno(out.terreni[j], Object.assign({}, t, { nome: null }))) {
-              stessi.push(j);
-            }
+          if (
+            !nomeTerrenoVisibile(out.terreni[j].nome) &&
+            stessoBloccoTerreno(out.terreni[j], Object.assign({}, t, { nome: null }))
+          ) {
+            stessi.push(j);
+          }
           }
           if (stessi.length === 1) i = stessi[0];
         }
@@ -1712,7 +1916,13 @@ export function compattaTerreni(lista) {
     if (!t || typeof t !== 'object') continue;
     const nome = nomeTerrenoVisibile(t.nome);
     const voce = Object.assign({}, t, { nome: nome });
-    const idx = out.findIndex((prev) => stessoBloccoTerreno(prev, voce));
+    const idx = out.findIndex((prev) => {
+      if (!stessoBloccoTerreno(prev, voce)) return false;
+      // Un appezzamento già nominato non assorbe un terreno nuovo ancora senza nome
+      // solo perché ettari e coltura coincidono (Ciliegio 7 ha e, dopo, 7 ha di trebbiano).
+      if (nomeTerrenoVisibile(prev.nome) && !nome) return false;
+      return true;
+    });
     if (idx < 0) {
       out.push(voce);
       continue;
@@ -3033,7 +3243,7 @@ export function payloadDaScheda(righe, requestId) {
       let coltura = null;
       if (t && t.coltura != null && String(t.coltura).trim()) {
         const grezzo = String(t.coltura).trim();
-        const norm = normalizzaColturaCatalogo(grezzo);
+        const norm = canonSenzaVitigno(grezzo);
         if (norm) coltura = norm;
         else if (!colturaOrtaggiGenerica(grezzo)) coltura = grezzo;
       }

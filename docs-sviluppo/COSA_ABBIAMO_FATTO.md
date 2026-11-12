@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-12 — Landing ritest 12 nov: una domanda sulla sede, conferma con conteggio, nome nella frase, intro della scheda una volta.**
+**Ultimo aggiornamento documentazione: 2026-11-12 — Landing: la coltura detta vince sul nome del terreno (Ciliegio / trebbiano → Vite da Vino).**
+
+## 2026-11-12 — Landing: coltura detta vince sul nome (Ciliegio / trebbiano)
+
+Su `fix/landing-nome-coltura-ciliegio` (PR verso develop). Nessun merge, nessun deploy. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO invariati. Rules, indici e le altre function non si toccano.
+
+1. **Vitigni** — trebbiano, sangiovese, albana, ciliegiolo e gli altri della tabella vanno a «Vite da Vino», con chiave esatta. «ciliegio» resta Ciliegio. La tabella è la stessa in `normalizzaColturaCatalogo` (client) e `risolviColturaConSinonimi` (function).
+2. **La coltura detta vince** — se il nome è in posizione di nome e dopo c'è una coltura («c'è del», «cè», «ce», «di», «a», «coltivo»…), quella è la coltura. Una coltura del modello uguale al nome si scarta. «ciliegio è 7 ha e cè del trebbiano» salva Ciliegio, 7 ha, Vite da Vino. «ciliegio 7 ha» resta nome e coltura Ciliegio. Quercione, Pozzo e il Trebbiano usato come nome restano com'erano.
+3. **Ambiguo** — «ciliegio trebbiano 7 ha» non sceglie: coltura vuota e «Che cosa ci coltivi nel terreno Ciliegio?».
+4. **Conferma** — se la function corregge la coltura, `chiudiTestoAccount` riscrive testo e biglietto voce sui dati già corretti. «Ecco la tua azienda» non entra in chat.
+
+Il rilascio, dopo la promozione, richiede il canale prova-tony e il deploy della sola function `tonyLandingAsk` (`functions/lib/tony-landing-account.js`). Voce e browser non sono verificati dai test.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Landing ritest 12 nov: una domanda sulla sede, conferma con conteggio, nome nella frase, intro della scheda una volta.**
 
 ## 2026-11-12 — Landing: ritest 12 nov (sede, nome, conferma, intro)
 
