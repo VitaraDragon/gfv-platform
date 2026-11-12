@@ -245,6 +245,29 @@
             box-sizing: border-box;
         }
 
+        /* .btn-primary di pagina è per la testata blu (testo bianco, fondo traslucido).
+           In riga bianca non si legge. Bianco su #28a745 è 3.13:1; #1e7e34 è 5.14:1.
+           Stesso verde su Accetta, solo nei pulsanti della tabella. */
+        .preventivi-table .action-buttons .btn-primary,
+        .preventivi-table .action-buttons .btn-success {
+            background: #1e7e34;
+            color: #fff;
+            border: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .preventivi-table .action-buttons .btn-primary:hover,
+        .preventivi-table .action-buttons .btn-success:hover {
+            background: #19692c;
+            color: #fff;
+        }
+
+        .preventivi-table .action-buttons .btn-primary:focus-visible,
+        .preventivi-table .action-buttons .btn-success:focus-visible {
+            outline: 3px solid #083318;
+            outline-offset: 2px;
+        }
+
         .preventivi-table .action-buttons .preventivi-email-icon {
             font-size: 1.45em;
             line-height: 1;
