@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-12 — Allenatore landing: sede senza «via» e dialogo Calanchi nel pacchetto.**
+**Ultimo aggiornamento documentazione: 2026-11-12 — Landing ritest 12 nov: una domanda sulla sede, conferma con conteggio, nome nella frase, intro della scheda una volta.**
+
+## 2026-11-12 — Landing: ritest 12 nov (sede, nome, conferma, intro)
+
+Su `fix/landing-ritest-12nov` (PR verso develop). Nessun merge, nessun deploy. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO invariati.
+
+1. **Sede senza civico** — una sola domanda («Il numero civico, se ce l'hai, dimmelo pure.») e si resta sulla sede. Il turno dopo («85», «via pergola 85», «non ce l'ho», «dopo») completa o salta il civico e solo allora chiede i poderi, una volta. Testo in chat e testo del server coincidono.
+2. **Nome = coltura** — una risposta breve a «Come si chiama…?» è il nome anche se è una coltura o una varietà («trebbiano», «mais»). Fuori da quella domanda la coltura non diventa il nome.
+3. **Conferma** — se il turno completa un terreno e il testo è vuoto (o è stato svuotato, anche da «Ho registrato…»), la function scrive «Il terreno si chiama… Ne hai K su cinque terreni…». Al quinto, il limite e niente «Ne hai altri». Il biglietto voce si firma su quel testo. `tony-landing-ask.js` chiama questa chiusura dopo `testoSeMancaNomeTerreno`, perché è lì che il testo può svuotarsi. La rete sul client usa lo stesso formato. Un esito ok vuoto non mostra più la frase di errore: usa la domanda di rientro del passo.
+4. **Nome nella frase** — `RE_SI_CHIAMA` (client e server uguali) riconosce «che chiamiamo» e il refuso «chiamto». «chiamto» è rumore, non un nome.
+5. **Scheda** — «Ecco la tua azienda…» resta solo nell’intro della scheda, non anche in chat. La voce `schedaIntro` parte una volta e, al quinto terreno, dopo la conferma, senza tagliarla.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Allenatore landing: sede senza «via» e dialogo Calanchi nel pacchetto.**
 
 ## 2026-11-12 — Allenatore: branch su develop, sede senza la parola via
 

@@ -22,6 +22,7 @@ import {
   modoVoce,
   nuovaSessione,
   testoPerBigliettoVoce,
+  testoVisibileAccount,
   validaDomanda,
 } from '../lib/tony-chat-logica.js';
 import { chiediVoce } from '../lib/tony-voce-client.js';
@@ -33,6 +34,7 @@ import {
   fraseTerrenoSenzaRiepilogo,
   collegaTerreniAiPoderi,
   decidiDopoRisposta,
+  domandaDiRientro,
   erroriColturaTerreniForm,
   esitoRipiegoAccount,
   preparaTurnoOnboarding,
@@ -678,7 +680,17 @@ function onChipAiuto(etichetta: string) {
   }
 }
 
-function apriScheda() {
+/** La scheda mostra già schedaIntro: non ripeterla in chat. Se true, la voce parte dopo la conferma. */
+let schedaIntroInCoda = false;
+let schedaIntroDaMp3 = false;
+
+function rilasciaSchedaIntro() {
+  if (!schedaIntroInCoda) return;
+  schedaIntroInCoda = false;
+  void suonaFraseFissa('schedaIntro');
+}
+
+function apriScheda(opts?: { introDopoVoce?: boolean }) {
   if (informativaBloccante.value) return;
   // Una sola intro: non ripetere se la scheda è già aperta.
   if (schedaAperta.value) return;
@@ -692,8 +704,8 @@ function apriScheda() {
   campoAttivo.value = false;
   chipVisibili.value = false;
   passoAiuto.value = 'scheda';
-  messaggi.value.push({ ruolo: 'tony', testo: ta.schedaIntro });
-  void suonaFraseFissa('schedaIntro');
+  if (opts && opts.introDopoVoce) schedaIntroInCoda = true;
+  else void suonaFraseFissa('schedaIntro');
   scorriInBasso();
 }
 
@@ -995,14 +1007,19 @@ async function inviaTesto(grezzo: string, daChip = false) {
     const uniti = turno.dati;
     const novita = JSON.stringify(uniti.dati) !== prima;
     datiAiuto.value = uniti.dati;
-    if (turno.testo) {
-      azione.testo = turno.testo;
+    const visibile = testoVisibileAccount(
+      typeof esito.testo === 'string' ? esito.testo : '',
+      turno.testo,
+      domandaDiRientro(turno.passo || passoAiuto.value || '', uniti.dati)
+    );
+    if (visibile.sostituisci) {
+      azione.testo = visibile.testo;
       const ultimoTesto = messaggi.value[messaggi.value.length - 1];
       if (ultimoTesto && ultimoTesto.ruolo === 'tony' && !ultimoTesto.live) {
-        ultimoTesto.testo = turno.testo;
+        ultimoTesto.testo = visibile.testo;
       }
       const ultimaStoria = storia.value[storia.value.length - 1];
-      if (ultimaStoria && ultimaStoria.ruolo === 'tony') ultimaStoria.testo = turno.testo;
+      if (ultimaStoria && ultimaStoria.ruolo === 'tony') ultimaStoria.testo = visibile.testo;
     }
     if (uniti.troppiTerreni && !/account gratuito arrivi a/i.test(azione.testo)) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
@@ -1057,9 +1074,16 @@ async function inviaTesto(grezzo: string, daChip = false) {
     } else if (turno.vaiATerreni) {
       avviaPasso('terreni');
     } else if (turno.apriRiepilogo) {
-      // 5° terreno completo: niente «Ne hai altri?», apre subito il riepilogo.
-      void suonaFraseFissa('limiteCinqueRaggiunto');
-      apriScheda();
+      // 5° terreno: una sola voce prima della scheda. Se il server ha firmato
+      // la conferma (include già il limite), non farla tagliare da schedaIntro
+      // né raddoppiarla con l'mp3. Altrimenti l'mp3 del limite, poi la scheda.
+      const confermaConVoce =
+        esito.voce === true && String(esito.testo || '').trim().length > 0;
+      schedaIntroDaMp3 = !confermaConVoce;
+      apriScheda({ introDopoVoce: true });
+      if (!confermaConVoce) {
+        void suonaFraseFissa('limiteCinqueRaggiunto').finally(() => rilasciaSchedaIntro());
+      }
     } else if (
       (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) &&
       !fraseTerrenoSenzaRiepilogo(domanda) &&
@@ -1128,10 +1152,14 @@ async function inviaTesto(grezzo: string, daChip = false) {
     metaVoce = { idVoce: esito.idVoce, testo: testoBigliettoVoce };
   }
 
+  if (schedaIntroInCoda && modo !== 'automatica' && !schedaIntroDaMp3) {
+    rilasciaSchedaIntro();
+  }
+
   if (modo === 'automatica') {
     scorriInBasso();
     if (azione.campoAttivo) focalizzaCampoSeConsentito();
-    void gestisciVoceAutomatica(esito, testoBigliettoVoce);
+    void gestisciVoceAutomatica(esito, testoBigliettoVoce).finally(() => rilasciaSchedaIntro());
   } else if (modo === 'pulsante') {
     mostraAscolta.value = true;
     emit('rispostaFinita');
