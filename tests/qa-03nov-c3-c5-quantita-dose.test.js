@@ -66,10 +66,10 @@ describe('C3 – quantità in tabella', () => {
 });
 
 describe('C5 – dose a 3 decimali', () => {
-  it('quantità mostrata con toFixed(3)', () => {
+  it('quantità mostrata in formato italiano, senza zeri fissi', () => {
     expect(STEP_DOSE).toBe('0.001');
-    expect(formattaQuantita(0.125 * 2)).toBe('0.250');
-    expect(formattaQuantita(0.001)).toBe('0.001');
+    expect(formattaQuantita(0.125 * 2)).toBe('0,25');
+    expect(formattaQuantita(0.001)).toBe('0,001');
   });
 
   it.each([
