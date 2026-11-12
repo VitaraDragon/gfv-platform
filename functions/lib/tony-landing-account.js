@@ -39,7 +39,8 @@ const SINONIMI_COLTURA = Object.freeze([
   { chiavi: ["pompelmi", "pompelmo"], nome: "Pompelmo" },
   { chiavi: ["olive", "olivo"], nome: "Olivo" },
   { chiavi: ["grano duro", "grano tenero", "grano"], nome: "Grano" },
-  { chiavi: ["melogrno"], nome: "Melograno" }
+  { chiavi: ["melogrno"], nome: "Melograno" },
+  { chiavi: ["mandorli", "mandorla"], nome: "Mandorlo" }
 ]);
 
 const SCHEMA_RISPOSTA_ACCOUNT = Object.freeze({
@@ -352,6 +353,7 @@ const RUMORE_PARLATO_NOME = Object.freeze([
   "chiamiamola",
   "chiamato",
   "chiamata",
+  "chiamto",
   "detto",
   "nome"
 ]);
@@ -399,6 +401,7 @@ function togliConnettiviFinaliNome(grezzo) {
 function nomeTerrenoVisibile(nome) {
   const s = togliConnettiviFinaliNome(String(nome == null ? "" : nome).trim());
   if (!s || /^(null|undefined|nullo)$/i.test(s)) return "";
+  if (domandaNomeSenzaRisposta(s)) return "";
   if (eRumoreParlatoNome(s) && s.split(/\s+/).length === 1) return "";
   return inizialeMaiuscolaIt(s);
 }
@@ -695,7 +698,86 @@ function messaggioSoloConteggioTerreni(domanda) {
  * Allineato a landing/src/lib/tony-aiuto-account.js.
  */
 const RE_SI_CHIAMA =
-  /(?:si\s+(?:chiama|piama|kiama|chama|ciama)|(?:lo|la)\s+chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato))\s+/i;
+  /(?:si\s+(?:chiama|piama|kiama|chama|ciama)|(?:che\s+)?(?:(?:lo|la)\s+)?chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|chiamto|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato|chiamto))\s+/i;
+
+const DOMANDA_PODERI_ACCOUNT = "Hai uno o più poderi? Dimmi come li chiami.";
+
+/** «come lo chiamiamo?» non è un nome. «come lo chiamiamo vitaccia» sì. */
+function domandaNomeSenzaRisposta(domanda) {
+  const d = String(domanda || "").trim();
+  if (!d) return false;
+  if (/[?]/.test(d)) return true;
+  return /^come\s+(?:lo|la|si|che)\s+chiam\w*\s*$/i.test(d);
+}
+
+function messaggioSaltaCivico(domanda) {
+  const d = normalizzaSpaziSede(domanda)
+    .toLowerCase()
+    .replace(/[?!.,;:]+$/g, "")
+    .replace(/\s+/g, " ");
+  if (!d) return false;
+  if (/^(dopo|salta|senza|niente)$/.test(d)) return true;
+  if (/^non ce l['’ ]?ho$/.test(d)) return true;
+  if (/^non c['’]?[eè]$/.test(d)) return true;
+  if (/^non lo so$/.test(d)) return true;
+  if (/^senza (?:il |numero )?civico$/.test(d)) return true;
+  return false;
+}
+
+/** Via con numero, o il solo civico («85»). Stringa vuota se non è un civico. */
+function indirizzoPortatoDalCivico(domanda) {
+  const raw = normalizzaSpaziSede(domanda);
+  if (!raw || messaggioSaltaCivico(raw) || domandaTerrenoEsplicita(raw)) return "";
+  if (/\d/.test(raw) && (sembraIndirizzo(raw) || sembraSedeDetta(raw))) return raw;
+  if (/^\d{1,5}[a-zA-Z]?$/.test(raw)) return raw;
+  return "";
+}
+
+function sedeDaRigaRaccolti(raccolti) {
+  const m = String(raccolti || "").match(/(?:^|\n)Sede:\s*(.+)/);
+  if (!m) return null;
+  const pezzi = String(m[1] || "")
+    .split(",")
+    .map(function (p) {
+      return p.trim();
+    })
+    .filter(Boolean);
+  let provincia = null;
+  let cap = null;
+  const rest = [];
+  for (let i = 0; i < pezzi.length; i++) {
+    const p = pezzi[i];
+    if (/^CAP\s+\d{5}$/i.test(p)) {
+      cap = p.replace(/^CAP\s+/i, "");
+      continue;
+    }
+    if (/^[A-Za-z]{2}$/.test(p) && rest.length) {
+      provincia = p.toUpperCase();
+      continue;
+    }
+    rest.push(p);
+  }
+  if (!rest.length && !provincia && !cap) return null;
+  if (rest.length <= 1) {
+    const unico = rest[0] || "";
+    if (unico && (/\d/.test(unico) || sembraIndirizzo(unico))) {
+      return { indirizzo: unico, citta: null, cap: cap, provincia: provincia };
+    }
+    return { indirizzo: null, citta: unico || null, cap: cap, provincia: provincia };
+  }
+  return {
+    indirizzo: rest.slice(0, -1).join(", "),
+    citta: rest[rest.length - 1],
+    cap: cap,
+    provincia: provincia
+  };
+}
+
+function sedeRaccoltaSenzaCivico(raccolti) {
+  const sede = sedeDaRigaRaccolti(raccolti);
+  if (!sede || (!sede.citta && !sede.indirizzo)) return false;
+  return !/\d/.test(String(sede.indirizzo || ""));
+}
 
 function pulisciCap(valore) {
   const s = String(valore || "").trim();
@@ -1330,6 +1412,7 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
     const breve =
       s &&
       [...s].length <= 80 &&
+      !domandaNomeSenzaRisposta(s) &&
       !/\d/.test(s) &&
       !/\b(ha\b|ettar|podere|poderi|riepilogo|coltura)\b/i.test(s) &&
       !/^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s) &&
@@ -1600,6 +1683,130 @@ function allineaTestoTurnoAccount(testo, n) {
   );
 }
 
+const TESTO_LIMITE_CINQUE =
+  "Hai raggiunto il limite di cinque terreni. Controlliamo il riepilogo.";
+
+const ETTARI_IN_LETTERE = Object.freeze({
+  1: "un",
+  2: "due",
+  3: "tre",
+  4: "quattro",
+  5: "cinque",
+  6: "sei",
+  7: "sette",
+  8: "otto",
+  9: "nove",
+  10: "dieci",
+  11: "undici",
+  12: "dodici",
+  13: "tredici",
+  14: "quattordici",
+  15: "quindici",
+  16: "sedici",
+  17: "diciassette",
+  18: "diciotto",
+  19: "diciannove",
+  20: "venti"
+});
+
+function ettariInLettere(n) {
+  if (n === 1) return "un ettaro";
+  if (Number.isInteger(n) && ETTARI_IN_LETTERE[n]) return ETTARI_IN_LETTERE[n] + " ettari";
+  return String(n).replace(".", ",") + " ettari";
+}
+
+function fraseConfermaTerreno(t, k) {
+  const nome = nomeTerrenoVisibile(t.nome);
+  const col = String(t.coltura || "").trim();
+  const testa =
+    "Il terreno si chiama " +
+    nome +
+    ", ha " +
+    ettariInLettere(t.superficie) +
+    " e ci coltivi " +
+    col +
+    ".";
+  if (k >= LIMITI.MAX_TERRENI_PER_RICHIESTA) return testa + " " + TESTO_LIMITE_CINQUE;
+  const parola = CONTEGGIO_IN_LETTERE[k] || String(k);
+  return (
+    testa +
+    " Ne hai " +
+    parola +
+    " su cinque terreni. Ne hai altri o vediamo il riepilogo?"
+  );
+}
+
+function colturaSenzaNomeInRaccolti(raccolti, superficie) {
+  const s = String(raccolti || "");
+  const re =
+    /Terreno senza nome[^\n]*,\s*(\d+(?:[.,]\d+)?)\s*ha,\s*coltura\s+([^,\n]+)/gi;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    const n = Number(String(m[1]).replace(",", "."));
+    if (n === superficie) return String(m[2] || "").trim();
+  }
+  return "";
+}
+
+/**
+ * Turno account con terreno completo e testo vuoto (o svuotato): la conferma
+ * è deterministica, così il biglietto voce si firma su questo testo.
+ * @param {string} testo
+ * @param {object|null} dati
+ * @param {string} raccolti
+ * @returns {string}
+ */
+function confermaTerrenoSeTestoVuoto(testo, dati, raccolti) {
+  if (String(testo || "").trim()) return String(testo || "");
+  const lista = dati && Array.isArray(dati.terreni) ? dati.terreni : [];
+  if (!lista.length) return "";
+  const info = terreniDaRaccolti(raccolti);
+  const noti = Object.create(null);
+  const nomi = Array.isArray(info.nomi) ? info.nomi : [];
+  for (let i = 0; i < nomi.length; i++) {
+    const k = nomeSenzaPrefissoPodere(nomi[i]);
+    if (k) noti[k] = true;
+  }
+  function completo(t) {
+    return !!(
+      t &&
+      nomeTerrenoVisibile(t.nome) &&
+      typeof t.superficie === "number" &&
+      (String(t.coltura || "").trim() || colturaSenzaNomeInRaccolti(raccolti, t.superficie))
+    );
+  }
+  const completi = lista.filter(completo);
+  const nuovi = completi.filter(function (t) {
+    const k = nomeSenzaPrefissoPodere(nomeTerrenoVisibile(t.nome));
+    return k && !noti[k];
+  });
+  const bersaglio = nuovi.length
+    ? nuovi[nuovi.length - 1]
+    : completi.length === 1
+      ? completi[0]
+      : null;
+  if (!bersaglio) return "";
+  if (!String(bersaglio.coltura || "").trim()) {
+    bersaglio.coltura = colturaSenzaNomeInRaccolti(raccolti, bersaglio.superficie);
+  }
+  if (!String(bersaglio.coltura || "").trim()) return "";
+  const k = contaTerreniConNomeDopoTurno(raccolti, lista);
+  return fraseConfermaTerreno(bersaglio, k);
+}
+
+/**
+ * Dopo nome, ettari e coltura definitivi. Non lascia un ok con testo vuoto
+ * se il turno ha completato un terreno.
+ * @param {string} testo
+ * @param {object|null} dati
+ * @param {string} [raccolti]
+ * @returns {string}
+ */
+function chiudiTestoAccount(testo, dati, raccolti) {
+  const dopoNome = testoSeMancaNomeTerreno(testo, dati);
+  return confermaTerrenoSeTestoVuoto(dopoNome, dati, raccolti || "");
+}
+
 function togliRiepilogoNonChiesto(testo) {
   return String(testo || "")
     .split(/(?<=[.!?])\s+/)
@@ -1752,9 +1959,33 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const fuoriTema = parsed.fuoriTema === true;
   const nConNome = contaTerreniConNomeDopoTurno(raccolti, puliti.terreni);
   testo = allineaTestoTurnoAccount(testo, nConNome);
-  if (sedeDetta) {
-    if (testoRifiutaSedeAccettata(testo)) testo = "Hai dei poderi?";
-    if (!/\d/.test(domanda)) testo = conDomandaCivico(testo);
+  const attendeCivico = argomento === "sede" && sedeRaccoltaSenzaCivico(raccolti);
+  if (attendeCivico && !domandaTerrenoEsplicita(domanda)) {
+    const portato = indirizzoPortatoDalCivico(domanda);
+    if (messaggioSaltaCivico(domanda)) {
+      sede = null;
+      poderiRisposta = [];
+      testo = DOMANDA_PODERI_ACCOUNT;
+    } else if (portato) {
+      const precedente = sedeDaRigaRaccolti(raccolti) || {};
+      sede = pulisciSede({
+        indirizzo: portato,
+        citta: precedente.citta || (sede && sede.citta) || null,
+        cap: precedente.cap || (sede && sede.cap) || null,
+        provincia: precedente.provincia || (sede && sede.provincia) || null
+      });
+      poderiRisposta = [];
+      testo = DOMANDA_PODERI_ACCOUNT;
+    } else {
+      sede = null;
+      poderiRisposta = [];
+      testo = DOMANDA_CIVICO_FACOLTATIVA;
+    }
+  } else if (sedeDetta) {
+    if (testoRifiutaSedeAccettata(testo) && /\d/.test(domanda)) {
+      testo = "Hai dei poderi?";
+    }
+    if (!/\d/.test(domanda)) testo = DOMANDA_CIVICO_FACOLTATIVA;
   }
 
   return {
@@ -1795,6 +2026,7 @@ module.exports = {
   applicaSuperficieDaDomanda,
   applicaNomeTerrenoDaDomanda,
   testoSeMancaNomeTerreno,
+  chiudiTestoAccount,
   normalizzaDecimaliPerGemini,
   collegaTerreniAiPoderiServer,
   corrispondeNomePodere,

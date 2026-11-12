@@ -45,6 +45,7 @@ const SINONIMI_COLTURA = Object.freeze([
   { chiavi: ['olive', 'olivo'], nome: 'Olivo' },
   { chiavi: ['grano duro', 'grano tenero', 'grano'], nome: 'Grano' },
   { chiavi: ['melogrno'], nome: 'Melograno' },
+  { chiavi: ['mandorli', 'mandorla'], nome: 'Mandorlo' },
 ]);
 
 export const DOMANDA_PRIMO_TERRENO =
@@ -281,7 +282,7 @@ export function domandaTerrenoEsplicita(domanda) {
  * Il capture del nome resta a carico del chiamante e si ferma prima della misura.
  */
 export const RE_SI_CHIAMA =
-  /(?:si\s+(?:chiama|piama|kiama|chama|ciama)|(?:lo|la)\s+chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato))\s+/i;
+  /(?:si\s+(?:chiama|piama|kiama|chama|ciama)|(?:che\s+)?(?:(?:lo|la)\s+)?chiam(?:o|iamo|ano)|chiamiamol[oa]|chiamat[oa]|chiamalo|chiamto|il\s+nome\s+(?:del\s+terreno\s+)?(?:è|e')|(?:^|[\s,.;:…]+)(?:nome|detto|chiamato|chiamto))\s+/i;
 
 export function messaggioHaTerreno(domanda) {
   const d = String(domanda || '');
@@ -373,6 +374,7 @@ const RUMORE_PARLATO_NOME = Object.freeze([
   'chiamiamola',
   'chiamato',
   'chiamata',
+  'chiamto',
   'detto',
   'nome',
 ]);
@@ -691,11 +693,48 @@ function stessoNome(a, b) {
  * @param {Array<{ nome?: string, coltura?: string, superficie?: number }>|undefined} terreniAttuali
  * @returns {string|null}
  */
+/** «come lo chiamiamo?» non è un nome. «come lo chiamiamo vitaccia» sì. */
+function domandaNomeSenzaRisposta(domanda) {
+  const d = String(domanda || '').trim();
+  if (!d) return false;
+  if (/[?]/.test(d)) return true;
+  return /^come\s+(?:lo|la|si|che)\s+chiam\w*\s*$/i.test(d);
+}
+
+function messaggioSaltaCivico(domanda) {
+  const d = normalizzaSpaziSede(domanda)
+    .toLowerCase()
+    .replace(/[?!.,;:]+$/g, '')
+    .replace(/\s+/g, ' ');
+  if (!d) return false;
+  if (/^(dopo|salta|senza|niente)$/.test(d)) return true;
+  if (/^non ce l['’ ]?ho$/.test(d)) return true;
+  if (/^non c['’]?[eè]$/.test(d)) return true;
+  if (/^non lo so$/.test(d)) return true;
+  if (/^senza (?:il |numero )?civico$/.test(d)) return true;
+  return false;
+}
+
+/** Via con numero, o il solo civico («85»). Stringa vuota se non è un civico. */
+function indirizzoPortatoDalCivico(domanda) {
+  const raw = normalizzaSpaziSede(domanda);
+  if (!raw || messaggioSaltaCivico(raw) || domandaTerrenoEsplicita(raw)) return '';
+  if (/\d/.test(raw) && (sembraIndirizzo(raw) || sembraSedeDetta(raw))) return raw;
+  if (/^\d{1,5}[a-zA-Z]?$/.test(raw)) return raw;
+  return '';
+}
+
+function sedeSenzaCivico(sede) {
+  if (!sede || (!sede.citta && !sede.indirizzo)) return false;
+  return !/\d/.test(String(sede.indirizzo || ''));
+}
+
 export function nomeLiberoSeInAttesa(domanda, terreniAttuali) {
   const pendenti = terreniInAttesaNome(terreniAttuali);
   if (!pendenti.length) return null;
   const s = String(domanda || '').trim();
   if (!s || [...s].length > 80) return null;
+  if (domandaNomeSenzaRisposta(s)) return null;
   if (/\d/.test(s)) return null;
   if (/\b(ha\b|ettar|podere|poderi|riepilogo|coltura)\b/i.test(s)) return null;
   if (/^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s)) return null;
@@ -1094,11 +1133,16 @@ function togliErroreVuoto(testo) {
     .trim();
 }
 
-/** Toglie il riepilogo non chiesto. «Ne hai altri o vediamo il riepilogo?» resta. */
+/** Toglie il riepilogo non chiesto. «Ne hai altri o vediamo il riepilogo?» e il limite restano. */
 function togliFrasiRiepilogo(testo) {
   return String(testo || '')
     .split(/(?<=[.!?])\s+/)
-    .filter((p) => !/riepilogo/i.test(p) || /ne hai altri/i.test(p))
+    .filter(
+      (p) =>
+        !/riepilogo/i.test(p) ||
+        /ne hai altri/i.test(p) ||
+        /controlliamo il riepilogo/i.test(p)
+    )
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -1278,6 +1322,7 @@ export function chiaveNome(nome) {
 export function nomeTerrenoVisibile(nome) {
   const s = togliConnettiviFinaliNome(String(nome == null ? '' : nome).trim());
   if (!s || /^(null|undefined|nullo)$/i.test(s)) return '';
+  if (domandaNomeSenzaRisposta(s)) return '';
   if (eRumoreParlatoNome(s) && s.split(/\s+/).length === 1) return '';
   return inizialeMaiuscola(s);
 }
@@ -2084,20 +2129,60 @@ export function testoLimiteCinqueRaggiunto() {
   );
 }
 
+const ETTARI_IN_LETTERE = Object.freeze({
+  1: 'un',
+  2: 'due',
+  3: 'tre',
+  4: 'quattro',
+  5: 'cinque',
+  6: 'sei',
+  7: 'sette',
+  8: 'otto',
+  9: 'nove',
+  10: 'dieci',
+  11: 'undici',
+  12: 'dodici',
+  13: 'tredici',
+  14: 'quattordici',
+  15: 'quindici',
+  16: 'sedici',
+  17: 'diciassette',
+  18: 'diciotto',
+  19: 'diciannove',
+  20: 'venti',
+});
+
+function ettariInLettere(n) {
+  if (n === 1) return 'un ettaro';
+  if (Number.isInteger(n) && ETTARI_IN_LETTERE[n]) return ETTARI_IN_LETTERE[n] + ' ettari';
+  return String(n).replace('.', ',') + ' ettari';
+}
+
 function confermaTerrenoRaccolto(t, opts) {
   const nome = nomeTerrenoVisibile(t && t.nome);
   const n = t && typeof t.superficie === 'number' ? t.superficie : null;
-  const ett =
-    n == null ? '' : String(n).replace('.', ',') + (n === 1 ? ' ettaro' : ' ettari');
   const col = t && t.coltura ? String(t.coltura) : '';
-  const pezzi = ['Ok, un terreno' + (nome ? ' ' + nome : '')];
-  if (ett) pezzi.push('di ' + ett);
-  if (col) pezzi.push('a ' + col);
-  const coda =
-    opts && opts.limiteRaggiunto
-      ? testoLimiteCinqueRaggiunto()
-      : 'Ne hai altri o vediamo il riepilogo?';
-  return pezzi.join(' ') + '. ' + coda;
+  if (!nome || n == null || !col) {
+    const pezzi = ['Ok, un terreno' + (nome ? ' ' + nome : '')];
+    const ett =
+      n == null ? '' : String(n).replace('.', ',') + (n === 1 ? ' ettaro' : ' ettari');
+    if (ett) pezzi.push('di ' + ett);
+    if (col) pezzi.push('a ' + col);
+    const coda =
+      opts && opts.limiteRaggiunto
+        ? testoLimiteCinqueRaggiunto()
+        : 'Ne hai altri o vediamo il riepilogo?';
+    return pezzi.join(' ') + '. ' + coda;
+  }
+  const testa =
+    'Il terreno si chiama ' + nome + ', ha ' + ettariInLettere(n) + ' e ci coltivi ' + col + '.';
+  if (opts && opts.limiteRaggiunto) return testa + ' ' + testoLimiteCinqueRaggiunto();
+  const k = opts && typeof opts.conteggio === 'number' ? opts.conteggio : null;
+  const parola = k != null ? CONTEGGIO_IN_LETTERE[k] || String(k) : '';
+  const coda = parola
+    ? 'Ne hai ' + parola + ' su cinque terreni. Ne hai altri o vediamo il riepilogo?'
+    : 'Ne hai altri o vediamo il riepilogo?';
+  return testa + ' ' + coda;
 }
 
 /**
@@ -2152,7 +2237,7 @@ function messaggioFuoriTema(domanda) {
  * @param {{ terreni?: object[] }|null|undefined} dati
  * @returns {string}
  */
-function domandaDiRientro(passo, dati) {
+export function domandaDiRientro(passo, dati) {
   const d = dati && typeof dati === 'object' ? dati : {};
   if (passo === 'sede') return testiLanding.tonyBussa.aiuto.domandaSede;
   if (passo === 'poderi') return DOMANDA_PODERI;
@@ -2417,6 +2502,9 @@ export function preparaTurnoOnboarding(opts) {
   const nContatiOra = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
     (t) => t && (nomeTerrenoVisibile(t.nome) || typeof t.superficie === 'number' || t.coltura)
   ).length;
+  const nConNome = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
+    (t) => t && nomeTerrenoVisibile(t.nome)
+  ).length;
 
   // Completamento ettari da numero nudo («6» dopo «Quanti ettari ha?»): conferma + «Ne hai altri?»
   const nEttariRisposta = numeroEttariDetto(o.domanda, {
@@ -2452,7 +2540,10 @@ export function preparaTurnoOnboarding(opts) {
         const limiteOra =
           nContatiOra >= LIMITI.MAX_TERRENI_PER_RICHIESTA &&
           nContatiPrima < LIMITI.MAX_TERRENI_PER_RICHIESTA;
-        testo = confermaTerrenoRaccolto(tenuto, { limiteRaggiunto: limiteOra });
+        testo = confermaTerrenoRaccolto(tenuto, {
+          limiteRaggiunto: limiteOra,
+          conteggio: nConNome,
+        });
       }
     }
   }
@@ -2490,6 +2581,7 @@ export function preparaTurnoOnboarding(opts) {
       ) {
         testo = confermaTerrenoRaccolto(colpiti[0], {
           limiteRaggiunto: appenaRaggiuntoLimite,
+          conteggio: nConNome,
         });
       }
     }
@@ -2497,9 +2589,6 @@ export function preparaTurnoOnboarding(opts) {
 
   const nTerreni = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
     (t) => t && (nomeTerrenoVisibile(t.nome) || typeof t.superficie === 'number' || t.coltura)
-  ).length;
-  const nConNome = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
-    (t) => t && nomeTerrenoVisibile(t.nome)
   ).length;
   const mostrato = testo != null ? testo : String(o.testo || '');
   const allineato = allineaConteggioTerreni(mostrato, nConNome);
@@ -2529,7 +2618,29 @@ export function preparaTurnoOnboarding(opts) {
     if (tenuto && nomeTerrenoVisibile(tenuto.nome)) {
       testo = confermaTerrenoRaccolto(tenuto, {
         limiteRaggiunto: appenaRaggiuntoLimite,
+        conteggio: nConNome,
       });
+    }
+  }
+
+  // Risposta nuda a «Come si chiama…?», anche se coincide con la coltura.
+  const nomeAppenaDato = nomeLiberoSeInAttesa(o.domanda, attuali.terreni);
+  if (nomeAppenaDato && !mancanti.length && !devePoderi) {
+    const mostratoNome = testo != null ? testo : String(o.testo || '');
+    if (
+      !mostratoNome.trim() ||
+      /come si chiama/i.test(mostratoNome) ||
+      mostratoNome.trim() === 'Va bene.' ||
+      /non riesco a risponderti/i.test(mostratoNome)
+    ) {
+      const listaNome = Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : [];
+      const tenutoNome = listaNome.find((t) => t && stessoNome(t.nome, nomeAppenaDato));
+      if (tenutoNome && nomeTerrenoVisibile(tenutoNome.nome) && tenutoNome.coltura) {
+        testo = confermaTerrenoRaccolto(tenutoNome, {
+          limiteRaggiunto: appenaRaggiuntoLimite,
+          conteggio: nConNome,
+        });
+      }
     }
   }
 
@@ -2571,16 +2682,43 @@ export function preparaTurnoOnboarding(opts) {
 
   if (testo == null && o.testo !== testoIngresso) testo = o.testo;
 
-  if (
+  const primaSedeSenzaCivico =
     passo0 === 'sede' &&
     !sedeGiaNota &&
     !fuoriTemaUtente &&
     sembraSedeDetta(o.domanda) &&
-    !/\d/.test(String(o.domanda || ''))
+    !/\d/.test(String(o.domanda || ''));
+  if (primaSedeSenzaCivico) {
+    passo = 'sede';
+    bloccaAvanti = true;
+    vaiATerreni = false;
+    apriRiepilogo = false;
+    testo = DOMANDA_CIVICO_FACOLTATIVA;
+  } else if (
+    passo0 === 'sede' &&
+    sedeGiaNota &&
+    sedeSenzaCivico(attuali.sede) &&
+    !fuoriTemaUtente &&
+    !domandaTerrenoEsplicita(o.domanda)
   ) {
-    const attuale = testo != null ? testo : String(o.testo || '');
-    const conCivico = conDomandaCivico(attuale);
-    if (conCivico !== attuale) testo = conCivico;
+    const portato = indirizzoPortatoDalCivico(o.domanda);
+    if (portato || messaggioSaltaCivico(o.domanda)) {
+      if (portato && uniti.dati && uniti.dati.sede) {
+        uniti.dati.sede = Object.assign({}, uniti.dati.sede, { indirizzo: portato });
+      }
+      if (uniti.dati) uniti.dati.poderi = [];
+      passo = 'poderi';
+      bloccaAvanti = true;
+      vaiATerreni = false;
+      apriRiepilogo = false;
+      testo = DOMANDA_PODERI;
+    } else {
+      passo = 'sede';
+      bloccaAvanti = true;
+      vaiATerreni = false;
+      apriRiepilogo = false;
+      testo = DOMANDA_CIVICO_FACOLTATIVA;
+    }
   }
 
   // Il server ha già chiesto il primo terreno: il passo segue, senza una seconda domanda.

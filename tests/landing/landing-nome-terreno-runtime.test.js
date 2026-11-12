@@ -1683,8 +1683,10 @@ describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
       expect(visti[2].n).toBe(0);
       expect(visti[3].n).toBe(1);
       expect(visti[3].scheda).toBe(false);
-      expect(visti[3].mostrato).not.toMatch(/ci coltivi/i);
+      expect(visti[3].mostrato).toMatch(/Il terreno si chiama Pozzo/i);
+      expect(visti[3].mostrato).toMatch(/ci coltivi Trebbiano/i);
       expect(visti[3].mostrato).not.toMatch(/Pozzo Trebbiano/i);
+      expect(visti[3].mostrato).not.toMatch(/Che cosa ci coltivi nel terreno Pozzo/i);
       expect(visti[3].righe[0]).toMatchObject({ nome: 'Pozzo', superficie: '5', coltura: 'Trebbiano' });
       expect(visti[6].n).toBe(4);
       expect(visti[6].scheda).toBe(false);
