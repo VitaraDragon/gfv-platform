@@ -1,16 +1,64 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-10 — Allenatore Tony: telaio a pacchetti e primo pacchetto landing.**
+**Ultimo aggiornamento documentazione: 2026-11-12 — Allenatore landing: sede senza «via» e dialogo Calanchi nel pacchetto.**
+
+## 2026-11-12 — Allenatore: branch su develop, sede senza la parola via
+
+Su `feat/allenatore-tony-telaio-pacchetto-landing` (PR #379 verso develop). Nessun merge, nessun deploy.
+
+1. **Allineamento** — il branch include #380 (informativa bloccante solo se il riquadro è visibile), #382 (conteggio e finale, voce = chat) e #384 (saluto senza i pulsanti del percorso). Quei comportamenti restano il riferimento.
+2. **Pacchetto** — l'informativa si aspetta `informativaBloccante` (il passo invito non resta bloccato). Aggiunto il dialogo Calanchi del ritest 10 nov: dopo il podere arriva «Dimmi il primo terreno»; Prugneto, che è il secondo, non è «tre su cinque»; il limite resta 5 terreni, non 4; il finale non dice «Crea il tuo account». Il pacchetto non asseriva i pulsanti del percorso: restano tolti come in #384.
+3. **Sede senza «via»** — si accettano «località Casale 12», «strada Granarolo 5», «podere Sasso, Brisighella», «Faenza, RA» e il solo comune. Se manca il numero civico, Tony lo chiede una volta e va avanti. La sede non diventa un terreno; in questo passo «podere …, Comune» non è un podere. Il CAP vuoto non si inventa (niente tabella comuni). «monte coralli 3» e «coralli 3 faenza» restano ambigui.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Allenatore Tony: telaio a pacchetti e primo pacchetto landing.**
 
 ## 2026-11-10 — Allenatore Tony: telaio condiviso e primo pacchetto landing
 
 Su `feat/allenatore-tony-telaio-pacchetto-landing` (PR verso develop). Non è un addestramento del modello e non entra un motore di valutazione esterno.
 
 1. **Telaio** — `tests/allenatore/turno-intervista.js` è lo stesso giro già usato dai test landing (server `rispostaAccountDaTesto` → `preparaTurnoOnboarding` → `decidiDopoRisposta`). Un pacchetto = situazioni, varianti, esito strutturato, dialoghi congelati. Il primo pacchetto è l'intervista account (`pacchetto-landing.test.js`). Niente enciclopedia agricola e niente pacchetto del Tony in-app.
-2. **Varianti** — oltre ai 57 casi della PR #377: refusi (`6 etari`, `tereni`, `si ciama`, `melogrno`), sede che sembra un campo (e indirizzo ambiguo, in cui Tony chiede), fuori tema a metà dialogo, correzione del turno. Il dialogo del ritest 10 nov resta congelato per intero.
+2. **Varianti** — oltre ai 57 casi della PR #377: refusi (`6 etari`, `tereni`, `si ciama`, `melogrno`), sede che sembra un campo («monte coralli 3» resta ambiguo), fuori tema a metà dialogo, correzione del turno. Il dialogo del ritest 10 nov resta congelato per intero.
 3. **CI** — job Vitest `allenatore landing` in `simulator-ci.yml` (`npm run sim:allenatore:vitest`), con `landing/**` nei path filter. Niente Playwright aggiunto per questo pacchetto.
 
 Come aggiungere un dialogo incollato da Pier: `tests/allenatore/README.md`. I test sintetici non dichiarano esiti di voce o browser. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Tony: saluto landing senza pulsanti del percorso (demo EIMA).**
+
+## 2026-11-10 — Tony: saluto landing senza i tre pulsanti del percorso
+
+Su `fix/tony-togli-chip-percorso-gratuito` (PR verso develop), per la demo EIMA: al primo accesso dopo il setup dalla landing Tony dice ancora il saluto (una volta sola, con la graffetta), senza i tre pulsanti «Mappa / sede», «Terreni», «Diario» e senza «Chiudi percorso». Quei pulsanti chiamavano `APRI_PAGINA` e, senza Tony Avanzato, rispondevano «richiede il modulo Tony Avanzato». Vale per tutti i piani. I giorni dopo non compare più il «riprendi». Se manca il pin della sede, la nota indica Impostazioni (ingranaggio in alto a destra). `decidiSalutoLanding` e `messaggioRiprendi` invariati. Nessun bump di `TONY_CLIENT_BUILD`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing: conteggio terreni e finale allineati tra voce e chat.**
+
+## 2026-11-10 — Landing: conteggio terreni, domanda primo terreno, finale fuori contesto
+
+Su `fix/landing-conteggio-terreni-finale` (PR verso develop), dopo il ritest Pier su prova-tony (main 604c7872, podere Calanchi):
+
+1. **Voce = chat** — la domanda del primo terreno non viene più tagliata in chat (`togliRichiestaNomeGiaDato` tiene «Dimmi il primo terreno»). Il passo passa a terreni senza una seconda domanda.
+2. **Conteggio** — `rispostaAccountDaTesto` riscrive «ne hai N su 5/cinque» sul numero di terreni con nome (un nome che completa il «senza nome» non aggiunge 1). Sotto i 5 toglie «raggiunto il limite» e «passando al Base». Stessa frase nel client. `serializzaRaccolti` avvisa che il terreno in attesa del nome è già nel conteggio.
+3. **Finale** — chi ha già l'account non sente più «Crea il tuo account» / email / password; «e adesso?» torna a «Ne hai altri o vediamo il riepilogo?».
+
+Test: `landing-dialogo-calanchi-conteggio`. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Dopo il merge serve il deploy di `tonyLandingAsk` (e il canale prova-tony): lo fa il coordinatore.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Landing: informativa bloccante solo se il riquadro è visibile (fix regressione #377).**
+
+## 2026-11-10 — Landing: informativa bloccante solo se visibile (non in invito)
+
+Su `fix/landing-informativa-blocca-solo-se-visibile` (PR verso develop): regressione della #377 — il flag `informativaAiutoVisibile` nasceva true all’apertura pannello e dopo registrazione, ma il riquadro compare solo con `faseAiuto && informativaAiutoVisibile`. I guard/template che usavano solo il flag nascondevano i chip demo e bloccavano «Sì, iniziamo» / «Salta tutto» senza uscita.
+
+1. **`informativaBloccante`** — computed: `faseAiuto && informativaAiutoVisibile && passoAiuto !== 'invito'`. Usato in guardie chip/scheda/invio/mic, template chip+campo e bottone Riepilogo.
+2. **Invariati** — riquadro informativa, link privacy, testi legali, ettari/riepilogo #377, flag landing/bussata.
+3. **Test** — mount `@vue/test-utils` (`landing-informativa-bloccante-comportamento.test.js`); `tests/landing` incluso in `sim:tony:vitest`.
+
+Nessun merge né deploy.
 
 ---
 

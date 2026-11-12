@@ -66,6 +66,7 @@ export function turno(stato, domanda, modello) {
     chiedeRiepilogo && client.bloccaAvanti !== true && client.vaiATerreni !== true;
   return {
     testo: client.testo != null ? client.testo : pulita.testo,
+    voce: pulita.testo,
     apriRiepilogo:
       client.apriRiepilogo === true || dopo.apriRiepilogo === true || apreSuRichiesta,
     azioneDopo: dopo.azione,

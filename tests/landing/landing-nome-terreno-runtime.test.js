@@ -456,7 +456,7 @@ describe('runtime: collina non duplica il 3 ha con nome null', () => {
 
         expect(collina.terreni).toHaveLength(4);
         expect(collina.troppi).toBe(false);
-        expect(collina.testo).toMatch(/ne hai 4 su 5/i);
+        expect(collina.testo).toMatch(/ne hai quattro su 5/i);
         expect(collina.testo).not.toMatch(/cinque su 5/i);
         const treHa = collina.terreni.filter((t) => t.superficie === 3);
         expect(treHa).toHaveLength(1);
@@ -1796,7 +1796,7 @@ describe('runtime: dialogo Monte Coralli / Loghetto (fantasma sede)', () => {
 
     expect(visti[3].terreni).toHaveLength(1);
     expect(visti[3].terreni[0].nome).toMatch(/^quercia$/i);
-    expect(visti[3].testo).toMatch(/ne hai\s+1\s+su\s+5/i);
+    expect(visti[3].testo).toMatch(/ne hai uno su 5/i);
     expect(visti[3].testo).not.toMatch(/ne hai\s+due\s+su\s+5/i);
 
     expect(visti[4].terreni.map((t) => String(t.nome || '').toLowerCase())).toEqual([
@@ -1805,7 +1805,7 @@ describe('runtime: dialogo Monte Coralli / Loghetto (fantasma sede)', () => {
     ]);
 
     expect(visti[5].terreni).toHaveLength(3);
-    expect(visti[5].testo).toMatch(/ne hai\s+3\s+su\s+5/i);
+    expect(visti[5].testo).toMatch(/ne hai tre su 5/i);
 
     expect(visti[7].terreni).toHaveLength(4);
     expect(visti[7].terreni.map((t) => String(t.nome || '').toLowerCase())).toEqual([

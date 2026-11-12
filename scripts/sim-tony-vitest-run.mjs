@@ -26,6 +26,7 @@ const args = [
   '--exclude',
   '**/*canary*.test.js',
   join('tests', 'tony'),
+  join('tests', 'landing'),
   ...rootTonyFiles,
 ];
 

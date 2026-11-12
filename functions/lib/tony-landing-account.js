@@ -231,14 +231,14 @@ function promptSistemaAccount(argomento, opzioni) {
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderiNoti = poderiDaRaccolti(raccolti);
   const regoleAiuto = [
-    "Aiuto all'account. Aiuti solo a dire sede legale (via con numero civico e comune), poderi (nomi) e terreni (nome, superficie in ha, coltura). L'argomento di adesso è «" +
+    "Aiuto all'account. Aiuti solo a dire sede legale (indirizzo o almeno il comune), poderi (nomi) e terreni (nome, superficie in ha, coltura). L'argomento di adesso è «" +
       arg +
       "».",
     "Flusso lineare e obbligatorio: sede → poderi → terreni → riepilogo. Non tornare indietro: se l'argomento è «poderi» non richiedere la sede; se è «terreni» non richiedere di nuovo sede né poderi, a meno che l'utente non lo chieda esplicitamente (es. «aggiungi un podere», «cambio indirizzo»).",
     "Mai dati fiscali (Partita IVA, codice fiscale), mai mezzi, operai o il numero di operai, mai dati di altre persone; se li danno, non usarli e ripeti la domanda.",
     "Non dire mai il nome di chi offre GFV né di altre persone.",
     "Scrivi i numeri piccoli in lettere con l'articolo giusto: «un terreno», «un podere», «due terreni»; mai «1 terreno» né «uno terreno».",
-    "Sede: bastano via (con numero civico) e comune. NON chiedere provincia né CAP. Se dal comune li conosci con ragionevole certezza, mettili nel JSON (provincia = sigla di due lettere, es. Bergamo → BG); se non li sai, lascia null. Non inventare.",
+    "Sede: bastano via (con numero civico) e comune. Va bene anche senza la parola «via»: località, strada, vicolo, corso, piazza, «podere Sasso, Brisighella», «Faenza, RA» o anche solo il comune. Non rifiutare e non richiedere la parola via. Se manca il numero civico, chiedilo una volta («Il numero civico, se ce l'hai, dimmelo pure.») e vai avanti. NON chiedere provincia né CAP. Il CAP lascialo null: compilalo solo se quel comune ha un unico CAP che conosci con certezza, altrimenti non inventarlo. La provincia, se la conosci (es. Bergamo → BG), mettila; se no, null. La sede non è un terreno. «podere …, Comune» in questo passo è l'indirizzo, non un podere.",
     "Fuori tema: se il messaggio non c'entra col passo (es. «piscina»), rispondi con UNA frase che lo riporta al passo e metti fuoriTema: true; non trattarlo come nome di podere o terreno.",
     "Non fare due volte di seguito la stessa domanda.",
     "Il nome di un podere o di un terreno va scritto esattamente come lo dice l'utente, comprese parole come Podere, Cascina, Tenuta, Campo: non accorciarlo.",
@@ -250,7 +250,8 @@ function promptSistemaAccount(argomento, opzioni) {
     "Accetta fino a 5 terreni (il quinto va bene). Quando il quinto terreno è completo (nome + ettari + coltura), NON chiedere «Ne hai altri?»: di' che è stato raggiunto il limite di cinque terreni e metti fatto: true (il client apre il riepilogo). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.»",
     "Terreni già raccolti: " +
       terreniDaRaccolti(raccolti).conteggio +
-      " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha (e N < 5), usa la forma «ne hai N su 5» con N esatto.",
+      " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha (e N < 5), usa la forma «ne hai N su 5» o «ne hai N su cinque» con N esatto. Se compare «in attesa del nome», quel terreno è già nel conteggio: quando l'utente dice il nome, NON è un terreno in più.",
+    "L'utente ha già creato l'account gratuito ed è collegato: non dire mai di cliccare «Crea il tuo account gratuito», di registrarsi o di scrivere email e password. Se chiede cosa fare adesso o come continuare, rispondi in una frase: se ha meno di 5 terreni chiedi «Ne hai altri o vediamo il riepilogo?»; se li ha già detti tutti, di' che il riepilogo è qui sotto, lo controlla e preme «Sì, salva».",
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
     "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); nel JSON usa SEMPRE il nome canonico del catalogo, mai il plurale grezzo dell'utente. Esempi: «noci» → «Noce», «pesche»/«peschi» → «Pesco», «mele» → «Melo», «pere» → «Pero», «albicocco» → «Albicocche», «prugne» → «Prugne», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano». Se la coltura non è in elenco (né come sinonimo), lascia null e chiedila in chat; non inventarla. «seminativo» e «frutteto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
@@ -408,6 +409,8 @@ function sembraIndirizzo(domanda) {
   if (!d) return false;
   if (/\b(?:ha\b|ettari?\b|etari\b)\b/i.test(d)) return false;
   if (/\b\d+(?:[.,]\d+)?\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return false;
+  // «à» non è un carattere di parola per \b: «località » non chiude il confine.
+  if (/\blocalit[aà](?![a-zà-öø-ÿ])/i.test(d)) return true;
   return /\b(?:via|viale|v\.le|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
     d
   );
@@ -417,6 +420,182 @@ function nomeSembraIndirizzo(nome) {
   return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada)\b/i.test(
     String(nome || "")
   );
+}
+
+/**
+ * Sede detta senza la parola «via».
+ * Allineato a landing/src/lib/tony-aiuto-account.js.
+ */
+const PAROLE_NON_COMUNE = Object.freeze({
+  si: 1,
+  "sì": 1,
+  no: 1,
+  ok: 1,
+  okay: 1,
+  ciao: 1,
+  salve: 1,
+  boh: 1,
+  niente: 1,
+  nessuno: 1,
+  grazie: 1,
+  mah: 1,
+  va: 1,
+  bene: 1,
+  non: 1,
+  lo: 1,
+  la: 1,
+  il: 1,
+  un: 1,
+  una: 1,
+  di: 1,
+  da: 1,
+  a: 1,
+  che: 1,
+  allora: 1,
+  quindi: 1,
+  ecco: 1,
+  questo: 1,
+  quello: 1,
+  quella: 1,
+  sono: 1,
+  sei: 1,
+  ho: 1,
+  hai: 1,
+  ha: 1
+});
+
+const DOMANDA_CIVICO_FACOLTATIVA =
+  "Il numero civico, se ce l'hai, dimmelo pure.";
+
+function normalizzaSpaziSede(domanda) {
+  return String(domanda || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function parolaNonEComune(parola) {
+  return Object.prototype.hasOwnProperty.call(
+    PAROLE_NON_COMUNE,
+    String(parola || "").toLowerCase()
+  );
+}
+
+function sembraSoloComune(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  if (!d || /[?!]/.test(d) || /\d/.test(d)) return false;
+  if (
+    /\b(?:ha|ettar\w*|etari|terren\w*|campi?|coltur\w*|poder\w*|via|viale|corso|piazza\w*|strada|contrada|localit\w*|vicolo)\b/i.test(
+      d
+    )
+  ) {
+    return false;
+  }
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+$/.test(d)) return false;
+  const parole = d.split(/\s+/);
+  if (parole.length < 1 || parole.length > 4) return false;
+  if (parole.some(parolaNonEComune)) return false;
+  if (parole.length === 1 && parole[0].length < 4) return false;
+  if (parole.length === 1 && risolviColturaConSinonimi(parole[0])) return false;
+  return true;
+}
+
+function sembraComuneEProvincia(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  const m = d.match(/^(.+?)(?:,|\s)\s*\(?([A-Za-z]{2})\)?$/);
+  if (!m) return false;
+  const luogo = String(m[1] || "").trim();
+  if (!luogo || /\d/.test(luogo) || luogo.length < 3) return false;
+  return sembraSoloComune(luogo);
+}
+
+function sembraPodereComeIndirizzo(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  if (!d || /\b(?:ha|ettari?|etari|terren\w*)\b/i.test(d)) return false;
+  return /^podere\s+\S.+(?:,|\s+a\s+|\s+di\s+)\s*\S/i.test(d);
+}
+
+function sembraSedeDetta(domanda) {
+  if (!normalizzaSpaziSede(domanda) || domandaTerrenoEsplicita(domanda)) return false;
+  if (sembraIndirizzo(domanda)) return true;
+  if (sembraPodereComeIndirizzo(domanda)) return true;
+  if (sembraComuneEProvincia(domanda)) return true;
+  if (sembraSoloComune(domanda)) return true;
+  return false;
+}
+
+function inizialeMaiuscolaFraseSede(s) {
+  return String(s || "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(function (p) {
+      return p.charAt(0).toLocaleUpperCase("it") + p.slice(1);
+    })
+    .join(" ");
+}
+
+function sedeDaTesto(domanda) {
+  const raw = normalizzaSpaziSede(domanda);
+  if (sembraPodereComeIndirizzo(raw)) {
+    const m = raw.match(/^podere\s+(.+?)\s*(?:,|\s+a\s+|\s+di\s+)\s*(.+)$/i);
+    if (!m) return null;
+    return {
+      indirizzo: "podere " + inizialeMaiuscolaFraseSede(m[1].trim()),
+      citta: inizialeMaiuscolaFraseSede(m[2].trim()),
+      cap: null,
+      provincia: null
+    };
+  }
+  if (sembraComuneEProvincia(raw)) {
+    const m = raw.match(/^(.+?)(?:,|\s)\s*\(?([A-Za-z]{2})\)?$/);
+    if (!m) return null;
+    return {
+      indirizzo: null,
+      citta: inizialeMaiuscolaFraseSede(m[1].trim()),
+      cap: null,
+      provincia: String(m[2] || "").toUpperCase()
+    };
+  }
+  if (sembraSoloComune(raw)) {
+    return {
+      indirizzo: null,
+      citta: inizialeMaiuscolaFraseSede(raw),
+      cap: null,
+      provincia: null
+    };
+  }
+  if (sembraIndirizzo(raw)) {
+    return { indirizzo: raw, citta: null, cap: null, provincia: null };
+  }
+  return null;
+}
+
+function sedeHaQualcosa(sede) {
+  return !!(sede && (sede.indirizzo || sede.citta));
+}
+
+function testoRifiutaSedeAccettata(testo) {
+  const s = String(testo || "").trim();
+  if (!s) return false;
+  if (
+    /\bpoder/i.test(s) &&
+    !/riprova con via|non ho capito bene|dove['’]?è la sede legale/i.test(s)
+  ) {
+    return false;
+  }
+  return (
+    /^non ho capito bene/i.test(s) ||
+    /riprova con via/i.test(s) ||
+    /dove['’]?è la sede legale/i.test(s) ||
+    /mi bastano via/i.test(s)
+  );
+}
+
+function conDomandaCivico(testo) {
+  const s = String(testo || "").trim();
+  if (/numero civico/i.test(s)) return s;
+  if (!s) return DOMANDA_CIVICO_FACOLTATIVA;
+  const base = /[.!?]$/.test(s) ? s : s + ".";
+  return base + " " + DOMANDA_CIVICO_FACOLTATIVA;
 }
 
 function domandaTerrenoEsplicita(domanda) {
@@ -1279,6 +1458,148 @@ function testoSeMancaNomeTerreno(testo, dati) {
     : "Come si chiama questo terreno?";
 }
 
+const CONTEGGIO_IN_PAROLE = Object.freeze({
+  un: 1,
+  uno: 1,
+  due: 2,
+  tre: 3,
+  quattro: 4,
+  cinque: 5
+});
+
+const CONTEGGIO_IN_LETTERE = Object.freeze({
+  1: "uno",
+  2: "due",
+  3: "tre",
+  4: "quattro",
+  5: "cinque"
+});
+
+/**
+ * N = nomi già raccolti + nomi nuovi di questo turno (dopo il limite).
+ * Il conteggio di serializzaRaccolti include il terreno senza nome: il nome
+ * che lo completa è un nome nuovo rispetto all'elenco, ma non si somma
+ * anche al conteggio (sarebbe un terreno in più).
+ * @param {string} raccolti
+ * @param {object[]} terreniTurno
+ * @returns {number}
+ */
+function contaTerreniConNomeDopoTurno(raccolti, terreniTurno) {
+  const info = terreniDaRaccolti(raccolti);
+  const noti = Object.create(null);
+  const nomi = Array.isArray(info.nomi) ? info.nomi : [];
+  for (let i = 0; i < nomi.length; i++) {
+    const k = nomeSenzaPrefissoPodere(nomi[i]);
+    if (k) noti[k] = true;
+  }
+  let nuovi = 0;
+  const visti = Object.create(null);
+  const lista = Array.isArray(terreniTurno) ? terreniTurno : [];
+  for (let i = 0; i < lista.length; i++) {
+    const nome = nomeTerrenoVisibile(lista[i] && lista[i].nome);
+    if (!nome) continue;
+    const k = nomeSenzaPrefissoPodere(nome);
+    if (!k || noti[k] || visti[k]) continue;
+    visti[k] = true;
+    nuovi += 1;
+  }
+  return nomi.length + nuovi;
+}
+
+function riscriviConteggioTerreni(testo, n) {
+  if (typeof n !== "number" || !Number.isFinite(n)) return String(testo || "");
+  return String(testo || "").replace(
+    /\b(ne hai)\s+(\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(5|cinque)(\s+terreni)?\b/gi,
+    function (tutto, neHai, detto, den, terreni) {
+      const lettere = !/^\d+$/.test(detto);
+      const valore = lettere
+        ? CONTEGGIO_IN_PAROLE[String(detto).toLowerCase()]
+        : Number(detto);
+      if (valore === n) return tutto;
+      const nuovo = lettere ? CONTEGGIO_IN_LETTERE[n] || String(n) : String(n);
+      return neHai + " " + nuovo + " su " + den + (terreni || "");
+    }
+  );
+}
+
+/** «Raggiunto il limite» con meno di 5 terreni con nome: non è il quinto. */
+function togliLimiteNonRaggiunto(testo, n) {
+  if (typeof n !== "number" || n >= 5) return String(testo || "");
+  const originale = String(testo || "");
+  const avvisoProspettico = /arrivi a\s+(?:5|cinque)\s+terreni/i.test(originale);
+  const giaConteggio =
+    /\bne hai\s+(?:\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(?:5|cinque)\b/i.test(
+      originale
+    );
+  let tolto = false;
+  let messoConteggio = false;
+  const pezzi = originale.split(/(?<=[.!?])\s+/);
+  const filtrati = [];
+  for (let i = 0; i < pezzi.length; i++) {
+    const p = pezzi[i];
+    if (/raggiunto il limite/i.test(p)) {
+      tolto = true;
+      if (!giaConteggio && !messoConteggio) {
+        const parola = CONTEGGIO_IN_LETTERE[n] || String(n);
+        filtrati.push("Ne hai " + parola + " su cinque terreni.");
+        messoConteggio = true;
+      }
+      continue;
+    }
+    if (
+      !avvisoProspettico &&
+      /passando al Base/i.test(p) &&
+      /raggiunto il limite/i.test(originale)
+    ) {
+      tolto = true;
+      continue;
+    }
+    filtrati.push(p);
+  }
+  let s = filtrati.join(" ").replace(/\s+/g, " ").trim();
+  if (tolto && !/ne hai altri o vediamo il riepilogo/i.test(s)) {
+    if (s && !/[.!?]$/.test(s)) s += ".";
+    s = (s ? s + " " : "") + "Ne hai altri o vediamo il riepilogo?";
+  }
+  return s;
+}
+
+/** Invito a creare l'account. Non basta «clicca», «accedere all'app» o email+password. */
+function fraseInvitoRegistrazione(p) {
+  return (
+    /crea(?:re|i|te)?(?:\s+\S+){0,4}\s+account/i.test(p) ||
+    /\bregistr\w*/i.test(p) ||
+    /\biscriv\w*/i.test(p)
+  );
+}
+
+function togliInvitoRegistrazioneAccount(testo, n) {
+  const originale = String(testo || "").trim();
+  if (!originale) return originale;
+  let tolto = false;
+  const filtrati = originale.split(/(?<=[.!?])\s+/).filter(function (p) {
+    if (!fraseInvitoRegistrazione(p)) return true;
+    tolto = true;
+    return false;
+  });
+  let s = filtrati.join(" ").replace(/\s+/g, " ").trim();
+  if (tolto && !s) {
+    s =
+      typeof n === "number" && n >= 5
+        ? "Il riepilogo è qui sotto: controllalo e premi «Sì, salva»."
+        : "Ne hai altri o vediamo il riepilogo?";
+  }
+  return s;
+}
+
+/** Stesso testo del client (allineaConteggioTerreni): voce e chat coincidono. */
+function allineaTestoTurnoAccount(testo, n) {
+  return togliInvitoRegistrazioneAccount(
+    togliLimiteNonRaggiunto(riscriviConteggioTerreni(testo, n), n),
+    n
+  );
+}
+
 function togliRiepilogoNonChiesto(testo) {
   return String(testo || "")
     .split(/(?<=[.!?])\s+/)
@@ -1359,14 +1680,22 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
     testo = togliRiepilogoNonChiesto(testo);
   }
 
-  const sede = pulisciSede(parsed.sede);
-  const poderiRisposta = pulisciPoderi(parsed.poderi);
+  let sede = pulisciSede(parsed.sede);
+  let poderiRisposta = pulisciPoderi(parsed.poderi);
   const raccolti = raccoltiDaOpzioni(opzioni);
-  const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   const argomento =
     opzioni && typeof opzioni === "object" && typeof opzioni.argomento === "string"
       ? opzioni.argomento
       : "";
+  const sedeDetta = argomento === "sede" && sembraSedeDetta(domanda);
+  if (sedeDetta && sembraPodereComeIndirizzo(domanda)) {
+    poderiRisposta = [];
+  }
+  if (sedeDetta && !sedeHaQualcosa(sede)) {
+    const dedotta = pulisciSede(sedeDaTesto(domanda));
+    if (dedotta) sede = dedotta;
+  }
+  const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   // Testo già consumato come sede/podere: mai terreni (né civico→ettari).
   const bloccaTerreni =
     sembraIndirizzo(domanda) ||
@@ -1421,6 +1750,12 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
     testo = pezzi.join(" ");
   }
   const fuoriTema = parsed.fuoriTema === true;
+  const nConNome = contaTerreniConNomeDopoTurno(raccolti, puliti.terreni);
+  testo = allineaTestoTurnoAccount(testo, nConNome);
+  if (sedeDetta) {
+    if (testoRifiutaSedeAccettata(testo)) testo = "Hai dei poderi?";
+    if (!/\d/.test(domanda)) testo = conDomandaCivico(testo);
+  }
 
   return {
     testo: testo,

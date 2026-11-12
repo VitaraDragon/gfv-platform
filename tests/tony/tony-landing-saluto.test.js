@@ -93,7 +93,20 @@ describe('costruisciMessaggioSaluto', () => {
     const m = costruisciMessaggioSaluto({ nome: 'Pier', haPinSede: false });
     expect(m.testo).toContain('Ciao Pier!');
     expect(m.testo).toMatch(/pin/i);
-    expect(m.passi).toHaveLength(3);
+    expect(m.passi).toHaveLength(0);
+    expect(m.testo).toContain('Per 7 giorni ti guido');
+    expect(m.testo).toContain('graffetta in alto a sinistra');
+    expect(m.testo).not.toContain('passo 1');
+    expect(m.testo).toContain('Impostazioni');
+  });
+
+  it('con pin: stesso saluto, senza nota Impostazioni e senza passi', () => {
+    const m = costruisciMessaggioSaluto({ haPinSede: true });
+    expect(m.passi).toHaveLength(0);
+    expect(m.testo).toContain('Per 7 giorni ti guido');
+    expect(m.testo).toContain('graffetta in alto a sinistra');
+    expect(m.testo).not.toContain('passo 1');
+    expect(m.testo).not.toContain('Impostazioni');
   });
 
   it('haPinSede', () => {

@@ -98,6 +98,8 @@ export function sembraIndirizzo(domanda) {
   if (!d) return false;
   if (/\b(?:ha\b|ettari?\b|etari\b)\b/i.test(d)) return false;
   if (/\b\d+(?:[.,]\d+)?\s+di\s+[a-zà-öø-ÿ]/i.test(d)) return false;
+  // «à» non è un carattere di parola per \b: «località » non chiude il confine.
+  if (/\blocalit[aà](?![a-zà-öø-ÿ])/i.test(d)) return true;
   return /\b(?:via|viale|v\.le|corso|piazza|piazzale|vicolo|strada|contrada|localit[aà]|loc\.?)\b/i.test(
     d
   );
@@ -108,6 +110,158 @@ export function nomeSembraIndirizzo(nome) {
   return /\b(?:via|viale|corso|piazza|piazzale|vicolo|strada|contrada)\b/i.test(
     String(nome || '')
   );
+}
+
+/**
+ * Sede detta senza la parola «via».
+ * Allineato a functions/lib/tony-landing-account.js.
+ */
+const PAROLE_NON_COMUNE = Object.freeze({
+  si: 1,
+  sì: 1,
+  no: 1,
+  ok: 1,
+  okay: 1,
+  ciao: 1,
+  salve: 1,
+  boh: 1,
+  niente: 1,
+  nessuno: 1,
+  grazie: 1,
+  mah: 1,
+  va: 1,
+  bene: 1,
+  non: 1,
+  lo: 1,
+  la: 1,
+  il: 1,
+  un: 1,
+  una: 1,
+  di: 1,
+  da: 1,
+  a: 1,
+  che: 1,
+  allora: 1,
+  quindi: 1,
+  ecco: 1,
+  questo: 1,
+  quello: 1,
+  quella: 1,
+  sono: 1,
+  sei: 1,
+  ho: 1,
+  hai: 1,
+  ha: 1,
+});
+
+const DOMANDA_CIVICO_FACOLTATIVA = "Il numero civico, se ce l'hai, dimmelo pure.";
+
+function normalizzaSpaziSede(domanda) {
+  return String(domanda || '')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function parolaNonEComune(parola) {
+  return Object.prototype.hasOwnProperty.call(
+    PAROLE_NON_COMUNE,
+    String(parola || '').toLowerCase()
+  );
+}
+
+function sembraSoloComune(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  if (!d || /[?!]/.test(d) || /\d/.test(d)) return false;
+  if (
+    /\b(?:ha|ettar\w*|etari|terren\w*|campi?|coltur\w*|poder\w*|via|viale|corso|piazza\w*|strada|contrada|localit\w*|vicolo)\b/i.test(
+      d
+    )
+  ) {
+    return false;
+  }
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+$/.test(d)) return false;
+  const parole = d.split(/\s+/);
+  if (parole.length < 1 || parole.length > 4) return false;
+  if (parole.some(parolaNonEComune)) return false;
+  if (parole.length === 1 && parole[0].length < 4) return false;
+  if (parole.length === 1 && normalizzaColturaCatalogo(parole[0])) return false;
+  return true;
+}
+
+function sembraComuneEProvincia(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  const m = d.match(/^(.+?)(?:,|\s)\s*\(?([A-Za-z]{2})\)?$/);
+  if (!m) return false;
+  const luogo = String(m[1] || '').trim();
+  if (!luogo || /\d/.test(luogo) || luogo.length < 3) return false;
+  return sembraSoloComune(luogo);
+}
+
+function sembraPodereComeIndirizzo(domanda) {
+  const d = normalizzaSpaziSede(domanda);
+  if (!d || /\b(?:ha|ettari?|etari|terren\w*)\b/i.test(d)) return false;
+  return /^podere\s+\S.+(?:,|\s+a\s+|\s+di\s+)\s*\S/i.test(d);
+}
+
+function sembraSedeDetta(domanda) {
+  if (!normalizzaSpaziSede(domanda) || domandaTerrenoEsplicita(domanda)) return false;
+  if (sembraIndirizzo(domanda)) return true;
+  if (sembraPodereComeIndirizzo(domanda)) return true;
+  if (sembraComuneEProvincia(domanda)) return true;
+  if (sembraSoloComune(domanda)) return true;
+  return false;
+}
+
+function inizialeMaiuscolaFraseSede(s) {
+  return String(s || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toLocaleUpperCase('it') + p.slice(1))
+    .join(' ');
+}
+
+function sedeDaTesto(domanda) {
+  const raw = normalizzaSpaziSede(domanda);
+  if (sembraPodereComeIndirizzo(raw)) {
+    const m = raw.match(/^podere\s+(.+?)\s*(?:,|\s+a\s+|\s+di\s+)\s*(.+)$/i);
+    if (!m) return null;
+    return {
+      indirizzo: 'podere ' + inizialeMaiuscolaFraseSede(m[1].trim()),
+      citta: inizialeMaiuscolaFraseSede(m[2].trim()),
+      cap: null,
+      provincia: null,
+    };
+  }
+  if (sembraComuneEProvincia(raw)) {
+    const m = raw.match(/^(.+?)(?:,|\s)\s*\(?([A-Za-z]{2})\)?$/);
+    if (!m) return null;
+    return {
+      indirizzo: null,
+      citta: inizialeMaiuscolaFraseSede(m[1].trim()),
+      cap: null,
+      provincia: String(m[2] || '').toUpperCase(),
+    };
+  }
+  if (sembraSoloComune(raw)) {
+    return {
+      indirizzo: null,
+      citta: inizialeMaiuscolaFraseSede(raw),
+      cap: null,
+      provincia: null,
+    };
+  }
+  if (sembraIndirizzo(raw)) {
+    return { indirizzo: raw, citta: null, cap: null, provincia: null };
+  }
+  return null;
+}
+
+function conDomandaCivico(testo) {
+  const s = String(testo || '').trim();
+  if (/numero civico/i.test(s)) return s;
+  if (!s) return DOMANDA_CIVICO_FACOLTATIVA;
+  const base = /[.!?]$/.test(s) ? s : s + '.';
+  return base + ' ' + DOMANDA_CIVICO_FACOLTATIVA;
 }
 
 /**
@@ -961,12 +1115,21 @@ function togliDomandaColturaGiaData(testo) {
   return out || 'Va bene.';
 }
 
+/** Domanda di un terreno nuovo: non è la richiesta del nome già dato. */
+function tieneDomandaTerrenoNuovo(frase) {
+  const p = String(frase || '');
+  if (p.indexOf(DOMANDA_PRIMO_TERRENO) !== -1) return true;
+  return /\bdimmi il (primo|secondo|terzo|quarto|quinto|prossimo) terreno\b/i.test(p);
+}
+
 export function togliRichiestaNomeGiaDato(testo) {
   const s = String(testo || '').trim();
   if (!s) return s;
   const pezzi = s.split(/(?<=[.!?])\s+/);
   const filtrati = pezzi.filter(
-    (p) => !/\b(come si chiama|come si chiamano|qual\s*è il nome|che nome)\b/i.test(p)
+    (p) =>
+      tieneDomandaTerrenoNuovo(p) ||
+      !/\b(come si chiama|come si chiamano|qual\s*è il nome|che nome)\b/i.test(p)
   );
   const out = filtrati.join(' ').trim();
   return out || 'Va bene.';
@@ -1532,17 +1695,111 @@ const CONTEGGIO_IN_PAROLE = Object.freeze({
   cinque: 5,
 });
 
+const CONTEGGIO_IN_LETTERE = Object.freeze({
+  1: 'uno',
+  2: 'due',
+  3: 'tre',
+  4: 'quattro',
+  5: 'cinque',
+});
+
+/**
+ * Stesso testo di functions/lib/tony-landing-account.js (allineaTestoTurnoAccount):
+ * la voce legge il server, la chat non deve riscriverlo in un'altra forma.
+ * @param {string} testo
+ * @param {number} n terreni con nome
+ */
 function allineaConteggioTerreni(testo, n) {
+  return togliInvitoRegistrazioneAccount(
+    togliLimiteNonRaggiunto(riscriviConteggioTerreni(testo, n), n),
+    n
+  );
+}
+
+function riscriviConteggioTerreni(testo, n) {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return String(testo || '');
   return String(testo || '').replace(
-    /\bne hai\s+(\d+|un|uno|due|tre|quattro|cinque)\s+su\s+5\b/gi,
-    (tutto, detto) => {
-      const valore = /^\d+$/.test(detto)
-        ? Number(detto)
-        : CONTEGGIO_IN_PAROLE[String(detto).toLowerCase()];
+    /\b(ne hai)\s+(\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(5|cinque)(\s+terreni)?\b/gi,
+    (tutto, neHai, detto, den, terreni) => {
+      const lettere = !/^\d+$/.test(detto);
+      const valore = lettere
+        ? CONTEGGIO_IN_PAROLE[String(detto).toLowerCase()]
+        : Number(detto);
       if (valore === n) return tutto;
-      return 'ne hai ' + n + ' su 5';
+      const nuovo = lettere ? CONTEGGIO_IN_LETTERE[n] || String(n) : String(n);
+      return neHai + ' ' + nuovo + ' su ' + den + (terreni || '');
     }
   );
+}
+
+/** «Raggiunto il limite» con meno di 5 terreni con nome: non è il quinto. */
+function togliLimiteNonRaggiunto(testo, n) {
+  if (typeof n !== 'number' || n >= 5) return String(testo || '');
+  const originale = String(testo || '');
+  const avvisoProspettico = /arrivi a\s+(?:5|cinque)\s+terreni/i.test(originale);
+  const giaConteggio =
+    /\bne hai\s+(?:\d+|un|uno|due|tre|quattro|cinque)\s+su\s+(?:5|cinque)\b/i.test(
+      originale
+    );
+  let tolto = false;
+  let messoConteggio = false;
+  const pezzi = originale.split(/(?<=[.!?])\s+/);
+  const filtrati = [];
+  for (let i = 0; i < pezzi.length; i++) {
+    const p = pezzi[i];
+    if (/raggiunto il limite/i.test(p)) {
+      tolto = true;
+      if (!giaConteggio && !messoConteggio) {
+        const parola = CONTEGGIO_IN_LETTERE[n] || String(n);
+        filtrati.push('Ne hai ' + parola + ' su cinque terreni.');
+        messoConteggio = true;
+      }
+      continue;
+    }
+    if (
+      !avvisoProspettico &&
+      /passando al Base/i.test(p) &&
+      /raggiunto il limite/i.test(originale)
+    ) {
+      tolto = true;
+      continue;
+    }
+    filtrati.push(p);
+  }
+  let s = filtrati.join(' ').replace(/\s+/g, ' ').trim();
+  if (tolto && !/ne hai altri o vediamo il riepilogo/i.test(s)) {
+    if (s && !/[.!?]$/.test(s)) s += '.';
+    s = (s ? s + ' ' : '') + 'Ne hai altri o vediamo il riepilogo?';
+  }
+  return s;
+}
+
+/** Invito a creare l'account. Non basta «clicca», «accedere all'app» o email+password. */
+function fraseInvitoRegistrazione(p) {
+  return (
+    /crea(?:re|i|te)?(?:\s+\S+){0,4}\s+account/i.test(p) ||
+    /\bregistr\w*/i.test(p) ||
+    /\biscriv\w*/i.test(p)
+  );
+}
+
+function togliInvitoRegistrazioneAccount(testo, n) {
+  const originale = String(testo || '').trim();
+  if (!originale) return originale;
+  let tolto = false;
+  const filtrati = originale.split(/(?<=[.!?])\s+/).filter((p) => {
+    if (!fraseInvitoRegistrazione(p)) return true;
+    tolto = true;
+    return false;
+  });
+  let s = filtrati.join(' ').replace(/\s+/g, ' ').trim();
+  if (tolto && !s) {
+    s =
+      typeof n === 'number' && n >= 5
+        ? 'Il riepilogo è qui sotto: controllalo e premi «Sì, salva».'
+        : 'Ne hai altri o vediamo il riepilogo?';
+  }
+  return s;
 }
 
 function chiedeRiepilogoEsplicito(domanda) {
@@ -1942,11 +2199,24 @@ export function preparaTurnoOnboarding(opts) {
     !fuoriTemaUtente &&
     passo0 === 'sede' &&
     !sedeGiaNota &&
-    !sembraIndirizzo(o.domanda) &&
+    !sembraSedeDetta(o.domanda) &&
     !domandaTerrenoEsplicita(o.domanda);
   if (sedeAmbigua) {
     nuoviIn.sede = null;
     nuoviIn.terreni = [];
+  }
+  if (passo0 === 'sede' && sembraPodereComeIndirizzo(o.domanda)) {
+    nuoviIn.poderi = [];
+  }
+  if (
+    passo0 === 'sede' &&
+    !sedeGiaNota &&
+    !fuoriTemaUtente &&
+    sembraSedeDetta(o.domanda) &&
+    !(nuoviIn.sede && (nuoviIn.sede.indirizzo || nuoviIn.sede.citta))
+  ) {
+    const dedotta = sedeDaTesto(o.domanda);
+    if (dedotta) nuoviIn.sede = dedotta;
   }
   // Sede/podere (o testo già consumato come indirizzo): mai terreni in questo turno.
   const bloccaTerreniDaPasso =
@@ -2228,8 +2498,11 @@ export function preparaTurnoOnboarding(opts) {
   const nTerreni = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
     (t) => t && (nomeTerrenoVisibile(t.nome) || typeof t.superficie === 'number' || t.coltura)
   ).length;
+  const nConNome = (Array.isArray(uniti.dati.terreni) ? uniti.dati.terreni : []).filter(
+    (t) => t && nomeTerrenoVisibile(t.nome)
+  ).length;
   const mostrato = testo != null ? testo : String(o.testo || '');
-  const allineato = allineaConteggioTerreni(mostrato, nTerreni);
+  const allineato = allineaConteggioTerreni(mostrato, nConNome);
   if (allineato !== mostrato) testo = allineato;
   const testoBase = testo != null ? testo : String(o.testo || '');
   const modelloIncerto =
@@ -2298,6 +2571,30 @@ export function preparaTurnoOnboarding(opts) {
 
   if (testo == null && o.testo !== testoIngresso) testo = o.testo;
 
+  if (
+    passo0 === 'sede' &&
+    !sedeGiaNota &&
+    !fuoriTemaUtente &&
+    sembraSedeDetta(o.domanda) &&
+    !/\d/.test(String(o.domanda || ''))
+  ) {
+    const attuale = testo != null ? testo : String(o.testo || '');
+    const conCivico = conDomandaCivico(attuale);
+    if (conCivico !== attuale) testo = conCivico;
+  }
+
+  // Il server ha già chiesto il primo terreno: il passo segue, senza una seconda domanda.
+  if (
+    passo0 === 'poderi' &&
+    !devePoderi &&
+    Array.isArray(uniti.dati.poderi) &&
+    uniti.dati.poderi.length > 0 &&
+    tieneDomandaTerrenoNuovo(testoIngresso)
+  ) {
+    passo = 'terreni';
+    vaiATerreni = false;
+  }
+
   return {
     dati: uniti,
     passo,
@@ -2340,6 +2637,17 @@ export function serializzaRaccolti(dati) {
     if (nTerreni > 0) {
       righe.push(
         'Terreni già raccolti: ' + nTerreni + ' di ' + LIMITI.MAX_TERRENI_PER_RICHIESTA
+      );
+    }
+    const inAttesaNome = d.terreni.some(
+      (t) =>
+        t &&
+        !nomeTerrenoVisibile(t.nome) &&
+        (typeof t.superficie === 'number' || t.coltura || t.categoria)
+    );
+    if (inAttesaNome) {
+      righe.push(
+        '(Uno di questi è in attesa del nome: quando l\'utente dice il nome, NON è un terreno in più.)'
       );
     }
     for (const t of d.terreni) {

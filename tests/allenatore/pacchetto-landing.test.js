@@ -43,6 +43,7 @@ const {
   numeroTerreniDetto: numeroTerreniDettoServer,
   messaggioSoloConteggioTerreni: soloConteggioServer,
   sembraIndirizzo: sembraIndirizzoServer,
+  promptSistemaAccount,
 } = require('../../functions/lib/tony-landing-account.js');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -103,13 +104,18 @@ describe('flag e ingresso: solo al clic, bussata spenta', () => {
 });
 
 describe('informativa visibile e bloccante, testo legale invariato', () => {
-  it('senza «Ho capito, chiedi» non si prosegue; niente × che accetta', () => {
+  it('senza «Ho capito, chiedi» non si prosegue quando il riquadro è visibile; il passo invito no', () => {
     expect(testiLanding.tonyBussa.aiuto.informativa).toBe(TESTO_LEGALE_INFORMATIVA);
     expect(testiLanding.tonyBussa.aiuto.informativaHoCapito).toBe('Ho capito, chiedi');
     const chat = fs.readFileSync(path.join(root, 'landing/src/components/TonyChat.vue'), 'utf8');
     expect(chat).toContain('aria-modal="true"');
-    expect(chat).toContain('if (informativaAiutoVisibile.value) return');
-    expect(chat).toMatch(/v-if="!informativaAiutoVisibile"/);
+    expect(chat).toContain('informativaBloccante');
+    expect(chat).toMatch(
+      /faseAiuto\.value &&\s*informativaAiutoVisibile\.value &&\s*passoAiuto\.value !== 'invito'/
+    );
+    expect(chat).toContain('if (informativaBloccante.value) return');
+    expect(chat).toMatch(/v-if="!informativaBloccante"/);
+    expect(chat).toMatch(/v-if="faseAiuto && informativaAiutoVisibile"/);
     expect(chat).not.toMatch(/informativa-chiudi/);
     expect(chat).toContain('onHoCapitoInformativaAiuto');
     expect(chat).toContain('ta.informativaHoCapito');
@@ -532,5 +538,238 @@ describe('dialogo congelato — ritest Pier 10 nov 2026', () => {
     const melo = righe.terreni.find((t) => t.nome === 'Melograno');
     expect(discesa).toMatchObject({ superficie: '3', coltura: 'Grano' });
     expect(melo).toMatchObject({ superficie: '6', coltura: 'Melograno' });
+  });
+});
+
+describe('sede senza la parola via', () => {
+  const RIFIUTO = {
+    testo: 'Non ho capito bene. Riprova con via e comune.',
+    sede: null,
+    poderi: [],
+    terreni: [{ nome: 'Casale', superficie: 12, coltura: 'Grano' }],
+    fatto: true,
+  };
+
+  function accetta(inp, modello) {
+    const stato = { passo: 'sede', dati: { sede: null, poderi: [], terreni: [] } };
+    const esito = turno(stato, inp, modello || RIFIUTO);
+    expect(esito.voce, inp).toBe(esito.testo);
+    expect(esito.terreni, inp).toHaveLength(0);
+    expect(esito.apriRiepilogo, inp).toBe(false);
+    expect(esito.passo, inp).toBe('poderi');
+    expect(esito.testo, inp).not.toBe(testiLanding.tonyBussa.aiuto.domandaSede);
+    expect(esito.testo, inp).not.toMatch(/riprova con via/i);
+    expect(esito.sede == null, inp).toBe(false);
+    expect(esito.sede.cap == null || esito.sede.cap === '', inp).toBe(true);
+    return esito;
+  }
+
+  it('il prompt non richiede la parola via e non inventa il CAP', () => {
+    const prompt = promptSistemaAccount('sede', { raccolti: '' });
+    expect(prompt).toMatch(/senza la parola/);
+    expect(prompt).toMatch(/non inventarlo/);
+    expect(prompt).toMatch(/unico CAP/);
+  });
+
+  it.each(['località Casale 12', 'strada Granarolo 5'])(
+    '%j si accetta, non è un terreno, e il civico c’è già',
+    (inp) => {
+      const esito = accetta(inp);
+      expect(esito.sede.indirizzo).toBe(inp);
+      expect(esito.testo).not.toMatch(/numero civico/i);
+      expect(esito.testo).toMatch(/Hai dei poderi/i);
+    }
+  );
+
+  it('podere Sasso, Brisighella è la sede, non un podere e non un terreno', () => {
+    const esito = accetta('podere Sasso, Brisighella', {
+      testo: 'Non ho capito bene. Riprova con via e comune.',
+      sede: null,
+      poderi: [{ nome: 'Sasso' }],
+      terreni: [{ nome: 'Sasso', superficie: 1, coltura: 'Grano' }],
+      fatto: true,
+    });
+    expect(esito.sede).toMatchObject({
+      indirizzo: 'podere Sasso',
+      citta: 'Brisighella',
+      provincia: null,
+    });
+    expect(esito.poderi || []).toHaveLength(0);
+    expect(esito.testo.match(/numero civico/gi)).toHaveLength(1);
+  });
+
+  it('Faenza, RA e il solo comune si accettano; il civico si chiede una volta', () => {
+    const faenza = accetta('Faenza, RA');
+    expect(faenza.sede).toMatchObject({ citta: 'Faenza', provincia: 'RA', indirizzo: null });
+    expect(faenza.testo.match(/numero civico/gi)).toHaveLength(1);
+
+    const stato = { passo: 'sede', dati: { sede: null, poderi: [], terreni: [] } };
+    const solo = turno(stato, 'Brisighella', RIFIUTO);
+    expect(solo.voce).toBe(solo.testo);
+    expect(solo.sede).toMatchObject({ citta: 'Brisighella', indirizzo: null });
+    expect(solo.sede.cap == null || solo.sede.cap === '').toBe(true);
+    expect(solo.terreni).toHaveLength(0);
+    expect(solo.passo).toBe('poderi');
+    expect(solo.testo.match(/numero civico/gi)).toHaveLength(1);
+
+    const dopo = turno(stato, 'calanchi', {
+      testo: 'Ok, Calanchi. Dimmi il primo terreno.',
+      poderi: [{ nome: 'Calanchi' }],
+      terreni: [],
+    });
+    expect(dopo.testo).not.toMatch(/numero civico/i);
+    expect(dopo.testo).toMatch(/Dimmi il primo terreno/);
+    expect(dopo.passo).toBe('terreni');
+  });
+
+  it('un CAP già vuoto resta vuoto anche se il modello non lo manda', () => {
+    const esito = accetta('Faenza', {
+      testo: 'Ok. Hai dei poderi?',
+      sede: { indirizzo: null, citta: 'Faenza', cap: null, provincia: 'RA' },
+      poderi: [],
+      terreni: [],
+    });
+    expect(esito.sede.cap == null || esito.sede.cap === '').toBe(true);
+    expect(esito.sede.citta).toBe('Faenza');
+    expect(esito.testo.match(/numero civico/gi)).toHaveLength(1);
+  });
+});
+
+describe('dialogo congelato — ritest Calanchi 10 nov 2026, dopo la #380', () => {
+  const DIALOGO = [
+    [
+      'via monte coralli 3 faenza',
+      {
+        testo: 'Ok, la sede legale è in via Monte Coralli 3 a Faenza. Hai dei poderi?',
+        sede: { indirizzo: 'via Monte Coralli 3', citta: 'Faenza', provincia: 'RA' },
+        poderi: [],
+        terreni: [],
+        fatto: false,
+      },
+    ],
+    [
+      'si 1',
+      {
+        testo: 'Dimmi il nome del podere.',
+        poderi: [],
+        terreni: [],
+        fatto: false,
+      },
+    ],
+    [
+      'calanchi',
+      {
+        testo:
+          'Ok, il podere si chiama Calanchi. Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?',
+        poderi: [{ nome: 'Calanchi' }],
+        terreni: [],
+        fatto: false,
+      },
+    ],
+    [
+      'si chiama ponte è 12 ha a grano',
+      {
+        testo:
+          'Ok, hai un terreno che si chiama Ponte, di dodici ettari a Grano. Ne hai altri o vediamo il riepilogo?',
+        terreni: [{ nome: 'Ponte', superficie: 12, coltura: 'Grano', podere: 'Calanchi' }],
+        fatto: false,
+      },
+    ],
+    [
+      'uno a prugne 8 ha',
+      {
+        testo: 'Come si chiama il terreno da 8 ettari di prugne?',
+        terreni: [{ nome: null, superficie: 8, coltura: 'Prugne', podere: 'Calanchi' }],
+        fatto: false,
+      },
+    ],
+    [
+      'prugneto',
+      {
+        testo:
+          'Ok, hai un terreno che si chiama Prugneto, di otto ettari a Prugne. Ne hai tre su cinque terreni. Ne hai altri o vediamo il riepilogo?',
+        terreni: [{ nome: 'Prugneto', superficie: 8, coltura: 'Prugne', podere: 'Calanchi' }],
+        fatto: false,
+      },
+    ],
+    [
+      '3 ha di albicocche che si chiama discesa',
+      {
+        testo:
+          'Ok, hai un terreno che si chiama Discesa, di tre ettari a Albicocche. Ne hai quattro su cinque terreni. Ne hai altri o vediamo il riepilogo?',
+        terreni: [{ nome: 'Discesa', superficie: 3, coltura: 'Albicocche', podere: 'Calanchi' }],
+        fatto: false,
+      },
+    ],
+    [
+      'ho 3 ha di ciliegi che si chiama ciliegi',
+      {
+        testo:
+          "Ok, hai un terreno che si chiama Ciliegi, di tre ettari a Ciliegio. Hai raggiunto il limite di cinque terreni con l'account gratuito. Gli altri li aggiungi passando al Base, quando vuoi.",
+        terreni: [{ nome: 'Ciliegi', superficie: 3, coltura: 'Ciliegio', podere: 'Calanchi' }],
+        fatto: true,
+      },
+    ],
+    [
+      'ok...e adesso?',
+      {
+        testo:
+          "Ora che abbiamo inserito i tuoi cinque terreni, puoi accedere all'app di Global Farm View per vederli e iniziare a gestire la tua azienda agricola.",
+        terreni: [],
+        fatto: false,
+      },
+    ],
+    [
+      'come faccio?',
+      {
+        testo:
+          'Per iniziare, clicca sul pulsante "Crea il tuo account gratuito" che trovi in questa pagina. Ti chiederà la tua email, una password e il nome della tua azienda agricola.',
+        terreni: [],
+        fatto: false,
+      },
+    ],
+  ];
+
+  function gira() {
+    const stato = { passo: 'sede', dati: { sede: null, poderi: [], terreni: [] } };
+    const visti = DIALOGO.map(([domanda, modello]) => turno(stato, domanda, modello));
+    return { stato, visti };
+  }
+
+  it('dopo il podere arriva la domanda sul primo terreno', () => {
+    const { visti } = gira();
+    const calanchi = visti[2];
+    expect(calanchi.voce).toBe(calanchi.testo);
+    expect(calanchi.testo).toMatch(/Dimmi il primo terreno/);
+    expect(calanchi.passo).toBe('terreni');
+    expect(calanchi.terreni).toEqual([]);
+  });
+
+  it('Prugneto è il secondo, non tre su cinque; il limite resta 5, non 4', () => {
+    const { visti } = gira();
+    expect(visti[5].voce).toBe(visti[5].testo);
+    expect(visti[5].testo).toMatch(/ne hai due su cinque/i);
+    expect(visti[5].testo).not.toMatch(/tre su cinque/i);
+    expect(visti[6].testo).toMatch(/ne hai tre su cinque/i);
+    expect(visti[6].testo).not.toMatch(/quattro su cinque/i);
+
+    const ciliegi = visti[7];
+    expect(ciliegi.voce).toBe(ciliegi.testo);
+    expect(ciliegi.testo).toMatch(/quattro su cinque/);
+    expect(ciliegi.testo).not.toMatch(/raggiunto il limite/i);
+    expect(ciliegi.testo).not.toMatch(/passando al Base/i);
+    expect(ciliegi.apriRiepilogo).toBe(false);
+    expect(ciliegi.terreni).toHaveLength(4);
+  });
+
+  it('il finale non dice di cliccare Crea il tuo account', () => {
+    const { visti } = gira();
+    expect(visti[8].voce).toBe(visti[8].testo);
+    expect(visti[8].testo).toMatch(/accedere all'app/i);
+    expect(visti[8].testo).not.toMatch(/Crea il tuo account/i);
+    expect(visti[9].voce).toBe(visti[9].testo);
+    expect(visti[9].testo).not.toMatch(/Crea il tuo account/i);
+    expect(visti[9].testo).toMatch(/email, una password/i);
+    expect(visti[9].apriRiepilogo).toBe(false);
   });
 });

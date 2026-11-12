@@ -278,7 +278,7 @@ describe('(B) riepilogo solo al quinto o su richiesta', () => {
 });
 
 describe('(C) informativa intervista visibile e bloccante', () => {
-  it('overlay evidente, senza × che accetta, blocca input/chip/mic', () => {
+  it('overlay evidente, senza × che accetta, blocca input/chip/mic solo se mostrata', () => {
     const chat = fs.readFileSync(
       path.join(root, 'landing/src/components/TonyChat.vue'),
       'utf8'
@@ -287,8 +287,13 @@ describe('(C) informativa intervista visibile e bloccante', () => {
     expect(chat).toMatch(/background:\s*#fff8e8/);
     expect(chat).toMatch(/border:\s*2px solid #0f4d32/);
     expect(chat).toContain('aria-modal="true"');
-    expect(chat).toContain('if (informativaAiutoVisibile.value) return');
-    expect(chat).toMatch(/v-if="!informativaAiutoVisibile"/);
+    expect(chat).toContain('informativaBloccante');
+    expect(chat).toMatch(
+      /faseAiuto\.value &&\s*informativaAiutoVisibile\.value &&\s*passoAiuto\.value !== 'invito'/
+    );
+    expect(chat).toContain('if (informativaBloccante.value) return');
+    expect(chat).toMatch(/v-if="!informativaBloccante"/);
+    expect(chat).toMatch(/v-if="faseAiuto && informativaAiutoVisibile"/);
     expect(chat).not.toMatch(/informativa-chiudi/);
     expect(chat).toContain('onHoCapitoInformativaAiuto');
     expect(chat).toContain('ta.informativaHoCapito');
