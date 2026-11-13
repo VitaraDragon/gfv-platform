@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-13 — App: build e target Firebase Hosting, senza pubblicare.**
+**Ultimo aggiornamento documentazione: 2026-11-13 — Link dell’app verso gfv-platform-app.web.app.**
+
+## 2026-11-13 — Link dell’app verso gfv-platform-app.web.app
+
+Su `feat/url-app-firebase-hosting` (PR verso develop). Nessun merge, nessun deploy di hosting, functions o `deploy:app`. GitHub Pages resta acceso: prefisso `/gfv-platform`, manifest e service worker non si toccano.
+
+Inviti (`APP_BASE_URL`), icona push (`NOTIFICATION_WEB_ORIGIN`, copia in `functions/lib` via sync), ripiego del ritorno abbonamento e `URL_APP` della landing puntano a `https://gfv-platform-app.web.app`. La landing non si pubblica. `URL_SITO`, `DOMINIO_CONFERMATO`, `LANDING_ATTIVA` e `TONY_BUSSA_ATTIVO` restano com’erano.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — App: build e target Firebase Hosting, senza pubblicare.**
 
 ## 2026-11-13 — App: build e target Firebase Hosting, senza pubblicare
 
