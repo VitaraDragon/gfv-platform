@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-13 — Link dell’app verso gfv-platform-app.web.app.**
+**Ultimo aggiornamento documentazione: 2026-11-13 — CI GitHub leggera, test lunghi in locale.**
+
+## 2026-11-13 — CI GitHub leggera, test lunghi in locale
+
+Su `ci/test-promote-locale` (PR verso develop). Nessun merge, nessun deploy. Codice app, functions, rules, indici, `firebase.json` e landing non si toccano.
+
+Su GitHub restano import-guard, cache PWA, `sim:test`, `sim:tony:vitest` e il Vitest dell’allenatore landing. Via da GitHub: `sim:e2e`, `sim:tony:e2e` (mock), `sim:tony:e2e:live` e i canary di roster e mappa. Gli script npm restano. Lo schedule notturno è spento finché il seed `lab-trimestre-full` non è sistemato. `npm run test:promote` rifà la CI in locale: emulatore pulito, quattro seed con verify, `sim:e2e:gate` con `CI=true`, poi un secondo emulatore con solo il seed viticola e Tony mock (`GFV_TONY_E2E_GATE_FAST=1`). Il manifest git non entra nel giro. Su Windows la CLI di Playwright parte con `PW_DISABLE_TS_ESM=1`. Prima di chiedere il merge di un promote su `main`, quel comando deve essere verde.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — Link dell’app verso gfv-platform-app.web.app.**
 
 ## 2026-11-13 — Link dell’app verso gfv-platform-app.web.app
 

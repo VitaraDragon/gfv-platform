@@ -9,6 +9,7 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "test:promote": "node scripts/test-promote.mjs",
     "start": "http-server -p 8000 -c-1",
     "build:app": "node scripts/build-app-hosting.mjs",
     "deploy:landing": "npm run build:landing && node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only hosting:default",
