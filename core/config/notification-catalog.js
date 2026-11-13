@@ -48,8 +48,8 @@ export const NOTIFICATION_MANAGER_STATI = Object.freeze([
 /** PNG reale in repo. La cartella `icons/` del manifest non contiene i file. */
 export const NOTIFICATION_ICON_RELATIVE = 'core/images/icon-192x192.png';
 
-/** Origin pubblico ERP (GitHub Pages). FCM richiede URL HTTPS assoluto, non un path relativo. */
-export const NOTIFICATION_WEB_ORIGIN = 'https://vitaradragon.github.io/gfv-platform';
+/** Origin pubblico ERP (Firebase Hosting, sito app). FCM richiede URL HTTPS assoluto, non un path relativo. */
+export const NOTIFICATION_WEB_ORIGIN = 'https://gfv-platform-app.web.app';
 
 /**
  * @param {string} [origin]
