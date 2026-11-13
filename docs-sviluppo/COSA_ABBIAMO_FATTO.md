@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-13 — Conto terzi: ettari e euro in formato italiano.**
+**Ultimo aggiornamento documentazione: 2026-11-13 — App: build e target Firebase Hosting, senza pubblicare.**
+
+## 2026-11-13 — App: build e target Firebase Hosting, senza pubblicare
+
+Su `feat/app-firebase-hosting` (PR in bozza verso develop). Nessun merge, nessun deploy di hosting, functions, rules o indici. La landing non si tocca (target `default`, `landing/dist`, canali compresi). GitHub Pages resta acceso.
+
+Secondo target hosting `app`, sito `gfv-platform-app`, cartella `dist-app` (in `.gitignore`). `npm run build:app` copia solo i file git tracciati dell’app. Le guide HTML provano prima `../core/GUIDA/`. I fallback `raw.githubusercontent.com` sono tolti. `deploy:landing` e `deploy:hosting` usano `--only hosting:default`. `deploy:app` non è stato eseguito: parte solo da `origin/main` con working tree pulito.
+
+`APP_BASE_URL`, `NOTIFICATION_WEB_ORIGIN` e `URL_APP` della landing restano quelli di Pages fino al passaggio. Il CORS di Storage non è applicato al bucket.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — Conto terzi: ettari e euro in formato italiano.**
 
 ## 2026-11-13 — Conto terzi: ettari e euro in formato italiano
 

@@ -320,11 +320,6 @@
             var src = base ? (base + '/core/config/google-maps-config.js').replace(/\/+/g, '/') : '../../../core/config/google-maps-config.js';
             var s = document.createElement('script');
             s.src = src;
-            s.onerror = function() {
-                var f = document.createElement('script');
-                f.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-                document.head.appendChild(f);
-            };
             document.head.appendChild(s);
         })();
     </script>
