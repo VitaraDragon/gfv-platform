@@ -8,13 +8,27 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 
 Un terreno che non usate più (fine affitto o vendita) si **archivia**, non si cancella. Lo storico resta: lavori, ore e registri mostrano ancora il nome, con la scritta **(archiviato)**.
 
+### Come funziona l'archiviazione
+
+Quando il terreno ha dati collegati (lavori, ore, vigneti, frutteti, potature o trattamenti), il pulsante in elenco è **Elimina / Archivia** e l’app apre **modali** (non un `prompt` del browser) in **tre passaggi**:
+
+1. **Conferma con OK e Annulla**: «Sul terreno «{nome}» ci sono {elenco}. Il terreno esce da elenchi, tendine e conteggi. Lavori, ore, vigneti, potature e trattamenti restano consultabili con il suo nome. Puoi ripristinarlo quando vuoi. Anche i vigneti e i frutteti ancora aperti si chiudono: lo storico resta.» Se ci sono lavori ancora aperti, aggiunge una frase che li rende in sola lettura.
+2. **Motivo dell'archiviazione**: scelta tra **1 = fine affitto**, **2 = vendita**, **3 = altro** (con nota facoltativa).
+3. **Messaggio finale**: «Terreno archiviato. Lo storico resta consultabile e puoi ripristinarlo quando vuoi.»
+
+Se il terreno non ha nulla collegato, il pulsante in elenco resta **Elimina / Archivia** e compare un **modale** «Sei sicuro di voler eliminare il terreno «{nome}»?» (non un `prompt` del browser).
+
+### Dove compaiono gli archiviati
+
 In elenco gli archiviati sono nascosti finché non spuntate **Mostra archiviati**. Da lì potete **Ripristinare** il terreno: torna negli elenchi, ma un vigneto o un frutteto già chiuso resta chiuso.
 
-Se il terreno non ha nulla collegato, il pulsante resta **Elimina**. Se la verifica dei collegamenti non riesce, non si cancella nulla: compare «Non riesco a controllare i dati collegati, riprova».
+Gli archiviati non contano nel limite terreni del piano, non ricevono avvisi meteo e non entrano nei totali dei terreni in **Statistiche** (numero di terreni e superfici). Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi, senza nessun segno: **(archiviato)** compare solo nello storico e in lista con **Mostra archiviati**.
 
-Gli archiviati non contano nel limite terreni del piano e non ricevono avvisi meteo. Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi.
+### Errori
 
-Se cambiate la coltura del terreno (da vite a frutteto, o il contrario) e c'è un vigneto o un frutteto ancora aperto, l'app chiede conferma e lo **chiude**. Lo storico di potature e trattamenti resta, in sola consultazione. I lavori già aperti restano modificabili finché non li completate o li annullate; poi diventano solo consultazione. La coltura di un lavoro nuovo è quella del terreno. Se cambiate la superficie, si aggiorna anche la superficie del vigneto o del frutteto ancora aperti e delle campagne in corso; i registri già salvati non si toccano.
+Se la verifica dei collegamenti non riesce, non si cancella nulla: compare «Non riesco a controllare i dati collegati, riprova».
+
+Se cambiate la coltura del terreno (es. Vite → Melo), **prima del salvataggio** compare un dialogo titolo **Cambio coltura** con bottoni **Continua** / **Annulla**. Il messaggio elenca quanti lavori aperti verranno chiusi (con nome e data). **Continua**: chiude i lavori aperti (restano nello storico in sola lettura, con ore; libera le macchine), chiude gli impianti vigneto/frutteto aperti (badge **Chiuso**; potature e trattamenti restano consultabili). **Annulla**: non salva nulla. La coltura di un lavoro nuovo è quella del terreno. Se cambiate la superficie, si aggiorna anche la superficie del vigneto o del frutteto ancora aperti e delle campagne in corso; i registri già salvati non si toccano.
 
 ---
 
@@ -23,7 +37,7 @@ Se cambiate la coltura del terreno (da vite a frutteto, o il contrario) e c'è u
 1. **Per primo Impostazioni** (in alto a destra, icona ingranaggio): dati azienda e account; il **podere solo se vi serve** (non è obbligatorio). **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
 2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, pulsante moduli in alto a sinistra, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni**: premi **+ Aggiungi Terreno** e compila anche **Categoria Coltura** e **Coltura**. Se il terreno c’è già ma senza coltura, prima **✏️ Modifica**. **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
-4. Solo dopo il **Diario attività**. Senza coltura sul terreno, lì **Coltura** resta vuota. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
+4. Solo dopo registrate le giornate in campo. **Senza** il modulo **Manodopera**: nel **Diario attività** (senza coltura sul terreno, lì **Coltura** resta vuota). **Con** Manodopera: in **Gestione lavori** e **Segnatura ore**, non nel Diario (con Manodopera il Diario non serve per le giornate nuove e resta solo come **storico** da consultare). **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
 5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**  
 6. In **Impostazioni**, attiva o regola le **notifiche push** sul telefono (ciclo lavoro e assenze) se usate Manodopera in campo. **[Impara qui: Notifiche](#mini-guida-notifiche-push)**
 
@@ -53,6 +67,7 @@ Se cambiate la coltura del terreno (da vite a frutteto, o il contrario) e c'è u
 | Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
 | Notifiche push (telefono) | [Impara qui](#mini-guida-notifiche-push) |
 | Installare l’app (PWA) | [Impara qui](#mini-guida-installare-lapp-pwa) |
+| «C’è una nuova versione»: aggiornare l’app | [Impara qui](#mini-guida-ce-una-nuova-versione) |
 
 ---
 
@@ -96,18 +111,20 @@ Oltre al titolo dell’azienda, di solito trovi:
 Sotto l’intestazione (e il meteo, se attivo), la **panoramica** è divisa in **tre sezioni** affiancate:
 
 1. **Richiede attenzione** — elenco automatico di situazioni da controllare (es. prodotti sotto scorta, guasti o scadenze mezzi, affitti in scadenza, ore da validare, lavori da pianificare). Ogni voce è **cliccabile** e ti porta alla schermata giusta. Se tutto è a posto, compare un messaggio di conferma.
-2. **Per te oggi** — collegamenti fissi verso mappa, diario, statistiche e, se avete Manodopera, l’area lavori/squadre/ore.
-3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo**. Per fissare un modulo: apri l’elenco moduli (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.
+2. **Per te oggi** — collegamenti fissi verso mappa e statistiche. **Senza Manodopera** trovi anche **Diario attività** e **Terreni**; **con Manodopera** trovi l’area lavori/squadre/ore e il Diario **non** compare qui (le giornate nuove passano da Gestione lavori).
+3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo** (con Manodopera attivo il **Diario attività** non compare qui nemmeno se l’avevi fissato). Per fissare un modulo: apri l’elenco moduli (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.  
+Nella **Home attuale** questa terza sezione **non** si vede: al suo posto, sotto la panoramica, trovi il riquadro **Azioni rapide** con fino a **sei** collegamenti ai primi moduli dell’elenco (per esempio Terreni, Gestione lavori, Vigneto).
 
 ### Sezione **I miei accessi** (non è una voce di menu)
 
 **I miei accessi** è una **sezione della dashboard** (barra con fino a **cinque scorciatoie** e **Configura**), non una voce dell’elenco moduli. Le preferenze restano **solo su questo browser**.  
-Nella Home con la pelle attuale (Proposta) questa sezione **può non essere visibile**: per entrare nei moduli usa il pulsante in alto descritto sotto; le scorciatoie restano in **Per te oggi** e negli **Accessi rapidi**.
+Nella Home con la pelle attuale (Proposta) questa sezione **non** si vede: per entrare nei moduli usa il pulsante in alto descritto sotto, oppure **Per te oggi** e **Azioni rapide**.
 
 ### Meteo sede
 
-Con il **piano Base** (a pagamento), compare **Meteo sede** con previsioni per l’indirizzo dell’azienda in **Impostazioni**. Sul **piano gratuito** non compare.  
-Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Senza indirizzo sede, l’app vi invita a compilarlo in Impostazioni.
+Con il **piano Base** (a pagamento), compare **Meteo sede** con previsioni per l’indirizzo dell’azienda in **Impostazioni**. Sul **piano gratuito** al posto delle previsioni compare «Meteo sede disponibile con il piano Base» con il collegamento **Vai ad Abbonamento →**.  
+Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Il meteo usa il **pin della sede** sulla mappa: se manca compare «Imposta il pin della sede in Impostazioni per vedere il meteo.» Andate in **Impostazioni** → **Sede aziendale sulla mappa**: se avete già scritto indirizzo e città, l’app cerca da sola il punto e vi chiede «Controlla il pin e salva»; controllate che sia giusto e premete **Salva Impostazioni Azienda**. Se il servizio non risponde entro qualche secondo compare «Meteo non disponibile al momento. Riprova più tardi.»: ricaricate più tardi la dashboard.  
+**Pin messo da solo:** se in **Impostazioni** ci sono già indirizzo e città ma manca il pin, anche per le aziende che erano già iscritte, quando il manager o l’amministratore apre la dashboard l’app prova a mettere il pin da sola e lo salva. Se non trova il numero civico in quel comune, mette il pin al centro del comune e in cima alla dashboard scrive «Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni». Se non trova nemmeno il comune, compare «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).» con il collegamento **Apri Impostazioni**: lì cliccate voi il punto giusto sulla mappa e premete **Salva Impostazioni Azienda**. Appena il pin è salvato, il **Meteo sede** si aggiorna subito, senza ricaricare la pagina. Il pin resta salvato nei dati dell’azienda e vale su tutti i telefoni e computer: il tentativo automatico si fa una volta sola per l’azienda.
 
 ### Scadenze e «In arrivo»
 
@@ -124,11 +141,12 @@ Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è i
 2. Si apre il **pannello moduli** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
 3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
-Nell’elenco trovi sempre almeno **Home** (torna alla dashboard), **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+Nell’elenco trovi sempre almeno **Home** (torna alla dashboard), **Terreni** e **Statistiche**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
 **Per tornare alla dashboard:** graffetta in alto a sinistra → **Home**. **Oppure**, su molte pagine, il pulsante «← Dashboard» **in alto a destra** (se lo vedi).  
-Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**.
+Con **Manodopera** attivo compare anche **Gestione lavori** e **Statistiche** apre le statistiche manodopera; il **Diario attività** **non** compare nel menu (né in **Per te oggi**): le giornate nuove vanno in **Gestione lavori**. Un link diretto al Diario, se raggiunto, mostra solo lo **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).  
+**Impostazioni**, **Abbonamento**, **Guide** e **Logout** non sono in questo elenco: stanno nel menu dell’**ingranaggio** in alto a destra («Apri o chiudi le opzioni»). Se lavorate in più aziende, lì trovate anche **Azienda** (vedi [Impara qui: più aziende](#mini-guida-accedere-password-e-aziende)). Accanto c’è l’icona della **mappa**.
 
-**Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal pannello — ed è normale.
+**Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **Azioni rapide**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal pannello — ed è normale.
 
 ### Riquadri modulo in fondo alla pagina (solo in alcuni casi)
 
@@ -142,11 +160,13 @@ Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche ma
 
 ### Solo app base (nessun modulo opzionale)
 
-Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …), **non** è un errore se non vedete quelle voci: restano disponibili **Terreni**, **Diario attività**, **Statistiche** e **Abbonamento** dal pannello moduli e da **Per te oggi**. Squadre, lavori strutturati e macchine richiedono i rispettivi moduli.
+Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …), **non** è un errore se non vedete quelle voci: restano disponibili **Terreni**, **Diario attività** e **Statistiche** dal pannello moduli e da **Per te oggi**, e **Abbonamento** dall’ingranaggio in alto a destra. Squadre, lavori strutturati e macchine richiedono i rispettivi moduli.
 
 ### Caposquadra e operaio
 
 Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in genere la **versione mobile** o sezioni dedicate al campo, non questa panoramica da ufficio. Senza **modulo Manodopera** attivo può comparire un avviso che invita ad attivarlo.
+
+Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **direttamente** alla versione mobile («Apro il tuo lavoro…»), senza vedere prima la dashboard, sia dal telefono sia dal computer: per loro non c’è una versione desktop, e se aprono a mano un indirizzo dell’ufficio l’app li riporta al workspace. Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova» con il pulsante **Riprova**. Manager e amministratore restano sempre sulla dashboard.
 
 ---
 
@@ -157,15 +177,15 @@ Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in g
 **Passi:**
 
 1. Premi **Impostazioni** (icona ingranaggio, in alto a destra). In pagina leggi «Configura azienda e account».
-2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda**.
+2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Se indirizzo e città sono già scritti ma il pin manca, all'apertura della mappa l'app cerca il punto da sola («Controlla il pin e salva»): verificate e salvate. Se non trova il civico lo mette al centro del comune («Ho messo il pin al centro di …: spostalo sulla sede in Impostazioni»), se non trova il comune compare «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).»: cliccate voi il punto giusto sulla mappa. Se l'indirizzo cercato non è nel comune scritto in **Città**, compare «Non trovo questo indirizzo a …: metti il pin a mano sulla mappa.»: cliccate voi il punto giusto sulla mappa. Il pin serve anche per il **Meteo sede** in dashboard.
 3. **Logo (facoltativo):** nello stesso riquadro, campo **Logo**. In pagina trovi formati ammessi e dimensione massima. Il logo viene usato **nei preventivi** del modulo **Conto terzi**. Puoi anche **rimuovere** il logo se cambiate idea. Il logo si registra insieme a **Salva Impostazioni Azienda**.
 4. **Podere (facoltativo).** Solo se lavorate per **poderi** (fattorie, cascine, blocchi di campagna): nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** (obbligatorio), **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**. Se non vi serve un podere, **saltate** questo passo e andate ai Terreni.
-5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** di solito **non si eliminano**; potete invece arricchire con le vostre.
+5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** **non si eliminano**; potete invece arricchire con le vostre. Una **coltura** aggiunta da voi ha **🗑️ Elimina**: l’app chiede «Eliminare la coltura «…»?» e la elimina solo se **non è usata** da nessuna attività del **Diario** e da nessun **terreno**, anche archiviato. Se è usata compare un errore che dice quante attività del diario e quanti terreni la usano («Impossibile eliminare: la coltura è utilizzata da …»): la coltura resta, e per toglierla prima cambiate la coltura su quei terreni e attività. Se l’app non riesce a controllare dove è usata, non elimina nulla («Non riesco a verificare dove è usata questa coltura. Riprova; non la elimino.»).
 6. **Tariffa del proprietario:** nella sezione **Tariffe** c’è una **tariffa oraria** per il calcolo dei **costi** quando il lavoro è tracciato dal **Diario attività** — utile soprattutto se **non** avete il modulo **Manodopera** attivo. Salvate con **Salva Tariffa Proprietario**.
 
 **Solo con i moduli giusti (accenno):** le **tariffe orarie per tipo operaio** compaiono in Impostazioni **solo se il modulo Manodopera è attivo**. I **coefficienti di morfologia** (maggiorazioni per tipo di terreno rispetto alla pianura, usati nelle tariffe Conto terzi) compaiono **solo se il modulo Conto terzi è attivo**. Non entrano nel dettaglio in questa guida Core: quando attivate quei moduli, usate la documentazione dedicata a **Manodopera** e **Conto terzi**.
 
-**Per tutti gli utenti**, nello stesso **Impostazioni**, c’è il riquadro **Impostazioni Account Personale**: **Nome**, **Cognome**, **Email** (non si modifica), **Telefono**, poi **Salva Impostazioni Account**. Più sotto: **Cambio Password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **Telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
+**Per tutti gli utenti**, nello stesso **Impostazioni**, c’è il riquadro **Impostazioni Account Personale**: **Nome**, **Cognome**, **Email** (non si modifica), **Telefono**, poi **Salva Impostazioni Account** (mentre salva il pulsante dice «Salvataggio…»). **Nome** e **Cognome** non sono obbligatori: potete salvare anche lasciandoli vuoti. Finché sono vuoti, sotto compare il suggerimento «Aggiungi nome e cognome: compariranno nei registri e negli elenchi.», che sparisce appena ne scrivete uno. Senza nome e cognome, in alto nella dashboard al posto del vostro nome compare il nome dell’azienda (o, se manca anche quello, la prima parte della vostra email). Più sotto: **Cambio Password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **Telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
 
 Quando torni in **Terreni**, nel modulo del singolo terreno potrai collegare il campo al podere giusto dal menu dedicato (se non compare nulla, torna in Impostazioni e verifica di aver salvato il podere).
 
@@ -181,6 +201,8 @@ In molte schermate devi scegliere un valore da un **elenco che si apre quando cl
 2. Se ci sono **due livelli** (esempio tipico in Terreni: prima la **categoria** della coltura, poi la **coltura** vera e propria), scegli **prima** la categoria giusta: solo dopo si aggiorna il secondo elenco con le voci possibili.
 3. **Scorri** l’elenco se è lungo; su cellulare puoi anche digitare se il sistema lo permette nel tuo browser.
 4. Se leggi «Seleziona prima la categoria» o messaggi simili, significa che manca un passaggio prima — torna al punto precedente e completa la scelta nell’ordine indicato dalle etichette.
+
+**Niente doppioni negli elenchi.** Categorie, colture e tipi di lavoro con lo **stesso nome** compaiono **una volta sola** in tutti gli elenchi (Terreni, Diario, Gestione lavori, Conto terzi, Frutteto, Seminativo), anche se in passato l’azienda si era ritrovata delle copie. Le voci **predefinite** dell’app che mancavano ricompaiono da sole aprendo le pagine: non serve ricrearle a mano, e aprire più pagine insieme non crea copie nuove.
 
 Se un **podere** non compare sul terreno, va creato in **Impostazioni** con **➕ Aggiungi Podere**. Se nel **Diario** non compare la **coltura**, il terreno non ce l’ha: **Terreni** → **✏️ Modifica** → **Categoria Coltura** e **Coltura** → **Salva Terreno**. Le colture in più dell’azienda, se servono, si aggiungono nelle liste di **Impostazioni**.
 
@@ -206,7 +228,7 @@ Campi **obbligatori** (il form non lascia salvare vuoto): **Nome Terreno** e **T
 
 - **Nome Terreno** — obbligatorio. Un nome che tutti in azienda capiscono (podere + pezzo, oppure il nome locale del campo).
 - **Superficie (ettari)** — facoltativa. A mano, oppure la calcola la mappa quando chiudete il contorno (vedi sotto).
-- **Categoria Coltura** — prima questa. Aprite l’elenco (parte da «-- Seleziona categoria --»). **[Come funzionano gli elenchi? Impara qui](#elenchi-cliccabili-menu-con-la-freccetta)**
+- **Categoria Coltura** — prima questa. Aprite l’elenco (parte da «-- Seleziona categoria --»); ogni categoria compare una sola volta. Se l’elenco mostra «-- Errore caricamento colture: riprova o ricarica la pagina --», ricaricate la pagina e riaprite il terreno. **[Come funzionano gli elenchi? Impara qui](#elenchi-cliccabili-menu-con-la-freccetta)**
 - **Coltura** — solo dopo la categoria. Prima l’elenco dice «-- Seleziona prima la categoria --». Scegliete la coltura principale del campo. Senza categoria e coltura il Diario resta bloccato.
 - **Podere** — facoltativo. Se non serve, lasciate «-- Nessun podere --». Se il podere non c’è, in fondo al campo c’è **Gestisci poderi nelle impostazioni**: tornate a **Impostazioni** e premete **➕ Aggiungi Podere**.
 - **Morfologia del terreno** — facoltativa: **Pianura**, **Collina** o **Montagna**.
@@ -240,7 +262,9 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 2. Sulla riga del terreno premi **✏️** (fumetto **Modifica**).
 3. Scegli prima **Categoria Coltura**, poi **Coltura**.
 4. Premi **Salva Terreno**.
-5. Solo dopo aprite il **Diario attività**. Dopo il salvataggio sul terreno, la **Coltura** nel Diario si riempie da sola; se è ancora vuota, ricontrollate di aver salvato categoria e coltura sul terreno.
+5. Solo dopo registrate le giornate in campo:
+   - **senza Manodopera** aprite il **Diario attività**: dopo il salvataggio sul terreno la **Coltura** si riempie da sola; se è ancora vuota, ricontrollate di aver salvato categoria e coltura sul terreno;
+   - **con Manodopera** andate in **Gestione lavori** e **Segnatura ore**, non nel Diario (vedi la guida **Manodopera**).
 
 ---
 
@@ -248,13 +272,24 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 
 **Quando usarla:** ogni volta che vuoi **documentare un intervento** in campo con il solo app base (senza il modulo strutturato sui «lavori»).
 
+**Diario o Gestione lavori? Dipende da Manodopera.**
+
+- **Senza Manodopera:** il Diario è il posto dove registrate le giornate in campo (passi qui sotto). La pagina **Gestione lavori** non si usa: se la aprite compare l’avviso «Modulo Manodopera non attivo». Se avevate Manodopera e l’avete spenta, i lavori registrati fino a quel momento ricompaiono nel Diario come attività (vedi sotto).
+- **Con Manodopera:** il Diario **esce dal menu** e resta solo come **storico** (link diretto o segnalibro). Vedete le attività già salvate, ma **non** c’è più **Aggiungi attività** e dalle righe non si modifica né si elimina; un avviso in alto vi rimanda a **Gestione lavori**, dove si registrano le giornate nuove (guida **Manodopera**). Vale per **tutti** i ruoli, incluso caposquadra e operaio.
+
+**Quando attivate o spegnete Manodopera, i dati vi seguono.** La copia parte **solo** aprendo (o ricaricando) la pagina **Abbonamento**: dopo un pagamento online quando Abbonamento si ricarica; se il modulo scade o viene tolto **senza** aprire Abbonamento, la migrazione **non** parte finché non aprite quella pagina (poi toast e, se i documenti sono tanti, uno spinner). I dati si copiano **una volta sola**, senza cancellare nulla:
+
+- **Attivate Manodopera:** le attività del Diario diventano **lavori** in **Gestione lavori** (chiusi come completati; quella di oggi non ancora chiusa resta in corso). Le righe che non si possono trasformare in un lavoro restano in fondo a Gestione lavori, sezione **Attività precedenti**, in sola lettura, con motivo leggibile tra parentesi: «Tipo Altro», «Conto terzi incompleto», «Campi obbligatori mancanti».
+- **Spegnete Manodopera:** i lavori tornano nel **Diario** come **attività modificabili** (non restano bloccati come storico). Se ci sono lavori ancora aperti, prima di procedere compare l’avviso «Hai N lavori ancora aperti: chiudili o li vedrai solo in storico.»: scegliete **Annulla** per chiuderli prima, oppure **Continua**.
+- A fine copia compare un messaggio del tipo «Migrazione dati: N creati, M già collegati, K in sola lettura.» Se invece leggete «Migrazione dati Manodopera non completata. Puoi riprovare.», riaprite **Abbonamento**: la copia riparte senza creare doppioni.
+
 **Passi:**
 
 1. Apri la **graffetta in alto a sinistra** e scegli **Diario attività**.
 2. Premi **➕ Aggiungi Attività**: si apre il riquadro.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
-5. **Tipo di lavoro**, poi **Categoria Coltura** e **Coltura**. **Coltura** è obbligatoria: dopo che avete salvato categoria e coltura sul terreno, nel Diario la Coltura si riempie da sola; se resta vuota, manca la coltura sul terreno — apri **Terreni**, premi **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Non si toglie l’obbligo **Coltura** dal Diario.
+5. **Tipo di lavoro** e **coltura**, nell’ordine delle etichette: prima la **Categoria principale lavoro** (es. potatura, trattamenti); se la categoria ne ha, compare la **Sottocategoria** (facoltativa, es. manuale o meccanica); poi il **Tipo lavoro specifico**, che elenca solo i tipi di quella categoria e adatti alla **coltura del terreno** (es. **Vendemmia** solo su Vite; scuotitore su frutteto). Se il tipo che cercate non c’è, potete aggiungerlo con **➕ Nuovo** accanto all’elenco. Infine **Categoria Coltura** e **Coltura**. **Coltura** è obbligatoria: dopo che avete salvato categoria e coltura sul terreno, nel Diario la Coltura si riempie da sola; se resta vuota, manca la coltura sul terreno — apri **Terreni**, premi **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Senza **Coltura** l’attività non si salva: compare «La coltura è obbligatoria».
 6. **Orari:** ora di inizio obbligatoria; ora di fine se hai finito il turno (aiuta anche il calcolo delle ore).
 7. **Pause (minuti):** indica le pause effettive; le **ore nette** si aggiornano in base a orari e pause.
 8. **Note:** cosa avete fatto, condizioni, nome del turno, ecc.
@@ -298,6 +333,8 @@ Nella pagina **Statistiche** puoi leggere totali e grafici basati su ciò che av
 Poi usa **Applica filtri** per aggiornare numeri e grafici. **Reset** riparte dall’impostazione larga (tutto incluso, secondo le etichette che vedi tu).
 
 Se cambiate filtro e non succede nulla, controlla di aver premuto **Applica filtri** dopo aver scelto le opzioni.
+
+**Totali dei terreni:** **Terreni Totali** e le superfici (**Superficie Totale**, di proprietà e in affitto) contano solo i terreni **dell’azienda ancora attivi**. Un terreno archiviato esce da questi totali, ma i lavori e le attività fatti lì restano nello storico; i terreni dei clienti del Conto terzi non ci entrano.
 
 ---
 
@@ -343,6 +380,27 @@ Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può 
 
 ---
 
+## Mini-guida: «C’è una nuova versione»
+
+Quando pubblichiamo una versione nuova dell’app, in fondo allo schermo compare una barra scura con la scritta **C’è una nuova versione** e il pulsante verde **Aggiorna**.
+
+- **Quando compare:** solo se online c’è davvero una versione più nuova di quella che state usando. L’app controlla quando la aprite, quando ci tornate da un’altra app o scheda e ogni 15 minuti circa. La prima volta che aprite l’app su un dispositivo la barra non compare.  
+- **Dove:** in quasi tutte le pagine dell’app: accesso, registrazione da invito, dashboard, versione mobile di campo, **Segna ore**, **Diario attività**, **Statistiche**, **Terreni**, **Impostazioni**, le pagine di amministrazione (per esempio **Gestione lavori**, **Validazione ore**, **Gestione squadre**, **Guasti**, **Report**, **Abbonamento**), la mappa dell’azienda e le pagine dei moduli (**Manodopera**, **Vigneto**, **Frutteto**, **Seminativo**, **Conto terzi**, **Magazzino**, **Parco macchine**, **Meteo**, **Report**). Non serve tornare alla dashboard per aggiornare.  
+- **Niente si ricarica prima di Aggiorna:** potete finire quello che state facendo. Il ricaricamento parte solo dopo che avete toccato **Aggiorna**.  
+- **Aggiorna** resta sempre toccabile: la barra sta sopra le finestre aperte e sopra Tony (il pulsante di Tony si sposta un po’ più in alto).
+
+### Passi
+
+1. Salvate quello che state scrivendo (ore, segnalazione, scheda…).  
+2. Toccate **Aggiorna**: il pulsante sparisce e la barra mostra **Aggiornamento in corso…** finché la pagina si ricarica con la versione nuova; poi la barra sparisce. Per la stessa versione non ricompare. Se dopo una decina di secondi la versione nuova non è ancora partita, la pagina si ricarica da sola, ma solo se non avete dati non salvati e nessun salvataggio è in corso. In quel caso la barra torna con **Aggiorna**: salvate e toccatelo di nuovo, la pagina si ricarica subito.  
+3. Se avete scritto qualcosa in un modulo della pagina, o un salvataggio è ancora in corso, prima compare la domanda **Hai dati non salvati: aggiorni lo stesso?** Dopo che avete salvato (per esempio le ore con **Segna ore** o nella scheda **Ore** del campo, o una segnalazione guasto inviata) la domanda non compare più.  
+   - **Annulla**: non si ricarica nulla, i dati scritti restano e la barra resta in basso. Salvate e poi toccate di nuovo **Aggiorna**.  
+   - **Aggiorna**: la pagina si ricarica subito e quello che non avevate salvato si perde.
+
+La conversazione con **Tony** non si perde: dopo il ricaricamento la chat riparte con i messaggi di prima, anche se avete confermato **Aggiorna** nella domanda. La barra usa la lingua scelta nella versione mobile di campo (italiano, romeno, inglese, albanese, francese).
+
+---
+
 ## Mini-guida: accedere, password e aziende
 
 ### Login
@@ -351,12 +409,24 @@ Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può 
 3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).  
 4. Se email o password non sono corrette, l’app lo dice in italiano («Email o password errati»); con troppi tentativi o rete assente vi indica di riprovare più tardi o di controllare la connessione. Con **Esci** (Logout) tornate al login senza messaggi di sessione persa.
 
+**Se l’app vi riporta al login con un messaggio:**
+- «La sessione non è stata conservata: riprova; se sei in incognito usa una finestra normale.» → rifate l’accesso; se usate una finestra in incognito, aprite GFV in una finestra normale.
+- «Questo browser non mi lascia ricordare l’accesso…» → il browser blocca i dati dei siti (incognito o cookie bloccati): aprite GFV in una finestra normale oppure consentite i dati dei siti per GFV nelle impostazioni del browser.
+- «L’accesso è cambiato in un’altra scheda. Accedi di nuovo con l’account che vuoi usare.» → in un’altra scheda è entrato un altro account: accedete di nuovo con quello giusto.
+- «Profilo utente non trovato. Completa la registrazione o contatta l’amministratore.» → l’account esiste ma non è collegato a un’azienda: completate la registrazione o chiedete all’amministratore un nuovo invito.
+
 ### Nuova azienda vs invito
 - **Registrazione** (nuovo account + nuova azienda): usatela solo se state creando l’azienda da zero.  
-- Se vi hanno **invitato** per email: aprite il **link nell’invito** (non la registrazione generica) e completate i dati richiesti. Dettaglio inviti/ruoli nella guida **Manodopera** (manager).
+- Se vi hanno **invitato** per email: aprite il **link nell’invito** (non la registrazione generica) e completate i dati richiesti. Il **cellulare** lo scrivete voi (non arriva già compilato dall’invito). Dettaglio inviti/ruoli nella guida **Manodopera** (manager).
+- Se l’invito non va a buon fine compare un messaggio: «Token invalido o già utilizzato.» (link già usato o annullato), «Token scaduto. Contatta l'amministratore per un nuovo invito.», «L'email dell'account non corrisponde all'invito.» (usate l’email a cui è arrivato l’invito) oppure «Appartieni già a questa azienda» (siete già dentro: fate semplicemente il login). Negli altri casi chiedete a chi vi ha invitato un **nuovo invito**.
 
 ### Più aziende
-Se il vostro utente appartiene a più aziende, scegliete quella giusta con **cambia azienda** (o voce equivalente) **prima** di cercare dati. Lavorate sempre su **un’azienda alla volta**.
+Se il vostro utente appartiene a più aziende, lavorate sempre su **un’azienda alla volta** e sceglietela **prima** di cercare dati o inserire informazioni.
+
+- **Al login** compare la finestra **Seleziona Azienda** («Hai accesso a più aziende. Scegli quale vuoi utilizzare:»): per ogni azienda vedete nome, eventuale etichetta **Predefinito**, **ruoli** e **stato**. Toccate quella giusta per entrare nella dashboard; **Annulla** chiude la finestra.
+- **Durante il lavoro**: ingranaggio in alto a destra → **Azienda** (sotto c’è il nome di quella attuale) → si riapre **Seleziona Azienda**; dopo la scelta la pagina si ricarica con i dati dell’altra azienda. In dashboard può comparire anche il pulsante **🏢** con il nome dell’azienda: fa la stessa cosa.
+- Ruoli e accesso valgono **per azienda**: potete essere manager in una e operaio in un’altra. Se in un’azienda siete stati **disattivati**, lì non potete entrare finché non vi riattivano: chiedete al **manager** di quell’azienda di riattivarvi. Se siete stati **rimossi**, serve un nuovo invito. Le altre aziende restano.
+- Se siete stati invitati in una seconda azienda con lo **stesso account**, dopo aver aperto il link d’invito le aziende compaiono **tutte** in **Seleziona Azienda**.
 
 ### Account in Impostazioni
 Da loggati, in **Impostazioni**: nome/cognome/telefono, **Cambio password**, **Notifiche**.
@@ -365,27 +435,31 @@ Da loggati, in **Impostazioni**: nome/cognome/telefono, **Cambio password**, **N
 
 ## Abbonamento e piani
 
-Nella pagina **Abbonamento** (dal **pannello moduli** in alto, o da una tile dedicata se presente) vedi il **piano corrente** e i **moduli** che potete attivare.
+Nella pagina **Abbonamento** (ingranaggio in alto a destra → **Abbonamento**) vedi il **piano corrente** e i **moduli** che potete attivare.
 
 ### Piano gratuito (Free)
 
 - Di solito **limiti** su terreni (es. massimo 5) e attività al mese (es. 30).
 - **Nessun modulo** opzionale **acquistabile** finché non passate al piano Base.
-- La **prova gratuita di 30 giorni** di **un modulo alla volta** (senza carta) è disponibile **solo con il piano Base**, dalla pagina **Abbonamento**: i dati restano salvati dopo la scadenza; per continuare serve il modulo a pagamento.
+- La **prova gratuita di 30 giorni** è disponibile **solo con il piano Base**, dalla pagina **Abbonamento**: si prova **un modulo alla volta** e **una sola volta per ciascun modulo** (senza carta). Se un modulo è già in prova leggete «Puoi avere un solo modulo in prova alla volta. Attendi la scadenza o attiva l'abbonamento.»; se quel modulo l’avete già provato, «Hai già usato la prova gratuita per questo modulo.» e resta solo l’attivazione a pagamento; i dati restano salvati dopo la scadenza; per continuare serve il modulo a pagamento.
 - **Tony Guida solo nei primi 7 giorni** dalla registrazione (con un tetto di domande al giorno); dopo, per usarlo serve il piano Base.
 
 ### Piano Base (a pagamento)
 
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
-- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al **pannello moduli** e nuove pagine.
+- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni con il piano Base, un modulo alla volta e una sola volta per modulo): ogni modulo aggiunge voci al **pannello moduli** e nuove pagine.
 - Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, **fotografare bolle e fatture** (Tony legge le cifre; voi confermate e i dati scendono in magazzino). È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica
 
 - Avvicinati ai limiti del Free → valuta il passaggio a **Base**.
-- Con il piano **Base**, in Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
+- Con il piano **Base**, in Abbonamento → **prova 30 giorni** (una sola volta per modulo) o attiva a pagamento **solo i moduli** che vi servono.
+- Con il piano **Free**, se toccate un modulo in **Moduli Disponibili** leggete «La prova gratuita dei moduli è disponibile con il piano Base.»: prima serve **✨ Passa al Piano Base**.
+- Un modulo **in prova** funziona come uno pagato: per esempio con **Manodopera** in prova si aprono la **home Manodopera** e **Gestione lavori** con tutte le funzioni.
+- Piano e moduli si cambiano **solo** da questa pagina (pagamento online, prova, **Disattiva** / **Riattiva**), e solo da chi gestisce l’abbonamento. Il passaggio a **Base** avviene sempre con il pagamento online. Il ritorno da **Base** a **Free** non si fa dall’app: compare «Il passaggio a un piano inferiore non è ancora disponibile dall'app. Per annullare l'abbonamento contatta l'assistenza.»
 - Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
+- Se attivate o spegnete **Manodopera**, aprendo **Abbonamento** i dati passano da Diario a Gestione lavori (o, allo spegnimento, tornano nel Diario come **attività modificabili**) senza perdere nulla; con lavori ancora aperti vi viene chiesta una conferma. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**
 - **Vendemmia meccanica** dipende da **Conto terzi**: se disattivate Conto terzi, l’app disattiva anche Vendemmia meccanica così **non la pagate più**. Per riattivare Vendemmia meccanica, **riattivate prima Conto terzi**.
 - Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.
 
@@ -397,7 +471,7 @@ Nella pagina **Abbonamento** (dal **pannello moduli** in alto, o da una tile ded
 
 ### Chi lo vede
 
-- **Piano gratuito:** di solito **non** c’è il pulsante chat (Tony non è incluso).
+- **Piano gratuito:** **Tony Guida** c’è **solo nei primi 7 giorni** dalla registrazione, con un massimo di domande al giorno (oltre il limite Tony risponde «Hai raggiunto il limite giornaliero di 30 domande del periodo di prova di Tony Guida. Riprova domani, oppure passa al piano Base per usare Tony senza limiti.»). Dopo i 7 giorni il pulsante chat non compare più: serve il piano **Base**.
 - **Piano Base:** **Tony Guida** — spiega l’app, risponde su passi e termini, può suggerire **moduli** utili in base a come usate l’azienda (senza pressione commerciale).
 - **Modulo Tony Avanzato** (attivabile in Abbonamento): aggiunge **azioni** nell’interfaccia (aprire sezioni, compilare moduli, filtrare tabelle), oltre alla guida testuale.
 
@@ -408,6 +482,27 @@ Nella pagina **Abbonamento** (dal **pannello moduli** in alto, o da una tile ded
 - Con **Tony Avanzato**: «Portami al diario», «Mostrami solo i terreni in affitto» (se sei sulla lista giusta), e flussi guidati descritti nella guida Tony.
 
 Le azioni automatiche dipendono dal **modulo Tony**, dal **ruolo** e dalla **pagina** in cui ti trovi: a volte Tony ti guida a mano invece di premere al posto tuo.
+
+### I primi 7 giorni: Tony ti accompagna
+
+All’**iscrizione** potete preparare l’azienda con Tony, in chat. Dopo aver creato l’account Tony propone tre domande: toccate **Sì, iniziamo** oppure **Salta tutto**.
+
+1. **Sede legale.** Tony chiede dov’è la sede: bastano via, numero civico e comune; va bene anche solo il comune (per esempio «Faenza, RA») o una località. Se manca il numero civico Tony lo chiede: ditelo, oppure rispondete «non ce l’ho» o «dopo».
+2. **Poderi.** Sono facoltativi: dite come li chiamate, oppure che non ne avete.
+3. **Terreni.** Per ogni terreno dite nome, ettari e coltura (per esempio «Vigna Alta, 3 ettari di sangiovese»). Tony conferma ogni terreno ripetendo nome, ettari e coltura e quanti terreni avete su cinque, poi chiede se ne avete altri.
+4. **Riepilogo «Confermi?».** Si apre al quinto terreno, quando dite «no», «basta» o «riepilogo», oppure con **Vedi il riepilogo**. Qui controllate e correggete tutto (per la sede serve almeno il **Comune**) e salvate con **Sì, salva**: solo allora sede, poderi e terreni entrano in azienda.
+
+Con **Dopo** saltate una domanda. Se la voce di Tony è accesa, Tony legge anche le risposte; con la voce spenta compare **▶ Ascolta**. Il microfono scrive la frase nel campo: controllatela e premete **Invia**. Il riepilogo si conferma solo toccando **Sì, salva**, non a voce.
+
+Fino al salvataggio i dati restano una bozza sul dispositivo: la sola registrazione crea l’account e l’azienda, non i terreni, e se non finite la bozza sparisce dopo qualche ora. Sul piano gratuito al massimo **5 terreni** (il **+** del riepilogo si spegne a 5).
+
+Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo, **una volta sola**, dopo il primo accesso (manager e amministratore; non nella schermata in campo di operaio e caposquadra) e scrive: «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» Se manca ancora il pin della sede aggiunge «(il pin della sede manca ancora: lo metti in Impostazioni, con l’ingranaggio in alto a destra)». Su telefono il pannello si apre senza far salire la tastiera.
+
+Il messaggio è solo testo: **non ci sono pulsanti** né «Chiudi percorso», e nei giorni seguenti Tony non ripropone il saluto. Su un altro telefono o computer Tony può salutarti di nuovo. Per muoverti usa la **graffetta in alto a sinistra** (Terreni, Diario attività o Gestione lavori, secondo i moduli attivi) e l’**ingranaggio in alto a destra** per **Impostazioni**, dove si mette il pin della sede. Se ti serve, chiedi a Tony: ti spiega dove andare.
+
+### Salutare Tony quando hai finito
+
+Quando hai finito puoi salutare Tony con una frase breve, per esempio «grazie», «a posto così», «basta così», «a dopo» o «buon lavoro»: Tony risponde «Va bene, a presto!» e, se stavi parlando a voce con il microfono sempre acceso, lo spegne. «Ciao» da solo chiude solo se Tony ti ha già risposto (all’inizio vale come saluto). Una frase che contiene anche una domanda o una richiesta («grazie, mi apri i terreni?») non chiude: Tony risponde alla richiesta.
 
 Per **voce**, **briefing in dashboard**, **esempi completi** e **operaio/caposquadra**, apri la documentazione del **modulo Tony** dal pulsante **Guide** (stesso stile delle guide Magazzino, Manodopera, Conto terzi).
 

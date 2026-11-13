@@ -3,7 +3,7 @@
 Modulo **`vendemmiaMeccanica`**. **Richiede Conto terzi** attivo (`requiresModules`). Disattivando CT → disattivazione cascata VM (stop fatturazione VM). Riattivazione: prima CT, poi VM. Tipico uso **conto terzi** (clienti con vigneti).
 
 ## Hub
-**Moduli** → **Vendemmia meccanica** → `vm-home`: KPI (clienti in piano, terreni, ettari, bilancio) + azioni.
+**Pulsante moduli** → **Vendemmia meccanica** → `vm-home`: KPI (clienti in piano, terreni, ettari, bilancio) + azioni.
 
 ## Azioni tipiche
 - **Piano stagione** — pianifica vigneti/clienti da vendemmiare.

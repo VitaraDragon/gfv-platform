@@ -2,13 +2,13 @@
 
 Questa guida è per chi usa il modulo **Conto Terzi**: clienti esterni, **terreni dei clienti**, **tariffe**, **preventivi** e collegamento ai **lavori** e al **Diario attività** per l’esecuzione in campo.
 
-Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Conto Terzi** nel menu **Moduli**, verifica **Abbonamento** o chiedi all’**amministratore**. Le schermate principali del modulo sono in genere pensate per **manager** e **amministratore**.
+Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Conto Terzi** nel pulsante moduli (graffetta in alto a sinistra), verifica **Abbonamento** o chiedi all’**amministratore**. Le schermate principali del modulo sono in genere pensate per **manager** e **amministratore**.
 
 ---
 
 ## Percorso consigliato
 
-1. Entrare in **Conto Terzi** (**Moduli** → **Conto Terzi**) e leggere la **panoramica** (numeri e collegamenti rapidi). **[Impara qui](#mini-guida-home-conto-terzi-e-panoramica)**  
+1. Entrare in **Conto Terzi** (**pulsante moduli** → **Conto Terzi**) e leggere la **panoramica** (numeri e collegamenti rapidi). **[Impara qui](#mini-guida-home-conto-terzi-e-panoramica)**  
 2. Costruire o aggiornare l’**anagrafica clienti** (dati anagrafici e contatti). **[Impara qui](#mini-guida-anagrafica-clienti)**  
 3. Registrare i **terreni dei clienti** (podere, superficie, collegamento al cliente). **[Impara qui](#mini-guida-terreni-clienti)**  
 4. Consultare la **mappa clienti** per orientamento geografico. **[Impara qui](#mini-guida-mappa-clienti)**  
@@ -45,8 +45,8 @@ Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Cont
 
 ### Come entrare
 
-1. Dalla **dashboard principale** apri **Moduli** e tocca **Conto Terzi** (🤝). Se hai configurato **I miei accessi**, può esserci anche una scorciatoia lì.
-2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard puoi trovare un **riquadro** **Conto Terzi**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su **lavori da pianificare** che aprono il modulo.
+1. Dalla **dashboard principale** apri il pulsante moduli (graffetta in alto a sinistra) e tocca **Conto Terzi** (🤝). Se hai configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard puoi trovare un **riquadro** **Conto Terzi**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** nel **pulsante moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su **lavori da pianificare** che aprono il modulo.
 3. Arrivi alla **home del modulo**: titolo di tipo **Conto Terzi** con sottotitolo sul gestire clienti e lavori esterni.
 4. Il pulsante **← Dashboard Principale** in alto riporta alla home generale.
 
@@ -55,7 +55,7 @@ Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Cont
 Di solito vedi **numeri** utili a colpo d’occhio, ad esempio:
 
 - **Clienti attivi**  
-- **Lavori in corso** (cliccabile: apre il **Diario attività** con filtro sui lavori conto terzi in corso)  
+- **Lavori in corso** (cliccabile: apre l’elenco dei lavori conto terzi in corso — in **Gestione lavori** se avete **Manodopera**, altrimenti nel **Diario attività**)  
 - **Lavori completati** (stesso tipo di collegamento, stato completato)  
 - **Preventivi aperti**  
 - **Terreni clienti** registrati  
@@ -291,9 +291,16 @@ Il cliente riceve un messaggio con un **link dedicato**: da lì può **accettare
 ### Con **Manodopera** attivo
 
 5. Il lavoro nasce **da pianificare**: mancano ancora assegnazioni operative (squadra, date, macchine, ecc.).  
-6. Apri **Gestione lavori** (dalla home Conto Terzi con **Lavori da pianificare**, da **Moduli** → **Manodopera**, o da **Per te oggi**).  
+6. Apri **Gestione lavori** (dalla home Conto Terzi con **Lavori da pianificare**, dal **pulsante moduli** → **Manodopera**, o da **Per te oggi**).  
 7. Trova il lavoro, **modifica** e completa: **terreno**, **tipo lavoro**, **date**, **assegnazione** (squadra o operaio autonomo), eventuali **macchine** se Parco Macchine è attivo, **note**.  
 8. **Salva** finché il lavoro non risulta **assegnato** o **in corso** come da vostra prassi. Poi seguite ore e chiusura come per gli altri lavori (versione mobile, validazioni, ecc.).
+
+### Senza **Manodopera**
+
+5. Dopo aver premuto **Pianifica**, compare «Creare un lavoro da questo preventivo?» con cliente, tipo e superficie.
+6. Confermate e vedete «Lavoro creato: registra le giornate nel Diario Conto Terzi».
+7. Il lavoro nasce già **in corso**, pronto per registrare le attività.
+8. Aprite il **Diario Conto Terzi** (dal menu o con il filtro «Conto terzi» nel Diario attività) e registrate le giornate lavorate.
 
 ### Senza **Manodopera**
 
@@ -309,12 +316,18 @@ Il cliente riceve un messaggio con un **link dedicato**: da lì può **accettare
 
 Dalla **home Conto Terzi** puoi aprire:
 
-- **Lavori in corso** — porta al **Diario attività** con filtro sui lavori conto terzi **in corso**: da qui si seguono ore, registrazioni e avanzamento.  
-- **Lavori completati** — stesso Diario con filtro sui **completati** per storico e verifiche.
+- **Lavori in corso** — elenco dei lavori conto terzi **in corso**: da qui si seguono ore, registrazioni e avanzamento.  
+- **Lavori completati** — stesso elenco filtrato sui **completati**, per storico e verifiche.
 
-### Cosa fai nel Diario
+Dove ti porta il collegamento dipende dal modulo **Manodopera**:
 
-- Registri **attività** e **ore** legate ai lavori conto terzi come per i lavori interni, rispettando i campi richiesti in schermata.  
+- **Con Manodopera:** si apre **Gestione lavori**, già filtrata sui lavori conto terzi e sullo stato scelto. Le giornate nuove si registrano lì; il Diario resta solo come storico.
+- **Senza Manodopera:** si apre il **Diario attività** filtrato sul conto terzi; la voce **Da pianificare** non compare.
+
+### Cosa fai nell’elenco
+
+- **Senza Manodopera:** nel Diario registri **attività** e **ore** legate ai lavori conto terzi come per i lavori interni, rispettando i campi richiesti in schermata.  
+- **Con Manodopera:** apri il lavoro in **Gestione lavori** e segui assegnazioni, ore e avanzamento come per gli altri lavori.  
 - Il collegamento al **cliente** resta visibile sul **lavoro** e nelle viste dove l’app lo mostra.
 
 ### Chiusura lato commerciale
@@ -327,7 +340,7 @@ Quando il lavoro in campo è terminato e validato secondo le vostre regole, il c
 
 | Problema | Cosa controllare |
 |----------|------------------|
-| Non vedo **Conto Terzi** in **Moduli** | Modulo non attivo sull’**abbonamento**; ruolo senza accesso. |
+| Non vedo **Conto Terzi** nel **pulsante moduli** | Modulo non attivo sull’**abbonamento**; ruolo senza accesso. |
 | **Totale preventivo** a zero o errore tariffe | Voce mancante o nome tipo lavoro non allineato in **Tariffe**; verifica anche **tipo campo** (pianura/collina/montagna) e coltura vs tariffa generica. |
 | **Crea per tutte le morfologie** non crea nulla | Le tre combinazioni esistono già (messaggio di skip); oppure campi obbligatori mancanti (tipo lavoro, tariffa base, categoria coltura). |
 | Coefficienti «strani» su collina/montagna | In **Impostazioni**, sezione **Coefficienti morfologia (Conto Terzi)**: controlla le **percentuali** salvate (diventano coefficiente 1 + percentuale/100, con pianura fissa a 1,0). |
