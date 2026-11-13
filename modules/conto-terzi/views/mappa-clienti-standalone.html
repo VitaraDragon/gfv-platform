@@ -240,6 +240,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { formatEttari } from '../../../shared/js/formato-importi.js';
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, query, where, orderBy } from '../../../core/services/firebase-service.js';
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -707,7 +708,7 @@
                         <h3>${escapeHtml(terreno.nome)}</h3>
                         ${terreno.podere ? `<p><strong>Podere:</strong> ${escapeHtml(terreno.podere)}</p>` : ''}
                         ${colturaNome && colturaNome !== 'Default' ? `<p><strong>Coltura:</strong> ${escapeHtml(colturaNome)}</p>` : ''}
-                        ${terreno.superficie ? `<p><strong>Superficie:</strong> ${terreno.superficie.toFixed(2)} ha</p>` : ''}
+                        ${terreno.superficie ? `<p><strong>Superficie:</strong> ${formatEttari(terreno.superficie)} ha</p>` : ''}
                         ${terreno.note ? `<p><strong>Note:</strong> ${escapeHtml(terreno.note)}</p>` : ''}
                     </div>
                 `;

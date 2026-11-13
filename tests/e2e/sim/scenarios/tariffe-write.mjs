@@ -1,12 +1,14 @@
 /**
  * E2E write — nuova tariffa conto terzi (modale gestione tariffe).
- * Idempotente: marker tariffa base 777.00 €/ha + tipo lavoro Erpicatura + montagna.
+ * Idempotente: marker tariffa base 777 nel campo number.
+ * In tabella si legge «€ 777,00».
  * @module tests/e2e/sim/scenarios/tariffe-write
  */
 
 export const E2E_TARIFFA_WRITE_NOTE = 'GFV_SIM_E2E_WRITE_TARIFFA';
 
 export const E2E_TARIFFA_WRITE_BASE = '777';
+const E2E_TARIFFA_WRITE_BASE_VISIBILE = '777,00';
 
 const PREFERRED_TIPO_LAVORO = 'Erpicatura';
 const PREFERRED_COLTURA = 'Vite da Vino';
@@ -33,7 +35,7 @@ async function clearTariffeFilters(page) {
 function tariffeRowsWithMarker(page) {
   return page
     .locator('#tariffe-container .tariffe-table tbody tr')
-    .filter({ hasText: `${E2E_TARIFFA_WRITE_BASE}.00` })
+    .filter({ hasText: E2E_TARIFFA_WRITE_BASE_VISIBILE })
     .filter({ hasText: PREFERRED_TIPO_LAVORO });
 }
 
@@ -235,7 +237,7 @@ export async function runTariffeWriteAssertions(page, expect) {
     await expect(row.locator('td').nth(1)).toContainText(expectedColtura.split(' ')[0]);
   }
   await expect(row.locator('td').nth(2)).toContainText(/Montagna/i);
-  await expect(row.locator('td').nth(3)).toContainText(`${E2E_TARIFFA_WRITE_BASE}.00`);
-  await expect(row.locator('td').nth(5)).toContainText(`${E2E_TARIFFA_WRITE_BASE}.00`);
+  await expect(row.locator('td').nth(3)).toContainText(E2E_TARIFFA_WRITE_BASE_VISIBILE);
+  await expect(row.locator('td').nth(5)).toContainText(E2E_TARIFFA_WRITE_BASE_VISIBILE);
   await expect(row.locator('.badge-success').filter({ hasText: /Attiva/i })).toBeVisible();
 }
