@@ -4,8 +4,9 @@ on:
   push:
     branches: [main, develop]
     paths:
-      # Tutto il codice servito al browser: i job Playwright esercitano le pagine,
-      # quindi devono partire ogni volta che cambiano (v. regressione demo-map-privacy 2026-09).
+      # Controlli veloci sul codice servito al browser.
+      # Gli E2E non girano qui: 84 spec Playwright e il mock Tony stanno in npm run test:promote.
+      # (prima i job citavano «71 spec» e «16 scenari», numeri superati)
       - 'core/**'
       - 'modules/**'
       - 'shared/**'
@@ -27,8 +28,9 @@ on:
       - '.github/workflows/simulator-ci.yml'
   pull_request:
     paths:
-      # Tutto il codice servito al browser: i job Playwright esercitano le pagine,
-      # quindi devono partire ogni volta che cambiano (v. regressione demo-map-privacy 2026-09).
+      # Controlli veloci sul codice servito al browser.
+      # Gli E2E non girano qui: 84 spec Playwright e il mock Tony stanno in npm run test:promote.
+      # (prima i job citavano «71 spec» e «16 scenari», numeri superati)
       - 'core/**'
       - 'modules/**'
       - 'shared/**'

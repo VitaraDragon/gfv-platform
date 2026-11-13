@@ -254,9 +254,9 @@ Guida operativa: **`docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.
 | Elemento | Stato | Note |
 | -------- | ----- | ---- |
 | **Explore unificato** | ✅ | `sim:diagnostic:explore` — **71/71 app + 17/17 Tony**, 0 findings (node runner app + fast mode) |
-| **Gate unificato locale (Playwright)** | ⚠️ | `sim:diagnostic:gate` — CLI Playwright **non procede** su Windows (hang post-`scenari=71`, nessun test listato) |
-| **Gate locale (workaround)** | ✅ | `npm run sim:e2e:node` + `npm run sim:tony:e2e:gate` — stessi 71 scenari app via `playwright-core` diretto |
-| **Gate prima del promote** | locale | Dal 2026-11-13 GitHub non lancia più Playwright. `npm run test:promote` prima del merge su `main`. Su Windows l’app passa da `sim:e2e:node` (la CLI resta ferma dopo l’elenco scenari) e poi `sim:tony:e2e` mock |
+| **Gate unificato locale (Playwright)** | ✅ | `npm run sim:e2e:gate` — su Windows la CLI parte con `PW_DISABLE_TS_ESM=1` (loader ESM di Playwright 1.49 fermo su Node 24). 84 spec di gate |
+| **Gate locale (node runner)** | — | `npm run sim:e2e:node` resta per debug: non è il gate, ha meno spec del CLI |
+| **Gate prima del promote** | locale | Dal 2026-11-13 GitHub non lancia più Playwright. `npm run test:promote` prima del merge su `main`: emulatore pulito, `sim:e2e:gate` con `CI=true`, poi Tony mock con `GFV_TONY_E2E_GATE_FAST=1`. Su Windows la CLI parte con `PW_DISABLE_TS_ESM=1` |
 | **Guida workflow** | — | `simulator/DIAGNOSTIC_WORKFLOW.md`; report merge: `test-results/diagnostic-merged-report.json` |
 
 **Strategia CF (§8 guida):** tier 2 = mock client (`tony-mock-cf.js`); tier 3 = **Functions emulator locale** (Opzione B) con `GEMINI_API_KEY` in `functions/.secret.local` (gitignored). Il cron GitHub del live è spento dal 2026-11-13; in locale resta `npm run sim:tony:e2e:live`.
@@ -300,7 +300,7 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 Indice: `docs-sviluppo/tony/README.md`.
 
-**Tony + sim E2E (2026-07-11, M-T4 ✅ 17/17, M-T5 ✅):** merge **PR #5** — segna ore desktop (**T-FLOW-022**), gate-fast CI (~4m27s), fix **T-FLOW-016/017** movimenti. Fix flake precedenti **T-FLOW-013** e **T-FLOW-014-LIVE**. **Gate locale Playwright app:** hang avvio CLI Windows — usare `sim:e2e:node` + `sim:tony:e2e:gate` fino a fix; CI gate Playwright invariato. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10, `simulator/DIAGNOSTIC_WORKFLOW.md`.
+**Tony + sim E2E (2026-07-11, M-T4 ✅ 17/17, M-T5 ✅):** merge **PR #5** — segna ore desktop (**T-FLOW-022**), gate-fast CI (~4m27s), fix **T-FLOW-016/017** movimenti. Fix flake precedenti **T-FLOW-013** e **T-FLOW-014-LIVE**. **Gate locale Playwright app:** dal 2026-11-13 la CLI su Windows parte con `PW_DISABLE_TS_ESM=1` (`sim:e2e:gate`); prima restava ferma dopo l’elenco scenari. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10, `simulator/DIAGNOSTIC_WORKFLOW.md`.
 
 **CI Tony (2026-07-27, `d7f3bf5`):** fix vitest segna-ore (ora=7 UTC) + harden **T-FLOW-013** (`ensureLavoroFormComplete` tipo «Altro» / durata / assegnazione). Run [30236873424](https://github.com/VitaraDragon/gfv-platform/actions/runs/30236873424) — `sim:tony:vitest`, `sim:tony:e2e` mock, `sim:e2e`, `sim:test` tutti ✅.
 
