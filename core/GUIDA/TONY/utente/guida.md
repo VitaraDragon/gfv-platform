@@ -124,7 +124,7 @@ Sul **piano gratuito** Tony Guida c’è **solo nei primi 7 giorni** dalla regis
 
 ### I primi 7 giorni: il percorso guidato
 
-All’iscrizione con Tony i terreni restano una bozza sul dispositivo fino al riepilogo **«Confermi?»** e al salvataggio (già collegati); Free max **5 terreni**; nome terreno obbligatorio, poderi facoltativi. Dettaglio nella guida Core.
+All’iscrizione con Tony: dopo l’account Tony chiede la **sede legale** (via, numero civico e comune; basta anche il comune; il civico si salta con «non ce l’ho» o «dopo»), poi i **poderi** (facoltativi) e i **terreni** (nome, ettari, coltura). Ogni terreno viene confermato con quanti ne hai su cinque, anche a voce se la voce di Tony è accesa (altrimenti **▶ Ascolta**). Il microfono scrive nel campo, poi premi **Invia**. Tutto resta una bozza sul dispositivo fino al riepilogo **«Confermi?»** e al tocco su **Sì, salva** (già collegati); Free max **5 terreni**. Dettaglio nella guida Core.
 
 Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo, una volta sola, dopo l’accesso (manager e amministratore) con «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» È solo un messaggio: non ci sono pulsanti e nei giorni dopo non ricompare. Su un altro telefono o computer Tony può salutarti di nuovo. Se manca il pin della sede lo dice e indica **Impostazioni** (ingranaggio in alto a destra). Dettaglio nella guida Core, sezione Tony.
 

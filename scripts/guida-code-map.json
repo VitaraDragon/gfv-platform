@@ -2314,6 +2314,48 @@
       "label": "Landing onboarding: bozza sessionStorage gfv-landing-intervista (TTL 2h; solo tecnica)"
     },
     {
+      "prefix": "functions/lib/tony-landing-account.js",
+      "modules": [
+        "CORE",
+        "TONY",
+        "INTERSEZIONI"
+      ],
+      "label": "Landing onboarding lato server: sede/civico, nome = coltura, vitigni, conferma terreno firmata per la voce (solo tecnica)"
+    },
+    {
+      "prefix": "functions/tony-landing-ask.js",
+      "modules": [
+        "CORE",
+        "TONY",
+        "INTERSEZIONI"
+      ],
+      "label": "tonyLandingAsk fase account: chiudiTestoAccount e biglietto voce (solo tecnica)"
+    },
+    {
+      "prefix": "landing/src/lib/tony-chat-logica.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Landing onboarding: testo mostrato, testo per la voce, modo voce (solo tecnica)"
+    },
+    {
+      "prefix": "landing/src/content/testi-landing.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Landing: frasi fisse dell'intervista (sede, poderi, terreni, limite, scheda) (solo tecnica)"
+    },
+    {
+      "prefix": "tests/allenatore/",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Pacchetto allenatore landing (Vitest): di solito nessun testo guida"
+    },
+    {
       "prefix": "landing/src/components/TonyChat.vue",
       "modules": [
         "CORE",

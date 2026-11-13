@@ -485,7 +485,16 @@ Le azioni automatiche dipendono dal **modulo Tony**, dal **ruolo** e dalla **pag
 
 ### I primi 7 giorni: Tony ti accompagna
 
-All’**iscrizione**, se preparate l’azienda con Tony: sede, poderi e terreni restano una bozza sul dispositivo finché, già collegati, aprite il riepilogo **«Confermi?»** e salvate (così entrano in azienda insieme a sede e poderi). La sola registrazione crea l’account e l’azienda, non i terreni; se non finite, la bozza sparisce dopo qualche ora. Sul piano gratuito al massimo **5 terreni** (il **+** del riepilogo si spegne a 5). Tony chiede il **nome** di ogni terreno; i **poderi** sono facoltativi.
+All’**iscrizione** potete preparare l’azienda con Tony, in chat. Dopo aver creato l’account Tony propone tre domande: toccate **Sì, iniziamo** oppure **Salta tutto**.
+
+1. **Sede legale.** Tony chiede dov’è la sede: bastano via, numero civico e comune; va bene anche solo il comune (per esempio «Faenza, RA») o una località. Se manca il numero civico Tony lo chiede: ditelo, oppure rispondete «non ce l’ho» o «dopo».
+2. **Poderi.** Sono facoltativi: dite come li chiamate, oppure che non ne avete.
+3. **Terreni.** Per ogni terreno dite nome, ettari e coltura (per esempio «Vigna Alta, 3 ettari di sangiovese»). Tony conferma ogni terreno ripetendo nome, ettari e coltura e quanti terreni avete su cinque, poi chiede se ne avete altri.
+4. **Riepilogo «Confermi?».** Si apre al quinto terreno, quando dite «no», «basta» o «riepilogo», oppure con **Vedi il riepilogo**. Qui controllate e correggete tutto (per la sede serve almeno il **Comune**) e salvate con **Sì, salva**: solo allora sede, poderi e terreni entrano in azienda.
+
+Con **Dopo** saltate una domanda. Se la voce di Tony è accesa, Tony legge anche le risposte; con la voce spenta compare **▶ Ascolta**. Il microfono scrive la frase nel campo: controllatela e premete **Invia**. Il riepilogo si conferma solo toccando **Sì, salva**, non a voce.
+
+Fino al salvataggio i dati restano una bozza sul dispositivo: la sola registrazione crea l’account e l’azienda, non i terreni, e se non finite la bozza sparisce dopo qualche ora. Sul piano gratuito al massimo **5 terreni** (il **+** del riepilogo si spegne a 5).
 
 Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo, **una volta sola**, dopo il primo accesso (manager e amministratore; non nella schermata in campo di operaio e caposquadra) e scrive: «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» Se manca ancora il pin della sede aggiunge «(il pin della sede manca ancora: lo metti in Impostazioni, con l’ingranaggio in alto a destra)». Su telefono il pannello si apre senza far salire la tastiera.
 
