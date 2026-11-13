@@ -1,6 +1,10 @@
 # Wrapper Firebase CLI — ricarica PATH (Node + npm global) e invoca firebase.
-# Uso: .\scripts\firebase.ps1 deploy --only hosting
+# Uso: .\scripts\firebase.ps1 deploy --only hosting:default
+#      .\scripts\firebase.ps1 deploy --only hosting:app
 #      .\scripts\firebase.ps1 --version
+# Mai --only hosting: con due target pubblicherebbe landing e app.
+# Mai hosting:channel:deploy senza --only default (i canali della landing stanno sul sito gfv-platform).
+# Emulatori: --only hosting:default oppure --only hosting:app, mai --only hosting.
 
 $ErrorActionPreference = 'Stop'
 

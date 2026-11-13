@@ -151,4 +151,4 @@ export async function browserPuoConservareSessione() {
 }
 
 export const MSG_BROWSER_SENZA_PERSISTENZA =
-  'Questo browser non mi lascia ricordare l’accesso (finestra in incognito o cookie e dati dei siti bloccati). Apri GFV in una finestra normale oppure consenti i dati dei siti per vitaradragon.github.io.';
+  'Questo browser non mi lascia ricordare l’accesso (finestra in incognito o cookie e dati dei siti bloccati). Apri GFV in una finestra normale oppure consenti i dati dei siti per questo indirizzo (GitHub Pages o gfv-platform-app.web.app).';
