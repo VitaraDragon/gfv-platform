@@ -1434,26 +1434,33 @@ Somma per PR: circa **4 minuti** di job (i job girano in parallelo; il più lung
 | Canary mappa | `npm run mappa:manodopera-canary` |
 | Gate prima del promote su main | `npm run test:promote` |
 
-`npm run test:promote` rifà le due fasi della CI, in Node, anche su Windows 11. Non riusa un emulatore già acceso.
+`npm run test:promote` rifà le due fasi della CI, in Node, anche su Windows 11. Di default partono insieme: ognuna ha il suo `emulators:exec` e non riusa un emulatore già acceso. `--seriale` le rimette una dopo l’altra, sulle porte di `firebase.json`.
 
 Prerequisiti:
 
 - Java 21 sul PATH (gli emulatori Auth e Firestore).
-- Porte libere all’avvio: 8000, 8080, 9099, 4000. Lo script avvia e spegne i propri emulatori. Se trova un `http-server` o un emulatore Firebase rimasto acceso, lo ferma.
+- Porte libere all’avvio. In parallelo: app su 8000, 8080, 9099, websocket 9152, hub 4400, logging 4500; Tony su 8001, 8180, 9109, websocket 9160, hub 4410, logging 4510. In serie: 8000, 8080, 9099, 4000, 4400. Se una porta è occupata lo script scrive chi la tiene ed esce. Non chiude quel processo.
 - Chromium di Playwright (`npx playwright install chromium`). Se manca, lo script usa Chrome di sistema e lo scrive in log. `CI=true` resta acceso, quindi `retries: 1` e `workers: 1`.
 - Il PC alla corrente. Se è a batteria, lo script avvisa. Per la durata del processo disattiva la sospensione e la riattiva alla fine.
 - Su Windows il loader ESM di Playwright 1.49 non risponde (la CLI restava ferma dopo l’elenco scenari). Lo script e `sim:e2e:gate` impostano `PW_DISABLE_TS_ESM=1`: i test sono JavaScript, il loader TypeScript non serve.
 
 Fasi, ciascuna con `emulators:exec` su un emulatore pulito:
 
-1. **App.** Seed e verify dei quattro template della CI: `viticola-conto-terzi-manodopera`, `frutteto-solo-titolare`, `solo-titolare-viticola`, `mista-viticola-frutteto-conto-terzi-manodopera`. Poi `sim:e2e:gate` con `CI=true`.
-2. **Tony.** Solo il seed viticola, con `CI=true`, `GFV_TONY_E2E_GATE_FAST=1`, `GFV_TONY_E2E_MODE=gate`.
+1. **App.** Project id `gfv-platform`, come in seriale. Seed e verify dei quattro template della CI: `viticola-conto-terzi-manodopera`, `frutteto-solo-titolare`, `solo-titolare-viticola`, `mista-viticola-frutteto-conto-terzi-manodopera`. Poi `sim:e2e:gate` con `CI=true`.
+2. **Tony.** Project id `demo-gfv-promote-tony`, porte 9109 e 8180. Solo il seed viticola, con `CI=true`, `GFV_TONY_E2E_GATE_FAST=1`, `GFV_TONY_E2E_MODE=gate`. Il seed scrive su quel project id. Il server della fase riscrive in memoria le porte e il project id del client, senza toccare i file su disco.
 
-Il manifest in git (con i tenant vecchi) non entra nel giro: lo script parte da un file vuoto e, alla fine, rimette i byte che c’erano prima.
+Il manifest in git (con i tenant vecchi) non entra nel giro: lo script parte da un file vuoto e, alla fine, rimette i byte che c’erano prima. In parallelo ogni fase ha il suo manifest temporaneo.
 
 **Regola:** prima di chiedere il merge di un promote su `main`, `npm run test:promote` deve essere verde. La CI GitHub verde non sostituisce questo gate.
 
-In CI i tempi visti il 2026-11-13 sono circa 8–12 minuti per l’app e circa 9 minuti per Tony.
+Tempi misurati in locale la sera del 2026-11-13, due giri di fila in parallelo. Il tempo di muro è la fase più lunga.
+
+| Giro | Totale | Esito | App | Tony |
+| ---- | ------ | ----- | --- | ---- |
+| 1 | 17m 53s | fallito | 17m 53s, fallita (retry di `attivita-write` e di «modifica trattore su vigna», entrambi falliti) | 9m 11s, ok, 35/35 |
+| 2 | 17m 56s | fallito | 17m 56s, fallita (retry di «Crea appena il pulsante c’è» e di `trattamento-frutteto-completa-write`, entrambi falliti) | 10m 30s, ok, 35/35 |
+
+Prima, in serie, l’app stava sui 6–9 minuti e Tony intorno agli 8, per un totale di 14–17. In questi due giri il parallelo non ha accorciato il gate: l’app, con i timeout, è durata quanto il vecchio totale.
 
 **Roadmap oltre v4:** v4b — CI notturna batch + `sim:cleanup` selettivo (§11 roadmap).
 

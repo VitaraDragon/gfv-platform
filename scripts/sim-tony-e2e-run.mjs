@@ -142,9 +142,11 @@ async function checkFunctionsEmulatorIfLive() {
 }
 
 async function checkManifest() {
+  const manifestFile = process.env.GFV_SIM_MANIFEST
+    || fileURLToPath(new URL('../simulator/manifest.json', import.meta.url));
   let raw;
   try {
-    raw = await readFile(new URL('../simulator/manifest.json', import.meta.url), 'utf8');
+    raw = await readFile(manifestFile, 'utf8');
   } catch {
     throw new Error('simulator/manifest.json assente — esegui npm run sim:run');
   }
@@ -353,7 +355,8 @@ async function main() {
     console.log('[sim:tony:e2e] CF strategy: mock client Livello 2 (PR) — v. TONY_E2E_GUIDA §8');
   }
   await checkHttp(`${baseURL}/`, 'http-server (npm start)');
-  await checkHttp('http://127.0.0.1:8080/', 'Firestore emulator (sim:emulators)');
+  const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+  await checkHttp(`http://${firestoreHost}/`, 'Firestore emulator (sim:emulators)');
   await checkFunctionsEmulatorIfLive();
   await checkManifest();
 

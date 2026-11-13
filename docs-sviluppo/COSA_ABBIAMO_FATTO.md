@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-13 — CI GitHub leggera, test lunghi in locale.**
+**Ultimo aggiornamento documentazione: 2026-11-13 — test:promote con app e Tony insieme.**
+
+## 2026-11-13 — test:promote con app e Tony insieme
+
+Su `ci/test-promote-parallelo` (PR verso develop). Nessun merge, nessun deploy. Codice app, `firebase.json` e il workflow GitHub non si toccano.
+
+`npm run test:promote` avvia insieme la fase app e la fase Tony. Ognuna ha il suo `emulators:exec`. L’app resta su Auth 9099, Firestore 8080 e project id `gfv-platform`, come in seriale. Tony usa Auth 9109, Firestore 8180 e `demo-gfv-promote-tony`: il seed e il project id servito al browser usano lo stesso id, solo in memoria. `--seriale` rifà il giro di prima, una fase dopo l’altra. Se una porta è occupata lo script avvisa ed esce, senza chiudere i processi. Due giri di fila sul PC, la sera del 2026-11-13:
+
+- Giro 1: totale 17m 53s, fallito. App 17m 53s, fallita. Retry di `attivita-write` (login fermo su «Entra come manager») e di «modifica trattore su vigna» in `gestione-lavori-modale.spec.js`: entrambi falliti anche al secondo tentativo. Tony 9m 11s, ok, 35/35.
+- Giro 2: totale 17m 56s, fallito. App 17m 56s, fallita. Retry di «Crea appena il pulsante c’è» e di `trattamento-frutteto-completa-write` (11 movimenti in uscita invece di 12): entrambi falliti anche al secondo tentativo. Tony 10m 30s, ok, 35/35.
+
+Il tempo di muro è quello della fase app. In questi due giri il parallelo non ha accorciato il gate rispetto ai 14–17 minuti del giro in serie.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — CI GitHub leggera, test lunghi in locale.**
 
 ## 2026-11-13 — CI GitHub leggera, test lunghi in locale
 

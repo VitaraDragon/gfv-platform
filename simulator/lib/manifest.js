@@ -7,7 +7,9 @@ import { readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-const MANIFEST_PATH = join(dirname(fileURLToPath(import.meta.url)), '../manifest.json');
+// GFV_SIM_MANIFEST: le due fasi di test:promote scrivono file diversi, in parallelo.
+const MANIFEST_PATH = process.env.GFV_SIM_MANIFEST
+  || join(dirname(fileURLToPath(import.meta.url)), '../manifest.json');
 
 export function readManifest() {
   try {

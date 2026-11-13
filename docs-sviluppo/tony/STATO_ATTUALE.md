@@ -256,7 +256,7 @@ Guida operativa: **`docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.
 | **Explore unificato** | ✅ | `sim:diagnostic:explore` — **71/71 app + 17/17 Tony**, 0 findings (node runner app + fast mode) |
 | **Gate unificato locale (Playwright)** | ✅ | `npm run sim:e2e:gate` — su Windows la CLI parte con `PW_DISABLE_TS_ESM=1` (loader ESM di Playwright 1.49 fermo su Node 24). 84 spec di gate |
 | **Gate locale (node runner)** | — | `npm run sim:e2e:node` resta per debug: non è il gate, ha meno spec del CLI |
-| **Gate prima del promote** | locale | Dal 2026-11-13 GitHub non lancia più Playwright. `npm run test:promote` prima del merge su `main`: emulatore pulito, `sim:e2e:gate` con `CI=true`, poi Tony mock con `GFV_TONY_E2E_GATE_FAST=1`. Su Windows la CLI parte con `PW_DISABLE_TS_ESM=1` |
+| **Gate prima del promote** | locale | Dal 2026-11-13 GitHub non lancia più Playwright. `npm run test:promote` prima del merge su `main`: di default app e Tony mock insieme, ognuno col suo emulatore. App su `gfv-platform` (9099/8080), Tony su `demo-gfv-promote-tony` (9109/8180) con `GFV_TONY_E2E_GATE_FAST=1`. `--seriale` le rimette in fila. Due giri locali la sera del 2026-11-13: totale 17m 53s e 17m 56s, entrambi falliti in app; Tony ok in 9m 11s (35/35) e 10m 30s (35/35). Su Windows la CLI parte con `PW_DISABLE_TS_ESM=1` |
 | **Guida workflow** | — | `simulator/DIAGNOSTIC_WORKFLOW.md`; report merge: `test-results/diagnostic-merged-report.json` |
 
 **Strategia CF (§8 guida):** tier 2 = mock client (`tony-mock-cf.js`); tier 3 = **Functions emulator locale** (Opzione B) con `GEMINI_API_KEY` in `functions/.secret.local` (gitignored). Il cron GitHub del live è spento dal 2026-11-13; in locale resta `npm run sim:tony:e2e:live`.

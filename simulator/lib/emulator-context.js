@@ -10,12 +10,28 @@ import { getFirestore } from './firestore-write.js';
 
 let _initialized = false;
 
+/**
+ * Il gate parallelo passa GFV_SIM_PROJECT_ID quando la CLI dell'emulatore
+ * non è gfv-platform. L'Auth emulator mette il login su quel project id:
+ * il seed deve scrivere lì, altrimenti «Entra come manager» non trova l'utente.
+ * Vale solo se l'host è già un emulatore locale (lo verifica il guard).
+ */
+function projectIdForSeed(configured) {
+  const override = String(process.env.GFV_SIM_PROJECT_ID || '').trim();
+  if (!override) return configured;
+  if (!/^[a-z][a-z0-9-]{0,62}$/.test(override)) {
+    throw new Error(`GFV_SIM_PROJECT_ID non valido: ${override}`);
+  }
+  return override;
+}
+
 export function initEmulatorAdmin() {
   if (_initialized) {
     return { db: getFirestore(), auth: getAuth() };
   }
 
-  const { projectId } = assertSimulatorSafeToRun();
+  const { projectId: configured } = assertSimulatorSafeToRun();
+  const projectId = projectIdForSeed(configured);
 
   if (getApps().length === 0) {
     initializeApp({ projectId });
