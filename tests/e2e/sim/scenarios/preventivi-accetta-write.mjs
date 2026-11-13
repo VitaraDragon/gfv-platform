@@ -5,7 +5,7 @@
  */
 
 import {
-  E2E_PREVENTIVO_WRITE_SUPERFICIE,
+  E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE,
   runPreventiviWriteAssertions,
 } from './preventivi-write.mjs';
 
@@ -31,7 +31,7 @@ async function clearPreventiviFilters(page) {
 function markerPreventivoRow(page) {
   return page
     .locator('#preventivi-container .preventivi-table tbody tr')
-    .filter({ hasText: E2E_PREVENTIVO_WRITE_SUPERFICIE })
+    .filter({ hasText: E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE })
     .filter({ hasText: PREFERRED_TIPO_LAVORO })
     .first();
 }
@@ -81,7 +81,7 @@ export async function runPreventiviAccettaWriteAssertions(page, expect) {
             /Accettato \(Manager\)/i.test(tr.textContent || '')
         );
       },
-      E2E_PREVENTIVO_WRITE_SUPERFICIE,
+      E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE,
       { timeout: 30_000 }
     );
 
@@ -97,5 +97,5 @@ export async function runPreventiviAccettaWriteAssertions(page, expect) {
     await expect(row.getByRole('button', { name: /Pianifica/i })).toBeVisible();
   }
 
-  await expect(row.locator('td').nth(4)).toContainText(`${E2E_PREVENTIVO_WRITE_SUPERFICIE} ha`);
+  await expect(row.locator('td').nth(4)).toContainText(`${E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE} ha`);
 }

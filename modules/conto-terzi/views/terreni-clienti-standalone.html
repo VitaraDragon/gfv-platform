@@ -799,6 +799,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { formatEuro, formatEttari } from '../../../shared/js/formato-importi.js';
 import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -1218,7 +1219,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                 html += `<div class="${cardClass}" onclick="handleTerrenoCardClick(event, '${escapeHtml(terrenoObj.id)}')">`;
                 html += `<h3>${escapeHtml(terrenoObj.nome)}${terrenoObj.stato === 'archiviato' ? ' (archiviato)' : ''}</h3>`;
                 if (terrenoObj.superficie) {
-                    html += `<div class="info"><strong>Superficie:</strong> ${terrenoObj.superficie.toFixed(2)} ha</div>`;
+                    html += `<div class="info"><strong>Superficie:</strong> ${formatEttari(terrenoObj.superficie)} ha</div>`;
                 }
                 // Mostra coltura (solo nome leggibile, mai ID categoria tipo seed_seminativo; «—» se assente)
                 html += `<div class="info"><strong>Coltura:</strong> ${escapeHtml(getTerrenoColturaLabel(terreno, categorieColture))}</div>`;
@@ -1583,7 +1584,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                             if (typeof a.data === 'string') dataFormattata = a.data;
                             else if (a.data.toDate) dataFormattata = a.data.toDate().toISOString().slice(0, 10);
                         }
-                        const spesaStr = spesa != null && spesa > 0 ? '€ ' + spesa.toFixed(2) : (a.lavoroId && processedLavoroIds.has(a.lavoroId) && spesa === null ? '(v. sopra)' : '—');
+                        const spesaStr = spesa != null && spesa > 0 ? formatEuro(spesa) : (a.lavoroId && processedLavoroIds.has(a.lavoroId) && spesa === null ? '(v. sopra)' : '—');
                         rows.push(`<tr>
                             <td>${escapeHtml(dataFormattata)}</td>
                             <td>${escapeHtml(a.tipoLavoro || '-')}</td>
@@ -1595,7 +1596,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                     }
                     tableBody.innerHTML = rows.join('');
                     if (totaleSpesa > 0) {
-                        totaleEl.textContent = 'Totale spesa: € ' + totaleSpesa.toFixed(2);
+                        totaleEl.textContent = 'Totale spesa: ' + formatEuro(totaleSpesa);
                     }
                 }
             } catch (err) {
