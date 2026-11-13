@@ -1172,26 +1172,7 @@
         }
 
         function loadFallbackMapsConfig() {
-            return new Promise((resolve, reject) => {
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-                
-                fallbackScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.googleMapsConfig !== 'undefined') {
-                            resolve();
-                        } else {
-                            reject(new Error('Google Maps config not found'));
-                        }
-                    }, 100);
-                };
-                
-                fallbackScript.onerror = function() {
-                    reject(new Error('Failed to load Google Maps config'));
-                };
-                
-                document.head.appendChild(fallbackScript);
-            });
+            return Promise.reject(new Error('Google Maps config non trovata in locale'));
         }
 
         let mapsApiLoaded = false;

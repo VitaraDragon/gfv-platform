@@ -5,9 +5,11 @@ alwaysApply: true
 
 # Pubblicazione — `main` è già la produzione
 
-Il sito pubblico è servito da **GitHub Pages dalla radice di `main`** → <https://vitaradragon.github.io/gfv-platform/>
+Il sito pubblico dell’ERP è ancora servito da **GitHub Pages dalla radice di `main`** → <https://vitaradragon.github.io/gfv-platform/>
 
-**Non esiste uno step di deploy**: ogni commit su `main` è online nell'istante del push. La PWA installata sui telefoni punta lì (`manifest.json` → `core/dashboard-standalone.html`).
+**Pages non ha uno step di deploy**: ogni commit su `main` è online nell'istante del push. La PWA installata sui telefoni punta lì (`manifest.json` → `core/dashboard-standalone.html`). Questo resta vero finché Pages non viene spento, dopo che il nuovo hosting è verificato. Lo spegnimento non fa parte della preparazione del target.
+
+È pronto, e non ancora pubblicato, un secondo target Firebase Hosting `app` (sito `gfv-platform-app`, cartella `dist-app`). Dopo il passaggio il merge su `main` non pubblica più l’app da solo: serve `npm run deploy:app` da `origin/main` con working tree pulito. La landing resta sul target `default` (`gfv-platform.web.app`). Non usare `firebase deploy --only hosting` (pubblicherebbe entrambi). Mai `hosting:channel:deploy` senza `--only default`. Emulatori: `--only hosting:default` o `--only hosting:app`.
 
 | Branch | Contenuto | Online |
 |--------|-----------|--------|

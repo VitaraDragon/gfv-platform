@@ -157,7 +157,7 @@ Attesi almeno: `GEMINI_API_KEY`, `OPENWEATHER_API_KEY`, `SENTRY_DSN`
 
 ## 6. Deploy hosting (landing)
 
-Solo per il sito marketing `gfv-platform.web.app` — **non** l’ERP Tony.
+Solo per il sito marketing `gfv-platform.web.app` (target `default`) — **non** l’ERP. Non usare `--only hosting`: pubblicherebbe anche il target `app`.
 
 ```powershell
 npm run build:landing
@@ -166,13 +166,17 @@ npm run deploy:hosting
 npm run deploy:landing
 ```
 
-`landing/dist` non è in git: va **generata** prima del primo deploy hosting su ogni PC.
+`landing/dist` non è in git: va **generata** prima del primo deploy hosting della landing su ogni PC.
+
+L’ERP passerà a Firebase Hosting (sito `gfv-platform-app`, cartella `dist-app`, `npm run build:app` / `npm run deploy:app`) solo dopo la verifica. Pages resta acceso fino ad allora. Non lanciare `deploy:app` da un branch di lavoro: il comando accetta solo `origin/main` con working tree pulito. `APP_BASE_URL`, `NOTIFICATION_WEB_ORIGIN` e `URL_APP` della landing si cambiano al momento del passaggio, non prima.
+
+Emulatori: `--only hosting:default` (landing) oppure `--only hosting:app` (app). Mai `--only hosting`. Mai `hosting:channel:deploy` senza `--only default`.
 
 ---
 
-## 7. ERP + Tony client (GitHub Pages)
+## 7. ERP + Tony client (ancora GitHub Pages)
 
-Le modifiche a `core/js/tony/`, dashboard, ecc. vanno online con:
+Le modifiche a `core/js/tony/`, dashboard, ecc. vanno online oggi con il push su `main` (GitHub Pages). Il passaggio a Firebase Hosting non è fatto.
 
 ```powershell
 git add ...
@@ -180,9 +184,9 @@ git commit -m "..."
 git push origin main
 ```
 
-L’app ERP è su **GitHub Pages** (`vitaradragon.github.io/gfv-platform/`), non su Firebase Hosting.
+L’app ERP è ancora su **GitHub Pages** (`vitaradragon.github.io/gfv-platform/`). Dopo la verifica sarà su `gfv-platform-app` (`npm run deploy:app` da `origin/main` pulito): un merge su `main` da solo non basterà più. Pages si spegne solo dopo quel passaggio.
 
-Dopo push: attendi 1–2 minuti → **hard refresh** browser / PWA.
+Dopo push su Pages: attendi 1–2 minuti → **hard refresh** browser / PWA.
 
 ---
 
@@ -212,8 +216,10 @@ npm start
 | Secret + CF | `npm run sync:functions-secrets:deploy` |
 | Solo CF | `npm run deploy:functions` |
 | Solo rules | `npm run deploy:rules` |
-| Landing + hosting | `npm run deploy:landing` |
-| Solo hosting (dist già buildata) | `npm run deploy:hosting` |
+| Landing + hosting landing | `npm run deploy:landing` (`--only hosting:default`) |
+| Solo hosting landing (dist già buildata) | `npm run deploy:hosting` |
+| Build app (locale, non pubblica) | `npm run build:app` |
+| Hosting app (solo al passaggio, `origin/main` pulito) | `npm run deploy:app` |
 | Dev locale | `npm start` |
 | Wrapper firebase (PATH rotto) | `.\scripts\firebase.ps1 deploy --only functions` |
 
@@ -248,7 +254,9 @@ npm start
 
 - Non committare `.env`, `.secret.local`, chiavi API
 - Non mettere chiavi API in `functions/.env`
-- Non usare `firebase deploy --only hosting` per pubblicare l’ERP Tony (solo landing)
+- Non usare `firebase deploy --only hosting` per pubblicare l’ERP (e nemmeno la sola landing: con due target pubblicherebbe entrambi i siti). La landing è `deploy:landing` / `deploy:hosting` (`--only hosting:default`). L’app, quando il passaggio sarà verificato, è `deploy:app` (`--only hosting:app`) da `origin/main` pulito.
+- Non usare `hosting:channel:deploy` senza `--only default`.
+- Per gli emulatori usare `--only hosting:default` o `--only hosting:app`, non `--only hosting`.
 - Non cancellare secret da Google Cloud Console senza reimpostarli con lo script
 
 ---

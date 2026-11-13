@@ -247,10 +247,12 @@ describe('firebase.json hosting', () => {
   it('blocco hosting come da brief; altri blocchi invariati', () => {
     const raw = leggiTestoFile('firebase.json');
     const conf = JSON.parse(raw);
+    const hosting = conf.hosting;
+    expect(Array.isArray(hosting)).toBe(true);
 
-    expect(conf.hosting.target).toBe('default');
-    expect(conf.hosting.public).toBe('landing/dist');
-    expect(conf.hosting.ignore).toEqual([
+    const def = hosting.find((h) => h.target === 'default');
+    expect(def.public).toBe('landing/dist');
+    expect(def.ignore).toEqual([
       'firebase.json',
       '**/.*',
       '**/node_modules/**',
@@ -258,10 +260,26 @@ describe('firebase.json hosting', () => {
       '**/docs-sviluppo/**',
       '**/documentazione-utente/**',
     ]);
-    expect(conf.hosting.cleanUrls).toBe(true);
-    expect(conf.hosting.trailingSlash).toBe(false);
-    expect(conf.hosting.rewrites).toBeUndefined();
-    expect(conf.hosting.headers).toBeUndefined();
+    expect(def.cleanUrls).toBe(true);
+    expect(def.trailingSlash).toBe(false);
+    expect(def.rewrites).toBeUndefined();
+    expect(def.headers).toBeUndefined();
+
+    const app = hosting.find((h) => h.target === 'app');
+    expect(app.public).toBe('dist-app');
+    expect(app.cleanUrls).toBe(false);
+    expect(app.trailingSlash).toBeUndefined();
+    expect(app.predeploy).toEqual(['npm run build:app']);
+    expect(app.rewrites).toBeUndefined();
+    expect(app.ignore).toEqual(['firebase.json', '**/.*', '**/node_modules/**']);
+    const headerDump = JSON.stringify(app.headers);
+    expect(headerDump).toContain('no-cache');
+    expect(headerDump).toContain('nosniff');
+    expect(headerDump).toContain('**/*.@(html|js|mjs|css|json|md)');
+    expect(headerDump).toContain('/service-worker.js');
+    expect(headerDump).toContain('/sw-strategy.js');
+    expect(headerDump).not.toMatch(/Content-Security-Policy/i);
+    expect(headerDump).not.toMatch(/Referrer-Policy/i);
 
     expect(conf.firestore).toEqual({
       rules: 'firestore.rules',

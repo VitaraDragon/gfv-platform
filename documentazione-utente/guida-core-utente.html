@@ -171,6 +171,7 @@
     var hintEl = document.getElementById('local-hint');
     /** Percorsi relativi a questa pagina (documentazione-utente/) verso il markdown canonico */
     var CANDIDATE_MD = [
+        '../core/GUIDA/CORE/utente/guida.md',
         '../docs-sviluppo/GUIDA/CORE/utente/guida.md'
     ];
 
@@ -265,7 +266,7 @@
             '<p>' + (lastErr ? String(lastErr.message) : 'Errore sconosciuto') + '</p>' +
             (fileProto
                 ? '<p>Stai usando <code>file://</code>: il browser non può caricare il file <code>.md</code> accanto. Usa un server locale dalla root del repo (vedi il riquadro verde sotto).</p>'
-                : '<p>Verifica che il file esista: <code>docs-sviluppo/GUIDA/CORE/utente/guida.md</code> rispetto alla root del progetto.</p>') +
+                : '<p>Verifica che esista uno tra: <code>core/GUIDA/CORE/utente/guida.md</code> oppure <code>docs-sviluppo/GUIDA/CORE/utente/guida.md</code>.</p>') +
             '</div>';
     }
 
