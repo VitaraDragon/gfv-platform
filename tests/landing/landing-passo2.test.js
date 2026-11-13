@@ -159,13 +159,13 @@ describe('PAGINE_LEGALI e footer LandingHome', () => {
 
 describe('testoRobots', () => {
   it('User-agent e Sitemap senza doppie barre', () => {
-    const t = testoRobots({ urlSito: 'https://gfvagri.com' });
+    const t = testoRobots({ urlSito: 'https://globalfarmview.net' });
     expect(t).toContain('User-agent: *');
-    expect(t).toContain('Sitemap: https://gfvagri.com/sitemap.xml');
-    expect(t).not.toMatch(/https:\/\/gfvagri\.com\/\/sitemap/);
+    expect(t).toContain('Sitemap: https://globalfarmview.net/sitemap.xml');
+    expect(t).not.toMatch(/https:\/\/globalfarmview\.net\/\/sitemap/);
 
-    const conSlash = testoRobots({ urlSito: 'https://gfvagri.com/' });
-    expect(conSlash).toContain('Sitemap: https://gfvagri.com/sitemap.xml');
+    const conSlash = testoRobots({ urlSito: 'https://globalfarmview.net/' });
+    expect(conSlash).toContain('Sitemap: https://globalfarmview.net/sitemap.xml');
     expect(conSlash).not.toMatch(/com\/\/sitemap/);
   });
 });
@@ -181,7 +181,7 @@ describe('testoSitemap', () => {
     });
     expect(oggi).toContain('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"');
     expect(oggi).toContain('<urlset');
-    expect(oggi).toContain('<loc>https://gfvagri.com/</loc>');
+    expect(oggi).toContain('<loc>https://globalfarmview.net/</loc>');
     expect(oggi).not.toContain('/termini');
     expect(oggi).not.toContain('404');
 
@@ -192,7 +192,7 @@ describe('testoSitemap', () => {
         { percorso: '/termini', segnaposto: true },
       ],
     });
-    expect(conPrivacy).toContain('https://gfvagri.com/privacy');
+    expect(conPrivacy).toContain('https://globalfarmview.net/privacy');
     expect(conPrivacy).not.toContain('/termini');
   });
 });
@@ -212,8 +212,8 @@ describe('metaHome', () => {
     expect(html).toContain(
       'content="Il gestionale agricolo semplice: basta uno smartphone o un computer con internet. Tony ti guida dal primo accesso. Gratis per iniziare."'
     );
-    expect(html).toContain('href="https://gfvagri.com/"');
-    expect(html).toContain('property="og:url" content="https://gfvagri.com/"');
+    expect(html).toContain('href="https://globalfarmview.net/"');
+    expect(html).toContain('property="og:url" content="https://globalfarmview.net/"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
     expect(html).not.toContain('og:image');
 
@@ -224,7 +224,7 @@ describe('metaHome', () => {
       testi: testiPagineTecniche.metaHome,
     });
     expect(conImg).toContain(
-      `content="https://gfvagri.com${OG_IMMAGINE}"`
+      `content="https://globalfarmview.net${OG_IMMAGINE}"`
     );
     expect(conImg).toContain('og:image:width" content="1200"');
     expect(conImg).toContain('og:image:height" content="630"');
