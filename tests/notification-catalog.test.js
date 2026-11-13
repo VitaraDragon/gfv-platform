@@ -54,11 +54,19 @@ describe('notification-catalog', () => {
         expect(NOTIFICATION_EVENTS.every((e) => e.enabled)).toBe(true);
     });
 
-    it('icona push usa il PNG in core/images con URL assoluto Pages', () => {
+    it('icona push usa il PNG in core/images con URL assoluto del sito app', () => {
         expect(NOTIFICATION_ICON_RELATIVE).toBe('core/images/icon-192x192.png');
         expect(buildNotificationIconUrl()).toBe(
-            'https://vitaradragon.github.io/gfv-platform/core/images/icon-192x192.png'
+            'https://gfv-platform-app.web.app/core/images/icon-192x192.png'
         );
+        expect(resolveNotificationWebOrigin({
+            origin: 'https://gfv-platform-app.web.app',
+            pathname: '/core/dashboard-standalone.html',
+        })).toBe('https://gfv-platform-app.web.app');
+        expect(resolveNotificationWebOrigin(null)).toBe('https://gfv-platform-app.web.app');
+    });
+
+    it('su Pages il prefisso /gfv-platform resta nell’origine', () => {
         expect(resolveNotificationWebOrigin({
             origin: 'https://vitaradragon.github.io',
             pathname: '/gfv-platform/core/dashboard-standalone.html',

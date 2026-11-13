@@ -2299,7 +2299,7 @@
             const path = window.location.pathname || '/';
             if (/^https:\/\//i.test(origin)) return origin + path;
             if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin + path;
-            return 'https://vitaradragon.github.io/gfv-platform/core/admin/abbonamento-standalone.html';
+            return 'https://gfv-platform-app.web.app/core/admin/abbonamento-standalone.html';
         }
 
         async function startStripeCheckout(checkoutType, catalogId) {
