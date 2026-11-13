@@ -225,7 +225,9 @@ export async function fillAndSubmitNewPreventivo(page, { note, superficie = E2E_
       if (tipoCampo) tipoCampo.value = m;
       if (typeof window.calcolaTotale === 'function') await window.calcolaTotale();
       const imponibile = document.getElementById('totale-imponibile');
-      const val = parseFloat((imponibile?.textContent || '').replace('€', '').replace(',', '.').trim());
+      let s = String(imponibile?.textContent || '').replace(/€/g, '').replace(/\s/g, '');
+      if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+      const val = parseFloat(s);
       if (Number.isFinite(val) && val > 0) return true;
     }
     return false;
