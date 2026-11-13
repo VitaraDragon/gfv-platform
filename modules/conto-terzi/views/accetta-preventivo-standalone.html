@@ -216,6 +216,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { formatEuro, formatEttari } from '../../../shared/js/formato-importi.js';
         import { getAppInstance } from '../../../core/services/firebase-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
 
@@ -352,11 +353,16 @@
                     }[preventivo.tipoCampo] || preventivo.tipoCampo;
                     document.getElementById('tipo-campo').textContent = tipoCampoFormattato;
                     
-                    document.getElementById('superficie').textContent = `${(preventivo.superficie || 0).toFixed(2)} ettari`;
-                    document.getElementById('totale-imponibile').textContent = `€ ${(preventivo.totale || 0).toFixed(2)}`;
+                    const superficieAccettazione = formatEttari(preventivo.superficie);
+                    document.getElementById('superficie').textContent = superficieAccettazione === '-' ? '-' : `${superficieAccettazione} ettari`;
+                    document.getElementById('totale-imponibile').textContent = formatEuro(preventivo.totale);
                     document.getElementById('iva-percentuale').textContent = preventivo.iva || 22;
-                    document.getElementById('totale-iva').textContent = `€ ${((preventivo.totale || 0) * ((preventivo.iva || 22) / 100)).toFixed(2)}`;
-                    document.getElementById('totale-con-iva').textContent = `€ ${(preventivo.totaleConIva || preventivo.totale || 0).toFixed(2)}`;
+                    document.getElementById('totale-iva').textContent = formatEuro(
+                        preventivo.totale == null
+                            ? null
+                            : (Number(preventivo.totale) || 0) * ((preventivo.iva || 22) / 100)
+                    );
+                    document.getElementById('totale-con-iva').textContent = formatEuro(preventivo.totaleConIva || preventivo.totale);
 
                     if (preventivo.note) {
                         document.getElementById('note-text').textContent = preventivo.note;

@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-12 — Quantità in formato italiano (930 kg, non 930.000).**
+**Ultimo aggiornamento documentazione: 2026-11-13 — Conto terzi: ettari e euro in formato italiano.**
+
+## 2026-11-13 — Conto terzi: ettari e euro in formato italiano
+
+Su `fix/preventivi-ettari-euro-italiano` (PR verso develop). Nessun merge, nessun deploy. `functions/`, rules e indici non si toccano. I file della PR quantità (`formato-quantita.js` e chi lo usa) non si toccano.
+
+In Preventivi la tabella mostrava «5.00 ha» e «€ 915.00» per via di `toFixed(2)`. `shared/js/formato-importi.js` formatta solo il testo: `formatEuro` tiene il simbolo davanti («€ 915,00», «€ 1.234,50») e `formatEttari` usa da 2 a 4 decimali («5,00», «0,4567», «1.200,00»). null e NaN diventano «-»; -0 diventa 0.
+
+Copre la tabella preventivi, l’email al cliente (imponibile, IVA, totale, superficie: il template in `functions/email-resend.js` stampa quelle stringhe e non è stato modificato; non c’è un PDF), la conferma «Crea lavoro», il nuovo preventivo (totali e tendina terreni), l’accettazione, le tariffe, la scheda terreni clienti (superficie e spesa), la mappa clienti e gli ettari residui in home. Il salvataggio del nuovo preventivo non rilegge più il testo con `parseFloat`: tiene il numero già arrotondato a 2 decimali, come faceva `toFixed(2)`. Input, calcoli, link e token restano numeri. Coefficiente, ore e coordinate del podere restano col punto.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Quantità in formato italiano (930 kg, non 930.000).**
 
 ## 2026-11-12 — Quantità: formato italiano (v2)
 

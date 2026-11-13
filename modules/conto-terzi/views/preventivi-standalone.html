@@ -396,6 +396,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { formatEuro, formatEttari } from '../../../shared/js/formato-importi.js';
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { getAuthInstance, getDb, getHttpsCallable, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
@@ -912,8 +913,9 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
                 html += `<td>${escapeHtml(clienteNome)}</td>`;
                 html += `<td>${escapeHtml(preventivo.tipoLavoro || '')}</td>`;
                 html += `<td>${escapeHtml(preventivo.coltura || '')}</td>`;
-                html += `<td>${(preventivo.superficie || 0).toFixed(2)} ha</td>`;
-                html += `<td><strong>€ ${(preventivo.totaleConIva || preventivo.totale || 0).toFixed(2)}</strong></td>`;
+                const superficieCella = formatEttari(preventivo.superficie);
+                html += `<td>${superficieCella === '-' ? '-' : superficieCella + ' ha'}</td>`;
+                html += `<td><strong>${formatEuro(preventivo.totaleConIva || preventivo.totale)}</strong></td>`;
                 html += `<td><span class="badge ${statoFormattato.class}">${statoFormattato.text}</span></td>`;
                 html += `<td>${scadenzaFormattata}</td>`;
                 html += `<td><div class="action-buttons">`;
@@ -995,10 +997,14 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
                       ) || '-')
                     : '-';
                 
-                const totaleImponibile = `€ ${(preventivo.totale || 0).toFixed(2)}`;
-                const totaleIva = `€ ${((preventivo.totaleConIva || 0) - (preventivo.totale || 0)).toFixed(2)}`;
-                const totaleConIva = `€ ${(preventivo.totaleConIva || preventivo.totale || 0).toFixed(2)}`;
-                const superficieFormattata = `${(preventivo.superficie || 0).toFixed(2)}`;
+                const totaleImponibile = formatEuro(preventivo.totale);
+                const totaleIva = formatEuro(
+                    preventivo.totale == null && preventivo.totaleConIva == null
+                        ? null
+                        : (Number(preventivo.totaleConIva) || 0) - (Number(preventivo.totale) || 0)
+                );
+                const totaleConIva = formatEuro(preventivo.totaleConIva || preventivo.totale);
+                const superficieFormattata = formatEttari(preventivo.superficie);
                 const ivaPercentuale = preventivo.iva || 22;
 
                 // Carica nome terreno se presente
@@ -1308,7 +1314,8 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
                 return;
             }
 
-            if (!confirm(`Creare un lavoro da questo preventivo?\n\nCliente: ${clienti.find(c => c.id === preventivo.clienteId)?.ragioneSociale || 'N/A'}\nTipo: ${preventivo.tipoLavoro} - ${preventivo.coltura}\nSuperficie: ${preventivo.superficie} ha`)) {
+            const superficieConferma = formatEttari(preventivo.superficie);
+            if (!confirm(`Creare un lavoro da questo preventivo?\n\nCliente: ${clienti.find(c => c.id === preventivo.clienteId)?.ragioneSociale || 'N/A'}\nTipo: ${preventivo.tipoLavoro} - ${preventivo.coltura}\nSuperficie: ${superficieConferma === '-' ? '-' : superficieConferma + ' ha'}`)) {
                 return;
             }
 

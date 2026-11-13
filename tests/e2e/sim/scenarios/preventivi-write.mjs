@@ -1,14 +1,18 @@
 /**
  * E2E write — nuovo preventivo conto terzi (pagina nuovo-preventivo-standalone).
- * Idempotente: marker in note + superficie distintiva 9.99 ha visibile in tabella.
+ * Idempotente: marker in note + superficie 9.99 nel campo number.
+ * In tabella si legge «9,99 ha» (formato italiano).
  * @module tests/e2e/sim/scenarios/preventivi-write
  */
 
 /** Marker in note — persistito in Firestore, non visibile in lista. */
 export const E2E_PREVENTIVO_WRITE_NOTE = 'GFV_SIM_E2E_WRITE_PREVENTIVO';
 
-/** Superficie distintiva per riconoscere la riga E2E in tabella (assente nel seed). */
+/** Superficie distintiva scritta nel campo number (punto). Assente nel seed. */
 export const E2E_PREVENTIVO_WRITE_SUPERFICIE = '9.99';
+
+/** Stessa superficie come la mostra la tabella. */
+export const E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE = '9,99';
 
 const PREFERRED_TIPO_LAVORO = 'Erpicatura';
 const PREFERRED_COLTURA = 'Vite da Vino';
@@ -43,7 +47,7 @@ export async function clearPreventiviFilters(page) {
 function preventiviRowsWithMarker(page) {
   return page
     .locator('#preventivi-container .preventivi-table tbody tr')
-    .filter({ hasText: E2E_PREVENTIVO_WRITE_SUPERFICIE })
+    .filter({ hasText: E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE })
     .filter({ hasText: PREFERRED_TIPO_LAVORO });
 }
 
@@ -298,7 +302,7 @@ export async function runPreventiviWriteAssertions(page, expect) {
   expect(rowCount).toBeGreaterThanOrEqual(1);
 
   const row = markerRows.first();
-  await expect(row.locator('td').nth(4)).toContainText(`${E2E_PREVENTIVO_WRITE_SUPERFICIE} ha`);
+  await expect(row.locator('td').nth(4)).toContainText(`${E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE} ha`);
   await expect(row.locator('td').nth(2)).toContainText(expectedTipo.split(' ')[0]);
   await expect(row.locator('td').nth(3)).toContainText(expectedColtura.split(' ')[0]);
   if (createdNew) {
