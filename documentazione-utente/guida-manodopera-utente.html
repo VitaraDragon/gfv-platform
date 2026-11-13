@@ -207,7 +207,8 @@
     var contentEl = document.getElementById('doc-content');
     var hintEl = document.getElementById('local-hint');
     var roleNav = document.getElementById('doc-role-nav');
-    var MD_BASE = '../docs-sviluppo/GUIDA/MANODOPERA/utente/';
+    var MD_BASE = '../core/GUIDA/MANODOPERA/utente/';
+    var MD_BASE_REPO = '../docs-sviluppo/GUIDA/MANODOPERA/utente/';
     var currentFile = 'guida.md';
 
     /** Allineato a dashboard / field-workspace: GitHub Pages usa prefisso /gfv-platform/core/ */
@@ -294,29 +295,34 @@
     });
 
     async function tryLoad(fileName) {
-        var url = MD_BASE + (fileName || currentFile);
-        currentFile = fileName || currentFile;
+        var name = fileName || currentFile;
+        currentFile = name;
+        var bases = [MD_BASE, MD_BASE_REPO];
         contentEl.innerHTML = '<div class="loading"><span aria-hidden="true"></span><div>Caricamento guida…</div></div>';
         var lastErr = null;
-        try {
-            var res = await fetch(url, { cache: 'no-store' });
-            if (res.ok) {
-                var md = await res.text();
-                contentEl.innerHTML = marked.parse(md, { mangle: false, headerIds: true });
-                assignHeadingIds(contentEl);
-                bindInternalAnchors(contentEl);
-                if (location.hash) {
-                    requestAnimationFrame(function () {
-                        scrollToHeadingId(location.hash, false);
-                    });
-                } else {
-                    contentEl.scrollTop = 0;
+        var url = bases[0] + name;
+        for (var b = 0; b < bases.length; b++) {
+            url = bases[b] + name;
+            try {
+                var res = await fetch(url, { cache: 'no-store' });
+                if (res.ok) {
+                    var md = await res.text();
+                    contentEl.innerHTML = marked.parse(md, { mangle: false, headerIds: true });
+                    assignHeadingIds(contentEl);
+                    bindInternalAnchors(contentEl);
+                    if (location.hash) {
+                        requestAnimationFrame(function () {
+                            scrollToHeadingId(location.hash, false);
+                        });
+                    } else {
+                        contentEl.scrollTop = 0;
+                    }
+                    return;
                 }
-                return;
+                lastErr = new Error(res.status + ' ' + res.statusText);
+            } catch (e) {
+                lastErr = e;
             }
-            lastErr = new Error(res.status + ' ' + res.statusText);
-        } catch (e) {
-            lastErr = e;
         }
         var fileProto = window.location.protocol === 'file:';
         hintEl.hidden = false;

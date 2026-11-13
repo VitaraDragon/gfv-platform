@@ -15,11 +15,38 @@
     "storage": {"port": 9199},
     "ui": {"enabled": true}
   },
-  "hosting": {
-    "target": "default",
-    "public": "landing/dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/functions/**", "**/docs-sviluppo/**", "**/documentazione-utente/**"],
-    "cleanUrls": true,
-    "trailingSlash": false
-  }
+  "hosting": [
+    {
+      "target": "default",
+      "public": "landing/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/functions/**", "**/docs-sviluppo/**", "**/documentazione-utente/**"],
+      "cleanUrls": true,
+      "trailingSlash": false
+    },
+    {
+      "target": "app",
+      "public": "dist-app",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "cleanUrls": false,
+      "predeploy": ["npm run build:app"],
+      "headers": [
+        {
+          "source": "**/*.@(html|js|mjs|css|json|md)",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/service-worker.js",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/sw-strategy.js",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "**",
+          "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
+        }
+      ]
+    }
+  ]
 }

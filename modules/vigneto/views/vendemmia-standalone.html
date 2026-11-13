@@ -793,11 +793,6 @@
     <script>
         const mapsConfigScript = document.createElement('script');
         mapsConfigScript.src = '../../../core/config/google-maps-config.js';
-        mapsConfigScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-            document.head.appendChild(fallbackScript);
-        };
         document.head.appendChild(mapsConfigScript);
     </script>
     
