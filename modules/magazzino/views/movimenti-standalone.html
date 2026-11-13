@@ -252,6 +252,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp, increment } from '../../../core/services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { formatQuantita } from '../../../shared/js/formato-quantita.js';
         import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
         import { MovimentoMagazzino } from '../models/MovimentoMagazzino.js';
         import { getCurrentTenantId, setCurrentTenantId } from '../../../core/services/tenant-service.js';
@@ -880,7 +881,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
                                 <td>${formatData(m.data)}</td>
                                 <td>${escapeHtml(getProdottoNome(m.prodottoId))}</td>
                                 <td><span class="badge-${m.tipo === 'entrata' ? 'entrata' : 'uscita'}">${m.origineCarburante === 'pieno' ? 'Pieno' : (m.origineCarburante === 'carico_cisterna' ? 'Carico cisterna' : (m.tipo === 'entrata' ? '➕ Entrata' : '➖ Uscita'))}</span></td>
-                                <td>${Number.isFinite(Number(m.quantita)) ? Number(m.quantita).toFixed(3) : '-'} ${escapeHtml(getProdottoUnita(m.prodottoId) || '')}</td>
+                                <td>${escapeHtml(formatQuantita(m.quantita, getProdottoUnita(m.prodottoId) || '', '-'))}</td>
                                 ${showMezzo ? `<td>${escapeHtml(getMacchinaNome(m.macchinaId))}</td>` : ''}
                                 <td>${escapeHtml((m.confezione || '').substring(0, 25))}${(m.confezione || '').length > 25 ? '...' : ''}</td>
                                 <td>${formatPrezzoCell(m.prezzoUnitario)}</td>

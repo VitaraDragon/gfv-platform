@@ -78,8 +78,9 @@ async function ensureSuperficieTrattamento(page) {
   await page.waitForFunction(
     () => {
       const span = document.querySelector('#tbody-prodotti-trattamento .prodotto-quantita');
-      const t = (span?.textContent || '').trim();
-      return t && t !== '-' && parseFloat(t) > 0;
+      const raw = span?.getAttribute('data-valore');
+      const n = raw == null || raw === '' ? NaN : Number(raw);
+      return Number.isFinite(n) && n > 0;
     },
     undefined,
     { timeout: 30_000 }

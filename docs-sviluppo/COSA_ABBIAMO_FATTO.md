@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-12 — Landing: la coltura detta vince sul nome del terreno (Ciliegio / trebbiano → Vite da Vino).**
+**Ultimo aggiornamento documentazione: 2026-11-12 — Quantità in formato italiano (930 kg, non 930.000).**
+
+## 2026-11-12 — Quantità: formato italiano (v2)
+
+Su `fix/quantita-formato-italiano` (PR verso develop). Nessun merge, nessun deploy. `functions/`, rules e indici non si toccano.
+
+Le quantità in lista e nelle schede passano da `toFixed(3)` (tre decimali fissi col punto: «930.000 kg», che in italiano si legge novecentotrentamila) a `formatQuantita` in `shared/js/formato-quantita.js`: formato `it-IT`, al massimo tre decimali, punto delle migliaia (`useGrouping: 'always'`), `-0` riportato a 0. Solo testo. Gli input (`#mov-quantita`, dose) e i prezzi in euro restano numeri; l’export CSV/XML del registro trattamenti resta col punto.
+
+Copre movimenti, giacenza e scorta minima prodotti, tracciabilità consumi, giacenza carburante (card e testo per Tony: 0,25 L non diventa più «0.3») e la colonna quantità di concimazioni vigneto/frutteto e trattamenti seminativo. `formattaQuantita` delega all’helper. Lo span quantità ha `data-valore` col numero grezzo, così il simulatore non fa `parseFloat` sul testo italiano.
+
+Fuori da questa PR: Tony nelle functions (`formatQuantitaMovimento` in `functions/index.js`, giacenza grezza in `functions/tony-quick-replies.js`) avrebbe bisogno di una copia in `functions/lib`. Il Seminativo, al salvataggio, arrotonda ancora la quantità a 2 decimali; Vigneto e Frutteto salvano il valore pieno.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Landing: la coltura detta vince sul nome del terreno (Ciliegio / trebbiano → Vite da Vino).**
 
 ## 2026-11-12 — Landing: coltura detta vince sul nome (Ciliegio / trebbiano)
 
