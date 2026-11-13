@@ -1,6 +1,6 @@
 /**
  * E2E write — nuovo terreno cliente conto terzi (modale terreni clienti).
- * Idempotente: marker nome + superficie 8.88 ha + note.
+ * Idempotente: marker nome + superficie 8.88 nel campo number (in scheda «8,88 ha») + note.
  * @module tests/e2e/sim/scenarios/terreni-clienti-write
  */
 
@@ -90,6 +90,6 @@ export async function runTerreniClientiWriteAssertions(page, expect) {
 
   const card = markerCards.first();
   await expect(card).toContainText(E2E_TERRENO_CLIENTI_WRITE_NOME);
-  await expect(card).toContainText(E2E_TERRENO_CLIENTI_WRITE_SUPERFICIE);
+  await expect(card).toContainText('8,88');
   await expect(card).toContainText(E2E_TERRENO_CLIENTI_WRITE_NOTE);
 }

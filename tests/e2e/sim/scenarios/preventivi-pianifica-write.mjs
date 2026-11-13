@@ -4,7 +4,7 @@
  * @module tests/e2e/sim/scenarios/preventivi-pianifica-write
  */
 
-import { E2E_PREVENTIVO_WRITE_SUPERFICIE } from './preventivi-write.mjs';
+import { E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE } from './preventivi-write.mjs';
 import { runPreventiviAccettaWriteAssertions } from './preventivi-accetta-write.mjs';
 
 const PREFERRED_TIPO_LAVORO = 'Erpicatura';
@@ -29,7 +29,7 @@ async function clearPreventiviFilters(page) {
 function markerPreventivoRow(page) {
   return page
     .locator('#preventivi-container .preventivi-table tbody tr')
-    .filter({ hasText: E2E_PREVENTIVO_WRITE_SUPERFICIE })
+    .filter({ hasText: E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE })
     .filter({ hasText: PREFERRED_TIPO_LAVORO })
     .first();
 }
@@ -88,7 +88,7 @@ export async function runPreventiviPianificaWriteAssertions(page, expect) {
             /Pianificato/i.test(tr.textContent || '')
         );
       },
-      E2E_PREVENTIVO_WRITE_SUPERFICIE,
+      E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE,
       { timeout: 30_000 }
     );
 
@@ -98,5 +98,5 @@ export async function runPreventiviPianificaWriteAssertions(page, expect) {
 
   await expect(row.locator('.badge-success').filter({ hasText: /Pianificato/i })).toBeVisible();
   await expect(row.getByText('Lavoro creato', { exact: false })).toBeVisible();
-  await expect(row.locator('td').nth(4)).toContainText(`${E2E_PREVENTIVO_WRITE_SUPERFICIE} ha`);
+  await expect(row.locator('td').nth(4)).toContainText(`${E2E_PREVENTIVO_WRITE_SUPERFICIE_VISIBILE} ha`);
 }
