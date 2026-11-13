@@ -1405,17 +1405,43 @@ Più dati in emulator ⇒ query Firestore più pesanti ⇒ numeri perf più util
 
 **Field workspace (2026-06-26):** lazy load iframe statistiche/dettaglio lavoro; retry auth emulator su `onAuthStateChanged`; meno query duplicate comunicazioni operaio — v. `COSA_ABBIAMO_FATTO.md` voce omonima.
 
-### 13.5 CI (GitHub Actions)
+### 13.5 CI (GitHub Actions) e gate locale del promote
 
 Workflow: `.github/workflows/simulator-ci.yml`
 
-- **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
-- **Job `simulator-emulator`:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
-- **Job `simulator-e2e` (v4 #9 ✅, v5 Fase 1 ✅, M2 + P2 ✅, write P2 65–67 ✅, template mista ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, **triple-seed** (viticola + frutteto M4 + mista CT/manodopera), verify ×3, `sim:e2e:pw` (**71 spec**, headless Chromium). Timeout 40 min. I due job girano in parallelo.
+Dal 2026-11-13 GitHub esegue solo i controlli veloci. I test lunghi restano gli script npm, da lanciare sul PC. Lo schedule notturno è spento: riattivare quando il seed `lab-trimestre-full` sarà sistemato. Push ravvicinati sullo stesso ref si annullano (`concurrency` + `cancel-in-progress`).
+
+**Su GitHub** (push/PR sui path del workflow, oppure Run workflow):
+
+| Job | Comando | Durata tipica (run del 2026-11-13) |
+| --- | ------- | ---------------------------------- |
+| `static-import-guard` | Vitest import/handler | ~30 s |
+| `pwa-cache-id-guard` | build id del service worker, solo PR | ~10 s |
+| `simulator-emulator` | `npm run sim:test:ci` (Java 21, Node 22) | ~1 min |
+| `simulator-tony-vitest` | `npm run sim:tony:vitest` | ~1 min 40 s |
+| `allenatore-landing-vitest` | `npm run sim:allenatore:vitest` | ~35 s |
+
+Somma per PR: circa **4 minuti** di job (i job girano in parallelo; il più lungo è Tony Vitest).
+
+**A mano, non su GitHub.** Gli script non sono stati tolti:
+
+| Cosa | Comando |
+| ---- | ------- |
+| Playwright app (71 spec) | `npm run sim:e2e` — oppure, con bash e Java, `npm run sim:e2e:ci` (avvia emulatori, http-server, triple-seed e verify) |
+| Tony tier 2 mock | `npm run sim:tony:e2e` |
+| Tony tier 3 live | `npm run sim:tony:e2e:live` |
+| Canary roster A2 | `npm run manodopera:roster-a2-canary` |
+| Canary mappa | `npm run mappa:manodopera-canary` |
+| Gate prima del promote su main | `npm run test:promote` |
+
+`npm run test:promote` lancia in sequenza l’E2E app e `sim:tony:e2e` (mock) e termina con codice diverso da 0 se uno dei due fallisce. Su Linux l’E2E app è `sim:e2e`. Su Windows 11 la CLI di Playwright resta ferma dopo l’elenco degli scenari, quindi il gate usa `sim:e2e:node` (stessa modalità gate, playwright-core e Chrome di sistema). Prerequisiti: emulatori Auth+Firestore, http-server su `:8000`, seed (`npm run sim:run`).
+
+**Regola:** prima di chiedere il merge di un promote su `main`, `npm run test:promote` deve essere verde. La CI GitHub verde non sostituisce questo gate.
+
 - **Locale (stesso comando CI Node):** `npm run sim:test:ci` — richiede Java su PATH.
 - **Locale (stesso comando CI E2E, bash + Java):** `npm run sim:e2e:install && npm run sim:e2e:ci`.
 
-| Step CI E2E | Comando | Note |
+| Step di `sim:e2e:ci` (locale, bash + Java) | Comando | Note |
 | ----------- | ------- | ---- |
 | Browser | `sim:e2e:install` | Chromium Playwright + deps OS (`--with-deps`) |
 | Orchestrazione | `sim:e2e:ci` | `simulator/ci-e2e-run.js` → `scripts/sim-ci-e2e-inner.sh` |
@@ -1423,7 +1449,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 | Verify seed | `sim:verify:e2e-seed` ×3 | una volta per template |
 | Assert browser | `sim:e2e:pw` | Node 22; **71 spec** headless (triple-seed) |
 
-Su **Node 24** locale: **`npm run sim:e2e`** o **`sim:e2e:write-p2`** (runner + Chrome di sistema). In CI (Node 22): `sim:e2e:pw` dopo `sim:e2e:install`.
+Su **Node 24** locale: **`npm run sim:e2e`** o **`sim:e2e:write-p2`** (runner + Chrome di sistema). Con bash e Java, `npm run sim:e2e:ci` avvia emulatori, seed e `sim:e2e:pw`. Non è più un job GitHub.
 
 **Roadmap oltre v4:** v4b — CI notturna batch + `sim:cleanup` selettivo (§11 roadmap).
 

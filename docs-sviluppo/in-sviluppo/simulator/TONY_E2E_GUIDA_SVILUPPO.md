@@ -507,6 +507,8 @@ Mock tier 2 equivalente (**T-PERF-001/002/014**) resta in `npm run sim:tony:e2e`
 | `simulator-tony-e2e-mock` | PR *(nuovo)* | Tier 2 mock, ~15 scenari core | 20 min |
 | `simulator-tony-e2e-live` | Notturno / manuale | Tier 3 Gemini, matrice completa | 45 min |
 
+**Stato dal 2026-11-13.** Su GitHub restano i job veloci (`sim:test`, `sim:tony:vitest`, import-guard, cache PWA, allenatore landing). Il tier 2 mock e l’E2E app non partono più in CI: si lanciano in locale con `npm run test:promote` (`sim:e2e` poi `sim:tony:e2e`). Il tier 3 live non ha più il cron; si lancia a mano con `npm run sim:tony:e2e:live`. Prima di chiedere il merge di un promote su `main`, `npm run test:promote` deve essere verde. Dettaglio in `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §13.5.
+
 **Path filter workflow** (estendere `.github/workflows/simulator-ci.yml`):
 
 - `tests/e2e/tony/**`

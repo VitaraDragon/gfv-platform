@@ -30,7 +30,7 @@ Dettaglio comandi e troubleshooting: `DEPLOY_RUNBOOK.md`.
 - La **PWA installata** punta lì (`manifest.json` → `core/dashboard-standalone.html`). Non c'è app store, quindi nessuna revisione e nessun rilascio graduale: pubblichi e nello stesso istante è di tutti.
 - `service-worker.js` usa `SW_CACHE_BUILD_ID`, aggiornato da `.githooks/pre-commit` (`npm run bump:pwa-cache`), altrimenti la PWA resta sulla cache vecchia. **L'hook non gira per gli agenti**, perché Cursor sovrascrive `core.hooksPath`.
 - Esiste **un solo progetto Firebase** (`gfv-platform`): `core/config/firebase-config.js`, `.firebaserc`.
-- CI: `.github/workflows/simulator-ci.yml`, 7 job (emulatori, Playwright E2E, Tony vitest, canary manodopera e mappa) + `guida-impact-pr.yml`.
+- CI GitHub: `.github/workflows/simulator-ci.yml`, cinque job veloci (import-guard, cache PWA, `sim:test`, `sim:tony:vitest`, allenatore landing) + `guida-impact-pr.yml`. Playwright (`sim:e2e`, `sim:tony:e2e`) e i canary si lanciano in locale. Prima del merge di un promote su `main`, `npm run test:promote` deve essere verde.
 
 ---
 
@@ -77,7 +77,7 @@ Dettaglio comandi e troubleshooting: `DEPLOY_RUNBOOK.md`.
 1. Nuovo lavoro → branch dedicato che parte da **`develop`**.
 2. PR verso `develop`. La CI dà il segnale.
 3. Prove **in locale**: emulatori (`?emulator=1`) o simulatore (`npm run sim:*`).
-4. Quando la versione è sicura: PR `develop` → `main`. **Solo qui cambia il sito.**
+4. Quando la versione è sicura: PR `develop` → `main`. **Solo qui cambia il sito.** Prima di chiedere il merge, sulla branch di promote: `npm run test:promote` verde (Playwright app + Tony mock, in locale).
 
 ```bash
 git checkout develop && git pull        # allinea il laptop

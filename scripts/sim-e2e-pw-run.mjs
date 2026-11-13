@@ -58,7 +58,7 @@ if (onlyRaw) {
 
 const pwArgs = ['playwright', 'test', ...pool.map((s) => s.specFile)];
 
-const extraPw = process.argv.filter(
+const extraPw = process.argv.slice(2).filter(
   (a) =>
     !a.startsWith('--mode=') &&
     a !== '--strict' &&
