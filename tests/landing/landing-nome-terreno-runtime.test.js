@@ -1569,8 +1569,8 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
 
 describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
   it('il parser stacca la varietà prima degli ettari e il numero senza unità', () => {
-    expect(normalizzaColturaCatalogo('trebbiano')).toBeNull();
-    expect(normalizzaColturaCatalogo('sangiovese')).toBeNull();
+    expect(normalizzaColturaCatalogo('trebbiano')).toBe('Vite da Vino');
+    expect(normalizzaColturaCatalogo('sangiovese')).toBe('Vite da Vino');
     expect(normalizzaColturaCatalogo('albicocche')).toBe('Albicocche');
     expect(normalizzaColturaCatalogo('mandorlo')).toBe('Mandorlo');
     expect(normalizzaColturaCatalogo('mais')).toBe('Mais');
@@ -1683,8 +1683,10 @@ describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
       expect(visti[2].n).toBe(0);
       expect(visti[3].n).toBe(1);
       expect(visti[3].scheda).toBe(false);
-      expect(visti[3].mostrato).not.toMatch(/ci coltivi/i);
+      expect(visti[3].mostrato).toMatch(/Il terreno si chiama Pozzo/i);
+      expect(visti[3].mostrato).toMatch(/ci coltivi Trebbiano/i);
       expect(visti[3].mostrato).not.toMatch(/Pozzo Trebbiano/i);
+      expect(visti[3].mostrato).not.toMatch(/Che cosa ci coltivi nel terreno Pozzo/i);
       expect(visti[3].righe[0]).toMatchObject({ nome: 'Pozzo', superficie: '5', coltura: 'Trebbiano' });
       expect(visti[6].n).toBe(4);
       expect(visti[6].scheda).toBe(false);

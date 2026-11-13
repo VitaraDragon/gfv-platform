@@ -184,7 +184,8 @@
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, orderBy, limit, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { showAlert, escapeHtml } from '../../../core/js/gfv-page-utils.js';
-        import { formatGiacenzaCarburante, righeScortaCarburante } from '../lib/carburante-movimento.js';
+        import { righeScortaCarburante } from '../lib/carburante-movimento.js';
+        import { formatQuantita } from '../../../shared/js/formato-quantita.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { hasModuleAccessFromTenant, resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
@@ -292,7 +293,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query,
             }
             host.innerHTML = rows.map(function (r) {
                 const cls = r.sottoScorta ? 'stat-card alert-card' : 'stat-card';
-                const valore = formatGiacenzaCarburante(r.giacenza) + ' ' + (r.unitaMisura || 'L');
+                const valore = formatQuantita(r.giacenza, r.unitaMisura || 'L', '0');
                 return '<div class="' + cls + '"><div class="stat-value">' + escapeHtml(valore) + '</div><div class="stat-label">' + escapeHtml(r.nome) + '</div></div>';
             }).join('');
         }
@@ -333,7 +334,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query,
 
                 const parts = [];
                 if (!rows.length) parts.push('Nessun prodotto carburante in anagrafica.');
-                else rows.forEach((r) => parts.push(r.nome + ' ' + formatGiacenzaCarburante(r.giacenza) + ' ' + r.unitaMisura + '.'));
+                else rows.forEach((r) => parts.push(r.nome + ' ' + formatQuantita(r.giacenza, r.unitaMisura || 'L', '0') + '.'));
                 if (sotto.length) parts.push(sotto.length + ' sotto scorta.');
                 window.currentTableData = {
                     pageType: 'carburante_hub',

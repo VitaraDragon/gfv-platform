@@ -6,10 +6,11 @@
  */
 
 import { numeroFinito } from './registro-trattamenti.js';
+import { formatQuantita } from './formato-quantita.js';
 
 /** Step HTML degli input dose (L/ha, kg/ha, …): fino a 3 decimali. */
 export const STEP_DOSE = '0.001';
-/** Cifre decimali mostrate per le quantità. */
+/** Massimo di decimali in visualizzazione (senza zeri fissi). */
 export const DECIMALI_QUANTITA = 3;
 
 /**
@@ -30,11 +31,10 @@ export function quantitaRigaProdotto(riga, superficie) {
 }
 
 /**
- * Testo per la quantità: `toFixed(3)` se finita, altrimenti '-'.
+ * Testo per la quantità, formato italiano. Altrimenti '-'.
  * @param {*} quantita
  * @returns {string}
  */
 export function formattaQuantita(quantita) {
-  const q = numeroFinito(quantita);
-  return q != null ? q.toFixed(DECIMALI_QUANTITA) : '-';
+  return formatQuantita(numeroFinito(quantita), '', '-');
 }

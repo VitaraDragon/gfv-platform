@@ -1,6 +1,75 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-10 — Tony: saluto landing senza pulsanti del percorso (demo EIMA).**
+**Ultimo aggiornamento documentazione: 2026-11-12 — Quantità in formato italiano (930 kg, non 930.000).**
+
+## 2026-11-12 — Quantità: formato italiano (v2)
+
+Su `fix/quantita-formato-italiano` (PR verso develop). Nessun merge, nessun deploy. `functions/`, rules e indici non si toccano.
+
+Le quantità in lista e nelle schede passano da `toFixed(3)` (tre decimali fissi col punto: «930.000 kg», che in italiano si legge novecentotrentamila) a `formatQuantita` in `shared/js/formato-quantita.js`: formato `it-IT`, al massimo tre decimali, punto delle migliaia (`useGrouping: 'always'`), `-0` riportato a 0. Solo testo. Gli input (`#mov-quantita`, dose) e i prezzi in euro restano numeri; l’export CSV/XML del registro trattamenti resta col punto.
+
+Copre movimenti, giacenza e scorta minima prodotti, tracciabilità consumi, giacenza carburante (card e testo per Tony: 0,25 L non diventa più «0.3») e la colonna quantità di concimazioni vigneto/frutteto e trattamenti seminativo. `formattaQuantita` delega all’helper. Lo span quantità ha `data-valore` col numero grezzo, così il simulatore non fa `parseFloat` sul testo italiano.
+
+Fuori da questa PR: Tony nelle functions (`formatQuantitaMovimento` in `functions/index.js`, giacenza grezza in `functions/tony-quick-replies.js`) avrebbe bisogno di una copia in `functions/lib`. Il Seminativo, al salvataggio, arrotonda ancora la quantità a 2 decimali; Vigneto e Frutteto salvano il valore pieno.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Landing: la coltura detta vince sul nome del terreno (Ciliegio / trebbiano → Vite da Vino).**
+
+## 2026-11-12 — Landing: coltura detta vince sul nome (Ciliegio / trebbiano)
+
+Su `fix/landing-nome-coltura-ciliegio` (PR verso develop). Nessun merge, nessun deploy. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO invariati. Rules, indici e le altre function non si toccano.
+
+1. **Vitigni** — trebbiano, sangiovese, albana, ciliegiolo e gli altri della tabella vanno a «Vite da Vino», con chiave esatta. «ciliegio» resta Ciliegio. La tabella è la stessa in `normalizzaColturaCatalogo` (client) e `risolviColturaConSinonimi` (function).
+2. **La coltura detta vince** — se il nome è in posizione di nome e dopo c'è una coltura («c'è del», «cè», «ce», «di», «a», «coltivo»…), quella è la coltura. Una coltura del modello uguale al nome si scarta. «ciliegio è 7 ha e cè del trebbiano» salva Ciliegio, 7 ha, Vite da Vino. «ciliegio 7 ha» resta nome e coltura Ciliegio. Quercione, Pozzo e il Trebbiano usato come nome restano com'erano.
+3. **Ambiguo** — «ciliegio trebbiano 7 ha» non sceglie: coltura vuota e «Che cosa ci coltivi nel terreno Ciliegio?».
+4. **Conferma** — se la function corregge la coltura, `chiudiTestoAccount` riscrive testo e biglietto voce sui dati già corretti. «Ecco la tua azienda» non entra in chat.
+
+Il rilascio, dopo la promozione, richiede il canale prova-tony e il deploy della sola function `tonyLandingAsk` (`functions/lib/tony-landing-account.js`). Voce e browser non sono verificati dai test.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Landing ritest 12 nov: una domanda sulla sede, conferma con conteggio, nome nella frase, intro della scheda una volta.**
+
+## 2026-11-12 — Landing: ritest 12 nov (sede, nome, conferma, intro)
+
+Su `fix/landing-ritest-12nov` (PR verso develop). Nessun merge, nessun deploy. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO invariati.
+
+1. **Sede senza civico** — una sola domanda («Il numero civico, se ce l'hai, dimmelo pure.») e si resta sulla sede. Il turno dopo («85», «via pergola 85», «non ce l'ho», «dopo») completa o salta il civico e solo allora chiede i poderi, una volta. Testo in chat e testo del server coincidono.
+2. **Nome = coltura** — una risposta breve a «Come si chiama…?» è il nome anche se è una coltura o una varietà («trebbiano», «mais»). Fuori da quella domanda la coltura non diventa il nome.
+3. **Conferma** — se il turno completa un terreno e il testo è vuoto (o è stato svuotato, anche da «Ho registrato…»), la function scrive «Il terreno si chiama… Ne hai K su cinque terreni…». Al quinto, il limite e niente «Ne hai altri». Il biglietto voce si firma su quel testo. `tony-landing-ask.js` chiama questa chiusura dopo `testoSeMancaNomeTerreno`, perché è lì che il testo può svuotarsi. La rete sul client usa lo stesso formato. Un esito ok vuoto non mostra più la frase di errore: usa la domanda di rientro del passo.
+4. **Nome nella frase** — `RE_SI_CHIAMA` (client e server uguali) riconosce «che chiamiamo» e il refuso «chiamto». «chiamto» è rumore, non un nome.
+5. **Scheda** — «Ecco la tua azienda…» resta solo nell’intro della scheda, non anche in chat. La voce `schedaIntro` parte una volta e, al quinto terreno, dopo la conferma, senza tagliarla.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Allenatore landing: sede senza «via» e dialogo Calanchi nel pacchetto.**
+
+## 2026-11-12 — Allenatore: branch su develop, sede senza la parola via
+
+Su `feat/allenatore-tony-telaio-pacchetto-landing` (PR #379 verso develop). Nessun merge, nessun deploy.
+
+1. **Allineamento** — il branch include #380 (informativa bloccante solo se il riquadro è visibile), #382 (conteggio e finale, voce = chat) e #384 (saluto senza i pulsanti del percorso). Quei comportamenti restano il riferimento.
+2. **Pacchetto** — l'informativa si aspetta `informativaBloccante` (il passo invito non resta bloccato). Aggiunto il dialogo Calanchi del ritest 10 nov: dopo il podere arriva «Dimmi il primo terreno»; Prugneto, che è il secondo, non è «tre su cinque»; il limite resta 5 terreni, non 4; il finale non dice «Crea il tuo account». Il pacchetto non asseriva i pulsanti del percorso: restano tolti come in #384.
+3. **Sede senza «via»** — si accettano «località Casale 12», «strada Granarolo 5», «podere Sasso, Brisighella», «Faenza, RA» e il solo comune. Se manca il numero civico, Tony lo chiede una volta e va avanti. La sede non diventa un terreno; in questo passo «podere …, Comune» non è un podere. Il CAP vuoto non si inventa (niente tabella comuni). «monte coralli 3» e «coralli 3 faenza» restano ambigui.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Allenatore Tony: telaio a pacchetti e primo pacchetto landing.**
+
+## 2026-11-10 — Allenatore Tony: telaio condiviso e primo pacchetto landing
+
+Su `feat/allenatore-tony-telaio-pacchetto-landing` (PR verso develop). Non è un addestramento del modello e non entra un motore di valutazione esterno.
+
+1. **Telaio** — `tests/allenatore/turno-intervista.js` è lo stesso giro già usato dai test landing (server `rispostaAccountDaTesto` → `preparaTurnoOnboarding` → `decidiDopoRisposta`). Un pacchetto = situazioni, varianti, esito strutturato, dialoghi congelati. Il primo pacchetto è l'intervista account (`pacchetto-landing.test.js`). Niente enciclopedia agricola e niente pacchetto del Tony in-app.
+2. **Varianti** — oltre ai 57 casi della PR #377: refusi (`6 etari`, `tereni`, `si ciama`, `melogrno`), sede che sembra un campo («monte coralli 3» resta ambiguo), fuori tema a metà dialogo, correzione del turno. Il dialogo del ritest 10 nov resta congelato per intero.
+3. **CI** — job Vitest `allenatore landing` in `simulator-ci.yml` (`npm run sim:allenatore:vitest`), con `landing/**` nei path filter. Niente Playwright aggiunto per questo pacchetto.
+
+Come aggiungere un dialogo incollato da Pier: `tests/allenatore/README.md`. I test sintetici non dichiarano esiti di voce o browser. LANDING_ATTIVA / TONY_BUSSA_ATTIVO invariati. Nessun merge né deploy.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-10 — Tony: saluto landing senza pulsanti del percorso (demo EIMA).**
 
 ## 2026-11-10 — Tony: saluto landing senza i tre pulsanti del percorso
 

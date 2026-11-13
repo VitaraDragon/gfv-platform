@@ -38,6 +38,7 @@ import {
   scriviEsitoScheda
 } from '../../../shared/js/registro-trattamenti-form.js';
 import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
+import { formatQuantita, valoreQuantitaGrezzo } from '../../../shared/js/formato-quantita.js';
 
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
 const LAVORI_HREF = '../../../core/admin/gestione-lavori-standalone.html';
@@ -270,6 +271,7 @@ function renderProdottiTrattamento(rows) {
       return `<option value="${escapeHtml(item.id)}"${selected}>${escapeHtml(item.nome || item.codice || item.id)}</option>`;
     }).join('');
     const altro = !row.prodottoId && row.prodotto;
+    const grezzo = valoreQuantitaGrezzo(qta);
     return `<tr data-idx="${idx}">
       <td>
         <select class="prodotto-select" data-idx="${idx}">
@@ -280,7 +282,7 @@ function renderProdottiTrattamento(rows) {
       </td>
       <td><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${dose != null ? dose : ''}" style="width:75px"></td>
       <td><span class="prodotto-unita">${escapeHtml(unita)}</span></td>
-      <td><span class="prodotto-quantita">${qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '—'}</span></td>
+      <td><span class="prodotto-quantita"${grezzo !== '' ? ` data-valore="${grezzo}"` : ''}>${formatQuantita(qta, '', '—')}</span></td>
       <td><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" ${row.prodottoId && prezzo > 0 ? 'readonly' : ''} style="width:100px"></td>
       <td><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
     </tr>`;
@@ -385,7 +387,12 @@ function ricalcolaQuantitaCostoProdotti() {
     const unita = tr.querySelector('.prodotto-unita');
     const quantita = tr.querySelector('.prodotto-quantita');
     if (unita) unita.textContent = (anag && anag.unitaMisura) || '—';
-    if (quantita) quantita.textContent = qta != null && Number.isFinite(qta) ? qta.toFixed(3) : '—';
+    if (quantita) {
+      quantita.textContent = formatQuantita(qta, '', '—');
+      const grezzo = valoreQuantitaGrezzo(qta);
+      if (grezzo !== '') quantita.setAttribute('data-valore', grezzo);
+      else quantita.removeAttribute('data-valore');
+    }
     if (costoInput && prodottoId && prezzo > 0 && qta != null) {
       costoInput.value = (qta * prezzo).toFixed(2);
       costoInput.readOnly = true;
