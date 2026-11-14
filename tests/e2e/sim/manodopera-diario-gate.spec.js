@@ -10,11 +10,12 @@ import {
   GESTIONE_LAVORI_PATH,
   loginAsManagerFrutteto,
   loginAsManagerManodopera,
+  DASHBOARD_PATH,
 } from './helpers/sim-login.js';
 
 test.describe('Gate Manodopera / Diario', () => {
   test('senza Manodopera Gestione lavori non è nel menu e non è apribile', async ({ page }) => {
-    await loginAsManagerFrutteto(page);
+    await loginAsManagerFrutteto(page, { target: DASHBOARD_PATH });
     await page.waitForSelector('#gfv-pelle-shell a.gfv-pelle-mod');
     await page.waitForSelector('#gfv-pelle-home-actions');
 
@@ -30,7 +31,7 @@ test.describe('Gate Manodopera / Diario', () => {
   });
 
   test('con Manodopera i link CT non aprono il Diario editabile', async ({ page }) => {
-    await loginAsManagerManodopera(page);
+    await loginAsManagerManodopera(page, { target: DASHBOARD_PATH });
     await page.waitForSelector('#gfv-pelle-shell a.gfv-pelle-mod');
     await page.waitForSelector('#gfv-pelle-home-actions');
 

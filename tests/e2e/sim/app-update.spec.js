@@ -131,8 +131,10 @@ test.describe('barra nuova versione', () => {
     });
 
     test('Segna ore: Annulla tiene i dati e non ricarica', async ({ page }) => {
-        await loginAsCapoFromDevPage(page, { waitForWorkspace: false });
-        await page.goto('/core/segnatura-ore-standalone.html?emulator=1&swTest=1');
+        await loginAsCapoFromDevPage(page, {
+            waitForWorkspace: false,
+            target: '/core/segnatura-ore-standalone.html?emulator=1&swTest=1',
+        });
         await waitForSegnaturaOreLoaded(page);
         await attendiController(page);
         await page.reload();
@@ -165,8 +167,9 @@ test.describe('barra nuova versione', () => {
 
     test('la conversazione Tony salvata su beforeunload sopravvive ad Aggiorna', async ({ page }) => {
         test.setTimeout(180_000);
-        await loginAsManagerFromDevPage(page);
-        await page.goto('/core/dashboard-standalone.html?emulator=1&swTest=1&tonyE2e=1');
+        await loginAsManagerFromDevPage(page, {
+            target: '/core/dashboard-standalone.html?emulator=1&swTest=1&tonyE2e=1',
+        });
         await page.waitForFunction(() => typeof window.__tonyRestoreSession === 'function', null, {
             timeout: 60_000
         });
