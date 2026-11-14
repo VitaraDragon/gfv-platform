@@ -1686,6 +1686,36 @@ describe('sede: civico sulla via, una domanda, voce = testo', () => {
     expect(dopo.terreni).toHaveLength(0);
   });
 
+  it('«Piazza Garibaldi 3 Bagnacavallo» senza virgola non chiede il civico', () => {
+    const esito = turno(statoSede(), 'Piazza Garibaldi 3 Bagnacavallo', {
+      testo: CIVICO,
+      sede: { indirizzo: 'Piazza Garibaldi 3 Bagnacavallo', citta: null },
+      terreni: [{ nome: 'Garibaldi', superficie: 3, coltura: 'Grano' }],
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).toBe(PODERI);
+    expect(esito.testo).not.toMatch(/numero civico/i);
+    expect(esito.passo).toBe('poderi');
+    expect(esito.sede).toMatchObject({
+      indirizzo: 'Piazza Garibaldi 3',
+      citta: 'Bagnacavallo',
+    });
+    expect(esito.terreni).toHaveLength(0);
+  });
+
+  it('«Corso Mazzini 5, Lugo» resta senza domanda civico e senza diventare terreno', () => {
+    const esito = turno(statoSede(), 'Corso Mazzini 5, Lugo', {
+      testo: CIVICO,
+      sede: { indirizzo: 'Corso Mazzini 5, Lugo', citta: null },
+      terreni: [{ nome: 'Mazzini', superficie: 5, coltura: 'Vite' }],
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).not.toMatch(/numero civico/i);
+    expect(esito.passo).toBe('poderi');
+    expect(esito.sede).toMatchObject({ indirizzo: 'Corso Mazzini 5', citta: 'Lugo' });
+    expect(esito.terreni).toHaveLength(0);
+  });
+
   it('«via Roma 12, Faenza» al primo colpo non chiede il civico', () => {
     const esito = turno(statoSede(), 'via Roma 12, Faenza', {
       testo: 'Non ho capito bene. Riprova con via e comune.',

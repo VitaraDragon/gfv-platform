@@ -50,6 +50,9 @@ describe('separaViaEComune e unisciCivicoAllaSede', () => {
     ['via Roma a Faenza', 'via Roma', 'Faenza', null],
     ['via Roma 12, Faenza', 'via Roma 12', 'Faenza', null],
     ['via Roma, Faenza RA', 'via Roma', 'Faenza', 'RA'],
+    ['Piazza Garibaldi 3 Bagnacavallo', 'Piazza Garibaldi 3', 'Bagnacavallo', null],
+    ['Corso Mazzini 5, Lugo', 'Corso Mazzini 5', 'Lugo', null],
+    ['via Roma 12 Faenza', 'via Roma 12', 'Faenza', null],
   ])('%s → %s, %s', (indirizzo, via, citta, provincia) => {
     expect(separaViaEComune({ indirizzo, citta: null, cap: null, provincia: null })).toMatchObject({
       indirizzo: via,
@@ -61,6 +64,8 @@ describe('separaViaEComune e unisciCivicoAllaSede', () => {
   it('non tratta una sigla o un CAP come comune', () => {
     expect(separaViaEComune({ indirizzo: 'via Roma, RA', citta: null }).indirizzo).toBe('via Roma, RA');
     expect(separaViaEComune({ indirizzo: 'via Roma, 48018', citta: null }).citta).toBeFalsy();
+    expect(separaViaEComune({ indirizzo: 'Piazza Garibaldi 3 RA', citta: null }).citta).toBeFalsy();
+    expect(separaViaEComune({ indirizzo: 'Piazza Garibaldi 3 48010', citta: null }).citta).toBeFalsy();
   });
 
   it('il comune messo in indirizzo non si concatena al civico', () => {
@@ -203,6 +208,26 @@ describe('client: civico una volta, via e comune restano', () => {
     }
   );
 
+  it('«Piazza Garibaldi 3 Bagnacavallo» senza virgola non chiede il civico', () => {
+    const t = turnoClient(
+      vuoto,
+      'Piazza Garibaldi 3 Bagnacavallo',
+      {
+        sede: { indirizzo: 'Piazza Garibaldi 3 Bagnacavallo', citta: null },
+        terreni: [{ nome: 'Garibaldi', superficie: 3, coltura: 'Grano' }],
+      },
+      CIVICO
+    );
+    expect(t.dati.dati.sede).toMatchObject({
+      indirizzo: 'Piazza Garibaldi 3',
+      citta: 'Bagnacavallo',
+    });
+    expect(t.passo).toBe('poderi');
+    expect(t.testo).toBe(PODERI);
+    expect(String(t.testo || '')).not.toMatch(/numero civico/i);
+    expect(t.dati.dati.terreni).toHaveLength(0);
+  });
+
   it('via già numerata al primo colpo non chiede il civico', () => {
     const t = turnoClient(
       vuoto,
@@ -290,6 +315,23 @@ describe('server: stessa unione e stessa domanda unica', () => {
     expect(String(dopo.dati.sede.indirizzo)).not.toMatch(/faenza/i);
     expect(dopo.testo).toBe(PODERI);
     expect(dopo.dati.terreni).toHaveLength(0);
+  });
+
+  it('«Piazza Garibaldi 3 Bagnacavallo» senza virgola non chiede il civico', () => {
+    const out = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: CIVICO,
+        sede: { indirizzo: 'Piazza Garibaldi 3 Bagnacavallo', citta: null },
+        terreni: [{ nome: 'Garibaldi', superficie: 3 }],
+      }),
+      { argomento: 'sede', domanda: 'Piazza Garibaldi 3 Bagnacavallo', raccolti: '' }
+    );
+    expect(out.dati.sede).toMatchObject({
+      indirizzo: 'Piazza Garibaldi 3',
+      citta: 'Bagnacavallo',
+    });
+    expect(out.testo).toBe(PODERI);
+    expect(out.dati.terreni).toHaveLength(0);
   });
 
   it('Faenza e poi 12 lascia il numero e il comune', () => {

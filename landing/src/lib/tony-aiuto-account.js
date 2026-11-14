@@ -381,12 +381,12 @@ export function separaViaEComune(sede) {
   const indirizzo = normalizzaSpaziSede(sede.indirizzo);
   const cittaGia = normalizzaSpaziSede(sede.citta);
   let base = sede;
-  if (indirizzo && !cittaGia) {
+  if (indirizzo) {
     const spezzato = spezzaIndirizzoEComune(indirizzo);
-    if (spezzato) {
+    if (spezzato && (!cittaGia || stessoLuogoSede(cittaGia, spezzato.citta))) {
       base = {
         indirizzo: spezzato.indirizzo,
-        citta: spezzato.citta,
+        citta: cittaGia ? sede.citta : spezzato.citta,
         cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
         provincia: spezzato.provincia || sede.provincia || null,
       };
@@ -428,7 +428,26 @@ function spezzaIndirizzoEComune(indirizzo) {
       return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
     }
   }
-  return null;
+  return spezzaCivicoPoiComune(raw);
+}
+
+/**
+ * «Piazza Garibaldi 3 Bagnacavallo»: civico già detto, comune in coda, senza virgola.
+ * Solo se la frase è un indirizzo e la coda è un comune, non una sigla o un CAP.
+ * @param {string} raw
+ */
+function spezzaCivicoPoiComune(raw) {
+  if (!sembraIndirizzo(raw) || !/\d/.test(raw)) return null;
+  const m = raw.match(
+    /^(.*\d+[a-zA-Z]?)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’.-]*(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’.-]*){0,3})$/
+  );
+  if (!m) return null;
+  const via = normalizzaSpaziSede(m[1]);
+  const coda = normalizzaSpaziSede(m[2]);
+  if (!via || !/\d/.test(via) || sembraIndirizzo(coda)) return null;
+  const luogo = luogoComeComune(coda);
+  if (!luogo) return null;
+  return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
 }
 
 function conDomandaCivico(testo) {
@@ -2708,6 +2727,23 @@ export function preparaTurnoOnboarding(opts) {
                   : dedotta.provincia,
             }
           : dedotta;
+    } else if (
+      dedotta &&
+      modello &&
+      sembraIndirizzo(o.domanda) &&
+      /\d/.test(String(dedotta.indirizzo || '')) &&
+      !/\d/.test(String(modello.indirizzo || ''))
+    ) {
+      // Il civico è nella frase e il modello l'ha perso: si tiene la sede dedotta.
+      nuoviIn.sede = {
+        indirizzo: dedotta.indirizzo,
+        citta: dedotta.citta || modello.citta || null,
+        cap: modello.cap != null && modello.cap !== '' ? modello.cap : dedotta.cap,
+        provincia:
+          modello.provincia != null && modello.provincia !== ''
+            ? modello.provincia
+            : dedotta.provincia,
+      };
     }
   }
   // Sede/podere (o testo già consumato come indirizzo): mai terreni in questo turno.
@@ -3143,6 +3179,21 @@ export function preparaTurnoOnboarding(opts) {
       apriRiepilogo = false;
       testo = DOMANDA_CIVICO_FACOLTATIVA;
     }
+  }
+
+  const viaAccettata =
+    uniti.dati && uniti.dati.sede ? String(uniti.dati.sede.indirizzo || '') : '';
+  if (
+    passo0 === 'sede' &&
+    !fuoriTemaUtente &&
+    /\d/.test(viaAccettata) &&
+    /numero civico/i.test(String(testo != null ? testo : o.testo || ''))
+  ) {
+    passo = 'poderi';
+    bloccaAvanti = true;
+    vaiATerreni = false;
+    apriRiepilogo = false;
+    testo = DOMANDA_PODERI;
   }
 
   if (

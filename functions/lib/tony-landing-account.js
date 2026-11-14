@@ -621,12 +621,12 @@ function separaViaEComune(sede) {
   const indirizzo = normalizzaSpaziSede(sede.indirizzo);
   const cittaGia = normalizzaSpaziSede(sede.citta);
   let base = sede;
-  if (indirizzo && !cittaGia) {
+  if (indirizzo) {
     const spezzato = spezzaIndirizzoEComune(indirizzo);
-    if (spezzato) {
+    if (spezzato && (!cittaGia || stessoLuogoSede(cittaGia, spezzato.citta))) {
       base = {
         indirizzo: spezzato.indirizzo,
-        citta: spezzato.citta,
+        citta: cittaGia ? sede.citta : spezzato.citta,
         cap: sede.cap == null || sede.cap === "" ? null : sede.cap,
         provincia: spezzato.provincia || sede.provincia || null
       };
@@ -668,7 +668,27 @@ function spezzaIndirizzoEComune(indirizzo) {
       return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
     }
   }
-  return null;
+  return spezzaCivicoPoiComune(raw);
+}
+
+/**
+ * «Piazza Garibaldi 3 Bagnacavallo»: civico già detto, comune in coda, senza virgola.
+ * Solo se la frase è un indirizzo e la coda è un comune, non una sigla o un CAP.
+ * Allineato a landing/src/lib/tony-aiuto-account.js.
+ * @param {string} raw
+ */
+function spezzaCivicoPoiComune(raw) {
+  if (!sembraIndirizzo(raw) || !/\d/.test(raw)) return null;
+  const m = raw.match(
+    /^(.*\d+[a-zA-Z]?)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’.-]*(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’.-]*){0,3})$/
+  );
+  if (!m) return null;
+  const via = normalizzaSpaziSede(m[1]);
+  const coda = normalizzaSpaziSede(m[2]);
+  if (!via || !/\d/.test(via) || sembraIndirizzo(coda)) return null;
+  const luogo = luogoComeComune(coda);
+  if (!luogo) return null;
+  return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
 }
 
 function sedeHaQualcosa(sede) {
@@ -2342,6 +2362,22 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
           }
         : dedotta;
     }
+  } else if (sedeDetta && sembraIndirizzo(domanda)) {
+    const dedotta = pulisciSede(sedeDaTesto(domanda));
+    const viaModello = sede && sede.indirizzo ? String(sede.indirizzo) : "";
+    if (
+      dedotta &&
+      /\d/.test(String(dedotta.indirizzo || "")) &&
+      !/\d/.test(viaModello)
+    ) {
+      const precedente = sede && typeof sede === "object" ? sede : {};
+      sede = {
+        indirizzo: dedotta.indirizzo || null,
+        citta: dedotta.citta || precedente.citta || null,
+        cap: precedente.cap || dedotta.cap || null,
+        provincia: precedente.provincia || dedotta.provincia || null
+      };
+    }
   }
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   // Testo già consumato come sede/podere: mai terreni (né civico→ettari).
@@ -2444,6 +2480,14 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
       testo = "Hai dei poderi?";
     }
     if (!/\d/.test(domanda) && !giaChiestoCivico) testo = DOMANDA_CIVICO_FACOLTATIVA;
+  }
+
+  if (
+    sede &&
+    /\d/.test(String(sede.indirizzo || "")) &&
+    /numero civico/i.test(String(testo || ""))
+  ) {
+    testo = DOMANDA_PODERI_ACCOUNT;
   }
 
   return {
