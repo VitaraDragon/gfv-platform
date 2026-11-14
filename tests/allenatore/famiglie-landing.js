@@ -121,14 +121,11 @@ function famigliaNome() {
     for (const nome of NOMI) {
       const detto = nome.toLowerCase();
       const domanda = prefisso + detto;
-      const ripeteDomanda = /^si (chiama|piama|kiama|chama) /.test(domanda);
       out.push(
         caso({
           id: 'nome: ' + JSON.stringify(domanda),
           famiglia: 'nome',
-          skip: ripeteDomanda
-            ? 'nota, da decidere: il nome si salva, ma lo schermo resta «Come si chiama il terreno?»'
-            : null,
+          skip: null,
           stato: () =>
             statoTerreni(1, {
               nome: null,
@@ -179,16 +176,12 @@ function famigliaEttari() {
   frasi.push('mezzo ettaro');
   const out = [];
   for (const domanda of frasi) {
-    const daHelper = numeroEttariDetto(domanda, { inAttesaEttari: true });
-    const mezzo = /^mezzo ettaro$/i.test(domanda.trim());
-    const superficie = mezzo ? 0.5 : daHelper;
+    const superficie = numeroEttariDetto(domanda, { inAttesaEttari: true });
     out.push(
       caso({
         id: 'ettari: ' + JSON.stringify(domanda),
         famiglia: 'ettari',
-        skip: mezzo
-          ? 'nota, da decidere: «mezzo ettaro» non entra in numeroEttariDetto, il terreno resta senza superficie'
-          : null,
+        skip: null,
         stato: () =>
           statoTerreni(1, { nome: 'Melograno', superficie: null, coltura: 'Melograno' }),
         passi: [
@@ -524,7 +517,7 @@ function famigliaCorrezioni() {
     caso({
       id: 'correzione: no, è 8 ettari',
       famiglia: 'correzioni',
-      skip: 'nota, da decidere: «no, è 8 ettari» aggiunge un terreno «No» invece di aggiornare Discesa',
+      skip: null,
       stato: base,
       passi: [
         {
@@ -546,7 +539,7 @@ function famigliaCorrezioni() {
     caso({
       id: 'correzione: no, sono 7,5 ha',
       famiglia: 'correzioni',
-      skip: 'nota, da decidere: «no, sono 7,5 ha» aggiunge un terreno invece di aggiornare Discesa',
+      skip: null,
       stato: base,
       passi: [
         {
@@ -564,7 +557,7 @@ function famigliaCorrezioni() {
     caso({
       id: 'correzione: si chiama Collina, non Discesa',
       famiglia: 'correzioni',
-      skip: 'nota, da decidere: «si chiama Collina, non Discesa» non rinomina il terreno già raccolto',
+      skip: null,
       stato: base,
       passi: [
         {
@@ -672,7 +665,7 @@ function famigliaOrdine() {
     },
     {
       frase: (nome, ha, coltura) => coltura + ', ' + nome + ', ' + parole[ha] + ' ettari',
-      skip: 'nota, da decidere: l’ordine «coltura, nome, ettari in parole» non viene letto come terreno',
+      skip: null,
     },
   ];
   const out = [];

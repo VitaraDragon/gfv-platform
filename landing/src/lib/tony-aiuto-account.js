@@ -799,9 +799,45 @@ function pulisciNomeCandidato(grezzo) {
  * @param {string} domanda
  * @returns {Array<{ nome: string|null, varieta: string|null, superficie: number|null }>}
  */
+function superficieCorrezioneNo(domanda) {
+  const d = String(domanda || '').trim();
+  if (!/^no\b/i.test(d)) return null;
+  const m = d.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari\b|ettaro\b|etari\b)/i);
+  if (!m) return null;
+  const n = Number(String(m[1]).replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function rinominaDetta(domanda) {
+  const m = String(domanda || '')
+    .trim()
+    .match(/^si\s+(?:chiama|piama|kiama|chama)\s+([^,]+),\s*non\s+(.+)$/i);
+  if (!m) return null;
+  const nuovo = nomeTerrenoVisibile(m[1]);
+  const vecchio = nomeTerrenoVisibile(m[2]);
+  if (!nuovo || !vecchio || stessoNome(nuovo, vecchio)) return null;
+  return { nuovo, vecchio };
+}
+
+/** «grano, discesa, tre ettari»: coltura, nome, ettari in parole. */
+function fraseColturaNomeEttari(raw) {
+  const m = String(raw || '')
+    .trim()
+    .match(
+      /^([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*),\s*([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*),\s*(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+ettari?$/i
+    );
+  if (!m) return null;
+  const n = NUMERI_TERRANI_PAROLA[String(m[3]).toLowerCase()];
+  if (!n) return null;
+  if (!normalizzaColturaCatalogo(m[1]) && !risolviVitigno(m[1])) return null;
+  return { nome: m[2], varieta: m[1], superficie: n };
+}
+
 export function interpretaFraseTerreni(domanda) {
   const raw = String(domanda || '').trim();
   if (!raw) return [];
+  const ordine = fraseColturaNomeEttari(raw);
+  if (ordine) return [ordine];
   if (sembraIndirizzo(raw)) return [{ nome: null, varieta: null, superficie: null }];
   const chiama = raw.match(
     new RegExp(RE_SI_CHIAMA.source + '(.+?)(?:[,.]|$)', 'i')
@@ -1003,7 +1039,12 @@ export function nomeLiberoSeInAttesa(domanda, terreniAttuali) {
   if (domandaNomeSenzaRisposta(s)) return null;
   if (/\d/.test(s)) return null;
   if (/\b(ha\b|ettar|podere|poderi|riepilogo|coltura)\b/i.test(s)) return null;
-  if (/^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s)) return null;
+  if (
+    /^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s) &&
+    !new RegExp(RE_SI_CHIAMA.source, 'i').test(s)
+  ) {
+    return null;
+  }
   if (/\b(non so|non lo so|non mi ricordo|non ricordo)\b/i.test(s)) return null;
   const detto = interpretaFraseTerreni(s).find((x) => x.nome);
   const cand = detto && detto.nome ? detto.nome : pulisciNomeCandidato(s);
@@ -1062,7 +1103,12 @@ function parolaDopoParticella(pezzo) {
 function colturaNellaFinestra(frase, superficie) {
   const finestra = indiceMisuraFrase(frase, superficie);
   if (!finestra) return '';
-  return parolaDopoParticella(String(frase || '').slice(finestra.da, finestra.a));
+  const pezzo = String(frase || '').slice(finestra.da, finestra.a);
+  const dopo = parolaDopoParticella(pezzo);
+  if (dopo) return dopo;
+  const ha = pezzo.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari\b|ettaro\b)/i);
+  if (!ha) return '';
+  return varietaDopoUnita(pezzo, ha) || '';
 }
 
 function haSegnalePosizioneNome(frase) {
@@ -1107,8 +1153,9 @@ function applicaColturaNomeEVitigno(out, domanda) {
     const nomeEColtura = !!(nome && (canonSenzaVitigno(nome) || risolviVitigno(nome)));
     const uguale = !!(nome && col && chiaveNome(col) === chiaveNome(nome));
     const destinazione = vitigno || canonDetta;
+    const generica = !col || chiaveNome(col) === chiaveNome('Vite da Vino');
     if (vitigno) {
-      if (!nome || uguale || nomeEColtura) out.coltura = destinazione;
+      if (!nome || uguale || nomeEColtura || generica) out.coltura = destinazione;
     } else if (uguale || !col) {
       out.coltura = destinazione;
     }
@@ -1295,6 +1342,35 @@ function allineaListaAllaFrase(letti, lista, attuali, domanda) {
 export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
   const letti = interpretaFraseTerreni(domanda);
   const attuali = Array.isArray(terreniAttuali) ? terreniAttuali : [];
+  const supNo = superficieCorrezioneNo(domanda);
+  if (supNo != null) {
+    const nominati = attuali.filter((t) => t && nomeTerrenoVisibile(t.nome));
+    if (nominati.length === 1) {
+      const base = nominati[0];
+      return [
+        {
+          nome: nomeTerrenoVisibile(base.nome),
+          superficie: supNo,
+          coltura: base.coltura || null,
+          podere: base.podere || null,
+        },
+      ];
+    }
+  }
+  const rin = rinominaDetta(domanda);
+  if (rin) {
+    const base = attuali.find((t) => t && stessoNome(t.nome, rin.vecchio));
+    if (base) {
+      return [
+        {
+          nome: rin.nuovo,
+          superficie: typeof base.superficie === 'number' ? base.superficie : null,
+          coltura: base.coltura || null,
+          podere: base.podere || null,
+        },
+      ];
+    }
+  }
   const nomeLibero = nomeLiberoSeInAttesa(domanda, attuali);
   const lista = Array.isArray(terreniNuovi)
     ? terreniNuovi.map((t) => (t && typeof t === 'object' ? Object.assign({}, t) : t))
@@ -2393,6 +2469,7 @@ export function numeroEttariDetto(domanda, opts) {
     .replace(/[?!.,;:]+$/g, '')
     .replace(/\s+/g, ' ');
   if (!d) return null;
+  if (/^mezzo\s+ettaro$/i.test(d)) return 0.5;
   const conUnita = d.match(
     /^(?:sono\s+|ho\s+|ne\s+ho\s+)?(\d+(?:[.,]\d+)?)\s*(?:ha|ettari?|etari)$/i
   );
@@ -2797,6 +2874,11 @@ export function preparaTurnoOnboarding(opts) {
     nuoviIn,
     passo0 && PASSI_AIUTO.indexOf(passo0) >= 0 ? passo0 : 'terreni'
   );
+  const rinNome = rinominaDetta(o.domanda);
+  if (rinNome && Array.isArray(uniti.dati.terreni)) {
+    const restano = uniti.dati.terreni.filter((t) => t && !stessoNome(t.nome, rinNome.vecchio));
+    if (restano.length !== uniti.dati.terreni.length) uniti.dati.terreni = restano;
+  }
   const testoIngresso = String(o.testo || '').trim();
   if (!chiedeRiepilogoEsplicito(o.domanda)) {
     o.testo = togliFrasiRiepilogo(togliErroreVuoto(o.testo));

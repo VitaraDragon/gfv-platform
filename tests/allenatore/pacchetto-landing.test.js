@@ -1737,3 +1737,28 @@ describe('sede: civico sulla via, una domanda, voce = testo', () => {
     expect(esito.poderi).toHaveLength(0);
   });
 });
+
+describe('ritest varietà', () => {
+  it('«Collina 3 ettari trebbiano» salva la coltura Trebbiano', () => {
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { indirizzo: 'via Roma 12', citta: 'Faenza' },
+        poderi: [{ nome: 'Castaldo' }],
+        terreni: [],
+      },
+    };
+    const esito = turno(stato, 'Collina 3 ettari trebbiano', {
+      testo: '',
+      terreni: [{ nome: 'Collina', superficie: 3, coltura: 'Vite da Vino' }],
+    });
+    expect(esito.terreni).toHaveLength(1);
+    expect(esito.terreni[0]).toMatchObject({
+      nome: 'Collina',
+      superficie: 3,
+      coltura: 'Trebbiano',
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).toMatch(/Trebbiano/);
+  });
+});

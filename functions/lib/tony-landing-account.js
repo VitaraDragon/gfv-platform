@@ -1728,7 +1728,12 @@ function parolaDopoParticella(pezzo) {
 function colturaNellaFinestra(frase, superficie) {
   const finestra = indiceMisuraFrase(frase, superficie);
   if (!finestra) return "";
-  return parolaDopoParticella(String(frase || "").slice(finestra.da, finestra.a));
+  const pezzo = String(frase || "").slice(finestra.da, finestra.a);
+  const dopo = parolaDopoParticella(pezzo);
+  if (dopo) return dopo;
+  const ha = pezzo.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari\b|ettaro\b)/i);
+  if (!ha) return "";
+  return varietaDopoUnita(pezzo, ha) || "";
 }
 
 function haSegnalePosizioneNome(frase) {
@@ -1772,8 +1777,9 @@ function applicaColturaNomeEVitigno(out, domanda) {
     const destinazione = vitigno
       ? trovaNomeColturaCanonico(vitigno) || vitigno
       : canonDetta;
+    const generica = !col || chiaveNome(col) === chiaveNome("Vite da Vino");
     if (vitigno) {
-      if (!nome || uguale || nomeEColtura) out.coltura = destinazione;
+      if (!nome || uguale || nomeEColtura || generica) out.coltura = destinazione;
     } else if (uguale || !col) {
       out.coltura = destinazione;
     }
@@ -1797,6 +1803,13 @@ function applicaColturaNomeEVitigno(out, domanda) {
 
 function applicaNomeTerrenoDaDomanda(domanda, dati) {
   if (!dati || typeof dati !== "object") return dati;
+  const rinMatch = String(domanda || "")
+    .trim()
+    .match(/^si\s+(?:chiama|piama|kiama|chama)\s+[^,]+,\s*non\s+(.+)$/i);
+  if (rinMatch) {
+    const vecchio = nomeTerrenoVisibile(rinMatch[1]);
+    if (vecchio) dati = Object.assign({}, dati, { nomeRitirato: vecchio });
+  }
   const terreni = Array.isArray(dati.terreni) ? dati.terreni : null;
   if (!terreni || !terreni.length) return dati;
   const frase = String(domanda || "");
@@ -1818,7 +1831,10 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
       !domandaNomeSenzaRisposta(s) &&
       !/\d/.test(s) &&
       !/\b(ha\b|ettar|podere|poderi|riepilogo|coltura)\b/i.test(s) &&
-      !/^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s) &&
+      !(
+        /^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s) &&
+        !new RegExp(RE_SI_CHIAMA.source, "i").test(s)
+      ) &&
       !/\b(non so|non lo so|non mi ricordo|non ricordo)\b/i.test(s);
     const nomeBreve = breve
       ? nomeEsplicito || nomeTerrenoVisibile(togliConnettiviFinaliNome(s))
@@ -1993,7 +2009,7 @@ const CONTEGGIO_IN_LETTERE = Object.freeze({
  * @param {object[]} terreniTurno
  * @returns {number}
  */
-function contaTerreniConNomeDopoTurno(raccolti, terreniTurno) {
+function contaTerreniConNomeDopoTurno(raccolti, terreniTurno, nomeRitirato) {
   const info = terreniDaRaccolti(raccolti);
   const noti = Object.create(null);
   const nomi = Array.isArray(info.nomi) ? info.nomi : [];
@@ -2012,7 +2028,15 @@ function contaTerreniConNomeDopoTurno(raccolti, terreniTurno) {
     visti[k] = true;
     nuovi += 1;
   }
-  return nomi.length + nuovi;
+  let base = nomi.length;
+  const ritirato = nomeSenzaPrefissoPodere(nomeTerrenoVisibile(nomeRitirato));
+  if (ritirato && noti[ritirato]) {
+    const ancora = lista.some(function (t) {
+      return nomeSenzaPrefissoPodere(nomeTerrenoVisibile(t && t.nome)) === ritirato;
+    });
+    if (!ancora) base -= 1;
+  }
+  return base + nuovi;
 }
 
 function riscriviConteggioTerreni(testo, n) {
@@ -2182,7 +2206,7 @@ function colturaSenzaNomeInRaccolti(raccolti, superficie) {
  * @param {string} raccolti
  * @returns {string}
  */
-function confermaTerrenoSeTestoVuoto(testo, dati, raccolti) {
+function confermaTerrenoSeTestoVuoto(testo, dati, raccolti, nomeRitirato) {
   if (String(testo || "").trim()) return String(testo || "");
   const lista = dati && Array.isArray(dati.terreni) ? dati.terreni : [];
   if (!lista.length) return "";
@@ -2216,7 +2240,11 @@ function confermaTerrenoSeTestoVuoto(testo, dati, raccolti) {
     bersaglio.coltura = colturaSenzaNomeInRaccolti(raccolti, bersaglio.superficie);
   }
   if (!String(bersaglio.coltura || "").trim()) return "";
-  const k = contaTerreniConNomeDopoTurno(raccolti, lista);
+  const k = contaTerreniConNomeDopoTurno(
+    raccolti,
+    lista,
+    nomeRitirato || (dati && dati.nomeRitirato)
+  );
   return fraseConfermaTerreno(bersaglio, k);
 }
 
@@ -2231,17 +2259,19 @@ function confermaTerrenoSeTestoVuoto(testo, dati, raccolti) {
 function chiudiTestoAccount(testo, dati, raccolti) {
   const chiedi = dati && dati.chiediColturaTerreno ? String(dati.chiediColturaTerreno) : "";
   const corretta = !!(dati && dati.colturaCorretta);
+  const nomeRitirato = dati && dati.nomeRitirato ? dati.nomeRitirato : "";
   if (dati) {
     delete dati.chiediColturaTerreno;
     delete dati.colturaCorretta;
+    delete dati.nomeRitirato;
   }
   if (chiedi) return "Che cosa ci coltivi nel terreno " + chiedi + "?";
   let dopoNome = togliIntroScheda(testoSeMancaNomeTerreno(testo, dati));
   if (confermaDaRiscrivere(dopoNome, dati, corretta)) {
-    const rifatta = confermaTerrenoSeTestoVuoto("", dati, raccolti || "");
+    const rifatta = confermaTerrenoSeTestoVuoto("", dati, raccolti || "", nomeRitirato);
     if (rifatta) return rifatta;
   }
-  return confermaTerrenoSeTestoVuoto(dopoNome, dati, raccolti || "");
+  return confermaTerrenoSeTestoVuoto(dopoNome, dati, raccolti || "", nomeRitirato);
 }
 
 function togliIntroScheda(testo) {
