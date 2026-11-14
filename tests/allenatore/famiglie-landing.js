@@ -30,8 +30,8 @@ const VITIGNI_PAROLA = ['trebbiano', 'sangiovese'];
 
 /**
  * Catalogo, oppure la parola del vitigno (un nome proprio la tiene),
- * oppure la coltura detta con l'iniziale. Il vitigno diventa Vite da Vino
- * solo nel caso esplicito in cui il nome è lui stesso una coltura.
+ * oppure la coltura detta con l'iniziale. Trebbiano e Sangiovese sono
+ * colture a sé. «uva» / «vite» / «vigna» restano Vite da Vino.
  */
 export function colturaAttesa(detto, nome) {
   const k = String(detto || '').toLowerCase();
@@ -45,7 +45,7 @@ export function colturaAttesa(detto, nome) {
   }
   const canon = normalizzaColturaCatalogo(detto);
   if (canon) return { nome: canon, fuori: false };
-  if (VITIGNI_PAROLA.indexOf(k) >= 0) return { nome: 'Vite da Vino', fuori: false };
+  if (VITIGNI_PAROLA.indexOf(k) >= 0) return { nome: iniziale(detto), fuori: false };
   return { nome: iniziale(detto), fuori: true };
 }
 
@@ -272,7 +272,7 @@ function famigliaColtura() {
       ],
       atteso: {
         nTerreni: 2,
-        terreni: [{ nome: 'Ciliegio', superficie: 7, coltura: 'Vite da Vino' }],
+        terreni: [{ nome: 'Ciliegio', superficie: 7, coltura: 'Trebbiano' }],
         passo: 'terreni',
         apriRiepilogo: false,
         voceUguale: true,

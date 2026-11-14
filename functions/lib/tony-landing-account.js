@@ -244,7 +244,7 @@ function promptSistemaAccount(argomento, opzioni) {
     "Fuori tema: se il messaggio non c'entra col passo (es. «piscina»), rispondi con UNA frase che lo riporta al passo e metti fuoriTema: true; non trattarlo come nome di podere o terreno.",
     "Non fare due volte di seguito la stessa domanda.",
     "Il nome di un podere o di un terreno va scritto esattamente come lo dice l'utente, comprese parole come Podere, Cascina, Tenuta, Campo: non accorciarlo.",
-    "Il nome del terreno non è la coltura, la varietà né gli ettari. «3 ha di trebbiano» ha superficie 3 e varietà trebbiano, ma nome null: chiedi come si chiama quel terreno e tieni ettari e coltura. «laghetto grano 5 ha» è nome laghetto, coltura Grano, 5 ha: la coltura può stare prima degli ettari. Se il nome è già esplicito («si chiama Vigna Alta», «Vigna Alta: 3 ha»), scrivilo e non chiedere di nuovo il nome. Una sola parola che è una coltura («pesco») corregge il terreno in attesa, non ne crea uno nuovo. Esempio: «ciliegio è 7 ha e c'è del trebbiano» → nome Ciliegio, 7 ha, coltura «Vite da Vino» (il trebbiano è un vitigno). Il nome non è la coltura, anche se coincide con una coltura del catalogo.",
+    "Il nome del terreno non è la coltura, la varietà né gli ettari. «3 ha di trebbiano» ha superficie 3 e varietà trebbiano, ma nome null: chiedi come si chiama quel terreno e tieni ettari e coltura. «laghetto grano 5 ha» è nome laghetto, coltura Grano, 5 ha: la coltura può stare prima degli ettari. Se il nome è già esplicito («si chiama Vigna Alta», «Vigna Alta: 3 ha»), scrivilo e non chiedere di nuovo il nome. Una sola parola che è una coltura («pesco») corregge il terreno in attesa, non ne crea uno nuovo. Esempio: «ciliegio è 7 ha e c'è del trebbiano» → nome Ciliegio, 7 ha, coltura «Trebbiano» (il trebbiano è una coltura a sé, uva da vino). Il nome non è la coltura, anche se coincide con una coltura del catalogo.",
     "I poderi sono facoltativi. Nel passo «poderi» chiedi una volta se ne ha. Un no non inventa poderi. Se ne dice uno, anche fuori dal passo, tienilo senza duplicarlo. Nel passo «terreni» non ripetere la domanda sui poderi.",
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
     "Quando passi ai terreni e non ne hai ancora raccolti, chiedi il primo così: «Dimmi il primo terreno: come si chiama, quanti ettari e cosa ci coltivi?». Non chiedere «Quanti terreni hai e come si chiamano?». Se l'utente risponde solo con un numero di terreni (es. «7 terreni», «ne ho 4», «cinque»), non mettere fatto: true e non parlare di riepilogo: se il numero è >5 avvisa del limite gratuito, poi chiedi comunque il primo terreno (nome, ettari, coltura).",
@@ -1024,76 +1024,88 @@ function trovaNomeColturaCanonico(nome) {
 }
 
 /**
- * Vitigni comuni → Vite da Vino. Chiave esatta: «ciliegiolo» è un vitigno,
+ * Vitigni come colture a sé (uva da vino). Chiave esatta: «ciliegiolo» è un vitigno,
  * «ciliegio» resta la coltura Ciliegio (catalogo / SINONIMI, controllati prima).
- * Allineato a landing/src/lib/tony-aiuto-account.js e a VARIETA_PREDEFINITE.
+ * «uva» / «vite» / «vigna» restano Vite da Vino.
+ * Allineato a landing/src/lib/tony-aiuto-account.js e a COLTURE_PREDEFINITE.
  */
 const VITIGNI_VERSO_VITE = Object.freeze([
-  "trebbiano",
-  "sangiovese",
-  "albana",
-  "lambrusco",
-  "merlot",
-  "cabernet",
-  "cabernet sauvignon",
-  "cabernet franc",
-  "chardonnay",
-  "pinot",
-  "pinot grigio",
-  "pinot nero",
-  "pinot noir",
-  "pinot bianco",
-  "barbera",
-  "nebbiolo",
-  "montepulciano",
-  "primitivo",
-  "moscato",
-  "malvasia",
-  "vermentino",
-  "glera",
-  "ciliegiolo",
-  "nero d'avola",
-  "aglianico",
-  "corvina",
-  "negroamaro",
-  "dolcetto",
-  "cannonau",
-  "lagrein",
-  "teroldego",
-  "refosco",
-  "raboso",
-  "schiava",
-  "marzemino",
-  "sauvignon blanc",
-  "fiano",
-  "grechetto",
-  "garganega",
-  "cortese",
-  "verdicchio",
-  "pecorino",
-  "falanghina",
-  "gewürztraminer",
-  "riesling",
-  "syrah",
-  "grenache",
-  "tempranillo",
-  "zinfandel",
-  "malbec",
-  "carménère",
-  "viognier",
-  "sémillon",
-  "chenin blanc",
-  "albariño",
-  "müller-thurgau"
+  "Trebbiano",
+  "Sangiovese",
+  "Albana",
+  "Lambrusco",
+  "Merlot",
+  "Cabernet",
+  "Cabernet Sauvignon",
+  "Cabernet Franc",
+  "Chardonnay",
+  "Pinot",
+  "Pinot Grigio",
+  "Pinot Nero",
+  "Pinot Noir",
+  "Pinot Bianco",
+  "Barbera",
+  "Nebbiolo",
+  "Montepulciano",
+  "Primitivo",
+  "Moscato",
+  "Malvasia",
+  "Vermentino",
+  "Glera",
+  "Ciliegiolo",
+  "Nero d'Avola",
+  "Aglianico",
+  "Corvina",
+  "Negroamaro",
+  "Dolcetto",
+  "Cannonau",
+  "Lagrein",
+  "Teroldego",
+  "Refosco",
+  "Raboso",
+  "Schiava",
+  "Marzemino",
+  "Sauvignon Blanc",
+  "Fiano",
+  "Grechetto",
+  "Garganega",
+  "Cortese",
+  "Verdicchio",
+  "Pecorino",
+  "Falanghina",
+  "Gewürztraminer",
+  "Riesling",
+  "Syrah",
+  "Grenache",
+  "Tempranillo",
+  "Zinfandel",
+  "Malbec",
+  "Carménère",
+  "Viognier",
+  "Sémillon",
+  "Chenin Blanc",
+  "Albariño",
+  "Müller-Thurgau"
 ]);
 
 function risolviVitigno(grezzo) {
   const chiave = chiaveNome(grezzo);
   if (!chiave) return null;
   for (let i = 0; i < VITIGNI_VERSO_VITE.length; i++) {
-    if (chiaveNome(VITIGNI_VERSO_VITE[i]) === chiave) return "Vite da Vino";
+    if (chiaveNome(VITIGNI_VERSO_VITE[i]) === chiave) return VITIGNI_VERSO_VITE[i];
   }
   return null;
+}
+
+/** «pinot bianco» è Pinot Bianco, non il Pinot più corto. Fino a tre parole. */
+function vitignoPiuLungo(parole, da) {
+  let best = null;
+  const max = Math.min(parole.length, da + 3);
+  for (let n = 1; n <= max - da; n++) {
+    const v = risolviVitigno(parole.slice(da, da + n).join(" "));
+    if (v) best = v;
+  }
+  return best;
 }
 
 /**
@@ -1546,7 +1558,8 @@ function varietaDopoUnita(frase, matchHa) {
   const coda = String(frase || "").slice(matchHa.index + matchHa[0].length);
   const parole = coda.match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
   for (let i = 0; i < parole.length; i++) {
-    if (!eRumoreParlatoNome(parole[i])) return parole[i];
+    if (eRumoreParlatoNome(parole[i])) continue;
+    return vitignoPiuLungo(parole, i) || parole[i];
   }
   return "";
 }
@@ -1701,11 +1714,13 @@ function indiceMisuraFrase(frase, superficie) {
 
 function parolaDopoParticella(pezzo) {
   const re =
-    /(?:c['’]?è\s+(?:del|della|dello|dei|la)|ce\s+(?:del|della|dello)|ci\s+coltivo|\bcoltivo\b|ci\s+ho|\bdi\b|\ba\b)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
+    /(?:c['’]?è\s+(?:del|della|dello|dei|la)|ce\s+(?:del|della|dello)|ci\s+coltivo|\bcoltivo\b|ci\s+ho|\bdi\b|\ba\b)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*){0,2})/gi;
   let m;
   const s = String(pezzo || "");
   while ((m = re.exec(s)) !== null) {
-    if (!eRumoreParlatoNome(m[1])) return m[1];
+    const parole = String(m[1] || "").match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
+    if (!parole.length || eRumoreParlatoNome(parole[0])) continue;
+    return vitignoPiuLungo(parole, 0) || parole[0];
   }
   return "";
 }
@@ -1825,11 +1840,24 @@ function applicaNomeTerrenoDaDomanda(domanda, dati) {
         if (match.length === 1) target = match[0];
       }
       if (target) {
+        const vitigno = risolviVitigno(nomeBreve);
+        const colOra = String(target.coltura || "");
+        const sostituisci =
+          !!vitigno &&
+          (!colOra ||
+            chiaveNome(colOra) === chiaveNome("Vite da Vino") ||
+            chiaveNome(colOra) === chiaveNome(nomeBreve));
         const outT = terreniVisibili.map(function (t) {
           if (t !== target) return t;
-          return Object.assign({}, t, { nome: nomeBreve });
+          const voce = Object.assign({}, t, { nome: nomeBreve });
+          if (sostituisci) voce.coltura = vitigno;
+          return voce;
         });
-        return Object.assign({}, dati, { terreni: outT });
+        const copia = Object.assign({}, dati, { terreni: outT });
+        if (sostituisci && chiaveNome(colOra) !== chiaveNome(vitigno)) {
+          copia.colturaCorretta = true;
+        }
+        return copia;
       }
     }
     return Object.assign({}, dati, { terreni: terreniVisibili });

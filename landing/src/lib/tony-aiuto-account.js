@@ -31,75 +31,87 @@ const MESSAGGI_PASSAGGIO = Object.freeze({
 });
 
 /**
- * Vitigni comuni → Vite da Vino. Chiave esatta: «ciliegiolo» è un vitigno,
- * «ciliegio» resta la coltura Ciliegio. Allineato a functions/lib/tony-landing-account.js.
+ * Vitigni come colture a sé (uva da vino). Chiave esatta: «ciliegiolo» è un vitigno,
+ * «ciliegio» resta la coltura Ciliegio. «uva» / «vite» / «vigna» restano Vite da Vino
+ * (SINONIMI_COLTURA). Allineato a functions/lib/tony-landing-account.js e al catalogo.
  */
 const VITIGNI_VERSO_VITE = Object.freeze([
-  'trebbiano',
-  'sangiovese',
-  'albana',
-  'lambrusco',
-  'merlot',
-  'cabernet',
-  'cabernet sauvignon',
-  'cabernet franc',
-  'chardonnay',
-  'pinot',
-  'pinot grigio',
-  'pinot nero',
-  'pinot noir',
-  'pinot bianco',
-  'barbera',
-  'nebbiolo',
-  'montepulciano',
-  'primitivo',
-  'moscato',
-  'malvasia',
-  'vermentino',
-  'glera',
-  'ciliegiolo',
-  "nero d'avola",
-  'aglianico',
-  'corvina',
-  'negroamaro',
-  'dolcetto',
-  'cannonau',
-  'lagrein',
-  'teroldego',
-  'refosco',
-  'raboso',
-  'schiava',
-  'marzemino',
-  'sauvignon blanc',
-  'fiano',
-  'grechetto',
-  'garganega',
-  'cortese',
-  'verdicchio',
-  'pecorino',
-  'falanghina',
-  'gewürztraminer',
-  'riesling',
-  'syrah',
-  'grenache',
-  'tempranillo',
-  'zinfandel',
-  'malbec',
-  'carménère',
-  'viognier',
-  'sémillon',
-  'chenin blanc',
-  'albariño',
-  'müller-thurgau',
+  'Trebbiano',
+  'Sangiovese',
+  'Albana',
+  'Lambrusco',
+  'Merlot',
+  'Cabernet',
+  'Cabernet Sauvignon',
+  'Cabernet Franc',
+  'Chardonnay',
+  'Pinot',
+  'Pinot Grigio',
+  'Pinot Nero',
+  'Pinot Noir',
+  'Pinot Bianco',
+  'Barbera',
+  'Nebbiolo',
+  'Montepulciano',
+  'Primitivo',
+  'Moscato',
+  'Malvasia',
+  'Vermentino',
+  'Glera',
+  'Ciliegiolo',
+  "Nero d'Avola",
+  'Aglianico',
+  'Corvina',
+  'Negroamaro',
+  'Dolcetto',
+  'Cannonau',
+  'Lagrein',
+  'Teroldego',
+  'Refosco',
+  'Raboso',
+  'Schiava',
+  'Marzemino',
+  'Sauvignon Blanc',
+  'Fiano',
+  'Grechetto',
+  'Garganega',
+  'Cortese',
+  'Verdicchio',
+  'Pecorino',
+  'Falanghina',
+  'Gewürztraminer',
+  'Riesling',
+  'Syrah',
+  'Grenache',
+  'Tempranillo',
+  'Zinfandel',
+  'Malbec',
+  'Carménère',
+  'Viognier',
+  'Sémillon',
+  'Chenin Blanc',
+  'Albariño',
+  'Müller-Thurgau',
 ]);
 
 function risolviVitigno(grezzo) {
   const chiave = chiaveNome(grezzo);
   if (!chiave) return null;
   for (let i = 0; i < VITIGNI_VERSO_VITE.length; i++) {
-    if (chiaveNome(VITIGNI_VERSO_VITE[i]) === chiave) return 'Vite da Vino';
+    if (chiaveNome(VITIGNI_VERSO_VITE[i]) === chiave) return VITIGNI_VERSO_VITE[i];
   }
   return null;
+}
+
+/** «pinot bianco» è Pinot Bianco, non il Pinot più corto. Fino a tre parole. */
+function vitignoPiuLungo(parole, da) {
+  let best = null;
+  const max = Math.min(parole.length, da + 3);
+  for (let n = 1; n <= max - da; n++) {
+    const v = risolviVitigno(parole.slice(da, da + n).join(' '));
+    if (v) best = v;
+  }
+  return best;
 }
 
 /** Allineato a functions/lib/tony-landing-account.js (SINONIMI_COLTURA). */
@@ -674,7 +686,8 @@ function varietaDopoUnita(pezzo, matchHa) {
   const coda = String(pezzo || '').slice(matchHa.index + matchHa[0].length);
   const parole = coda.match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
   for (let i = 0; i < parole.length; i++) {
-    if (!eRumoreParlatoNome(parole[i])) return parole[i];
+    if (eRumoreParlatoNome(parole[i])) continue;
+    return vitignoPiuLungo(parole, i) || parole[i];
   }
   return null;
 }
@@ -853,6 +866,12 @@ export function interpretaFraseTerreni(domanda) {
       if (soloCol && !eRumoreParlatoNome(soloCol[1])) varieta = soloCol[1];
     }
     if (varieta && eRumoreParlatoNome(varieta)) varieta = null;
+    if (varieta) {
+      const paroleVarieta =
+        String(varieta).match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
+      const canonVarieta = paroleVarieta.length ? vitignoPiuLungo(paroleVarieta, 0) : null;
+      if (canonVarieta) varieta = canonVarieta;
+    }
     // Nome esplicito («lo chiamiamo Melograno») resta anche se coincide con la coltura.
     if (
       nome &&
@@ -1029,11 +1048,13 @@ function indiceMisuraFrase(frase, superficie) {
 
 function parolaDopoParticella(pezzo) {
   const re =
-    /(?:c['’]?è\s+(?:del|della|dello|dei|la)|ce\s+(?:del|della|dello)|ci\s+coltivo|\bcoltivo\b|ci\s+ho|\bdi\b|\ba\b)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
+    /(?:c['’]?è\s+(?:del|della|dello|dei|la)|ce\s+(?:del|della|dello)|ci\s+coltivo|\bcoltivo\b|ci\s+ho|\bdi\b|\ba\b)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*){0,2})/gi;
   let m;
   const s = String(pezzo || '');
   while ((m = re.exec(s)) !== null) {
-    if (!eRumoreParlatoNome(m[1])) return m[1];
+    const parole = String(m[1] || '').match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
+    if (!parole.length || eRumoreParlatoNome(parole[0])) continue;
+    return vitignoPiuLungo(parole, 0) || parole[0];
   }
   return '';
 }
@@ -1121,8 +1142,9 @@ function assegnaColtura(out, detto, opts) {
     out.coltura = null;
   } else if (grezzo) {
     const norm = canonSenzaVitigno(grezzo);
+    const vitignoDetto = risolviVitigno(grezzo);
     if (norm) out.coltura = norm;
-    else if (risolviVitigno(grezzo)) out.coltura = inizialeMaiuscola(grezzo);
+    else if (vitignoDetto) out.coltura = vitignoDetto;
     else if (libera && !detto) out.coltura = inizialeMaiuscola(grezzo);
     else out.coltura = null;
   }
@@ -1130,18 +1152,17 @@ function assegnaColtura(out, detto, opts) {
   if (!out.coltura && dettoUtile) {
     if (soloCategoriaColtura(dettoUtile)) out.categoria = out.categoria || dettoUtile;
     else {
-      const canon = canonSenzaVitigno(dettoUtile);
+      const canon = canonSenzaVitigno(dettoUtile) || risolviVitigno(dettoUtile);
       if (canon) out.coltura = canon;
       else if (libera) {
-        // Varietà libera (es. Trebbiano senza particella) solo con ha/di.
         out.coltura = inizialeMaiuscola(dettoUtile);
       } else {
         out.coltura = null;
       }
     }
   } else if (out.coltura && dettoUtile) {
-    // Preferisci il nome canonico del catalogo (noci → Noce), non il grezzo.
-    const daDetto = canonSenzaVitigno(dettoUtile);
+    // La varietà detta (Trebbiano) vince sul generico Vite da Vino del modello.
+    const daDetto = canonSenzaVitigno(dettoUtile) || risolviVitigno(dettoUtile);
     if (daDetto) out.coltura = daDetto;
   }
   if (domanda) applicaColturaNomeEVitigno(out, domanda);
@@ -1362,11 +1383,15 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
   const usati = Object.create(null);
   const mapped = lista.map((t) => {
     if (!t || typeof t !== 'object') return t;
+    const nomeModello = nomeTerrenoVisibile(t.nome);
     let letto = null;
     if (typeof t.superficie === 'number') {
-      const idx = letti.findIndex(
-        (l, n) => !usati[n] && l.superficie === t.superficie
-      );
+      const idx = letti.findIndex((l, n) => {
+        if (usati[n] || l.superficie !== t.superficie) return false;
+        // «cancello 7 ha» non ruba il Quercione da 7 ha già in lista.
+        if (l.nome && nomeModello && !stessoNome(l.nome, nomeModello)) return false;
+        return true;
+      });
       if (idx >= 0) {
         usati[idx] = true;
         letto = letti[idx];
@@ -1379,7 +1404,6 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
         letto = letti[idx];
       }
     }
-    const nomeModello = nomeTerrenoVisibile(t.nome);
     const giaDato = nomeModello
       ? attuali.some((a) => a && stessoNome(a.nome, nomeModello))
       : false;
