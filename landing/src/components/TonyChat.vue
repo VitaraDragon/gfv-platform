@@ -19,10 +19,10 @@ import {
   creaBufferTestoStreaming,
   creaGestoreAttesaLunga,
   messaggioAttesaLunga,
+  decidiVoceESchermo,
   modoVoce,
   nuovaSessione,
   testoPerBigliettoVoce,
-  testoVisibileAccount,
   validaDomanda,
 } from '../lib/tony-chat-logica.js';
 import { chiediVoce } from '../lib/tony-voce-client.js';
@@ -995,6 +995,12 @@ async function inviaTesto(grezzo: string, daChip = false) {
     storia.value = aggiornaStoria(storia.value, { ruolo: 'tony', testo: azione.testo });
   }
 
+  let decisioneVoce: {
+    testoSchermo: string;
+    testoAudio: string;
+    sostituisci: boolean;
+    chiamaAudio: boolean;
+  } | null = null;
   if (inAccount && esito.codice === 'ok') {
     const prima = JSON.stringify(datiAiuto.value);
     const turno = preparaTurnoOnboarding({
@@ -1007,19 +1013,25 @@ async function inviaTesto(grezzo: string, daChip = false) {
     const uniti = turno.dati;
     const novita = JSON.stringify(uniti.dati) !== prima;
     datiAiuto.value = uniti.dati;
-    const visibile = testoVisibileAccount(
-      typeof esito.testo === 'string' ? esito.testo : '',
-      turno.testo,
-      domandaDiRientro(turno.passo || passoAiuto.value || '', uniti.dati)
-    );
-    if (visibile.sostituisci) {
-      azione.testo = visibile.testo;
+    decisioneVoce = decidiVoceESchermo({
+      esitoTesto: typeof esito.testo === 'string' ? esito.testo : '',
+      turnoTesto: turno.testo,
+      rientro: domandaDiRientro(turno.passo || passoAiuto.value || '', uniti.dati),
+      haBiglietto:
+        esito.voce === true &&
+        typeof esito.idVoce === 'string' &&
+        /^[a-f0-9]{32}$/.test(esito.idVoce),
+    });
+    if (decisioneVoce.sostituisci) {
+      azione.testo = decisioneVoce.testoSchermo;
       const ultimoTesto = messaggi.value[messaggi.value.length - 1];
       if (ultimoTesto && ultimoTesto.ruolo === 'tony' && !ultimoTesto.live) {
-        ultimoTesto.testo = visibile.testo;
+        ultimoTesto.testo = decisioneVoce.testoSchermo;
       }
       const ultimaStoria = storia.value[storia.value.length - 1];
-      if (ultimaStoria && ultimaStoria.ruolo === 'tony') ultimaStoria.testo = visibile.testo;
+      if (ultimaStoria && ultimaStoria.ruolo === 'tony') {
+        ultimaStoria.testo = decisioneVoce.testoSchermo;
+      }
     }
     if (uniti.troppiTerreni && !/account gratuito arrivi a/i.test(azione.testo)) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
@@ -1135,10 +1147,14 @@ async function inviaTesto(grezzo: string, daChip = false) {
     chipVisibili.value = false;
   }
 
-  // Biglietto firmato su esito.testo; azione.testo può essere riscritto dal client → 409.
-  const testoBigliettoVoce = testoPerBigliettoVoce(esito, azione.testo);
+  // In account il testo audio è quello in chat. Se non coincide col biglietto, non si chiama.
+  const testoBigliettoVoce = testoPerBigliettoVoce(
+    esito,
+    azione.testo,
+    decisioneVoce ? decisioneVoce.testoSchermo : undefined
+  );
 
-  const modo = modoVoce({
+  let modo = modoVoce({
     esito: { ...esito, testo: testoBigliettoVoce },
     altoparlante: altoparlante.value,
     risposteVocaliAutomatiche,
@@ -1146,8 +1162,13 @@ async function inviaTesto(grezzo: string, daChip = false) {
     paginaNascosta: typeof document !== 'undefined' ? document.hidden : false,
     faseAccount: inAccount,
   });
+  if (decisioneVoce && decisioneVoce.chiamaAudio !== true) modo = 'nessuna';
 
-  if (esito.voce === true && typeof esito.idVoce === 'string') {
+  if (
+    esito.voce === true &&
+    typeof esito.idVoce === 'string' &&
+    (!decisioneVoce || decisioneVoce.chiamaAudio === true)
+  ) {
     altoparlanteVisibile.value = true;
     metaVoce = { idVoce: esito.idVoce, testo: testoBigliettoVoce };
   }

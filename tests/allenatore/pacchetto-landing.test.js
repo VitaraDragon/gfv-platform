@@ -1529,3 +1529,106 @@ describe('la coltura detta vince sul nome del terreno', () => {
     expect(esito.testo).not.toMatch(/ci coltivi Ciliegio/i);
   });
 });
+
+describe('sede: civico sulla via, una domanda, voce = testo', () => {
+  const MODELLO_VIA = {
+    testo: 'Perfetto, sede in via Roma, Faenza. Hai uno o più poderi?',
+    sede: { indirizzo: 'via Roma, Faenza', citta: null, cap: null, provincia: null },
+    poderi: [],
+    terreni: [{ nome: 'Roma', superficie: 1, coltura: 'Grano' }],
+  };
+
+  it('«via Roma, Faenza» poi «12»: via e comune restano, una domanda sui poderi', () => {
+    const stato = statoSede();
+    const prima = turno(stato, 'via Roma, Faenza', MODELLO_VIA);
+    expect(prima.voce).toBe(prima.testo);
+    expect(prima.testo).toBe(CIVICO);
+    expect(prima.passo).toBe('sede');
+    expect(prima.terreni).toHaveLength(0);
+    expect(prima.sede).toMatchObject({ indirizzo: 'via Roma', citta: 'Faenza' });
+    expect(prima.apriRiepilogo).toBe(false);
+
+    const dopo = turno(stato, '12', {
+      testo: 'Ok, 12.',
+      sede: { indirizzo: '12', citta: null },
+      poderi: [{ nome: 'Roma' }],
+      terreni: [{ nome: 'Dodici', superficie: 12, coltura: 'Grano' }],
+    });
+    expect(dopo.voce).toBe(dopo.testo);
+    expect(dopo.testo).toBe(PODERI);
+    expect(conta(dopo.testo, /poderi/gi)).toBe(1);
+    expect(dopo.testo).not.toMatch(/numero civico/i);
+    expect(dopo.passo).toBe('poderi');
+    expect(dopo.sede).toMatchObject({ indirizzo: 'via Roma 12', citta: 'Faenza' });
+    expect(dopo.terreni).toHaveLength(0);
+    expect(dopo.poderi).toHaveLength(0);
+  });
+
+  it('«via Roma a Faenza» poi il civico accoda il numero', () => {
+    const stato = statoSede();
+    const prima = turno(stato, 'via Roma a Faenza', {
+      testo: 'Ok.',
+      sede: { indirizzo: 'via Roma a Faenza', citta: null },
+      terreni: [],
+    });
+    expect(prima.voce).toBe(prima.testo);
+    expect(prima.testo).toBe(CIVICO);
+    expect(prima.sede).toMatchObject({ indirizzo: 'via Roma', citta: 'Faenza' });
+    const dopo = turno(stato, '12', { testo: '', sede: { indirizzo: '12' }, terreni: [] });
+    expect(dopo.voce).toBe(dopo.testo);
+    expect(dopo.sede).toMatchObject({ indirizzo: 'via Roma 12', citta: 'Faenza' });
+    expect(dopo.passo).toBe('poderi');
+    expect(dopo.testo).toBe(PODERI);
+  });
+
+  it('solo Faenza e poi 12: il numero è l’indirizzo, il comune resta', () => {
+    const stato = statoSede();
+    turno(stato, 'Faenza', { testo: 'Ok.', sede: null, poderi: [], terreni: [] });
+    const dopo = turno(stato, '12', {
+      testo: '',
+      sede: { indirizzo: '12', citta: null },
+      terreni: [{ nome: 'Dodici', superficie: 12 }],
+    });
+    expect(dopo.voce).toBe(dopo.testo);
+    expect(dopo.sede).toMatchObject({ indirizzo: '12', citta: 'Faenza' });
+    expect(dopo.passo).toBe('poderi');
+    expect(dopo.testo).toBe(PODERI);
+    expect(dopo.terreni).toHaveLength(0);
+  });
+
+  it.each([
+    ['boh', 'boh'],
+    ['non mi ricordo il numero', 'non mi ricordo'],
+    ["non ce l'ho", 'salto'],
+  ])('dopo il civico, %j va ai poderi senza una seconda domanda', (risposta) => {
+    const stato = statoSede();
+    turno(stato, 'via Roma, Faenza', MODELLO_VIA);
+    const dopo = turno(stato, risposta, {
+      testo: "Il numero civico, se ce l'hai, dimmelo pure.",
+      sede: null,
+      terreni: [{ nome: 'Extra', superficie: 1, coltura: 'Grano' }],
+    });
+    expect(dopo.voce).toBe(dopo.testo);
+    expect(dopo.testo).toBe(PODERI);
+    expect(dopo.testo).not.toMatch(/numero civico/i);
+    expect(dopo.passo).toBe('poderi');
+    expect(dopo.sede).toMatchObject({ indirizzo: 'via Roma', citta: 'Faenza' });
+    expect(String(dopo.sede.indirizzo)).not.toMatch(/\d/);
+    expect(dopo.terreni).toHaveLength(0);
+  });
+
+  it('«via Roma 12, Faenza» al primo colpo non chiede il civico', () => {
+    const esito = turno(statoSede(), 'via Roma 12, Faenza', {
+      testo: 'Non ho capito bene. Riprova con via e comune.',
+      sede: { indirizzo: 'via Roma 12, Faenza', citta: null },
+      poderi: [{ nome: 'Roma' }],
+      terreni: [{ nome: 'Roma', superficie: 12, coltura: 'Vite' }],
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).not.toMatch(/numero civico/i);
+    expect(esito.passo).toBe('poderi');
+    expect(esito.sede).toMatchObject({ indirizzo: 'via Roma 12', citta: 'Faenza' });
+    expect(esito.terreni).toHaveLength(0);
+    expect(esito.poderi).toHaveLength(0);
+  });
+});
