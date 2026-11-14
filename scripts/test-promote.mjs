@@ -68,16 +68,22 @@ async function waitForHttp() {
   const url = 'http://127.0.0.1:8000/';
   const deadline = Date.now() + 30_000;
   let lastError = '';
+  let child = startHttpServer();
   while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      child = startHttpServer();
+    }
     try {
       const res = await fetch(url);
-      if (res.ok || res.status < 500) return;
+      if (res.ok || res.status < 500) return child;
       lastError = `status ${res.status}`;
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
     }
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
+  stopChild(child);
   throw new Error(`http-server non raggiungibile su :8000 (${lastError})`);
 }
 
@@ -91,9 +97,9 @@ function stopChild(child) {
 }
 
 async function runAppPhase() {
-  const server = startHttpServer();
+  let server = null;
   try {
-    await waitForHttp();
+    server = await waitForHttp();
     for (const template of APP_TEMPLATES) {
       console.log(`[test:promote] seed ${template}`);
       const seeded = runNode('simulator/orchestrator.js', [`--template=${template}`]);
@@ -116,9 +122,9 @@ async function runAppPhase() {
 }
 
 async function runTonyPhase() {
-  const server = startHttpServer();
+  let server = null;
   try {
-    await waitForHttp();
+    server = await waitForHttp();
     const template = 'viticola-conto-terzi-manodopera';
     console.log(`[test:promote] seed ${template}`);
     const seeded = runNode('simulator/orchestrator.js', [`--template=${template}`]);
