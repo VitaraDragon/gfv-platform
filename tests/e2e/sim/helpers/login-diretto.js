@@ -107,6 +107,17 @@ async function assertLoginDiretto(page, payload, target) {
 }
 
 /**
+ * Se la pagina ha rimandato in dashboard mentre il login finiva, si riprova la destinazione.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} target
+ */
+async function riprovaSeRimbalzo(page, target) {
+  const atteso = target.split('?')[0].split('/').pop();
+  if (!atteso || page.url().includes(atteso)) return;
+  await page.goto(target);
+}
+
+/**
  * Imposta la sessione e apre subito la pagina del test.
  * @param {import('@playwright/test').Page} page
  * @param {object} entry
@@ -123,6 +134,7 @@ export async function loginDiretto(page, entry, target) {
   page.__gfvPendingPayload = null;
   await page.goto(target);
   await assertLoginDiretto(page, payload, target);
+  await riprovaSeRimbalzo(page, target);
 }
 
 /**
@@ -147,6 +159,7 @@ export async function gotoDirect(page, path) {
     page.__gfvPendingPayload = null;
     await page.goto(path);
     await assertLoginDiretto(page, payload, path);
+    await riprovaSeRimbalzo(page, path);
     return;
   }
   await page.goto(path);
