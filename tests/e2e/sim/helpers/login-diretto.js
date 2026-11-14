@@ -49,6 +49,17 @@ async function installLoginScript(page, payload) {
   const token = nextToken(page);
   await page.addInitScript((data) => {
     try {
+      // L'indizio «workspace» resta dopo un operaio o un capo. Sulle pagine desktop
+      // la guardia di rotta rimanda al workspace, e il workspace rimanda in dashboard.
+      var path = (location && location.pathname) || '';
+      var campo = /field-workspace|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|segnalazione-guasti|statistiche-lavoratore|guida-manodopera/.test(path);
+      if (!campo) {
+        localStorage.setItem('gfv_ingresso_ultimo', 'dashboard');
+        sessionStorage.removeItem('gfv_tony_utente_ruoli');
+        sessionStorage.removeItem('gfv_workspace_rimbalzi');
+      }
+    } catch (_) { /* storage bloccato */ }
+    try {
       const current = Number(sessionStorage.getItem('gfv_e2e_login_seq') || '0');
       if (data.token < current) return;
       if (data.token === current && sessionStorage.getItem('gfv_e2e_login_diretto') === '1') return;
