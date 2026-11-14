@@ -330,7 +330,63 @@ function sedeDaTesto(domanda) {
     };
   }
   if (sembraIndirizzo(raw)) {
-    return { indirizzo: raw, citta: null, cap: null, provincia: null };
+    return separaViaEComune({ indirizzo: raw, citta: null, cap: null, provincia: null });
+  }
+  return null;
+}
+
+/**
+ * Se l'indirizzo tiene ancora via e comune attaccati e la città è vuota,
+ * stacca il comune (virgola o « a »). Una sigla o un CAP non sono un comune.
+ * @param {object|null|undefined} sede
+ */
+export function separaViaEComune(sede) {
+  if (!sede || typeof sede !== 'object') return sede;
+  const indirizzo = normalizzaSpaziSede(sede.indirizzo);
+  const cittaGia = normalizzaSpaziSede(sede.citta);
+  if (!indirizzo || cittaGia) return sede;
+  const spezzato = spezzaIndirizzoEComune(indirizzo);
+  if (!spezzato) return sede;
+  return {
+    indirizzo: spezzato.indirizzo,
+    citta: spezzato.citta,
+    cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
+    provincia: spezzato.provincia || sede.provincia || null,
+  };
+}
+
+function luogoComeComune(luogo) {
+  const s = normalizzaSpaziSede(String(luogo || '').replace(/[.]+$/g, ''));
+  if (!s || /\d/.test(s) || /^[A-Za-z]{2}$/.test(s)) return null;
+  if (sembraComuneEProvincia(s)) {
+    const m = s.match(/^(.+?)(?:,|\s)\s*\(?([A-Za-z]{2})\)?$/);
+    if (!m) return null;
+    return {
+      citta: inizialeMaiuscolaFraseSede(m[1].trim()),
+      provincia: String(m[2] || '').toUpperCase(),
+    };
+  }
+  if (!sembraSoloComune(s)) return null;
+  return { citta: inizialeMaiuscolaFraseSede(s), provincia: null };
+}
+
+function spezzaIndirizzoEComune(indirizzo) {
+  const raw = normalizzaSpaziSede(indirizzo);
+  const virgola = raw.match(/^(.+?)\s*,\s*(.+)$/);
+  if (virgola) {
+    const luogo = luogoComeComune(virgola[2]);
+    const via = normalizzaSpaziSede(virgola[1]);
+    if (luogo && via) {
+      return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
+    }
+  }
+  const aSep = raw.match(/^(.+?)\s+a\s+(.+)$/i);
+  if (aSep) {
+    const luogo = luogoComeComune(aSep[2]);
+    const via = normalizzaSpaziSede(aSep[1]);
+    if (luogo && via) {
+      return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
+    }
   }
   return null;
 }
@@ -800,6 +856,57 @@ function indirizzoPortatoDalCivico(domanda) {
   if (/\d/.test(raw) && (sembraIndirizzo(raw) || sembraSedeDetta(raw))) return raw;
   if (/^\d{1,5}[a-zA-Z]?$/.test(raw)) return raw;
   return '';
+}
+
+/**
+ * Accoda il civico alla via già raccolta. Se l'utente ridice la via completa,
+ * usa quella e non perde il comune già noto. Il solo numero, con solo il
+ * comune, resta l'indirizzo.
+ * @param {object|null|undefined} sedePrecedente
+ * @param {string} domanda
+ */
+export function unisciCivicoAllaSede(sedePrecedente, domanda) {
+  const base =
+    sedePrecedente && typeof sedePrecedente === 'object' ? sedePrecedente : {};
+  const prev = separaViaEComune({
+    indirizzo: base.indirizzo || null,
+    citta: base.citta || null,
+    cap: base.cap || null,
+    provincia: base.provincia || null,
+  }) || {
+    indirizzo: null,
+    citta: null,
+    cap: null,
+    provincia: null,
+  };
+  const portato = indirizzoPortatoDalCivico(domanda);
+  if (!portato) return prev;
+  if (!/^\d{1,5}[a-zA-Z]?$/.test(portato)) {
+    const detta =
+      sedeDaTesto(portato) ||
+      separaViaEComune({ indirizzo: portato, citta: null, cap: null, provincia: null });
+    return {
+      indirizzo: (detta && detta.indirizzo) || portato,
+      citta: (detta && detta.citta) || prev.citta || null,
+      cap: (detta && detta.cap) || prev.cap || null,
+      provincia: (detta && detta.provincia) || prev.provincia || null,
+    };
+  }
+  const via = String(prev.indirizzo || '').trim();
+  if (via && !/\d/.test(via)) {
+    return {
+      indirizzo: via + ' ' + portato,
+      citta: prev.citta || null,
+      cap: prev.cap || null,
+      provincia: prev.provincia || null,
+    };
+  }
+  return {
+    indirizzo: portato,
+    citta: prev.citta || null,
+    cap: prev.cap || null,
+    provincia: prev.provincia || null,
+  };
 }
 
 function sedeSenzaCivico(sede) {
@@ -1741,7 +1848,7 @@ export function unisciDati(attuali, nuovi, argomento) {
 
   if (n.sede && typeof n.sede === 'object') {
     const prev = out.sede && typeof out.sede === 'object' ? out.sede : {};
-    out.sede = {
+    out.sede = separaViaEComune({
       indirizzo:
         n.sede.indirizzo != null && n.sede.indirizzo !== ''
           ? n.sede.indirizzo
@@ -1756,7 +1863,7 @@ export function unisciDati(attuali, nuovi, argomento) {
         n.sede.provincia != null && n.sede.provincia !== ''
           ? n.sede.provincia
           : prev.provincia || null,
-    };
+    });
   }
 
   if (argomento === 'poderi' || (Array.isArray(n.poderi) && n.poderi.length)) {
@@ -2913,8 +3020,10 @@ export function preparaTurnoOnboarding(opts) {
   ) {
     const portato = indirizzoPortatoDalCivico(o.domanda);
     if (portato || messaggioSaltaCivico(o.domanda)) {
-      if (portato && uniti.dati && uniti.dati.sede) {
-        uniti.dati.sede = Object.assign({}, uniti.dati.sede, { indirizzo: portato });
+      if (portato && uniti.dati) {
+        const base =
+          attuali.sede && typeof attuali.sede === 'object' ? attuali.sede : uniti.dati.sede;
+        uniti.dati.sede = unisciCivicoAllaSede(base, o.domanda);
       }
       if (uniti.dati) uniti.dati.poderi = [];
       passo = 'poderi';
