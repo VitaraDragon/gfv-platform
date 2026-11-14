@@ -30,7 +30,10 @@ import {
   bussataAutomaticaConsentita,
 } from '../../landing/src/lib/tony-bussa-logica.js';
 import {
+  DOMANDA_PODERI,
   domandaDiRientro,
+  passoRientroDallaScheda,
+  storiaDopoRiepilogo,
   interpretaFraseTerreni,
   messaggioSoloConteggioTerreni,
   normalizzaColturaCatalogo,
@@ -1221,6 +1224,39 @@ describe('coltura fuori catalogo: conferma con conteggio, scheda segnala dopo', 
     expect(esito.testo).toMatch(/su cinque terreni/i);
     expect(esito.voce).toBeTruthy();
     expect(esito.voce).toBe(esito.testo);
+  });
+});
+
+describe('rientro dal riepilogo: il passo poderi non salta ai terreni', () => {
+  it('«Vedi il riepilogo» e «Torna alla chat» riprendono la domanda sui poderi', () => {
+    const dati = {
+      sede: { indirizzo: '12', citta: 'Faenza' },
+      poderi: [],
+      terreni: [],
+    };
+    expect(passoRientroDallaScheda('poderi', dati)).toBe('poderi');
+    expect(domandaDiRientro('poderi', dati)).toBe(DOMANDA_PODERI);
+    const storia = storiaDopoRiepilogo(
+      [{ ruolo: 'tony', testo: DOMANDA_PODERI }],
+      dati,
+      'poderi'
+    );
+    const riassunto = storia[storia.length - 1].testo;
+    expect(riassunto).toMatch(/passo poderi/);
+    expect(riassunto).not.toMatch(/altro terreno|ne hai 0 su 5/i);
+    const chat = fs.readFileSync(path.join(root, 'landing/src/components/TonyChat.vue'), 'utf8');
+    const fn = chat.slice(
+      chat.indexOf('function onTornaDallaScheda'),
+      chat.indexOf('async function suVoceFatto')
+    );
+    expect(fn).toContain('passoRientroDallaScheda');
+    expect(fn).toContain('domandaDiRientro(passoRientro');
+    expect(fn).toContain("suonaFraseFissa('domandaPoderi')");
+    expect(fn).toContain("passoAiuto.value = 'terreni'");
+    const ramoPoderi = fn.slice(fn.indexOf("suonaFraseFissa('domandaPoderi')") - 180);
+    expect(ramoPoderi).toContain("suonaFraseFissa('domandaPoderi')");
+    expect(ramoPoderi).not.toContain("suonaFraseFissa('tornaDalRiepilogo')");
+    expect(fn).toContain("suonaFraseFissa('tornaDalRiepilogo')");
   });
 });
 

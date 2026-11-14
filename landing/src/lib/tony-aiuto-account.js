@@ -2599,6 +2599,32 @@ function messaggioFuoriTema(domanda) {
  * @param {{ terreni?: object[] }|null|undefined} dati
  * @returns {string}
  */
+/**
+ * Passo da riprendere dopo «Torna alla chat».
+ * Vince il passo salvato prima della scheda. Se manca: senza poderi e senza
+ * terreni si resta sui poderi (sulla sede, se manca anche quella).
+ * @param {string|null|undefined} passoSalvato
+ * @param {{ sede?: object|null, poderi?: object[], terreni?: object[], senzaPoderi?: boolean }|null|undefined} dati
+ * @returns {'sede'|'poderi'|'terreni'}
+ */
+export function passoRientroDallaScheda(passoSalvato, dati) {
+  const p = String(passoSalvato || '');
+  if (p === 'sede' || p === 'poderi' || p === 'terreni') return p;
+  const d = dati && typeof dati === 'object' ? dati : {};
+  const haPoderi =
+    (Array.isArray(d.poderi) && d.poderi.length > 0) || d.senzaPoderi === true;
+  const nTerreni = (Array.isArray(d.terreni) ? d.terreni : []).filter(
+    (t) =>
+      t &&
+      (nomeTerrenoVisibile(t.nome) || typeof t.superficie === 'number' || t.coltura)
+  ).length;
+  if (!haPoderi && nTerreni === 0) {
+    const haSede = !!(d.sede && (d.sede.indirizzo || d.sede.citta));
+    return haSede ? 'poderi' : 'sede';
+  }
+  return 'terreni';
+}
+
 export function domandaDiRientro(passo, dati) {
   const d = dati && typeof dati === 'object' ? dati : {};
   if (passo === 'sede') return testiLanding.tonyBussa.aiuto.domandaSede;
@@ -3231,9 +3257,10 @@ function battutaConElencoTerreni(testo) {
  * (così il modello non riparte da conteggi vecchi).
  * @param {Array<{ ruolo?: string, testo?: string }>} storia
  * @param {{ sede?: object|null, poderi?: object[], terreni?: object[] }} dati
+ * @param {string} [passo] sede o poderi: il riassunto non apre la raccolta terreni
  * @returns {Array<{ ruolo: 'utente'|'tony', testo: string }>}
  */
-export function storiaDopoRiepilogo(storia, dati) {
+export function storiaDopoRiepilogo(storia, dati, passo) {
   const lista = (Array.isArray(storia) ? storia : [])
     .filter((b) => b && (b.ruolo === 'utente' || b.ruolo === 'tony'))
     .map((b) => {
@@ -3248,16 +3275,28 @@ export function storiaDopoRiepilogo(storia, dati) {
       return { ruolo: b.ruolo, testo };
     });
   const d = dati && typeof dati === 'object' ? dati : {};
-  const terreni = (Array.isArray(d.terreni) ? d.terreni : []).filter((t) => t && t.nome);
-  const nomi = terreni.map((t) => String(t.nome)).join(', ');
-  let riassunto =
-    'Stato aggiornato dopo il riepilogo: ne hai ' +
-    terreni.length +
-    ' su ' +
-    LIMITI.MAX_TERRENI_PER_RICHIESTA +
-    ' terreni' +
-    (nomi ? ' (' + nomi + ')' : '') +
-    '. Vale questo elenco, non le battute precedenti.';
+  const passoAperto = passo === 'sede' || passo === 'poderi' ? passo : '';
+  let riassunto;
+  if (passoAperto) {
+    const domanda = domandaDiRientro(passoAperto, d);
+    riassunto =
+      'Stato aggiornato dopo il riepilogo: siamo al passo ' +
+      passoAperto +
+      '. La prossima domanda è: «' +
+      domanda +
+      '». Vale questo, non le battute precedenti.';
+  } else {
+    const terreni = (Array.isArray(d.terreni) ? d.terreni : []).filter((t) => t && t.nome);
+    const nomi = terreni.map((t) => String(t.nome)).join(', ');
+    riassunto =
+      'Stato aggiornato dopo il riepilogo: ne hai ' +
+      terreni.length +
+      ' su ' +
+      LIMITI.MAX_TERRENI_PER_RICHIESTA +
+      ' terreni' +
+      (nomi ? ' (' + nomi + ')' : '') +
+      '. Vale questo elenco, non le battute precedenti.';
+  }
   if (riassunto.length > MAX_CARATTERI_BATTUTA_CLIENT) {
     riassunto = riassunto.slice(0, MAX_CARATTERI_BATTUTA_CLIENT);
   }

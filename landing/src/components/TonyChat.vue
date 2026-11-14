@@ -35,6 +35,7 @@ import {
   collegaTerreniAiPoderi,
   decidiDopoRisposta,
   domandaDiRientro,
+  passoRientroDallaScheda,
   erroriColturaTerreniForm,
   esitoRipiegoAccount,
   preparaTurnoOnboarding,
@@ -728,25 +729,39 @@ function onTornaDallaScheda(dati?: {
   const nTerreni = Array.isArray(datiAiuto.value.terreni)
     ? datiAiuto.value.terreni.length
     : 0;
+  let passoRientro = passoRientroDallaScheda(
+    statoPrimaDellaScheda && statoPrimaDellaScheda.passoAiuto,
+    datiAiuto.value
+  );
+  if (nTerreni >= 5) passoRientro = 'terreni';
   // Il riepilogo è la fonte di verità: le vecchie battute con elenchi/conteggi
   // diventano «superate» e il modello riparte dallo stato aggiornato.
-  storia.value = storiaDopoRiepilogo(storia.value, datiAiuto.value);
+  // A sede o poderi il riassunto non apre la raccolta terreni.
+  storia.value = storiaDopoRiepilogo(storia.value, datiAiuto.value, passoRientro);
+  campoAttivo.value = true;
+  chipVisibili.value = true;
   if (nTerreni >= 5) {
     passoAiuto.value = 'terreni';
-    campoAttivo.value = true;
-    chipVisibili.value = true;
     messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
     void suonaFraseFissa('cinqueTerreni');
-  } else {
+  } else if (passoRientro === 'terreni') {
     passoAiuto.value = 'terreni';
-    campoAttivo.value = true;
-    chipVisibili.value = true;
     const frase = String(ta.tornaDalRiepilogo || '').replace(
       /\bN\b/,
       String(nTerreni)
     );
     messaggi.value.push({ ruolo: 'tony', testo: frase });
     void suonaFraseFissa('tornaDalRiepilogo');
+  } else {
+    passoAiuto.value = passoRientro;
+    const frase = domandaDiRientro(passoRientro, datiAiuto.value);
+    messaggi.value.push({ ruolo: 'tony', testo: frase });
+    // Clip solo se dice la stessa frase a schermo. domandaPoderi coincide.
+    // La clip domandaSede non dice «numero civico»: non si suona, e non si
+    // usa tornaDalRiepilogo sopra una domanda di sede o di poderi.
+    if (passoRientro === 'poderi' && frase === ta.domandaPoderi) {
+      void suonaFraseFissa('domandaPoderi');
+    }
   }
   statoPrimaDellaScheda = null;
   scorriInBasso();
