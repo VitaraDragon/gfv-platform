@@ -8,7 +8,7 @@ import { runDashboardDeadlinesAssertions } from './scenarios/dashboard-deadlines
 
 test.describe('GFV Farm Simulator v4 — dashboard scadenze', () => {
   test('pagina dev → Entra manager → widget affitti e in arrivo', async ({ page }) => {
-    await loginAsManagerFromDevPage(page);
+    await loginAsManagerFromDevPage(page, { viaDevPage: true });
     await runDashboardDeadlinesAssertions(page, expect);
   });
 });

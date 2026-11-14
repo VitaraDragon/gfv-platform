@@ -5,6 +5,7 @@
  */
 import { test, expect } from './helpers/gfv-test.js';
 import {
+  FIELD_WORKSPACE_PATH,
   loginAsCapoFromDevPage,
   loginAsOperaioFromDevPage,
 } from './helpers/sim-login.js';
@@ -37,7 +38,10 @@ test.describe('GFV Farm Simulator v4 — field workspace manodopera', () => {
       await route.fulfill({ response, body: patched });
     });
 
-    await loginAsCapoFromDevPage(page, { waitForWorkspace: false });
+    await loginAsCapoFromDevPage(page, {
+      waitForWorkspace: false,
+      target: FIELD_WORKSPACE_PATH,
+    });
     await page.waitForFunction(
       () => window.__gfvResolveDestinatariBloccato === true,
       null,

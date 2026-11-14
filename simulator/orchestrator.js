@@ -26,6 +26,12 @@ const setupOnly = args.includes('--setup-only');
 const templateArg = args.find((a) => a.startsWith('--template='));
 const templateId = templateArg ? templateArg.split('=')[1] : 'solo-titolare-viticola';
 const templateOverrides = parseQuantityOverrides(args);
+const slotRaw = process.env.GFV_SIM_SLOT;
+const slot = slotRaw === undefined || slotRaw === '' ? 0 : Number(slotRaw);
+if (!Number.isInteger(slot) || slot < 0) {
+  console.error(`[sim] GFV_SIM_SLOT non valido: ${slotRaw}`);
+  process.exit(1);
+}
 
 async function main() {
   resetSimContext();
@@ -36,7 +42,12 @@ async function main() {
     if (verbose) console.log(`[sim] Template: ${templateId}`);
 
     phase = '01-setup-tenant';
-    const setup = await runSetupTenant({ templateId, templateOverrides });
+    const setup = await runSetupTenant({
+      templateId,
+      templateOverrides,
+      slot,
+      seed: Date.now() + slot
+    });
     const withManodopera = isManodoperaTemplate(setup.template);
     const withContoTerzi = isContoTerziTemplate(setup.template);
     const withVigneto = hasVignetoModule(setup.template);

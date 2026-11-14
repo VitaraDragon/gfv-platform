@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
-import { ATTESA_ATTIVAZIONE_MS, attesaAttivazioneMs, deveRicaricareDopoAttesa, urlPerRiprovaNavigazione } from '../core/js/app-update.js';
+import { describe, expect, it, vi } from 'vitest';
+import {
+    ATTESA_ATTIVAZIONE_MS,
+    attesaAttivazioneMs,
+    deveMostrareBarra,
+    deveRicaricareDopoAttesa,
+    puoRicaricare,
+    urlPerRiprovaNavigazione,
+} from '../core/js/app-update.js';
 import { FIELD_UI_LANGS, FIELD_UI_STRINGS } from '../core/config/field-ui-i18n.js';
 
 describe('Aggiorna con worker nuovo ancora in attesa', () => {
@@ -41,6 +48,51 @@ describe('Aggiorna con worker nuovo ancora in attesa', () => {
         const corpo = sorgente.slice(inizio, fine);
         expect(corpo).not.toContain('nascondiBarra()');
         expect(corpo).toContain('mostraAggiornamentoInCorso(');
+    });
+
+    it('senza una build nuova la barra non compare; con worker in attesa sì', () => {
+        expect(deveMostrareBarra({ controllerAlCaricamento: true, waiting: false })).toBe(false);
+        expect(deveMostrareBarra({ controllerAlCaricamento: false, waiting: true })).toBe(false);
+        expect(deveMostrareBarra({ controllerAlCaricamento: true, waiting: true })).toBe(true);
+    });
+
+    it('Annulla su un form sporco non ricarica; la conferma sì, una volta sola per build', () => {
+        expect(puoRicaricare({ formSporco: true, confermato: false })).toBe(false);
+        expect(puoRicaricare({ salvataggioInCorso: true, confermato: false })).toBe(false);
+        expect(puoRicaricare({ formSporco: true, confermato: true })).toBe(true);
+        expect(puoRicaricare({ giaRicaricatoPerBuild: true, confermato: true })).toBe(false);
+    });
+
+    it('il timer finto scade una sola volta e non ricarica se il form è sporco', () => {
+        vi.useFakeTimers();
+        try {
+            const attesa = attesaAttivazioneMs({ hostname: '127.0.0.1', search: '?swTest=1&swTestAttesaMs=1500' });
+            const stato = { formSporco: false, salvataggioInCorso: false, ricaricando: false };
+            let ricariche = 0;
+            setTimeout(() => {
+                if (deveRicaricareDopoAttesa(stato)) {
+                    ricariche += 1;
+                    stato.ricaricando = true;
+                }
+            }, attesa);
+            vi.advanceTimersByTime(attesa - 1);
+            expect(ricariche).toBe(0);
+            vi.advanceTimersByTime(1);
+            expect(ricariche).toBe(1);
+            vi.advanceTimersByTime(ATTESA_ATTIVAZIONE_MS);
+            expect(ricariche).toBe(1);
+
+            ricariche = 0;
+            stato.formSporco = true;
+            stato.ricaricando = false;
+            setTimeout(() => {
+                if (deveRicaricareDopoAttesa(stato)) ricariche += 1;
+            }, attesa);
+            vi.advanceTimersByTime(attesa);
+            expect(ricariche).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('la seconda prova di navigazione usa lo stesso indirizzo senza frammento', () => {
