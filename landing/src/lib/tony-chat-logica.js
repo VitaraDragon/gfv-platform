@@ -165,17 +165,58 @@ export function corpoRichiestaVoce({ idVoce, sessione, testo }) {
 }
 
 /**
- * Testo da mandare a tonyLandingAudio: deve coincidere col biglietto
- * firmato in tonyLandingAsk (esito.testo). Non usare il testo riscritto
- * dal client (preparaTurnoOnboarding), altrimenti hash → 409 voce-non-valida.
+ * Testo da mandare a tonyLandingAudio.
+ * Con due argomenti resta il testo firmato in tonyLandingAsk (esito.testo):
+ * un'azione riscritta non va spedita col biglietto vecchio.
+ * Il terzo argomento è il testo davvero in chat: va usato solo se coincide
+ * col firmato, oppure se decidiVoceESchermo ha tenuto lo schermo sul firmato.
  * @param {{ testo?: string }|null|undefined} esito
  * @param {string} [azioneTesto]
+ * @param {string} [testoMostrato]
  * @returns {string}
  */
-export function testoPerBigliettoVoce(esito, azioneTesto) {
+export function testoPerBigliettoVoce(esito, azioneTesto, testoMostrato) {
+  if (typeof testoMostrato === 'string' && testoMostrato.trim()) return testoMostrato.trim();
   const e = esito && typeof esito === 'object' ? esito : {};
   if (typeof e.testo === 'string' && e.testo) return e.testo;
   return typeof azioneTesto === 'string' ? azioneTesto : '';
+}
+
+/**
+ * Schermo e voce sulla stessa frase. Il biglietto è firmato su esito.testo:
+ * se il turno vorrebbe un'altra frase, lo schermo resta sul testo firmato
+ * così l'audio parte. Se il server non ha firmato nulla, si può mostrare
+ * il testo di rientro ma non si chiama l'audio col biglietto vecchio.
+ * @param {{ esitoTesto?: string, turnoTesto?: string|null, rientro?: string, haBiglietto?: boolean }} args
+ * @returns {{ testoSchermo: string, testoAudio: string, sostituisci: boolean, chiamaAudio: boolean }}
+ */
+export function decidiVoceESchermo({ esitoTesto, turnoTesto, rientro, haBiglietto }) {
+  const vis = testoVisibileAccount(esitoTesto, turnoTesto, rientro);
+  const firmato = typeof esitoTesto === 'string' ? esitoTesto.trim() : '';
+  const biglietto = haBiglietto === true && !!firmato;
+  if (!vis.sostituisci || vis.testo === firmato) {
+    const testo = vis.testo || firmato;
+    return {
+      testoSchermo: testo,
+      testoAudio: testo,
+      sostituisci: vis.sostituisci,
+      chiamaAudio: biglietto && testo === firmato,
+    };
+  }
+  if (firmato) {
+    return {
+      testoSchermo: firmato,
+      testoAudio: firmato,
+      sostituisci: false,
+      chiamaAudio: biglietto,
+    };
+  }
+  return {
+    testoSchermo: vis.testo,
+    testoAudio: vis.testo,
+    sostituisci: true,
+    chiamaAudio: false,
+  };
 }
 
 /**
