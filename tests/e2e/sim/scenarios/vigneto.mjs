@@ -104,14 +104,15 @@ export async function runConcimazioniListAssertions(page, expect) {
     tableWrap.locator('table').getByRole('link', { name: /Vedi Attività/i }).first()
   ).toBeVisible();
 
+  // Il seed completa le concimazioni (prodotto valorizzato). Lo stub «Completa»
+  // capita solo se il lavoro manodopera è una concimazione: non è garantito.
+  // Lo stub di catena A resta coperto dalla lista trattamenti, nello stesso login.
   const prodottoCells = await tableWrap.locator('table tbody td:nth-child(5)').allTextContents();
-  const hasStubConcimazione = prodottoCells.some((p) => {
+  const filled = prodottoCells.filter((p) => {
     const t = p.trim();
-    return !t || t === '-' || t === '—';
+    return t && t !== '-' && t !== '—';
   });
-  const completaButtons = tableWrap.locator('[data-completa-row]');
-  const stubActions = (await completaButtons.count()) + (hasStubConcimazione ? 1 : 0);
-  expect(stubActions).toBeGreaterThanOrEqual(1);
+  expect(filled.length).toBeGreaterThanOrEqual(3);
 }
 
 /** Potatura + trattamenti fitosanitari + concimazioni (12 trattamenti seed totali). */

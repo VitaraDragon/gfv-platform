@@ -42,6 +42,9 @@ export function withTonyE2eQuery(path, opts = {}) {
  */
 export async function gotoTonyE2ePage(page, path, opts = {}) {
   await page.goto(withTonyE2eQuery(path, opts));
+  // Il login diretto arma la sessione senza aprire la pagina dev: lo snapshot
+  // va preso qui, sul documento vero, non sull'about:blank iniziale.
+  await captureTonyTenantSnapshot(page);
 }
 
 /**
@@ -117,21 +120,25 @@ export async function assertTonySimTenantReady(page, expect) {
  * @param {import('playwright-core').Page} page
  */
 export async function captureTonyTenantSnapshot(page) {
+  const url = page.url();
+  if (!/^https?:/i.test(url)) return;
   await waitForTonySimTenantData(page).catch(() => {});
   await page.evaluate(() => {
-    const td = window.__gfvTenantData || {};
-    let moduli = window.__gfvModuliAttivi || td.modules || td.moduli || [];
-    if (!Array.isArray(moduli) || !moduli.length) {
-      moduli = ['tony', 'manodopera', 'meteo', 'contoTerzi', 'magazzino', 'vigneto'];
-    }
-    const plan = window.__gfvSubscriptionPlanId || td.plan || td.piano || 'base';
-    const snap = {
-      plan,
-      tenantData: Object.assign({}, td, { plan, piano: plan, modules: moduli }),
-      moduli,
-    };
-    sessionStorage.setItem('gfv_tony_e2e_tenant_snap', JSON.stringify(snap));
-  });
+    try {
+      const td = window.__gfvTenantData || {};
+      let moduli = window.__gfvModuliAttivi || td.modules || td.moduli || [];
+      if (!Array.isArray(moduli) || !moduli.length) {
+        moduli = ['tony', 'manodopera', 'meteo', 'contoTerzi', 'magazzino', 'vigneto'];
+      }
+      const plan = window.__gfvSubscriptionPlanId || td.plan || td.piano || 'base';
+      const snap = {
+        plan,
+        tenantData: Object.assign({}, td, { plan, piano: plan, modules: moduli }),
+        moduli,
+      };
+      sessionStorage.setItem('gfv_tony_e2e_tenant_snap', JSON.stringify(snap));
+    } catch (_) { /* about:blank o documento opaco */ }
+  }).catch(() => {});
 }
 
 /**

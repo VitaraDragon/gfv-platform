@@ -1,11 +1,12 @@
 /**
- * GFV Farm Simulator v4 — scenario 7: moduli Conto Terzi.
- * Richiede tenant template viticola-conto-terzi* in manifest.
- * Dati seed validati da orchestrator v2.2 + sim:audit; assert DOM visibile.
+ * Letture conto terzi in un solo login.
  */
 import { test, expect } from './helpers/gfv-test.js';
 import {
   gotoClientiList,
+  gotoContoTerziHome,
+  gotoMappaClienti,
+  gotoNuovoPreventivo,
   gotoPreventiviList,
   gotoTariffeList,
   gotoTerreniClientiList,
@@ -17,10 +18,20 @@ import {
   runTariffeListAssertions,
   runTerreniClientiAssertions,
 } from './scenarios/conto-terzi.mjs';
+import {
+  runContoTerziHomeAssertions,
+  runMappaClientiAssertions,
+} from './scenarios/conto-terzi-hub.mjs';
+import { runNuovoPreventivoReadAssertions } from './scenarios/conto-terzi-forms-read.mjs';
 
-test.describe('GFV Farm Simulator v4 — conto terzi', () => {
-  test('pagina dev (template conto terzi) → clienti, tariffe, preventivi, terreni clienti', async ({ page }) => {
+test.describe('GFV Farm Simulator — letture conto terzi', () => {
+  test('un login: home, mappa, clienti, tariffe, preventivi, terreni clienti, nuovo preventivo', async ({ page }) => {
+    test.setTimeout(180_000);
     await loginAsManagerContoTerzi(page);
+    await gotoContoTerziHome(page);
+    await runContoTerziHomeAssertions(page, expect);
+    await gotoMappaClienti(page);
+    await runMappaClientiAssertions(page, expect);
     await gotoClientiList(page);
     await runClientiListAssertions(page, expect);
     await gotoTariffeList(page);
@@ -29,5 +40,7 @@ test.describe('GFV Farm Simulator v4 — conto terzi', () => {
     await runPreventiviListAssertions(page, expect);
     await gotoTerreniClientiList(page);
     await runTerreniClientiAssertions(page, expect);
+    await gotoNuovoPreventivo(page);
+    await runNuovoPreventivoReadAssertions(page, expect);
   });
 });

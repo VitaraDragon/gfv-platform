@@ -11,7 +11,8 @@
  * Il manifest git non si usa: si parte da [] e si ripristina il file alla fine.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,6 +27,7 @@ const APP_TEMPLATES = [
   'solo-titolare-viticola',
   'mista-viticola-frutteto-conto-terzi-manodopera',
 ];
+const SIM_SLOTS = 2;
 
 const phaseArg = process.argv.find((a) => a.startsWith('--phase='));
 const phase = phaseArg ? phaseArg.slice('--phase='.length) : '';
@@ -52,6 +54,22 @@ function runNode(script, args, extraEnv) {
     return 1;
   }
   return typeof result.status === 'number' ? result.status : 1;
+}
+
+function runNodeAsync(script, args, extraEnv) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [join(root, script), ...args], {
+      cwd: root,
+      stdio: ['ignore', 'inherit', 'inherit'],
+      env: { ...process.env, ...extraEnv },
+      windowsHide: true,
+    });
+    child.on('error', (err) => {
+      console.error(`[test:promote] ${script}: ${err.message}`);
+      resolve(1);
+    });
+    child.on('exit', (code) => resolve(typeof code === 'number' ? code : 1));
+  });
 }
 
 function startHttpServer() {
@@ -101,10 +119,17 @@ async function runAppPhase() {
   try {
     server = await waitForHttp();
     for (const template of APP_TEMPLATES) {
-      console.log(`[test:promote] seed ${template}`);
-      const seeded = runNode('simulator/orchestrator.js', [`--template=${template}`]);
-      if (seeded !== 0) return seeded;
-      console.log(`[test:promote] verify ${template}`);
+      console.log(`[test:promote] seed ${template} x${SIM_SLOTS} slot`);
+      const codes = await Promise.all(
+        Array.from({ length: SIM_SLOTS }, (_, slot) => runNodeAsync(
+          'simulator/orchestrator.js',
+          [`--template=${template}`],
+          { GFV_SIM_SLOT: String(slot) }
+        ))
+      );
+      const seeded = codes.find((code) => code !== 0);
+      if (seeded !== undefined) return seeded;
+      console.log(`[test:promote] verify ${template} (slot 0..${SIM_SLOTS - 1})`);
       const verified = runNode('simulator/verify-e2e-seed.js', [], {
         GFV_SIM_E2E_TEMPLATE: template,
       });
@@ -173,6 +198,20 @@ function warnIfOnBattery() {
   const status = String(result.stdout || '').trim();
   if (status === '1') {
     console.warn('[test:promote] ATTENZIONE: il PC è a batteria. Collegalo alla corrente: i due giri durano circa 20 minuti ciascuno.');
+  }
+}
+
+function headlessShellUsable(exe) {
+  try {
+    const result = spawnSync(exe, ['--version'], {
+      encoding: 'utf8',
+      timeout: 8000,
+      windowsHide: true,
+    });
+    if (result.error || result.status !== 0) return false;
+    return /Chrome|Headless/i.test(`${result.stdout || ''}${result.stderr || ''}`);
+  } catch {
+    return false;
   }
 }
 
@@ -251,11 +290,50 @@ function freeStaleListeners() {
   }
 }
 
-function bundledBrowserReady() {
-  const local = process.env.LOCALAPPDATA;
-  if (!local) return false;
-  const headless = join(local, 'ms-playwright', 'chromium_headless_shell-1148', 'chrome-win', 'headless_shell.exe');
-  return existsSync(headless);
+function playwrightBrowsersDir() {
+  if (process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.PLAYWRIGHT_BROWSERS_PATH !== '0') {
+    return process.env.PLAYWRIGHT_BROWSERS_PATH;
+  }
+  if (process.platform === 'win32') {
+    return process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'ms-playwright') : '';
+  }
+  if (process.platform === 'darwin') return join(homedir(), 'Library', 'Caches', 'ms-playwright');
+  return join(homedir(), '.cache', 'ms-playwright');
+}
+
+/** Headless shell installato da Playwright, qualunque revisione (non solo 1148). */
+function findHeadlessShell() {
+  const root = playwrightBrowsersDir();
+  if (!root || !existsSync(root)) return '';
+  let names = [];
+  try {
+    names = readdirSync(root);
+  } catch {
+    return '';
+  }
+  const shells = names.filter((name) => name.startsWith('chromium_headless_shell-')).sort();
+  const candidates = process.platform === 'win32'
+    ? [
+      ['chrome-win', 'headless_shell.exe'],
+      ['chrome-headless-shell-win64', 'chrome-headless-shell.exe'],
+    ]
+    : process.platform === 'darwin'
+      ? [
+        ['chrome-mac', 'headless_shell'],
+        ['chrome-headless-shell-mac-arm64', 'chrome-headless-shell'],
+        ['chrome-headless-shell-mac-x64', 'chrome-headless-shell'],
+      ]
+      : [
+        ['chrome-linux', 'headless_shell'],
+        ['chrome-headless-shell-linux64', 'chrome-headless-shell'],
+      ];
+  for (const name of shells.reverse()) {
+    for (const relative of candidates) {
+      const exe = join(root, name, ...relative);
+      if (existsSync(exe)) return exe;
+    }
+  }
+  return '';
 }
 
 async function runPhases(which) {
@@ -275,8 +353,13 @@ async function runPhases(which) {
 
 async function mainOuter() {
   warnIfOnBattery();
-  if (!bundledBrowserReady() && !process.env.GFV_E2E_BROWSER_CHANNEL) {
-    console.warn('[test:promote] Chromium bundled assente: uso Chrome di sistema (GFV_E2E_BROWSER_CHANNEL=chrome). CI=true resta attivo, quindi i retry sono 1.');
+  const headlessShell = findHeadlessShell();
+  const shellOk = Boolean(headlessShell) && headlessShellUsable(headlessShell);
+  if (shellOk) {
+    console.log(`[test:promote] Chromium headless shell: ${headlessShell}`);
+  } else if (!process.env.GFV_E2E_BROWSER_CHANNEL) {
+    const why = headlessShell ? 'presente ma non avviabile' : 'assente';
+    console.warn(`[test:promote] Chromium headless shell ${why}: uso Chrome di sistema (GFV_E2E_BROWSER_CHANNEL=chrome).`);
     process.env.GFV_E2E_BROWSER_CHANNEL = 'chrome';
   }
   freeStaleListeners();
