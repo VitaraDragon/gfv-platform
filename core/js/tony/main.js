@@ -6503,6 +6503,11 @@ if (typeof window !== 'undefined') {
             appendMessageBase(text, type);
             if (type === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
         };
+        var showMessageInChatBase = showMessageInChat;
+        showMessageInChat = function(text, type) {
+            showMessageInChatBase(text, type);
+            if ((type || 'tony') === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
+        };
     }
     window.__tonyFreemiumBlocked = isTonyBlockedForPlan(_initialPlanGate);
     if (window.__tonyFreemiumBlocked) {
@@ -9595,6 +9600,7 @@ if (typeof window !== 'undefined') {
                         streamingMsgEl.classList.remove('streaming');
                         streamingMsgEl = null;
                         messagesEl.scrollTop = messagesEl.scrollHeight;
+                        if (_tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
                     } else {
                         appendMessage(out, 'tony');
                     }
