@@ -11,7 +11,8 @@
  * Il manifest git non si usa: si parte da [] e si ripristina il file alla fine.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -251,11 +252,38 @@ function freeStaleListeners() {
   }
 }
 
-function bundledBrowserReady() {
-  const local = process.env.LOCALAPPDATA;
-  if (!local) return false;
-  const headless = join(local, 'ms-playwright', 'chromium_headless_shell-1148', 'chrome-win', 'headless_shell.exe');
-  return existsSync(headless);
+function playwrightBrowsersDir() {
+  if (process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.PLAYWRIGHT_BROWSERS_PATH !== '0') {
+    return process.env.PLAYWRIGHT_BROWSERS_PATH;
+  }
+  if (process.platform === 'win32') {
+    return process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'ms-playwright') : '';
+  }
+  if (process.platform === 'darwin') return join(homedir(), 'Library', 'Caches', 'ms-playwright');
+  return join(homedir(), '.cache', 'ms-playwright');
+}
+
+/** Headless shell installato da Playwright, qualunque revisione (non solo 1148). */
+function findHeadlessShell() {
+  const root = playwrightBrowsersDir();
+  if (!root || !existsSync(root)) return '';
+  let names = [];
+  try {
+    names = readdirSync(root);
+  } catch {
+    return '';
+  }
+  const shells = names.filter((name) => name.startsWith('chromium_headless_shell-')).sort();
+  const relative = process.platform === 'win32'
+    ? ['chrome-win', 'headless_shell.exe']
+    : process.platform === 'darwin'
+      ? ['chrome-mac', 'headless_shell']
+      : ['chrome-linux', 'headless_shell'];
+  for (const name of shells.reverse()) {
+    const exe = join(root, name, ...relative);
+    if (existsSync(exe)) return exe;
+  }
+  return '';
 }
 
 async function runPhases(which) {
@@ -275,8 +303,11 @@ async function runPhases(which) {
 
 async function mainOuter() {
   warnIfOnBattery();
-  if (!bundledBrowserReady() && !process.env.GFV_E2E_BROWSER_CHANNEL) {
-    console.warn('[test:promote] Chromium bundled assente: uso Chrome di sistema (GFV_E2E_BROWSER_CHANNEL=chrome). CI=true resta attivo, quindi i retry sono 1.');
+  const headlessShell = findHeadlessShell();
+  if (headlessShell) {
+    console.log(`[test:promote] Chromium headless shell: ${headlessShell}`);
+  } else if (!process.env.GFV_E2E_BROWSER_CHANNEL) {
+    console.warn('[test:promote] Chromium headless shell assente: uso Chrome di sistema (GFV_E2E_BROWSER_CHANNEL=chrome). CI=true resta attivo, quindi i retry sono 1.');
     process.env.GFV_E2E_BROWSER_CHANNEL = 'chrome';
   }
   freeStaleListeners();
