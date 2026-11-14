@@ -335,24 +335,64 @@ function sedeDaTesto(domanda) {
   return null;
 }
 
+function stessoLuogoSede(a, b) {
+  const ka = chiaveNome(a);
+  const kb = chiaveNome(b);
+  return !!ka && ka === kb;
+}
+
+/**
+ * Il modello a volte mette il comune nel campo via («Faenza» o
+ * «Faenza» + «Faenza»). Il comune sta solo in citta: l'indirizzo resta
+ * vuoto finché non arriva il civico, così «12» non diventa «Faenza 12».
+ * @param {object|null|undefined} sede
+ */
+function togliComuneParcheggiatoInIndirizzo(sede) {
+  if (!sede || typeof sede !== 'object') return sede;
+  const indirizzo = normalizzaSpaziSede(sede.indirizzo);
+  if (!indirizzo || /\d/.test(indirizzo)) return sede;
+  const comeComune = luogoComeComune(indirizzo);
+  if (!comeComune) return sede;
+  const citta = normalizzaSpaziSede(sede.citta);
+  if (
+    citta &&
+    !stessoLuogoSede(citta, comeComune.citta) &&
+    !stessoLuogoSede(citta, indirizzo)
+  ) {
+    return sede;
+  }
+  return {
+    indirizzo: null,
+    citta: citta ? sede.citta : comeComune.citta,
+    cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
+    provincia: comeComune.provincia || sede.provincia || null,
+  };
+}
+
 /**
  * Se l'indirizzo tiene ancora via e comune attaccati e la città è vuota,
- * stacca il comune (virgola o « a »). Una sigla o un CAP non sono un comune.
+ * stacca il comune (virgola o « a »). Se l'indirizzo è solo il comune,
+ * lo sposta in citta anche quando il modello l'ha già mandato.
+ * Una sigla o un CAP non sono un comune.
  * @param {object|null|undefined} sede
  */
 export function separaViaEComune(sede) {
   if (!sede || typeof sede !== 'object') return sede;
   const indirizzo = normalizzaSpaziSede(sede.indirizzo);
   const cittaGia = normalizzaSpaziSede(sede.citta);
-  if (!indirizzo || cittaGia) return sede;
-  const spezzato = spezzaIndirizzoEComune(indirizzo);
-  if (!spezzato) return sede;
-  return {
-    indirizzo: spezzato.indirizzo,
-    citta: spezzato.citta,
-    cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
-    provincia: spezzato.provincia || sede.provincia || null,
-  };
+  let base = sede;
+  if (indirizzo && !cittaGia) {
+    const spezzato = spezzaIndirizzoEComune(indirizzo);
+    if (spezzato) {
+      base = {
+        indirizzo: spezzato.indirizzo,
+        citta: spezzato.citta,
+        cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
+        provincia: spezzato.provincia || sede.provincia || null,
+      };
+    }
+  }
+  return togliComuneParcheggiatoInIndirizzo(base);
 }
 
 function luogoComeComune(luogo) {
@@ -893,7 +933,10 @@ export function unisciCivicoAllaSede(sedePrecedente, domanda) {
     };
   }
   const via = String(prev.indirizzo || '').trim();
-  if (via && !/\d/.test(via)) {
+  const luogoVia = !via || /\d/.test(via) ? null : luogoComeComune(via);
+  const viaESoloIlComune =
+    !!luogoVia && (!prev.citta || stessoLuogoSede(via, prev.citta));
+  if (via && !/\d/.test(via) && !viaESoloIlComune) {
     return {
       indirizzo: via + ' ' + portato,
       citta: prev.citta || null,
@@ -903,9 +946,9 @@ export function unisciCivicoAllaSede(sedePrecedente, domanda) {
   }
   return {
     indirizzo: portato,
-    citta: prev.citta || null,
+    citta: prev.citta || (luogoVia && luogoVia.citta) || null,
     cap: prev.cap || null,
-    provincia: prev.provincia || null,
+    provincia: prev.provincia || (luogoVia && luogoVia.provincia) || null,
   };
 }
 
@@ -2619,11 +2662,27 @@ export function preparaTurnoOnboarding(opts) {
     passo0 === 'sede' &&
     !sedeGiaNota &&
     !fuoriTemaUtente &&
-    sembraSedeDetta(o.domanda) &&
-    !(nuoviIn.sede && (nuoviIn.sede.indirizzo || nuoviIn.sede.citta))
+    sembraSedeDetta(o.domanda)
   ) {
     const dedotta = sedeDaTesto(o.domanda);
-    if (dedotta) nuoviIn.sede = dedotta;
+    const modello = nuoviIn.sede && typeof nuoviIn.sede === 'object' ? nuoviIn.sede : null;
+    const modelloHaSede = !!(modello && (modello.indirizzo || modello.citta));
+    // Solo un comune: la sede dedotta vince anche se il modello ha già
+    // messo il comune in indirizzo. Via e comune detti insieme restano al modello.
+    if (dedotta && (!modelloHaSede || sembraSoloComune(o.domanda))) {
+      nuoviIn.sede =
+        sembraSoloComune(o.domanda) && modello
+          ? {
+              indirizzo: dedotta.indirizzo,
+              citta: dedotta.citta,
+              cap: modello.cap != null && modello.cap !== '' ? modello.cap : dedotta.cap,
+              provincia:
+                modello.provincia != null && modello.provincia !== ''
+                  ? modello.provincia
+                  : dedotta.provincia,
+            }
+          : dedotta;
+    }
   }
   // Sede/podere (o testo già consumato come indirizzo): mai terreni in questo turno.
   const bloccaTerreniDaPasso =

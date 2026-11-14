@@ -573,9 +573,46 @@ function sedeDaTesto(domanda) {
   return null;
 }
 
+function stessoLuogoSede(a, b) {
+  const ka = chiaveNome(a);
+  const kb = chiaveNome(b);
+  return !!ka && ka === kb;
+}
+
+/**
+ * Il modello a volte mette il comune nel campo via («Faenza» o
+ * «Faenza» + «Faenza»). Il comune sta solo in citta: l'indirizzo resta
+ * vuoto finché non arriva il civico, così «12» non diventa «Faenza 12».
+ * Allineato a landing/src/lib/tony-aiuto-account.js.
+ * @param {object|null|undefined} sede
+ */
+function togliComuneParcheggiatoInIndirizzo(sede) {
+  if (!sede || typeof sede !== "object") return sede;
+  const indirizzo = normalizzaSpaziSede(sede.indirizzo);
+  if (!indirizzo || /\d/.test(indirizzo)) return sede;
+  const comeComune = luogoComeComune(indirizzo);
+  if (!comeComune) return sede;
+  const citta = normalizzaSpaziSede(sede.citta);
+  if (
+    citta &&
+    !stessoLuogoSede(citta, comeComune.citta) &&
+    !stessoLuogoSede(citta, indirizzo)
+  ) {
+    return sede;
+  }
+  return {
+    indirizzo: null,
+    citta: citta ? sede.citta : comeComune.citta,
+    cap: sede.cap == null || sede.cap === "" ? null : sede.cap,
+    provincia: comeComune.provincia || sede.provincia || null
+  };
+}
+
 /**
  * Se l'indirizzo tiene ancora via e comune attaccati e la città è vuota,
- * stacca il comune (virgola o « a »). Una sigla o un CAP non sono un comune.
+ * stacca il comune (virgola o « a »). Se l'indirizzo è solo il comune,
+ * lo sposta in citta anche quando il modello l'ha già mandato.
+ * Una sigla o un CAP non sono un comune.
  * Allineato a landing/src/lib/tony-aiuto-account.js.
  * @param {object|null|undefined} sede
  */
@@ -583,15 +620,19 @@ function separaViaEComune(sede) {
   if (!sede || typeof sede !== "object") return sede;
   const indirizzo = normalizzaSpaziSede(sede.indirizzo);
   const cittaGia = normalizzaSpaziSede(sede.citta);
-  if (!indirizzo || cittaGia) return sede;
-  const spezzato = spezzaIndirizzoEComune(indirizzo);
-  if (!spezzato) return sede;
-  return {
-    indirizzo: spezzato.indirizzo,
-    citta: spezzato.citta,
-    cap: sede.cap == null || sede.cap === "" ? null : sede.cap,
-    provincia: spezzato.provincia || sede.provincia || null
-  };
+  let base = sede;
+  if (indirizzo && !cittaGia) {
+    const spezzato = spezzaIndirizzoEComune(indirizzo);
+    if (spezzato) {
+      base = {
+        indirizzo: spezzato.indirizzo,
+        citta: spezzato.citta,
+        cap: sede.cap == null || sede.cap === "" ? null : sede.cap,
+        provincia: spezzato.provincia || sede.provincia || null
+      };
+    }
+  }
+  return togliComuneParcheggiatoInIndirizzo(base);
 }
 
 function luogoComeComune(luogo) {
@@ -827,7 +868,10 @@ function unisciCivicoAllaSede(sedePrecedente, domanda) {
     };
   }
   const via = String(prev.indirizzo || "").trim();
-  if (via && !/\d/.test(via)) {
+  const luogoVia = !via || /\d/.test(via) ? null : luogoComeComune(via);
+  const viaESoloIlComune =
+    !!luogoVia && (!prev.citta || stessoLuogoSede(via, prev.citta));
+  if (via && !/\d/.test(via) && !viaESoloIlComune) {
     return {
       indirizzo: via + " " + portato,
       citta: prev.citta || null,
@@ -837,9 +881,9 @@ function unisciCivicoAllaSede(sedePrecedente, domanda) {
   }
   return {
     indirizzo: portato,
-    citta: prev.citta || null,
+    citta: prev.citta || (luogoVia && luogoVia.citta) || null,
     cap: prev.cap || null,
-    provincia: prev.provincia || null
+    provincia: prev.provincia || (luogoVia && luogoVia.provincia) || null
   };
 }
 
@@ -2283,9 +2327,21 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   if (sedeDetta && (sembraPodereComeIndirizzo(domanda) || sembraIndirizzo(domanda))) {
     poderiRisposta = [];
   }
-  if (sedeDetta && !sedeHaQualcosa(sede)) {
+  if (sedeDetta && (!sedeHaQualcosa(sede) || sembraSoloComune(domanda))) {
     const dedotta = pulisciSede(sedeDaTesto(domanda));
-    if (dedotta) sede = dedotta;
+    if (dedotta) {
+      const precedente = sede && typeof sede === "object" ? sede : {};
+      // Solo un comune: la sede dedotta vince anche se il modello ha già
+      // messo il comune in indirizzo. CAP e provincia del modello restano.
+      sede = sembraSoloComune(domanda)
+        ? {
+            indirizzo: dedotta.indirizzo || null,
+            citta: dedotta.citta || null,
+            cap: precedente.cap || dedotta.cap || null,
+            provincia: precedente.provincia || dedotta.provincia || null
+          }
+        : dedotta;
+    }
   }
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   // Testo già consumato come sede/podere: mai terreni (né civico→ettari).

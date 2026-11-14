@@ -63,6 +63,22 @@ describe('separaViaEComune e unisciCivicoAllaSede', () => {
     expect(separaViaEComune({ indirizzo: 'via Roma, 48018', citta: null }).citta).toBeFalsy();
   });
 
+  it('il comune messo in indirizzo non si concatena al civico', () => {
+    expect(separaViaEComune({ indirizzo: 'Faenza', citta: null, cap: null, provincia: null })).toMatchObject({
+      indirizzo: null,
+      citta: 'Faenza',
+    });
+    expect(
+      separaViaEComune({ indirizzo: 'Faenza', citta: 'Faenza', cap: '48018', provincia: 'RA' })
+    ).toMatchObject({ indirizzo: null, citta: 'Faenza', cap: '48018', provincia: 'RA' });
+    expect(
+      unisciCivicoAllaSede({ indirizzo: 'Faenza', citta: 'Faenza', cap: null, provincia: null }, '12')
+    ).toMatchObject({ indirizzo: '12', citta: 'Faenza' });
+    expect(
+      unisciCivicoAllaSede({ indirizzo: 'Faenza', citta: null, cap: null, provincia: null }, '12')
+    ).toMatchObject({ indirizzo: '12', citta: 'Faenza' });
+  });
+
   it('accoda il civico alla via e, se c’è solo il comune, lascia il numero', () => {
     expect(
       unisciCivicoAllaSede({ indirizzo: 'via Roma, Faenza', citta: null, cap: null, provincia: null }, '12')
@@ -127,6 +143,29 @@ describe('client: civico una volta, via e comune restano', () => {
       'Ok, 12.'
     );
     expect(dopo.dati.dati.sede).toMatchObject({ indirizzo: 'via Roma 12', citta: 'Faenza' });
+    expect(dopo.passo).toBe('poderi');
+    expect(dopo.testo).toBe(PODERI);
+    expect(dopo.dati.dati.terreni).toHaveLength(0);
+  });
+
+  it.each([
+    [{ indirizzo: 'Faenza', citta: null, cap: null, provincia: null }],
+    [{ indirizzo: 'Faenza', citta: 'Faenza', cap: '48018', provincia: 'RA' }],
+  ])('modello che sporca la via con Faenza, poi 12: il comune resta solo in città', (sedeSporca) => {
+    const prima = turnoClient(vuoto, 'Faenza', { sede: sedeSporca, terreni: [] }, 'Ok, Faenza.');
+    expect(prima.passo).toBe('sede');
+    expect(prima.testo).toBe(CIVICO);
+    expect(prima.dati.dati.sede.indirizzo).toBeFalsy();
+    expect(prima.dati.dati.sede.citta).toBe('Faenza');
+    expect(prima.dati.dati.terreni).toHaveLength(0);
+    const dopo = turnoClient(
+      prima.dati.dati,
+      '12',
+      { sede: { indirizzo: 'Faenza 12', citta: 'Faenza' }, terreni: [{ nome: 'Dodici', superficie: 12 }] },
+      'Faenza 12.'
+    );
+    expect(dopo.dati.dati.sede).toMatchObject({ indirizzo: '12', citta: 'Faenza' });
+    expect(String(dopo.dati.dati.sede.indirizzo)).not.toMatch(/faenza/i);
     expect(dopo.passo).toBe('poderi');
     expect(dopo.testo).toBe(PODERI);
     expect(dopo.dati.dati.terreni).toHaveLength(0);
@@ -215,6 +254,42 @@ describe('server: stessa unione e stessa domanda unica', () => {
     expect(dopo.dati.sede).toMatchObject({ indirizzo: 'via Roma 12', citta: 'Faenza' });
     expect(dopo.dati.terreni).toHaveLength(0);
     expect(dopo.testo).toBe(PODERI);
+  });
+
+  it.each([
+    { indirizzo: 'Faenza', citta: null },
+    { indirizzo: 'Faenza', citta: 'Faenza', cap: '48018', provincia: 'RA' },
+  ])('modello che mette Faenza in via, poi 12: indirizzo solo civico', (sedeSporca) => {
+    const prima = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'Ok.',
+        sede: sedeSporca,
+        terreni: [{ nome: 'Faenza', superficie: 1 }],
+      }),
+      { argomento: 'sede', domanda: 'Faenza', raccolti: '' }
+    );
+    expect(prima.dati.sede.indirizzo).toBeFalsy();
+    expect(prima.dati.sede.citta).toBe('Faenza');
+    expect(prima.dati.terreni).toHaveLength(0);
+    expect(prima.testo).toBe(CIVICO);
+    const raccolti = serializzaRaccolti({
+      sede: prima.dati.sede,
+      civicoGiaChiesto: true,
+      poderi: [],
+      terreni: [],
+    });
+    const dopo = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: '',
+        sede: { indirizzo: 'Faenza 12', citta: 'Faenza' },
+        terreni: [],
+      }),
+      { argomento: 'sede', domanda: '12', raccolti }
+    );
+    expect(dopo.dati.sede).toMatchObject({ indirizzo: '12', citta: 'Faenza' });
+    expect(String(dopo.dati.sede.indirizzo)).not.toMatch(/faenza/i);
+    expect(dopo.testo).toBe(PODERI);
+    expect(dopo.dati.terreni).toHaveLength(0);
   });
 
   it('Faenza e poi 12 lascia il numero e il comune', () => {

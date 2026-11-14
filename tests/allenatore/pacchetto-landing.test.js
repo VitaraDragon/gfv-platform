@@ -1581,6 +1581,39 @@ describe('sede: civico sulla via, una domanda, voce = testo', () => {
     expect(dopo.testo).toBe(PODERI);
   });
 
+  it.each([
+    ['indirizzo sporco', { indirizzo: 'Faenza', citta: null, cap: null, provincia: null }],
+    [
+      'indirizzo e città uguali',
+      { indirizzo: 'Faenza', citta: 'Faenza', cap: '48018', provincia: 'RA' },
+    ],
+  ])('Faenza e poi 12 con modello %s: il comune non finisce nella via', (_etichetta, sedeSporca) => {
+    const stato = statoSede();
+    const prima = turno(stato, 'Faenza', {
+      testo: 'Sede a Faenza.',
+      sede: sedeSporca,
+      poderi: [],
+      terreni: [{ nome: 'Faenza', superficie: 1, coltura: 'Grano' }],
+    });
+    expect(prima.voce).toBe(prima.testo);
+    expect(prima.testo).toBe(CIVICO);
+    expect(prima.passo).toBe('sede');
+    expect(prima.sede.indirizzo).toBeFalsy();
+    expect(prima.sede.citta).toBe('Faenza');
+    expect(prima.terreni).toHaveLength(0);
+    const dopo = turno(stato, '12', {
+      testo: 'Via e numero: Faenza 12.',
+      sede: { indirizzo: 'Faenza 12', citta: 'Faenza' },
+      terreni: [{ nome: 'Dodici', superficie: 12 }],
+    });
+    expect(dopo.voce).toBe(dopo.testo);
+    expect(dopo.sede).toMatchObject({ indirizzo: '12', citta: 'Faenza' });
+    expect(String(dopo.sede.indirizzo)).not.toMatch(/faenza/i);
+    expect(dopo.passo).toBe('poderi');
+    expect(dopo.testo).toBe(PODERI);
+    expect(dopo.terreni).toHaveLength(0);
+  });
+
   it('solo Faenza e poi 12: il numero è l’indirizzo, il comune resta', () => {
     const stato = statoSede();
     turno(stato, 'Faenza', { testo: 'Ok.', sede: null, poderi: [], terreni: [] });
