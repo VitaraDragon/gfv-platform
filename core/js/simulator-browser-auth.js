@@ -72,7 +72,14 @@ export async function ensureSimulatorSession(auth) {
     const altraPersona = pendingCurrent
       && pendingCurrent.email
       && pendingCurrent.email !== auth.currentUser.email;
-    if (!altraPersona) return auth.currentUser;
+    if (!altraPersona) {
+      // Stesso utente già dentro: il pending è soddisfatto e va tolto,
+      // altrimenti la pagina dopo non vede il login come concluso.
+      if (rawCurrent) {
+        try { sessionStorage.removeItem(SIM_PENDING_LOGIN_KEY); } catch (_) { /* storage bloccato */ }
+      }
+      return auth.currentUser;
+    }
     try {
       await auth.signOut();
     } catch (_) {
