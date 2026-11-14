@@ -183,6 +183,18 @@ export async function pickManifestEntry(page, options = {}) {
     if (seeded.length) filtered = seeded;
   }
 
+  const slotRaw = process.env.TEST_PARALLEL_INDEX;
+  const slot = slotRaw === undefined || slotRaw === '' ? 0 : Number(slotRaw);
+  if (!Number.isInteger(slot) || slot < 0) {
+    throw new Error(`TEST_PARALLEL_INDEX non valido: ${slotRaw}`);
+  }
+  const perSlot = filtered.filter((e) => (e.slot === undefined || e.slot === null || e.slot === '' ? 0 : Number(e.slot)) === slot);
+  if (!perSlot.length) {
+    const quale = preferTemplateId || templateIncludes || 'qualsiasi template';
+    throw new Error(`Nessun tenant per lo slot ${slot} (${quale}). I seed non hanno questo slot: non uso un tenant di un altro worker.`);
+  }
+  filtered = perSlot;
+
   filtered.sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
   return filtered[0];
 }

@@ -27,6 +27,7 @@ const APP_TEMPLATES = [
   'solo-titolare-viticola',
   'mista-viticola-frutteto-conto-terzi-manodopera',
 ];
+const SIM_SLOTS = 3;
 
 const phaseArg = process.argv.find((a) => a.startsWith('--phase='));
 const phase = phaseArg ? phaseArg.slice('--phase='.length) : '';
@@ -53,6 +54,22 @@ function runNode(script, args, extraEnv) {
     return 1;
   }
   return typeof result.status === 'number' ? result.status : 1;
+}
+
+function runNodeAsync(script, args, extraEnv) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [join(root, script), ...args], {
+      cwd: root,
+      stdio: ['ignore', 'inherit', 'inherit'],
+      env: { ...process.env, ...extraEnv },
+      windowsHide: true,
+    });
+    child.on('error', (err) => {
+      console.error(`[test:promote] ${script}: ${err.message}`);
+      resolve(1);
+    });
+    child.on('exit', (code) => resolve(typeof code === 'number' ? code : 1));
+  });
 }
 
 function startHttpServer() {
@@ -102,10 +119,17 @@ async function runAppPhase() {
   try {
     server = await waitForHttp();
     for (const template of APP_TEMPLATES) {
-      console.log(`[test:promote] seed ${template}`);
-      const seeded = runNode('simulator/orchestrator.js', [`--template=${template}`]);
-      if (seeded !== 0) return seeded;
-      console.log(`[test:promote] verify ${template}`);
+      console.log(`[test:promote] seed ${template} x${SIM_SLOTS} slot`);
+      const codes = await Promise.all(
+        Array.from({ length: SIM_SLOTS }, (_, slot) => runNodeAsync(
+          'simulator/orchestrator.js',
+          [`--template=${template}`],
+          { GFV_SIM_SLOT: String(slot) }
+        ))
+      );
+      const seeded = codes.find((code) => code !== 0);
+      if (seeded !== undefined) return seeded;
+      console.log(`[test:promote] verify ${template} (slot 0..${SIM_SLOTS - 1})`);
       const verified = runNode('simulator/verify-e2e-seed.js', [], {
         GFV_SIM_E2E_TEMPLATE: template,
       });
@@ -274,14 +298,26 @@ function findHeadlessShell() {
     return '';
   }
   const shells = names.filter((name) => name.startsWith('chromium_headless_shell-')).sort();
-  const relative = process.platform === 'win32'
-    ? ['chrome-win', 'headless_shell.exe']
+  const candidates = process.platform === 'win32'
+    ? [
+      ['chrome-win', 'headless_shell.exe'],
+      ['chrome-headless-shell-win64', 'chrome-headless-shell.exe'],
+    ]
     : process.platform === 'darwin'
-      ? ['chrome-mac', 'headless_shell']
-      : ['chrome-linux', 'headless_shell'];
+      ? [
+        ['chrome-mac', 'headless_shell'],
+        ['chrome-headless-shell-mac-arm64', 'chrome-headless-shell'],
+        ['chrome-headless-shell-mac-x64', 'chrome-headless-shell'],
+      ]
+      : [
+        ['chrome-linux', 'headless_shell'],
+        ['chrome-headless-shell-linux64', 'chrome-headless-shell'],
+      ];
   for (const name of shells.reverse()) {
-    const exe = join(root, name, ...relative);
-    if (existsSync(exe)) return exe;
+    for (const relative of candidates) {
+      const exe = join(root, name, ...relative);
+      if (existsSync(exe)) return exe;
+    }
   }
   return '';
 }

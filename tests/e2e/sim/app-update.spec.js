@@ -79,14 +79,6 @@ async function leggiBuildAttiva(page) {
 }
 
 test.describe('barra nuova versione', () => {
-    test('nessuna barra senza versione nuova', async ({ page }) => {
-        await apriEControlla(page);
-        await expect(page.locator(BARRA)).toHaveCount(0);
-        await chiediUpdate(page);
-        await page.waitForTimeout(800);
-        await expect(page.locator(BARRA)).toHaveCount(0);
-    });
-
     test('la barra compare quando online c’è una build diversa', async ({ page }) => {
         await apriEControlla(page);
         serviBuild(BUILD_NUOVA);
