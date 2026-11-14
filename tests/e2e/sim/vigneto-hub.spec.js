@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoVignetoDashboard, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runVignetoDashboardAssertions } from './scenarios/vigneto-hub.mjs';
 

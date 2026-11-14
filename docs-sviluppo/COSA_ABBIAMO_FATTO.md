@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-13 — CI GitHub leggera, test lunghi in locale.**
+**Ultimo aggiornamento documentazione: 2026-11-14 — test:promote veloce e deterministico.**
+
+## 2026-11-14 — test:promote veloce e deterministico
+
+Su `ci/e2e-veloci-deterministici` (PR verso develop). Nessun merge, nessun deploy. Functions, rules, indici, `firebase.json` e workflow GitHub non si toccano.
+
+Il fumetto «Sto controllando...» non resta in chat dopo una risposta veloce (mock, locale, navigazione) né in caso di errore. `npm run test:promote` usa un solo emulatore: prima la fase app, poi Tony. I timeout corti di Tony partono solo con `GFV_TONY_E2E_GATE_FAST=1`. I test non chiamano Cloud Functions di produzione né esm.sh. Quattro test instabili (modale lavori, scarico trattamento, login attività) falliscono sul fatto, non sul timeout. L’attesa di aggiornamento app resta 10 s in produzione; i test locali la accorciano con `?swTestAttesaMs=`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — CI GitHub leggera, test lunghi in locale.**
 
 ## 2026-11-13 — CI GitHub leggera, test lunghi in locale
 

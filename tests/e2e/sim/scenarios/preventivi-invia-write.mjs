@@ -74,7 +74,6 @@ async function createInviaMarkerPreventivo(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runPreventiviInviaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerContoTerzi(page);
   await gotoPreventiviList(page);

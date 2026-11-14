@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runScadenzeWriteAssertions } from './scenarios/scadenze-write.mjs';
 
 test.describe('GFV Farm Simulator — scadenze write', () => {

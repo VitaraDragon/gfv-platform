@@ -136,7 +136,6 @@ async function prepareModificaForm(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGestioneLavoriSospendiRinviaAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await expect(page).toHaveURL(/gestione-lavori-standalone\.html/);
   await page.waitForFunction(() => {

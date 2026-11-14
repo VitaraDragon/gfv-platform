@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { loginAsCapoForLavoriDesktop } from './helpers/sim-login.js';
 import { runLavoriCaposquadraAssertions } from './scenarios/capo-lavori.mjs';
 

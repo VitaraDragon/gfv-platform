@@ -13,7 +13,6 @@ import { gotoGestisciUtenti, loginAsManagerManodopera } from '../helpers/sim-log
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGestisciUtentiReadAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoGestisciUtenti(page);

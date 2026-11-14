@@ -2,7 +2,7 @@
  * GFV Farm Simulator v4 — primo scenario E2E: login dev → dashboard widget scadenze.
  * Dati seed validati da v3 (sim:inspect, cascade-v3-live-smoke); qui solo assert DOM visibile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runDashboardDeadlinesAssertions } from './scenarios/dashboard-deadlines.mjs';
 

@@ -59,7 +59,6 @@ async function completeFirstPotaturaStub(page) {
 }
 
 export async function runPotaturaFruttetoCompletaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFrutteto(page);
   await gotoFruttetoPotaturaList(page);

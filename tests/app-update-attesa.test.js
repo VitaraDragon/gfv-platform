@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ATTESA_ATTIVAZIONE_MS, deveRicaricareDopoAttesa, urlPerRiprovaNavigazione } from '../core/js/app-update.js';
+import { ATTESA_ATTIVAZIONE_MS, attesaAttivazioneMs, deveRicaricareDopoAttesa, urlPerRiprovaNavigazione } from '../core/js/app-update.js';
 import { FIELD_UI_LANGS, FIELD_UI_STRINGS } from '../core/config/field-ui-i18n.js';
 
 describe('Aggiorna con worker nuovo ancora in attesa', () => {
     it('aspetta circa 10 secondi prima di ricaricare a mano', () => {
         expect(ATTESA_ATTIVAZIONE_MS).toBe(10_000);
+        expect(attesaAttivazioneMs({ hostname: 'gfv-platform.web.app', search: '?swTestAttesaMs=1500' })).toBe(10_000);
+        expect(attesaAttivazioneMs({ hostname: '127.0.0.1', search: '' })).toBe(10_000);
+        expect(attesaAttivazioneMs({ hostname: '127.0.0.1', search: '?swTest=1&swTestAttesaMs=1500' })).toBe(1500);
     });
 
     it('ricarica se non ci sono dati non salvati e nessun salvataggio', () => {

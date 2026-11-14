@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator — modifica trattore e Crea con campi subito editabili.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { GESTIONE_LAVORI_PATH, gotoGestioneLavori, loginAsManagerManodopera } from './helpers/sim-login.js';
 import {
     runGestioneLavoriCreaSubitoAssertions,

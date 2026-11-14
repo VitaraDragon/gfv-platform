@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoNuovoPreventivo, loginAsManagerContoTerzi } from './helpers/sim-login.js';
 import { runNuovoPreventivoReadAssertions } from './scenarios/conto-terzi-forms-read.mjs';
 

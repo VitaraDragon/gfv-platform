@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runVignetiListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/vigneti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Anagrafica Vigneti' })).toBeVisible();

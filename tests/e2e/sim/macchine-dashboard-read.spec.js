@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runMacchineDashboardReadAssertions } from './scenarios/macchine-dashboard-read.mjs';
 
 test.describe('GFV Farm Simulator — macchine dashboard read', () => {

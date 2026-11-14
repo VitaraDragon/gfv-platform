@@ -54,7 +54,6 @@ async function fillAndSubmitNewTerrenoCliente(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runTerreniClientiWriteAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await expect(page).toHaveURL(/terreni-clienti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Terreni Clienti' })).toBeVisible();

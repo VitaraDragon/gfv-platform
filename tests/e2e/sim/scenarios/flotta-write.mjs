@@ -42,7 +42,6 @@ async function createFlottaMarker(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runFlottaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFromDevPage(page);
   await gotoFlottaList(page);

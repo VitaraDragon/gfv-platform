@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuovo lavoro manodopera (gestione lavori).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoGestioneLavori, loginAsManagerManodopera } from './helpers/sim-login.js';
 import { runGestioneLavoriWriteAssertions, runGestioneLavoriAutonomoSaveAssertions } from './scenarios/gestione-lavori-write.mjs';
 import { runGestioneLavoriSospendiRinviaAssertions } from './scenarios/gestione-lavori-sospendi-rinvia.mjs';

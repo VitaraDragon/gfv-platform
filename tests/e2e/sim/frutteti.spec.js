@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoFruttetiList, loginAsManagerFrutteto } from './helpers/sim-login.js';
 import { runFruttetiListAssertions } from './scenarios/frutteti.mjs';
 

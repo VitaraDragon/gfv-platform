@@ -146,7 +146,6 @@ async function validateAllMarkerRows(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runValidazioneOreWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   const alreadyOnValidazione = /validazione-ore-standalone\.html/.test(page.url());
   if (alreadyOnValidazione) {
@@ -159,17 +158,9 @@ export async function runValidazioneOreWriteAssertions(page, expect) {
   await expect(page).toHaveURL(/validazione-ore-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Validazione Ore' })).toBeVisible();
 
-  const markerPending = await page
-    .waitForFunction(
-      (note) => {
-        const rows = document.querySelectorAll('#ore-container .ore-table tbody tr');
-        return Array.from(rows).some((tr) => (tr.textContent || '').includes(note));
-      },
-      E2E_ORE_MOBILE_WRITE_NOTE,
-      { timeout: 8_000 }
-    )
-    .then(() => true)
-    .catch(() => false);
+  const markerPending = (await page.locator('#ore-container .ore-table tbody tr', {
+    hasText: E2E_ORE_MOBILE_WRITE_NOTE,
+  }).count()) > 0;
 
   if (!markerPending) {
     await ensurePendingOreWithMarker(page);

@@ -3,7 +3,7 @@
  * Richiede tenant template *manodopera* con personas[] in manifest.
  * Dati seed validati da inspectManodoperaSeed + sim:audit; assert DOM visibile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import {
   loginAsCapoFromDevPage,
   loginAsOperaioFromDevPage,

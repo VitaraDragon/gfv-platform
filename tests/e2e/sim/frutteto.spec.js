@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator M4 — frutteto potature + trattamenti + concimazioni + raccolta read.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import {
   gotoFruttetoConcimazioniList,
   gotoFruttetoPotaturaList,

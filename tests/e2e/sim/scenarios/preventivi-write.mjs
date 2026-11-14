@@ -252,7 +252,6 @@ export async function fillAndSubmitNewPreventivo(page, { note, superficie = E2E_
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runPreventiviWriteAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await expect(page).toHaveURL(/preventivi-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Preventivi' })).toBeVisible();

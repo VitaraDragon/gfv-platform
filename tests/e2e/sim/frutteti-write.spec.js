@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runFruttetiWriteAssertions } from './scenarios/frutteti-write.mjs';
 
 test.describe('GFV Farm Simulator M4 — frutteti write (anagrafica)', () => {

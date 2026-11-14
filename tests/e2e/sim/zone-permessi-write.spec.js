@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test } from './helpers/gfv-test.js';
 import { runZonePermessiWrite } from './scenarios/zone-permessi-write.mjs';
 
 test.describe('permessi zone in campo', () => {

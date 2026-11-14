@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: validazione ore manager.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoValidazioneOre, loginAsManagerManodopera } from './helpers/sim-login.js';
 import { runValidazioneOreWriteAssertions } from './scenarios/validazione-ore-write.mjs';
 

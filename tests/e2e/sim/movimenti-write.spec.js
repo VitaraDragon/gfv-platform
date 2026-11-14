@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuovo movimento magazzino (entrata).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoMovimentiList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runMovimentiWriteAssertions } from './scenarios/movimenti-write.mjs';
 
