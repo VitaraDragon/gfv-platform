@@ -454,6 +454,26 @@ export async function waitForDashboardDeadlinesLoaded(page) {
 }
 
 /**
+ * Dopo il click di login: o si arriva alla pagina attesa, o #status.err e si fallisce subito.
+ * @param {import('@playwright/test').Page} page
+ * @param {RegExp} urlPattern
+ * @param {number} [timeoutMs]
+ */
+function waitForLoginLeaveDevPage(page, urlPattern, timeoutMs) {
+  const timeout = timeoutMs || simE2eTimeout(60_000);
+  const urlWait = page.waitForURL(urlPattern, { timeout }).then(() => 'url');
+  const errWait = page.locator('#status.err').waitFor({ state: 'visible', timeout }).then(() => 'err');
+  return Promise.race([urlWait, errWait]).then(async (outcome) => {
+    urlWait.catch(() => {});
+    errWait.catch(() => {});
+    if (outcome === 'err') {
+      const msg = ((await page.locator('#status').textContent()) || '').trim();
+      throw new Error(`Login non riuscito: ${msg || 'errore in #status'}`);
+    }
+  });
+}
+
+/**
  * Apre la pagina dev, sceglie tenant da manifest, Entra come manager.
  * @param {import('@playwright/test').Page} page
  * @param {{ preferSeedComplete?: boolean, templateIncludes?: string, preferTemplateId?: string }} [options]
@@ -488,8 +508,9 @@ export async function loginAsManagerFromDevPage(page, options = {}) {
     throw new Error(`Card non trovata per tenant ${entry.tenantId}`);
   }
 
+  const pendingDash = waitForLoginLeaveDevPage(page, /dashboard-standalone\.html/);
   await card.getByRole('button', { name: 'Entra come manager' }).click();
-  await page.waitForURL(/dashboard-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await pendingDash;
   await waitForDashboardDeadlinesLoaded(page);
 }
 
@@ -946,10 +967,9 @@ async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {
   }
 
   const personaBtn = card.getByRole('button', { name: personaButtonPattern }).first();
-  await Promise.all([
-    page.waitForURL(/field-workspace-standalone\.html/, { timeout: 90_000 }),
-    personaBtn.click(),
-  ]);
+  const pendingPersona = waitForLoginLeaveDevPage(page, /field-workspace-standalone\.html/, 90_000);
+  await personaBtn.click();
+  await pendingPersona;
   if (waitForWorkspace) {
     await waitForFieldWorkspaceLoaded(page);
   }

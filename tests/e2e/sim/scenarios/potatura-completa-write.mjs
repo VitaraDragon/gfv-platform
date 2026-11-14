@@ -103,7 +103,6 @@ async function completeFirstPotaturaStub(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runPotaturaCompletaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoPotaturaList(page);

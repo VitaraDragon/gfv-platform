@@ -3,7 +3,7 @@
  * Senza modulo: Gestione lavori non è nel menu e la pagina non è operativa.
  * Con modulo: i link Conto Terzi non aprono il Diario editabile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import {
   ATTIVITA_LIST_PATH,
   CONTO_TERZI_HOME_PATH,

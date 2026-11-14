@@ -2,7 +2,7 @@
  * GFV Farm Simulator v4 — scenario 4: diario attività (~20 record seed).
  * Dati seed validati da v3 orchestrator; assert DOM visibile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoAttivitaList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runAttivitaListAssertions } from './scenarios/attivita-list.mjs';
 

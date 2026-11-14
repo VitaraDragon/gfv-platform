@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuova attività (modale diario).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoAttivitaList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runAttivitaWriteAssertions } from './scenarios/attivita-write.mjs';
 

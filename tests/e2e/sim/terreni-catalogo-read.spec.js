@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runTerreniCatalogoReadAssertions } from './scenarios/terreni-catalogo-read.mjs';
 
 test.describe('GFV Farm Simulator — terreni catalogo read', () => {

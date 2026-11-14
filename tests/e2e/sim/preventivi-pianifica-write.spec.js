@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: pianifica preventivo conto terzi.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoPreventiviList, loginAsManagerContoTerzi } from './helpers/sim-login.js';
 import { runPreventiviPianificaWriteAssertions } from './scenarios/preventivi-pianifica-write.mjs';
 

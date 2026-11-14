@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runConcimazioneFruttetoCompletaWriteAssertions } from './scenarios/concimazione-frutteto-completa-write.mjs';
 
 test.describe('GFV Farm Simulator M4 — concimazione frutteto completa write', () => {

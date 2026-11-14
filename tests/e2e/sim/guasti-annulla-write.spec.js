@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator — annulla segnalazione e risolto da me.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runGuastiAnnullaWriteAssertions } from './scenarios/guasti-annulla-write.mjs';
 
 test.describe('GFV Farm Simulator — annulla e risolto da me', () => {

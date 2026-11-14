@@ -1405,25 +1405,55 @@ Più dati in emulator ⇒ query Firestore più pesanti ⇒ numeri perf più util
 
 **Field workspace (2026-06-26):** lazy load iframe statistiche/dettaglio lavoro; retry auth emulator su `onAuthStateChanged`; meno query duplicate comunicazioni operaio — v. `COSA_ABBIAMO_FATTO.md` voce omonima.
 
-### 13.5 CI (GitHub Actions)
+### 13.5 CI (GitHub Actions) e gate locale del promote
 
 Workflow: `.github/workflows/simulator-ci.yml`
 
-- **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
-- **Job `simulator-emulator`:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
-- **Job `simulator-e2e` (v4 #9 ✅, v5 Fase 1 ✅, M2 + P2 ✅, write P2 65–67 ✅, template mista ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, **triple-seed** (viticola + frutteto M4 + mista CT/manodopera), verify ×3, `sim:e2e:pw` (**71 spec**, headless Chromium). Timeout 40 min. I due job girano in parallelo.
-- **Locale (stesso comando CI Node):** `npm run sim:test:ci` — richiede Java su PATH.
-- **Locale (stesso comando CI E2E, bash + Java):** `npm run sim:e2e:install && npm run sim:e2e:ci`.
+Dal 2026-11-13 GitHub esegue solo i controlli veloci. I test lunghi restano gli script npm, da lanciare sul PC. Lo schedule notturno è spento: riattivare quando il seed `lab-trimestre-full` sarà sistemato. Push ravvicinati sullo stesso ref si annullano (`concurrency` + `cancel-in-progress`).
 
-| Step CI E2E | Comando | Note |
-| ----------- | ------- | ---- |
-| Browser | `sim:e2e:install` | Chromium Playwright + deps OS (`--with-deps`) |
-| Orchestrazione | `sim:e2e:ci` | `simulator/ci-e2e-run.js` → `scripts/sim-ci-e2e-inner.sh` |
-| Seed triple | `sim:run` ×3 (viticola + frutteto + mista) | v. `scripts/sim-ci-e2e-inner.sh` |
-| Verify seed | `sim:verify:e2e-seed` ×3 | una volta per template |
-| Assert browser | `sim:e2e:pw` | Node 22; **71 spec** headless (triple-seed) |
+**Su GitHub** (push/PR sui path del workflow, oppure Run workflow):
 
-Su **Node 24** locale: **`npm run sim:e2e`** o **`sim:e2e:write-p2`** (runner + Chrome di sistema). In CI (Node 22): `sim:e2e:pw` dopo `sim:e2e:install`.
+| Job | Comando | Durata tipica (run del 2026-11-13) |
+| --- | ------- | ---------------------------------- |
+| `static-import-guard` | Vitest import/handler | ~30 s |
+| `pwa-cache-id-guard` | build id del service worker, solo PR | ~10 s |
+| `simulator-emulator` | `npm run sim:test:ci` (Java 21, Node 22) | ~1 min |
+| `simulator-tony-vitest` | `npm run sim:tony:vitest` | ~1 min 40 s |
+| `allenatore-landing-vitest` | `npm run sim:allenatore:vitest` | ~35 s |
+
+Somma per PR: circa **4 minuti** di job (i job girano in parallelo; il più lungo è Tony Vitest).
+
+**A mano, non su GitHub.** Gli script non sono stati tolti:
+
+| Cosa | Comando |
+| ---- | ------- |
+| Playwright app (spec di gate, oggi 84 file) | `npm run sim:e2e:gate` |
+| Tony tier 2 mock | `npm run sim:tony:e2e` |
+| Tony tier 3 live | `npm run sim:tony:e2e:live` |
+| Canary roster A2 | `npm run manodopera:roster-a2-canary` |
+| Canary mappa | `npm run mappa:manodopera-canary` |
+| Gate prima del promote su main | `npm run test:promote` |
+
+`npm run test:promote` rifà le due fasi della CI, in Node, anche su Windows 11. Non riusa un emulatore già acceso.
+
+Prerequisiti:
+
+- Java 21 sul PATH (gli emulatori Auth e Firestore).
+- Porte libere all’avvio: 8000, 8080, 9099, 4000. Lo script avvia e spegne i propri emulatori. Se trova un `http-server` o un emulatore Firebase rimasto acceso, lo ferma.
+- Chromium di Playwright (`npx playwright install chromium`). Se manca, lo script usa Chrome di sistema e lo scrive in log. `CI=true` resta acceso, quindi `retries: 1` e `workers: 1`.
+- Il PC alla corrente. Se è a batteria, lo script avvisa. Per la durata del processo disattiva la sospensione e la riattiva alla fine.
+- Su Windows il loader ESM di Playwright 1.49 non risponde (la CLI restava ferma dopo l’elenco scenari). Lo script e `sim:e2e:gate` impostano `PW_DISABLE_TS_ESM=1`: i test sono JavaScript, il loader TypeScript non serve.
+
+Fasi, ciascuna con `emulators:exec` su un emulatore pulito:
+
+1. **App.** Seed e verify dei quattro template della CI: `viticola-conto-terzi-manodopera`, `frutteto-solo-titolare`, `solo-titolare-viticola`, `mista-viticola-frutteto-conto-terzi-manodopera`. Poi `sim:e2e:gate` con `CI=true`.
+2. **Tony.** Solo il seed viticola, con `CI=true`, `GFV_TONY_E2E_GATE_FAST=1`, `GFV_TONY_E2E_MODE=gate`.
+
+Il manifest in git (con i tenant vecchi) non entra nel giro: lo script parte da un file vuoto e, alla fine, rimette i byte che c’erano prima.
+
+**Regola:** prima di chiedere il merge di un promote su `main`, `npm run test:promote` deve essere verde. La CI GitHub verde non sostituisce questo gate.
+
+In CI i tempi visti il 2026-11-13 sono circa 8–12 minuti per l’app e circa 9 minuti per Tony.
 
 **Roadmap oltre v4:** v4b — CI notturna batch + `sim:cleanup` selettivo (§11 roadmap).
 

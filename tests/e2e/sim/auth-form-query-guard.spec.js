@@ -1,7 +1,7 @@
 /**
  * Submit del login prima dei moduli non deve mettere email/password nella query.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { DEFAULT_VITICOLA_E2E_TEMPLATE, pickManifestEntry } from './helpers/sim-login.js';
 
 const SECRET_EMAIL = 'leak-user@example.com';

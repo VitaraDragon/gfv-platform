@@ -6,7 +6,7 @@
  * `modules` sul doc tenant è protetto dalle rules (solo Admin SDK): le scritture
  * di piano/moduli in questo e2e passano da firebase-admin sull'emulatore.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import {
   ATTIVITA_LIST_PATH,
   GESTIONE_LAVORI_PATH,

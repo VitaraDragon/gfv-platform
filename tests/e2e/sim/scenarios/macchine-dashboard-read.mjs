@@ -11,7 +11,6 @@ import { runMacchineDashboardAssertions } from './macchine-hub.mjs';
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runMacchineDashboardReadAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await loginAsManagerFromDevPage(page);
   await gotoMacchineDashboard(page);

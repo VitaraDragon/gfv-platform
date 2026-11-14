@@ -27,7 +27,6 @@ import { runPreventiviListAssertions } from './conto-terzi.mjs';
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runFlussoOperativoAziendaAssertions(page, expect) {
-  expect.configure({ timeout: 120_000 });
 
   // 1 — Manager: cuore viticola (diario + magazzino seed catena B)
   await loginAsManagerFromDevPage(page);

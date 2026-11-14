@@ -1,6 +1,26 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-13 — Link dell’app verso gfv-platform-app.web.app.**
+**Ultimo aggiornamento documentazione: 2026-11-14 — test:promote veloce e deterministico.**
+
+## 2026-11-14 — test:promote veloce e deterministico
+
+Su `ci/e2e-veloci-deterministici` (PR verso develop). Nessun merge, nessun deploy. Functions, rules, indici, `firebase.json` e workflow GitHub non si toccano.
+
+Il fumetto «Sto controllando...» non resta in chat dopo una risposta veloce (mock, locale, navigazione) né in caso di errore. `npm run test:promote` usa un solo emulatore: prima la fase app, poi Tony. I timeout corti di Tony partono solo con `GFV_TONY_E2E_GATE_FAST=1`. I test non chiamano Cloud Functions di produzione né esm.sh. Quattro test instabili (modale lavori, scarico trattamento, login attività) falliscono sul fatto, non sul timeout. L’attesa di aggiornamento app resta 10 s in produzione; i test locali la accorciano con `?swTestAttesaMs=`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — CI GitHub leggera, test lunghi in locale.**
+
+## 2026-11-13 — CI GitHub leggera, test lunghi in locale
+
+Su `ci/test-promote-locale` (PR verso develop). Nessun merge, nessun deploy. Codice app, functions, rules, indici, `firebase.json` e landing non si toccano.
+
+Su GitHub restano import-guard, cache PWA, `sim:test`, `sim:tony:vitest` e il Vitest dell’allenatore landing. Via da GitHub: `sim:e2e`, `sim:tony:e2e` (mock), `sim:tony:e2e:live` e i canary di roster e mappa. Gli script npm restano. Lo schedule notturno è spento finché il seed `lab-trimestre-full` non è sistemato. `npm run test:promote` rifà la CI in locale: emulatore pulito, quattro seed con verify, `sim:e2e:gate` con `CI=true`, poi un secondo emulatore con solo il seed viticola e Tony mock (`GFV_TONY_E2E_GATE_FAST=1`). Il manifest git non entra nel giro. Su Windows la CLI di Playwright parte con `PW_DISABLE_TS_ESM=1`. Prima di chiedere il merge di un promote su `main`, quel comando deve essere verde.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — Link dell’app verso gfv-platform-app.web.app.**
 
 ## 2026-11-13 — Link dell’app verso gfv-platform-app.web.app
 

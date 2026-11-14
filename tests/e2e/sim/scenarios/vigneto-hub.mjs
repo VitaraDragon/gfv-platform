@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runVignetoDashboardAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/vigneto-dashboard-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'VIGNETO' })).toBeVisible();

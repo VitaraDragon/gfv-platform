@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runCompensiOperaiReadAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await expect(page).toHaveURL(/compensi-operai-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Compensi Operai' })).toBeVisible();
@@ -29,7 +28,6 @@ export async function runCompensiOperaiReadAssertions(page, expect) {
 }
 
 export async function runSegnaturaOreReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/segnatura-ore-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Segna Ore Lavorate' })).toBeVisible();
@@ -46,7 +44,6 @@ export async function runSegnaturaOreReadAssertions(page, expect) {
 }
 
 export async function runSegnalazioneGuastiReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/segnalazione-guasti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Segnalazione Guasti' })).toBeVisible();
@@ -55,7 +52,6 @@ export async function runSegnalazioneGuastiReadAssertions(page, expect) {
 }
 
 export async function runStatisticheLavoratoreReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/statistiche-lavoratore-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Le tue statistiche' })).toBeVisible();

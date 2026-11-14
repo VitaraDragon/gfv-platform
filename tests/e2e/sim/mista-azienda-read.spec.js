@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runMistaAziendaReadAssertions } from './scenarios/mista-azienda-read.mjs';
 
 test.describe('GFV Farm Simulator — azienda mista viticola + frutteto', () => {

@@ -94,7 +94,6 @@ async function waitForScadenzaValoreChanged(page, macchinaId, campo, beforeValor
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runScadenzeWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFromDevPage(page);
   await gotoScadenzeList(page);

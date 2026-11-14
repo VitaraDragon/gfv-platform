@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: segnalazione guasto.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runGuastiWriteAssertions } from './scenarios/guasti-write.mjs';
 
 test.describe('GFV Farm Simulator v5 — write guasto', () => {

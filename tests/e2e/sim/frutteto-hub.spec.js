@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoFruttetoDashboard, loginAsManagerFrutteto } from './helpers/sim-login.js';
 import { runFruttetoDashboardAssertions } from './scenarios/frutteto-hub.mjs';
 

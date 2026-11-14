@@ -11,7 +11,6 @@ import { gotoVendemmia, loginAsManagerManodopera } from '../helpers/sim-login.js
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runVendemmiaAutoReadAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await loginAsManagerManodopera(page);
   await gotoVendemmia(page);
