@@ -27,7 +27,7 @@ const APP_TEMPLATES = [
   'solo-titolare-viticola',
   'mista-viticola-frutteto-conto-terzi-manodopera',
 ];
-const SIM_SLOTS = 3;
+const SIM_SLOTS = 2;
 
 const phaseArg = process.argv.find((a) => a.startsWith('--phase='));
 const phase = phaseArg ? phaseArg.slice('--phase='.length) : '';

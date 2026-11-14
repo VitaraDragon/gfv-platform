@@ -34,7 +34,7 @@ export default defineConfig({
   projects: [
     {
       name: 'sim-chromium',
-      workers: process.env.CI ? 3 : 1,
+      workers: process.env.CI ? 2 : 1,
       testMatch: /tests\/e2e\/sim\/.*\.spec\.js/,
       testIgnore: [
         /app-update\.spec\.js/,
