@@ -201,6 +201,20 @@ function warnIfOnBattery() {
   }
 }
 
+function headlessShellUsable(exe) {
+  try {
+    const result = spawnSync(exe, ['--version'], {
+      encoding: 'utf8',
+      timeout: 8000,
+      windowsHide: true,
+    });
+    if (result.error || result.status !== 0) return false;
+    return /Chrome|Headless/i.test(`${result.stdout || ''}${result.stderr || ''}`);
+  } catch {
+    return false;
+  }
+}
+
 function startKeepAwake() {
   if (process.platform !== 'win32') return null;
   const script = [
@@ -340,10 +354,12 @@ async function runPhases(which) {
 async function mainOuter() {
   warnIfOnBattery();
   const headlessShell = findHeadlessShell();
-  if (headlessShell) {
+  const shellOk = Boolean(headlessShell) && headlessShellUsable(headlessShell);
+  if (shellOk) {
     console.log(`[test:promote] Chromium headless shell: ${headlessShell}`);
   } else if (!process.env.GFV_E2E_BROWSER_CHANNEL) {
-    console.warn('[test:promote] Chromium headless shell assente: uso Chrome di sistema (GFV_E2E_BROWSER_CHANNEL=chrome). CI=true resta attivo, quindi i retry sono 1.');
+    const why = headlessShell ? 'presente ma non avviabile' : 'assente';
+    console.warn(`[test:promote] Chromium headless shell ${why}: uso Chrome di sistema (GFV_E2E_BROWSER_CHANNEL=chrome).`);
     process.env.GFV_E2E_BROWSER_CHANNEL = 'chrome';
   }
   freeStaleListeners();
