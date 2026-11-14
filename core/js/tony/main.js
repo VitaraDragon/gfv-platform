@@ -6501,7 +6501,7 @@ if (typeof window !== 'undefined') {
         var appendMessageBase = appendMessage;
         appendMessage = function(text, type) {
             appendMessageBase(text, type);
-            if (type === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
+            if ((type === 'tony' || type === 'error') && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
         };
         var showMessageInChatBase = showMessageInChat;
         showMessageInChat = function(text, type) {
@@ -7878,6 +7878,7 @@ if (typeof window !== 'undefined') {
                 if (typeof stopListeningRef === 'function') stopListeningRef();
                 tonyDebugLog('[Tony] Voice turn avviato (build ' + (window.__TONY_CLIENT_BUILD || '?') + '):', text.slice(0, 80));
             }
+            if (!opts.proactive && !opts._displayOnly) tonyE2eTurnStart();
             if (!window.Tony || !window.Tony.isReady()) {
                 if (TONY_QUEUE_ENABLED && !opts._dallaCoda && !opts.proactive && !opts.fromVoice) {
                     mettiInCodaInvioTony(text);
@@ -7918,7 +7919,6 @@ if (typeof window !== 'undefined') {
                 tonySetLastUserMessage(text);
                 try { tonyFotoLavoroSceltoUtente(); } catch (eFoto) { /* ignore */ }
             }
-            if (!opts.proactive && !opts._displayOnly) tonyE2eTurnStart();
             var tonyHaGiaRispostoPrimaTurno = tonyHasAlreadyRespondedInSession();
             if (checkFarewellIntent(text, { tonyHaGiaRisposto: tonyHaGiaRispostoPrimaTurno })) opts.isClosingSession = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
