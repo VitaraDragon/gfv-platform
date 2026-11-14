@@ -7,14 +7,15 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import {
     loginAsCapoFromDevPage,
     loginAsManagerFromDevPage,
     waitForSegnaturaOreLoaded
 } from './helpers/sim-login.js';
 
-const PAGINA = '/core/auth/login-standalone.html?swTest=1';
+const ATTESA_TEST_MS = 1500;
+const PAGINA = `/core/auth/login-standalone.html?swTest=1&swTestAttesaMs=${ATTESA_TEST_MS}`;
 const BARRA = '#gfv-app-update-bar';
 const BUILD_NUOVA = 'e2e-build-nuova';
 
@@ -310,7 +311,7 @@ async function aggiungiFormDiProva(page) {
     });
 }
 
-const ATTESA_MS = 10_000;
+const ATTESA_MS = ATTESA_TEST_MS;
 
 test.describe('Aggiorna con worker nuovo bloccato in attesa', () => {
     test('la barra resta con «Aggiornamento in corso…» e la pagina si ricarica dopo ~10 s', async ({ page }) => {
@@ -324,7 +325,7 @@ test.describe('Aggiorna con worker nuovo bloccato in attesa', () => {
         await expect(page.locator(BARRA)).toBeVisible();
         await expect(page.locator('#gfv-app-update-btn')).toBeHidden();
 
-        await page.waitForTimeout(ATTESA_MS - 2500);
+        await page.waitForTimeout(Math.max(200, ATTESA_MS - 800));
         expect(nav.n).toBe(0);
         await expect(page.locator('#gfv-app-update-messaggio')).toHaveText('Aggiornamento in corso…');
         expect(await page.evaluate(() => window.__e2eSkipScartati || 0)).toBeGreaterThan(1);

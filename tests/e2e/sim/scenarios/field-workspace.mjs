@@ -17,7 +17,6 @@ async function countWorkOptions(page) {
 
 /** Assert workspace caricato per ruolo operaio. */
 export async function runOperaioFieldWorkspaceAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/field-workspace-standalone\.html/);
   await expect(page.locator('#field-swiper')).toBeVisible();
@@ -68,7 +67,6 @@ export async function runOperaioFieldWorkspaceAssertions(page, expect) {
 
 /** Assert workspace caricato per ruolo caposquadra (+ sezioni capo). */
 export async function runCapoFieldWorkspaceAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/field-workspace-standalone\.html/);
   await expect(page.locator('#field-swiper')).toBeVisible();

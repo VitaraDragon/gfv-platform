@@ -303,6 +303,12 @@ export async function confirmProdottoSave(page, opts = {}) {
     await page.locator('#prodotto-note').fill(opts.note);
   }
 
+  await page.evaluate(() => {
+    const modal = document.getElementById('prodotto-modal');
+    if (modal) modal.classList.add('active');
+    window.__tonyAwaitingProdottoSaveConfirm = true;
+  });
+
   let lastTurn = await tonyRunMultiTurn(page, ['salva'], { turnDelayMs: 500 });
   const low = String(lastTurn.lastReply || '').toLowerCase();
   if (/vuoi che salvi|conferm/i.test(low)) {

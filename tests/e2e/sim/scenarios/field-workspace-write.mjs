@@ -118,25 +118,13 @@ async function fillAndSubmitQuickHours(page, { note }) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runFieldWorkspaceOreWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoValidazioneOre(page);
 
-  const markerPending = await page
-    .waitForFunction(
-      (note) => {
-        const rows = document.querySelectorAll('#ore-container .ore-table tbody tr');
-        return Array.from(rows).some((tr) => {
-          const t = (tr.textContent || '').replace(/\s+/g, ' ').trim();
-          return t.includes(note) && !t.includes(`${note}_`);
-        });
-      },
-      E2E_ORE_MOBILE_WRITE_NOTE,
-      { timeout: 8_000 }
-    )
-    .then(() => true)
-    .catch(() => false);
+  const markerPending = (await page.locator('#ore-container .ore-table tbody tr', {
+    hasText: E2E_ORE_MOBILE_WRITE_NOTE,
+  }).count()) > 0;
 
   if (!markerPending) {
     await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });

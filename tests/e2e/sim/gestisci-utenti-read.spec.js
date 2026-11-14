@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runGestisciUtentiReadAssertions } from './scenarios/gestisci-utenti-read.mjs';
 
 test.describe('GFV Farm Simulator — gestisci utenti read', () => {

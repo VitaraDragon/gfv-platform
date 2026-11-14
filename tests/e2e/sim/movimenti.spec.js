@@ -2,7 +2,7 @@
  * GFV Farm Simulator v4 — scenario 5: movimenti magazzino tracciabilità.
  * Dati seed validati da orchestrator v3; assert DOM visibile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoMovimentiList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runMovimentiAssertions } from './scenarios/movimenti.mjs';
 

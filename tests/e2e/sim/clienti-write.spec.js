@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuovo cliente conto terzi.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoClientiList, loginAsManagerContoTerzi } from './helpers/sim-login.js';
 import { runClientiWriteAssertions } from './scenarios/clienti-write.mjs';
 

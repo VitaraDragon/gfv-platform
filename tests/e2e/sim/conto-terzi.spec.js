@@ -3,7 +3,7 @@
  * Richiede tenant template viticola-conto-terzi* in manifest.
  * Dati seed validati da orchestrator v2.2 + sim:audit; assert DOM visibile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import {
   gotoClientiList,
   gotoPreventiviList,

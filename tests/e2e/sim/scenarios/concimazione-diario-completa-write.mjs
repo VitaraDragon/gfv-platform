@@ -421,7 +421,6 @@ function concimazioneRowByAttivitaLabel(page, attivitaLabel) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runConcimazioneDiarioCompletaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
   page.setDefaultTimeout(90_000);
 
   // Diario editabile solo senza Manodopera. Stesse assert, tenant viticolo senza il modulo.

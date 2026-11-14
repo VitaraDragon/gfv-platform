@@ -5,7 +5,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runMovimentiAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/movimenti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Movimenti Magazzino' })).toBeVisible();

@@ -3,9 +3,10 @@
  * Gate locale uguale alla CI (sim:e2e:ci poi sim:tony:e2e:ci).
  * Solo Node: niente bash, curl o /tmp. Gira su Windows 11.
  *
- * Fase app: emulators:exec pulito, 4 seed + verify, poi sim:e2e:gate con CI=true
- * (retries: 1, workers: 1 da playwright.config.js).
- * Fase Tony: secondo emulators:exec, solo seed viticola, CI=true,
+ * Un solo emulators:exec: prima la fase app, poi Tony, senza riavviare gli emulatori.
+ * `--phase=app` o `--phase=tony` lancia una fase sola, sempre dentro gli emulatori.
+ * Fase app: 4 seed + verify, poi sim:e2e:gate con CI=true (timeout pieni).
+ * Fase Tony: nuovo seed viticola sullo stesso emulatore, CI=true,
  * GFV_TONY_E2E_GATE_FAST=1, GFV_TONY_E2E_MODE=gate.
  * Il manifest git non si usa: si parte da [] e si ripristina il file alla fine.
  */
@@ -28,6 +29,8 @@ const APP_TEMPLATES = [
 
 const phaseArg = process.argv.find((a) => a.startsWith('--phase='));
 const phase = phaseArg ? phaseArg.slice('--phase='.length) : '';
+const insideArg = process.argv.find((a) => a.startsWith('--inside='));
+const inside = insideArg ? insideArg.slice('--inside='.length) : '';
 
 function formatDuration(ms) {
   const totalSec = Math.round(ms / 1000);
@@ -65,16 +68,22 @@ async function waitForHttp() {
   const url = 'http://127.0.0.1:8000/';
   const deadline = Date.now() + 30_000;
   let lastError = '';
+  let child = startHttpServer();
   while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      child = startHttpServer();
+    }
     try {
       const res = await fetch(url);
-      if (res.ok || res.status < 500) return;
+      if (res.ok || res.status < 500) return child;
       lastError = `status ${res.status}`;
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
     }
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
+  stopChild(child);
   throw new Error(`http-server non raggiungibile su :8000 (${lastError})`);
 }
 
@@ -88,9 +97,9 @@ function stopChild(child) {
 }
 
 async function runAppPhase() {
-  const server = startHttpServer();
+  let server = null;
   try {
-    await waitForHttp();
+    server = await waitForHttp();
     for (const template of APP_TEMPLATES) {
       console.log(`[test:promote] seed ${template}`);
       const seeded = runNode('simulator/orchestrator.js', [`--template=${template}`]);
@@ -113,9 +122,9 @@ async function runAppPhase() {
 }
 
 async function runTonyPhase() {
-  const server = startHttpServer();
+  let server = null;
   try {
-    await waitForHttp();
+    server = await waitForHttp();
     const template = 'viticola-conto-terzi-manodopera';
     console.log(`[test:promote] seed ${template}`);
     const seeded = runNode('simulator/orchestrator.js', [`--template=${template}`]);
@@ -132,14 +141,8 @@ async function runTonyPhase() {
 }
 
 function emulatorExec(which) {
-  const command = `"${process.execPath}" "${selfPath}" --phase=${which}`;
-  const extra = which === 'tony'
-    ? {
-      CI: 'true',
-      GFV_TONY_E2E_GATE_FAST: '1',
-      GFV_TONY_E2E_MODE: 'gate',
-    }
-    : { CI: 'true' };
+  const command = `"${process.execPath}" "${selfPath}" --inside=${which}`;
+  const extra = { CI: 'true' };
   console.log(`[test:promote] emulators:exec fase ${which}`);
   const result = spawnSync(process.execPath, [
     firebaseBin,
@@ -255,6 +258,21 @@ function bundledBrowserReady() {
   return existsSync(headless);
 }
 
+async function runPhases(which) {
+  const order = which === 'app' ? ['app'] : which === 'tony' ? ['tony'] : ['app', 'tony'];
+  let exitCode = 0;
+  for (const name of order) {
+    if (name === 'tony') writeFileSync(manifestPath, '[]\n');
+    const started = Date.now();
+    const code = name === 'app' ? await runAppPhase() : await runTonyPhase();
+    const duration = formatDuration(Date.now() - started);
+    const esito = code === 0 ? 'ok' : 'fallito';
+    console.log(`[test:promote] fase ${name}: ${esito} (${duration}), exit ${code}`);
+    if (code !== 0) exitCode = code;
+  }
+  return exitCode;
+}
+
 async function mainOuter() {
   warnIfOnBattery();
   if (!bundledBrowserReady() && !process.env.GFV_E2E_BROWSER_CHANNEL) {
@@ -267,19 +285,12 @@ async function mainOuter() {
     ? readFileSync(manifestPath)
     : Buffer.from('[]\n');
   writeFileSync(manifestPath, '[]\n');
-  const timings = [];
+  const which = phase === 'app' || phase === 'tony' ? phase : 'all';
   let exitCode = 0;
   try {
-    for (const which of ['app', 'tony']) {
-      if (which === 'tony') writeFileSync(manifestPath, '[]\n');
-      const started = Date.now();
-      const code = emulatorExec(which);
-      const duration = formatDuration(Date.now() - started);
-      const esito = code === 0 ? 'ok' : 'fallito';
-      console.log(`[test:promote] fase ${which}: ${esito} (${duration}), exit ${code}`);
-      timings.push({ which, esito, duration, code });
-      if (code !== 0) exitCode = code;
-    }
+    const started = Date.now();
+    exitCode = emulatorExec(which);
+    console.log(`[test:promote] emulatore unico (${which}): ${formatDuration(Date.now() - started)}, exit ${exitCode}`);
   } finally {
     writeFileSync(manifestPath, originalManifest);
     stopKeepAwake(awake);
@@ -288,14 +299,11 @@ async function mainOuter() {
   return exitCode;
 }
 
-if (phase === 'app') {
-  process.exit(await runAppPhase());
+if (inside === 'app' || inside === 'tony' || inside === 'all') {
+  process.exit(await runPhases(inside));
 }
-if (phase === 'tony') {
-  process.exit(await runTonyPhase());
-}
-if (phase) {
-  console.error(`[test:promote] fase sconosciuta: ${phase}`);
+if (inside || (phase && phase !== 'app' && phase !== 'tony')) {
+  console.error(`[test:promote] fase sconosciuta: ${inside || phase}`);
   process.exit(1);
 }
 process.exit(await mainOuter());

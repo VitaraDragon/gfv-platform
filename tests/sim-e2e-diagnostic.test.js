@@ -111,10 +111,24 @@ describe('sim-e2e-timeouts', () => {
     expect(simE2eTonyPostSaveWaitTimeout()).toBe(90_000);
   });
 
-  it('gate-fast CI riduce perf/post-save', () => {
+  it('CI senza flag non comprime i timeout della fase app', () => {
     process.env.CI = 'true';
-    process.env.GFV_TONY_E2E_MODE = 'gate';
+    delete process.env.GFV_TONY_E2E_MODE;
     delete process.env.GFV_TONY_E2E_GATE_FAST;
+    delete process.env.GFV_E2E_FAST;
+    delete process.env.GFV_E2E_MODE;
+    delete process.env.GFV_E2E_TIMEOUT_MS;
+    expect(isTonyE2eGateFast()).toBe(false);
+    expect(simE2eTimeout(60_000)).toBe(60_000);
+    expect(simE2eTimeout(45_000)).toBe(45_000);
+    expect(simE2eTonyPerfWaitTimeout()).toBe(12_000);
+  });
+
+  it('GATE_FAST esplicito riduce perf/post-save', () => {
+    process.env.GFV_TONY_E2E_GATE_FAST = '1';
+    delete process.env.CI;
+    delete process.env.GFV_TONY_E2E_MODE;
+    delete process.env.GFV_E2E_TIMEOUT_MS;
     expect(isTonyE2eGateFast()).toBe(true);
     expect(simE2eTonyPerfWaitTimeout()).toBe(8_000);
     expect(simE2eTonyPostSaveWaitTimeout()).toBe(45_000);

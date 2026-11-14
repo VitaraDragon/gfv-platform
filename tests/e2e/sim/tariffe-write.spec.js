@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuova tariffa conto terzi.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoTariffeList, loginAsManagerContoTerzi } from './helpers/sim-login.js';
 import { runTariffeWriteAssertions } from './scenarios/tariffe-write.mjs';
 

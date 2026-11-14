@@ -11,7 +11,6 @@ import { gotoTerreniList, loginAsManagerFromDevPage } from '../helpers/sim-login
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runTerreniCatalogoReadAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await loginAsManagerFromDevPage(page);
   await gotoTerreniList(page);

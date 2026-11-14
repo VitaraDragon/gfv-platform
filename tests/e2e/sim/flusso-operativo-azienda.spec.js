@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runFlussoOperativoAziendaAssertions } from './scenarios/flusso-operativo-azienda.mjs';
 
 test.describe('GFV Farm Simulator — flusso operativo azienda', () => {

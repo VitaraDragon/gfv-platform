@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runGuastiResolveWriteAssertions } from './scenarios/guasti-resolve-write.mjs';
 
 test.describe('GFV Farm Simulator — guasti resolve write', () => {

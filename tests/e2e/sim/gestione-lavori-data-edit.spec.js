@@ -2,7 +2,7 @@
  * GFV Farm Simulator — edit gestione lavori: data inizio senza shift UTC (−1 giorno).
  * timezoneId Europe/Rome: a mezzanotte locale toISOString() cade sul giorno prima.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoGestioneLavori, loginAsManagerManodopera } from './helpers/sim-login.js';
 import { runGestioneLavoriDataEditAssertions } from './scenarios/gestione-lavori-data-edit.mjs';
 

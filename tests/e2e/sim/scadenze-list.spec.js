@@ -2,7 +2,7 @@
  * GFV Farm Simulator v4 — scenario 2: parco macchine → lista scadenze urgenti.
  * Dati seed validati da v3 (sim:inspect, seed-parco-macchine-details); assert DOM visibile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoScadenzeList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runScadenzeListAssertions } from './scenarios/scadenze-list.mjs';
 

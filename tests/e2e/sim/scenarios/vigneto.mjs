@@ -6,7 +6,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runPotaturaListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/potatura-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Potatura Vigneto' })).toBeVisible();
@@ -45,7 +44,6 @@ export async function runPotaturaListAssertions(page, expect) {
 }
 
 export async function runTrattamentiListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/trattamenti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Trattamenti Vigneto' })).toBeVisible();
@@ -90,7 +88,6 @@ export async function runTrattamentiListAssertions(page, expect) {
 }
 
 export async function runConcimazioniListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/concimazioni-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Concimazioni Vigneto' })).toBeVisible();

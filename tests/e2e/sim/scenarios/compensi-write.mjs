@@ -26,7 +26,6 @@ async function compensiHaveRows(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runCompensiWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoCompensiOperai(page);

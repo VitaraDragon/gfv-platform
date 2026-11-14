@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runLavoriCaposquadraAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/lavori-caposquadra-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'I Miei Lavori' })).toBeVisible();

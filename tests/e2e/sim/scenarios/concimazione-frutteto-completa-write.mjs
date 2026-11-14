@@ -181,7 +181,6 @@ async function completeConcimazioneStub(page, filledBefore) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runConcimazioneFruttetoCompletaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFrutteto(page);
   await gotoFruttetoConcimazioniList(page);
