@@ -2609,7 +2609,10 @@ export function preparaTurnoOnboarding(opts) {
     nuoviIn.sede = null;
     nuoviIn.terreni = [];
   }
-  if (passo0 === 'sede' && sembraPodereComeIndirizzo(o.domanda)) {
+  if (
+    passo0 === 'sede' &&
+    (sembraPodereComeIndirizzo(o.domanda) || sembraIndirizzo(o.domanda))
+  ) {
     nuoviIn.poderi = [];
   }
   if (

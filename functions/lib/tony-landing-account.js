@@ -890,7 +890,7 @@ function sedeRaccoltaSenzaCivico(raccolti) {
 }
 
 function civicoGiaChiestoDaRaccolti(raccolti) {
-  return /(?:^|\n)Civico già chiesto:\s*s[iì]\b/i.test(String(raccolti || ""));
+  return /(?:^|\n)Civico gi[aà] chiesto:\s*s[iì]/i.test(String(raccolti || ""));
 }
 
 /** Rinforzo: l'ultima battuta di Tony ha già chiesto il numero civico. */
@@ -2280,7 +2280,7 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
       ? opzioni.argomento
       : "";
   const sedeDetta = argomento === "sede" && sembraSedeDetta(domanda);
-  if (sedeDetta && sembraPodereComeIndirizzo(domanda)) {
+  if (sedeDetta && (sembraPodereComeIndirizzo(domanda) || sembraIndirizzo(domanda))) {
     poderiRisposta = [];
   }
   if (sedeDetta && !sedeHaQualcosa(sede)) {
