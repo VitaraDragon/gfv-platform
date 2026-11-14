@@ -889,6 +889,21 @@ function sedeRaccoltaSenzaCivico(raccolti) {
   return !/\d/.test(String(sede.indirizzo || ""));
 }
 
+function civicoGiaChiestoDaRaccolti(raccolti) {
+  return /(?:^|\n)Civico già chiesto:\s*s[iì]\b/i.test(String(raccolti || ""));
+}
+
+/** Rinforzo: l'ultima battuta di Tony ha già chiesto il numero civico. */
+function civicoGiaChiestoDaStoria(storia) {
+  if (!Array.isArray(storia)) return false;
+  for (let i = storia.length - 1; i >= 0; i--) {
+    const b = storia[i];
+    if (!b || b.ruolo !== "tony") continue;
+    return /numero civico/i.test(String(b.testo || ""));
+  }
+  return false;
+}
+
 function pulisciCap(valore) {
   const s = String(valore || "").trim();
   if (!s) return null;
@@ -2330,9 +2345,15 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const nConNome = contaTerreniConNomeDopoTurno(raccolti, puliti.terreni);
   testo = allineaTestoTurnoAccount(testo, nConNome);
   const attendeCivico = argomento === "sede" && sedeRaccoltaSenzaCivico(raccolti);
+  const giaChiestoCivico =
+    civicoGiaChiestoDaRaccolti(raccolti) ||
+    civicoGiaChiestoDaStoria(opzioni && opzioni.storia);
   if (attendeCivico && !domandaTerrenoEsplicita(domanda)) {
     const portato = indirizzoPortatoDalCivico(domanda);
-    if (messaggioSaltaCivico(domanda)) {
+    const soloNumero = /^\d{1,5}[a-zA-Z]?$/.test(normalizzaSpaziSede(domanda));
+    const nuovaSede =
+      sembraSedeDetta(domanda) && !soloNumero && !messaggioSaltaCivico(domanda);
+    if (messaggioSaltaCivico(domanda) || (giaChiestoCivico && !portato && !nuovaSede)) {
       sede = null;
       poderiRisposta = [];
       testo = DOMANDA_PODERI_ACCOUNT;
@@ -2351,6 +2372,12 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
       );
       poderiRisposta = [];
       testo = DOMANDA_PODERI_ACCOUNT;
+    } else if (nuovaSede) {
+      const dedotta = pulisciSede(sedeDaTesto(domanda));
+      if (dedotta) sede = dedotta;
+      poderiRisposta = [];
+      const senzaNumero = !dedotta || !/\d/.test(String(dedotta.indirizzo || ""));
+      testo = senzaNumero ? DOMANDA_CIVICO_FACOLTATIVA : DOMANDA_PODERI_ACCOUNT;
     } else {
       sede = null;
       poderiRisposta = [];
@@ -2360,7 +2387,7 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
     if (testoRifiutaSedeAccettata(testo) && /\d/.test(domanda)) {
       testo = "Hai dei poderi?";
     }
-    if (!/\d/.test(domanda)) testo = DOMANDA_CIVICO_FACOLTATIVA;
+    if (!/\d/.test(domanda) && !giaChiestoCivico) testo = DOMANDA_CIVICO_FACOLTATIVA;
   }
 
   return {

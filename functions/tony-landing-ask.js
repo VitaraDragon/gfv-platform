@@ -842,7 +842,8 @@ async function handleFaseAccount(req, res, ctx) {
     const opzioniRisposta = {
       raccolti: validata.raccolti,
       argomento: argomento,
-      domanda: domanda
+      domanda: domanda,
+      storia: storia
     };
     let pulita = rispostaAccountDaTesto(testoGrezzo, opzioniRisposta);
     const jsonKo = pulita.jsonOk === false;

@@ -1843,6 +1843,7 @@ export function unisciDati(attuali, nuovi, argomento) {
         ? null
         : String(base.ultimoPodere),
     senzaPoderi: base.senzaPoderi === true,
+    civicoGiaChiesto: base.civicoGiaChiesto === true || n.civicoGiaChiesto === true,
   };
   let troppiTerreni = false;
 
@@ -1998,6 +1999,7 @@ export function unisciDati(attuali, nuovi, argomento) {
   out.terreni = compattaTerreni(out.terreni);
   const collegati = collegaTerreniAiPoderi(out);
   collegati.senzaPoderi = out.senzaPoderi === true;
+  if (out.civicoGiaChiesto === true) collegati.civicoGiaChiesto = true;
   return { dati: collegati, troppiTerreni };
 }
 
@@ -3019,7 +3021,11 @@ export function preparaTurnoOnboarding(opts) {
     !domandaTerrenoEsplicita(o.domanda)
   ) {
     const portato = indirizzoPortatoDalCivico(o.domanda);
-    if (portato || messaggioSaltaCivico(o.domanda)) {
+    const soloNumero = /^\d{1,5}[a-zA-Z]?$/.test(normalizzaSpaziSede(o.domanda));
+    const nuovaSede =
+      sembraSedeDetta(o.domanda) && !soloNumero && !messaggioSaltaCivico(o.domanda);
+    const giaChiesto = attuali.civicoGiaChiesto === true;
+    if (portato || messaggioSaltaCivico(o.domanda) || (giaChiesto && !nuovaSede)) {
       if (portato && uniti.dati) {
         const base =
           attuali.sede && typeof attuali.sede === 'object' ? attuali.sede : uniti.dati.sede;
@@ -3031,6 +3037,17 @@ export function preparaTurnoOnboarding(opts) {
       vaiATerreni = false;
       apriRiepilogo = false;
       testo = DOMANDA_PODERI;
+    } else if (nuovaSede) {
+      const dedotta = sedeDaTesto(o.domanda);
+      if (dedotta && uniti.dati) uniti.dati.sede = dedotta;
+      passo = 'sede';
+      bloccaAvanti = true;
+      vaiATerreni = false;
+      apriRiepilogo = false;
+      testo = !dedotta || !/\d/.test(String(dedotta.indirizzo || ''))
+        ? DOMANDA_CIVICO_FACOLTATIVA
+        : DOMANDA_PODERI;
+      if (testo === DOMANDA_PODERI) passo = 'poderi';
     } else {
       passo = 'sede';
       bloccaAvanti = true;
@@ -3038,6 +3055,13 @@ export function preparaTurnoOnboarding(opts) {
       apriRiepilogo = false;
       testo = DOMANDA_CIVICO_FACOLTATIVA;
     }
+  }
+
+  if (
+    uniti.dati &&
+    /numero civico/i.test(String(testo != null ? testo : o.testo || ''))
+  ) {
+    uniti.dati.civicoGiaChiesto = true;
   }
 
   // Il server ha già chiesto il primo terreno: il passo segue, senza una seconda domanda.
@@ -3077,6 +3101,7 @@ export function serializzaRaccolti(dati) {
     if (d.sede.provincia) pezzi.push(String(d.sede.provincia));
     righe.push('Sede: ' + pezzi.join(', '));
   }
+  if (d.civicoGiaChiesto === true) righe.push('Civico già chiesto: sì');
   if (Array.isArray(d.poderi) && d.poderi.length) {
     righe.push(
       'Poderi: ' +

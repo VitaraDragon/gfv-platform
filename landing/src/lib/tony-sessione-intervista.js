@@ -82,6 +82,7 @@ function pulisciDati(dati) {
     terreni: compattaTerreni(terreni),
     ultimoPodere: testoOpz(d.ultimoPodere, 120),
     senzaPoderi: d.senzaPoderi === true,
+    civicoGiaChiesto: d.civicoGiaChiesto === true,
   };
 }
 
