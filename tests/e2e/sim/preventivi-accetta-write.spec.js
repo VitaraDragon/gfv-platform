@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: accetta preventivo conto terzi (manager).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoPreventiviList, loginAsManagerContoTerzi } from './helpers/sim-login.js';
 import { runPreventiviAccettaWriteAssertions } from './scenarios/preventivi-accetta-write.mjs';
 

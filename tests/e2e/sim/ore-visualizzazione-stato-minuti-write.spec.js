@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator — stato attuale in Validazione ore e minuti nel tab Ore.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runOreVisualizzazioneStatoMinutiAssertions } from './scenarios/ore-visualizzazione-stato-minuti.mjs';
 
 test.describe('GFV Farm Simulator — ore validate in minuti', () => {

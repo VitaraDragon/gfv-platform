@@ -73,7 +73,6 @@ async function saveHours(page, { start, end, note, date }) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runOreModificaAnnulloAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
   await gotoFieldWorkspace(page);

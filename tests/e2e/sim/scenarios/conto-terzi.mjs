@@ -6,7 +6,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runClientiListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/clienti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Anagrafica Clienti' })).toBeVisible();
@@ -43,7 +42,6 @@ export async function runClientiListAssertions(page, expect) {
 }
 
 export async function runTariffeListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/tariffe-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Gestione Tariffe' })).toBeVisible();
@@ -79,7 +77,6 @@ export async function runTariffeListAssertions(page, expect) {
 }
 
 export async function runPreventiviListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/preventivi-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Preventivi' })).toBeVisible();
@@ -139,7 +136,6 @@ export async function runPreventiviListAssertions(page, expect) {
 }
 
 export async function runTerreniClientiAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/terreni-clienti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Terreni Clienti' })).toBeVisible();

@@ -90,7 +90,6 @@ async function fillAndSubmitQuickHours(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runValidazioneOreRifiutoAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
   await gotoFieldWorkspace(page);

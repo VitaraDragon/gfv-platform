@@ -73,7 +73,6 @@ async function completeFirstStubVendemmiaFromLavoro(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runVendemmiaCompletaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoVendemmia(page);

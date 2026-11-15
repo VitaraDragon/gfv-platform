@@ -99,7 +99,6 @@ async function createVendemmiaMarker(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runVendemmiaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFromDevPage(page);
   await gotoVendemmia(page);

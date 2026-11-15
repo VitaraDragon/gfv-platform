@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runMagazzinoHomeAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/magazzino-home-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Prodotti e Magazzino' })).toBeVisible();
@@ -24,7 +23,6 @@ export async function runMagazzinoHomeAssertions(page, expect) {
 }
 
 export async function runTracciabilitaConsumiAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/tracciabilita-consumi-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Tracciabilità consumi' })).toBeVisible();

@@ -75,7 +75,6 @@ async function saveHours(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runOreVisualizzazioneStatoMinutiAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
   await gotoFieldWorkspace(page);

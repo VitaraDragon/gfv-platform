@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator — modifica trattore e Crea con campi subito editabili.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { GESTIONE_LAVORI_PATH, gotoGestioneLavori, loginAsManagerManodopera } from './helpers/sim-login.js';
 import {
     runGestioneLavoriCreaSubitoAssertions,
@@ -20,8 +20,7 @@ test.describe('GFV Farm Simulator — modale gestione lavori', () => {
 
     test('Crea appena il pulsante c’è: i campi non sono disabilitati', async ({ page }) => {
         test.setTimeout(120_000);
-        await loginAsManagerManodopera(page);
-        await page.goto(GESTIONE_LAVORI_PATH);
+        await loginAsManagerManodopera(page, { target: GESTIONE_LAVORI_PATH });
         await page.locator('#crea-lavoro-button').waitFor({ timeout: 45_000 });
         await runGestioneLavoriCreaSubitoAssertions(page, expect);
     });

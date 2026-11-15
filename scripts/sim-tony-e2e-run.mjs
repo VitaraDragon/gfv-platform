@@ -55,7 +55,8 @@ import {
   printDiagnosticSummary,
   resolveScenarioMode,
 } from '../tests/e2e/tony/helpers/tony-e2e-diagnostic.mjs';
-import { isSimE2eFastMode, simE2eBrowserLaunchTimeout } from '../tests/e2e/sim/helpers/sim-e2e-timeouts.mjs';
+import { isSimE2eFastMode, isTonyE2eGateFast, simE2eBrowserLaunchTimeout } from '../tests/e2e/sim/helpers/sim-e2e-timeouts.mjs';
+import { blockExternalTestNetwork } from '../tests/e2e/sim/helpers/block-external-network.js';
 
 await import('./load-functions-secret-local.mjs');
 
@@ -335,10 +336,10 @@ async function main() {
   if (runMode === 'explore' && !strictExplore) {
     console.log('[sim:tony:e2e] explore: i fallimenti producono findings ma non bloccano exit (usa --strict per bloccare)');
   }
-  if (isSimE2eFastMode()) {
+  if (isTonyE2eGateFast()) {
+    console.log('[sim:tony:e2e] gate-fast: perf wait ~8s, post-save max ~45s, modal stuck ~8s');
+  } else if (isSimE2eFastMode()) {
     console.log('[sim:tony:e2e] fast mode: timeout risposta ~20s, pause UI ridotte (GFV_E2E_TIMEOUT_MS per override)');
-  } else if (process.env.CI === 'true' && runMode === 'gate') {
-    console.log('[sim:tony:e2e] gate-fast CI: perf wait ~8s, post-save max ~45s, modal stuck ~8s');
   }
   if (isLiveMode) {
     if (useProdCf) {
@@ -359,6 +360,7 @@ async function main() {
 
   const browser = await chromium.launch(launchOptions());
   const context = await browser.newContext({ baseURL });
+  await blockExternalTestNetwork(context, { blockCloudFunctions: !useProdCf });
   if (isLiveMode) {
     await context.addInitScript((prodCf) => {
       if (prodCf) {

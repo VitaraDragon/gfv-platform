@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator — rifiuto dalla coda in Validazione ore.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runValidazioneOreRifiutoAssertions } from './scenarios/validazione-ore-rifiuto-write.mjs';
 
 test.describe('GFV Farm Simulator — rifiuto da Validazione ore', () => {

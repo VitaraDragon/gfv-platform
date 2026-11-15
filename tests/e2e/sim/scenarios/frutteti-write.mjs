@@ -91,7 +91,6 @@ async function createMarkerFrutteto(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runFruttetiWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFrutteto(page);
   await gotoFruttetiList(page);

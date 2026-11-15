@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { test } from '@playwright/test';
+import { test } from './helpers/gfv-test.js';
 import { runZoneSostitutoMappa } from './scenarios/zone-sostituto-mappa.mjs';
 
 const fakeMaps = path.join(path.dirname(fileURLToPath(import.meta.url)), 'helpers/fake-google-maps.js');

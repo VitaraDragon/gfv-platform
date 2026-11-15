@@ -2,6 +2,8 @@
   {
     "origin": [
       "https://vitaradragon.github.io",
+      "https://gfv-platform-app.web.app",
+      "https://gfv-platform-app.firebaseapp.com",
       "http://localhost:*",
       "http://127.0.0.1:*"
     ],

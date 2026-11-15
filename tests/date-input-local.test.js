@@ -3,6 +3,11 @@ import { dateLikeToLocalCalendarIso } from '../core/js/date-format-it.js';
 
 describe('dateLikeToLocalCalendarIso', () => {
   it('restituisce il giorno locale, non la data UTC di toISOString', () => {
+    const mezzanotte = new Date(2026, 8, 29, 0, 0, 0, 0);
+    expect(dateLikeToLocalCalendarIso(mezzanotte)).toBe('2026-09-29');
+    expect(dateLikeToLocalCalendarIso({ toDate: () => mezzanotte })).toBe('2026-09-29');
+    expect(dateLikeToLocalCalendarIso({ seconds: Math.floor(mezzanotte.getTime() / 1000) })).toBe('2026-09-29');
+
     const d = new Date(2026, 8, 29, 0, 30, 0);
     expect(dateLikeToLocalCalendarIso(d)).toBe('2026-09-29');
     expect(dateLikeToLocalCalendarIso({ toDate: () => d })).toBe('2026-09-29');

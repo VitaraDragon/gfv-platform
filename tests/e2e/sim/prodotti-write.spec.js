@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuovo prodotto magazzino.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoProdottiList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runProdottiWriteAssertions } from './scenarios/prodotti-write.mjs';
 

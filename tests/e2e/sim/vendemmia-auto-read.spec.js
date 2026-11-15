@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runVendemmiaAutoReadAssertions } from './scenarios/vendemmia-auto-read.mjs';
 
 test.describe('GFV Farm Simulator — vendemmia auto read (catena A)', () => {

@@ -6,11 +6,12 @@
  * `modules` sul doc tenant è protetto dalle rules (solo Admin SDK): le scritture
  * di piano/moduli in questo e2e passano da firebase-admin sull'emulatore.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import {
   ATTIVITA_LIST_PATH,
   GESTIONE_LAVORI_PATH,
   loginAsManagerFrutteto,
+  DASHBOARD_PATH,
 } from './helpers/sim-login.js';
 import { getEmulatorDb } from '../../../simulator/lib/emulator-context.js';
 
@@ -178,7 +179,7 @@ async function nelTenant(page, action, payload) {
 test.describe('Migrazione dati Manodopera', () => {
   test('off → on → off non perde lo storico e non duplica', async ({ page }) => {
     test.setTimeout(240_000);
-    await loginAsManagerFrutteto(page);
+    await loginAsManagerFrutteto(page, { target: DASHBOARD_PATH });
     const sweep1 = await nelTenant(page, 'sweep');
     await patchTenantManodoperaAdmin(sweep1.tenantId, {
       manodopera: false,

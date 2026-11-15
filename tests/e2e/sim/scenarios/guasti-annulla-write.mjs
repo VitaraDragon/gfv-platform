@@ -221,7 +221,6 @@ async function attendiMezzoSelezionabile(page, expect, id) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGuastiAnnullaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
   page.setDefaultTimeout(90_000);
   const stamp = Date.now();
   const markerAnnulla = `${E2E_GUASTO_ANNULLA_MARKER} ${stamp}`;

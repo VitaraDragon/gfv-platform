@@ -4,6 +4,15 @@
  */
 
 import { simE2eTimeout } from './sim-e2e-timeouts.mjs';
+import {
+  armLoginDiretto,
+  gotoDirect,
+  loginDiretto,
+  loginPayloadFromEntry,
+  personaByRole,
+} from './login-diretto.js';
+
+export const DASHBOARD_PATH = '/core/dashboard-standalone.html?emulator=1';
 
 export const SIM_DEV_PATH = '/core/dev/simulator-dev-standalone.html?emulator=1';
 export const SCADENZE_LIST_PATH =
@@ -132,11 +141,9 @@ export async function pickManifestEntry(page, options = {}) {
     excludeRegimeMax = false,
   } = options;
 
-  const entries = await page.evaluate(async () => {
-    const res = await fetch('/simulator/manifest.json');
-    if (!res.ok) throw new Error('manifest non trovato');
-    return res.json();
-  });
+  const res = await page.request.get('/simulator/manifest.json');
+  if (!res.ok()) throw new Error(`manifest non trovato (${res.status()})`);
+  const entries = await res.json();
 
   if (!Array.isArray(entries) || entries.length === 0) {
     throw new Error('manifest vuoto — esegui npm run sim:run (con emulator attivo).');
@@ -176,6 +183,18 @@ export async function pickManifestEntry(page, options = {}) {
     if (seeded.length) filtered = seeded;
   }
 
+  const slotRaw = process.env.TEST_PARALLEL_INDEX;
+  const slot = slotRaw === undefined || slotRaw === '' ? 0 : Number(slotRaw);
+  if (!Number.isInteger(slot) || slot < 0) {
+    throw new Error(`TEST_PARALLEL_INDEX non valido: ${slotRaw}`);
+  }
+  const perSlot = filtered.filter((e) => (e.slot === undefined || e.slot === null || e.slot === '' ? 0 : Number(e.slot)) === slot);
+  if (!perSlot.length) {
+    const quale = preferTemplateId || templateIncludes || 'qualsiasi template';
+    throw new Error(`Nessun tenant per lo slot ${slot} (${quale}). I seed non hanno questo slot: non uso un tenant di un altro worker.`);
+  }
+  filtered = perSlot;
+
   filtered.sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
   return filtered[0];
 }
@@ -199,7 +218,7 @@ export async function waitForScadenzeListLoaded(page) {
 
 /** Naviga alla lista scadenze parco (sessione emulator da login dev). */
 export async function gotoScadenzeList(page) {
-  await page.goto(SCADENZE_LIST_PATH);
+  await gotoDirect(page, SCADENZE_LIST_PATH);
   await waitForScadenzeListLoaded(page);
 }
 
@@ -220,7 +239,7 @@ export async function waitForTerreniListLoaded(page) {
 
 /** Naviga alla lista terreni (sessione emulator da login dev). */
 export async function gotoTerreniList(page) {
-  await page.goto(TERRENI_LIST_PATH);
+  await gotoDirect(page, TERRENI_LIST_PATH);
   await waitForTerreniListLoaded(page);
 }
 
@@ -241,7 +260,7 @@ export async function waitForAttivitaListLoaded(page) {
 
 /** Naviga al diario attività (sessione emulator da login dev). */
 export async function gotoAttivitaList(page) {
-  await page.goto(ATTIVITA_LIST_PATH);
+  await gotoDirect(page, ATTIVITA_LIST_PATH);
   await waitForAttivitaListLoaded(page);
 }
 
@@ -265,7 +284,7 @@ export async function waitForMovimentiListLoaded(page) {
 
 /** Naviga alla lista movimenti magazzino (sessione emulator da login dev). */
 export async function gotoMovimentiList(page) {
-  await page.goto(MOVIMENTI_LIST_PATH);
+  await gotoDirect(page, MOVIMENTI_LIST_PATH);
   await waitForMovimentiListLoaded(page);
 }
 
@@ -300,7 +319,7 @@ export async function waitForPotaturaListLoaded(page) {
 }
 
 export async function gotoPotaturaList(page) {
-  await page.goto(POTATURA_LIST_PATH);
+  await gotoDirect(page, POTATURA_LIST_PATH);
   await waitForPotaturaListLoaded(page);
 }
 
@@ -315,7 +334,7 @@ export async function waitForTrattamentiListLoaded(page) {
 }
 
 export async function gotoTrattamentiList(page) {
-  await page.goto(TRATTAMENTI_LIST_PATH);
+  await gotoDirect(page, TRATTAMENTI_LIST_PATH);
   await waitForTrattamentiListLoaded(page);
 }
 
@@ -330,7 +349,7 @@ export async function waitForConcimazioniListLoaded(page) {
 }
 
 export async function gotoConcimazioniList(page) {
-  await page.goto(CONCIMATIONS_LIST_PATH);
+  await gotoDirect(page, CONCIMATIONS_LIST_PATH);
   await waitForConcimazioniListLoaded(page);
 }
 
@@ -353,7 +372,7 @@ export async function waitForClientiListLoaded(page) {
 }
 
 export async function gotoClientiList(page) {
-  await page.goto(CLIENTI_LIST_PATH);
+  await gotoDirect(page, CLIENTI_LIST_PATH);
   await waitForClientiListLoaded(page);
 }
 
@@ -376,7 +395,7 @@ export async function waitForTariffeListLoaded(page) {
 }
 
 export async function gotoTariffeList(page) {
-  await page.goto(TARIFFE_LIST_PATH);
+  await gotoDirect(page, TARIFFE_LIST_PATH);
   await waitForTariffeListLoaded(page);
 }
 
@@ -399,7 +418,7 @@ export async function waitForPreventiviListLoaded(page) {
 }
 
 export async function gotoPreventiviList(page) {
-  await page.goto(PREVENTIVI_LIST_PATH);
+  await gotoDirect(page, PREVENTIVI_LIST_PATH);
   await waitForPreventiviListLoaded(page);
 }
 
@@ -419,7 +438,7 @@ export async function waitForTerreniClientiLoaded(page, { minCards = 1 } = {}) {
 
 /** Naviga a terreni clienti e seleziona il primo cliente nel filtro. */
 export async function gotoTerreniClientiList(page) {
-  await page.goto(TERRENI_CLIENTI_PATH);
+  await gotoDirect(page, TERRENI_CLIENTI_PATH);
   await page.waitForURL(/terreni-clienti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await page.locator('h1').filter({ hasText: 'Terreni Clienti' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
@@ -454,19 +473,42 @@ export async function waitForDashboardDeadlinesLoaded(page) {
 }
 
 /**
- * Apre la pagina dev, sceglie tenant da manifest, Entra come manager.
+ * Dopo il click di login: o si arriva alla pagina attesa, o #status.err e si fallisce subito.
  * @param {import('@playwright/test').Page} page
- * @param {{ preferSeedComplete?: boolean, templateIncludes?: string, preferTemplateId?: string }} [options]
- *   templateIncludes — es. `conto-terzi` per scenario #7; manodopera in #8
+ * @param {RegExp} urlPattern
+ * @param {number} [timeoutMs]
  */
-export async function loginAsManagerFromDevPage(page, options = {}) {
+function waitForLoginLeaveDevPage(page, urlPattern, timeoutMs) {
+  const timeout = timeoutMs || simE2eTimeout(60_000);
+  const urlWait = page.waitForURL(urlPattern, { timeout }).then(() => 'url');
+  const errWait = page.locator('#status.err').waitFor({ state: 'visible', timeout }).then(() => 'err');
+  return Promise.race([urlWait, errWait]).then(async (outcome) => {
+    urlWait.catch(() => {});
+    errWait.catch(() => {});
+    if (outcome === 'err') {
+      const msg = ((await page.locator('#status').textContent()) || '').trim();
+      throw new Error(`Login non riuscito: ${msg || 'errore in #status'}`);
+    }
+  });
+}
+
+function managerPickOptions(options = {}) {
   const pickOptions = {
     preferSeedComplete: true,
     ...options,
   };
+  delete pickOptions.viaDevPage;
+  delete pickOptions.target;
+  delete pickOptions.defer;
   if (!pickOptions.preferTemplateId && !pickOptions.templateIncludes) {
     pickOptions.preferTemplateId = DEFAULT_VITICOLA_E2E_TEMPLATE;
   }
+  return pickOptions;
+}
+
+/** Login dalla pagina dev (smoke e dashboard-deadlines). */
+async function loginAsManagerViaDevPage(page, options = {}) {
+  const pickOptions = managerPickOptions(options);
 
   await page.goto(SIM_DEV_PATH);
 
@@ -488,9 +530,30 @@ export async function loginAsManagerFromDevPage(page, options = {}) {
     throw new Error(`Card non trovata per tenant ${entry.tenantId}`);
   }
 
+  const pendingDash = waitForLoginLeaveDevPage(page, /dashboard-standalone\.html/);
   await card.getByRole('button', { name: 'Entra come manager' }).click();
-  await page.waitForURL(/dashboard-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await pendingDash;
   await waitForDashboardDeadlinesLoaded(page);
+  return entry;
+}
+
+/**
+ * Login manager. Di solito arma il login diretto: la goto successiva apre la pagina del test.
+ * `viaDevPage` resta il percorso della pagina dev. `target` apre subito quella pagina.
+ * @param {import('@playwright/test').Page} page
+ * @param {{ preferSeedComplete?: boolean, templateIncludes?: string, preferTemplateId?: string, viaDevPage?: boolean, target?: string }} [options]
+ */
+export async function loginAsManagerFromDevPage(page, options = {}) {
+  if (options.viaDevPage) return loginAsManagerViaDevPage(page, options);
+  const entry = await pickManifestEntry(page, managerPickOptions(options));
+  const payload = loginPayloadFromEntry(entry);
+  if (options.target) {
+    await loginDiretto(page, payload, options.target);
+    if (/dashboard-standalone\.html/.test(options.target)) await waitForDashboardDeadlinesLoaded(page);
+    return entry;
+  }
+  await armLoginDiretto(page, payload);
+  return entry;
 }
 
 /** Login manager su tenant template viticola-conto-terzi* (scenario v4 #7). */
@@ -546,7 +609,7 @@ export async function waitForTrattoriListLoaded(page) {
 }
 
 export async function gotoTrattoriList(page) {
-  await page.goto(TRATTORI_LIST_PATH);
+  await gotoDirect(page, TRATTORI_LIST_PATH);
   await waitForTrattoriListLoaded(page);
 }
 
@@ -559,7 +622,7 @@ export async function waitForAttrezziListLoaded(page) {
 }
 
 export async function gotoAttrezziList(page) {
-  await page.goto(ATTREZZI_LIST_PATH);
+  await gotoDirect(page, ATTREZZI_LIST_PATH);
   await waitForAttrezziListLoaded(page);
 }
 
@@ -572,7 +635,7 @@ export async function waitForFlottaListLoaded(page) {
 }
 
 export async function gotoFlottaList(page) {
-  await page.goto(FLOTTA_LIST_PATH);
+  await gotoDirect(page, FLOTTA_LIST_PATH);
   await waitForFlottaListLoaded(page);
 }
 
@@ -594,7 +657,7 @@ export async function waitForProdottiListLoaded(page) {
 }
 
 export async function gotoProdottiList(page) {
-  await page.goto(PRODOTTI_LIST_PATH);
+  await gotoDirect(page, PRODOTTI_LIST_PATH);
   await waitForProdottiListLoaded(page);
 }
 
@@ -620,7 +683,7 @@ export async function waitForVignetiListLoaded(page, { minRows = 4 } = {}) {
 }
 
 export async function gotoVignetiList(page, options = {}) {
-  await page.goto(VIGNETI_LIST_PATH);
+  await gotoDirect(page, VIGNETI_LIST_PATH);
   await waitForVignetiListLoaded(page, options);
 }
 
@@ -647,7 +710,7 @@ export async function waitForGestioneLavoriLoaded(page) {
 }
 
 export async function gotoGestioneLavori(page) {
-  await page.goto(GESTIONE_LAVORI_PATH);
+  await gotoDirect(page, GESTIONE_LAVORI_PATH);
   await waitForGestioneLavoriLoaded(page);
 }
 
@@ -671,7 +734,7 @@ export async function waitForValidazioneOreLoaded(page) {
 }
 
 export async function gotoValidazioneOre(page) {
-  await page.goto(VALIDAZIONE_ORE_PATH);
+  await gotoDirect(page, VALIDAZIONE_ORE_PATH);
   await waitForValidazioneOreLoaded(page);
 }
 
@@ -686,7 +749,7 @@ export async function waitForMacchineDashboardLoaded(page) {
 }
 
 export async function gotoMacchineDashboard(page) {
-  await page.goto(MACCHINE_DASHBOARD_PATH);
+  await gotoDirect(page, MACCHINE_DASHBOARD_PATH);
   await waitForMacchineDashboardLoaded(page);
 }
 
@@ -706,7 +769,7 @@ export async function waitForGuastiListLoaded(page) {
 }
 
 export async function gotoGuastiList(page) {
-  await page.goto(GUASTI_LIST_PATH);
+  await gotoDirect(page, GUASTI_LIST_PATH);
   await waitForGuastiListLoaded(page);
 }
 
@@ -721,7 +784,7 @@ export async function waitForSegnalazioneGuastiLoaded(page) {
 }
 
 export async function gotoSegnalazioneGuasti(page) {
-  await page.goto(SEGNALAZIONE_GUASTI_PATH);
+  await gotoDirect(page, SEGNALAZIONE_GUASTI_PATH);
   await waitForSegnalazioneGuastiLoaded(page);
 }
 
@@ -736,7 +799,7 @@ export async function waitForMagazzinoHomeLoaded(page) {
 }
 
 export async function gotoMagazzinoHome(page) {
-  await page.goto(MAGAZZINO_HOME_PATH);
+  await gotoDirect(page, MAGAZZINO_HOME_PATH);
   await waitForMagazzinoHomeLoaded(page);
 }
 
@@ -756,7 +819,7 @@ export async function waitForTracciabilitaConsumiLoaded(page) {
 }
 
 export async function gotoTracciabilitaConsumi(page) {
-  await page.goto(TRACCIABILITA_CONSUMI_PATH);
+  await gotoDirect(page, TRACCIABILITA_CONSUMI_PATH);
   await waitForTracciabilitaConsumiLoaded(page);
 }
 
@@ -771,7 +834,7 @@ export async function waitForVignetoDashboardLoaded(page) {
 }
 
 export async function gotoVignetoDashboard(page) {
-  await page.goto(VIGNETO_DASHBOARD_PATH);
+  await gotoDirect(page, VIGNETO_DASHBOARD_PATH);
   await waitForVignetoDashboardLoaded(page);
 }
 
@@ -786,7 +849,7 @@ export async function waitForContoTerziHomeLoaded(page) {
 }
 
 export async function gotoContoTerziHome(page) {
-  await page.goto(CONTO_TERZI_HOME_PATH);
+  await gotoDirect(page, CONTO_TERZI_HOME_PATH);
   await waitForContoTerziHomeLoaded(page);
 }
 
@@ -800,7 +863,7 @@ export async function waitForMappaClientiLoaded(page) {
 }
 
 export async function gotoMappaClienti(page) {
-  await page.goto(MAPPA_CLIENTI_PATH);
+  await gotoDirect(page, MAPPA_CLIENTI_PATH);
   await waitForMappaClientiLoaded(page);
 }
 
@@ -811,7 +874,7 @@ export async function waitForManodoperaHomeLoaded(page) {
 }
 
 export async function gotoManodoperaHome(page) {
-  await page.goto(MANODOPERA_HOME_PATH);
+  await gotoDirect(page, MANODOPERA_HOME_PATH);
   await waitForManodoperaHomeLoaded(page);
 }
 
@@ -827,7 +890,7 @@ export async function waitForGestioneOperaiLoaded(page) {
 }
 
 export async function gotoGestioneOperai(page) {
-  await page.goto(GESTIONE_OPERAI_PATH);
+  await gotoDirect(page, GESTIONE_OPERAI_PATH);
   await waitForGestioneOperaiLoaded(page);
 }
 
@@ -843,7 +906,7 @@ export async function waitForGestioneSquadreLoaded(page) {
 }
 
 export async function gotoGestioneSquadre(page) {
-  await page.goto(GESTIONE_SQUADRE_PATH);
+  await gotoDirect(page, GESTIONE_SQUADRE_PATH);
   await waitForGestioneSquadreLoaded(page);
 }
 
@@ -858,7 +921,7 @@ export async function waitForStatisticheManodoperaLoaded(page) {
 }
 
 export async function gotoStatisticheManodopera(page) {
-  await page.goto(STATISTICHE_MANODOPERA_PATH);
+  await gotoDirect(page, STATISTICHE_MANODOPERA_PATH);
   await waitForStatisticheManodoperaLoaded(page);
 }
 
@@ -875,7 +938,7 @@ export async function waitForLavoriCaposquadraLoaded(page) {
 }
 
 export async function gotoLavoriCaposquadra(page) {
-  await page.goto(LAVORI_CAPOSQUADRA_PATH);
+  await gotoDirect(page, LAVORI_CAPOSQUADRA_PATH);
   await waitForLavoriCaposquadraLoaded(page);
 }
 
@@ -910,11 +973,28 @@ export async function waitForFieldWorkspaceLoaded(page) {
 
 /** Naviga al field workspace (sessione emulator già attiva). */
 export async function gotoFieldWorkspace(page) {
-  await page.goto(FIELD_WORKSPACE_PATH);
+  await gotoDirect(page, FIELD_WORKSPACE_PATH);
   await waitForFieldWorkspaceLoaded(page);
 }
 
-async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {}) {
+function personaPickOptions(options = {}) {
+  const pickOptions = {
+    templateIncludes: 'manodopera',
+    preferTemplateId: 'viticola-conto-terzi-manodopera',
+    preferSeedComplete: true,
+    requirePersonas: true,
+    excludeRegimeMax: true,
+    ...options,
+  };
+  delete pickOptions.waitForWorkspace;
+  delete pickOptions.viaDevPage;
+  delete pickOptions.target;
+  delete pickOptions.role;
+  return pickOptions;
+}
+
+/** Login persona dalla pagina dev. */
+async function loginAsPersonaViaDevPage(page, personaButtonPattern, options = {}) {
   const { waitForWorkspace = true } = options;
 
   await page.goto(SIM_DEV_PATH);
@@ -931,14 +1011,7 @@ async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {
     throw new Error('Nessuna azienda in manifest — esegui npm run sim:run (con emulator attivo).');
   }
 
-  const entry = await pickManifestEntry(page, {
-    templateIncludes: 'manodopera',
-    preferTemplateId: 'viticola-conto-terzi-manodopera',
-    preferSeedComplete: true,
-    requirePersonas: true,
-    excludeRegimeMax: true,
-    ...options,
-  });
+  const entry = await pickManifestEntry(page, personaPickOptions(options));
 
   const card = page.locator('.card').filter({ hasText: entry.tenantId });
   if ((await card.count()) === 0) {
@@ -946,28 +1019,48 @@ async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {
   }
 
   const personaBtn = card.getByRole('button', { name: personaButtonPattern }).first();
-  await Promise.all([
-    page.waitForURL(/field-workspace-standalone\.html/, { timeout: 90_000 }),
-    personaBtn.click(),
-  ]);
+  const pendingPersona = waitForLoginLeaveDevPage(page, /field-workspace-standalone\.html/, 90_000);
+  await personaBtn.click();
+  await pendingPersona;
   if (waitForWorkspace) {
     await waitForFieldWorkspaceLoaded(page);
   }
+  return entry;
+}
+
+async function loginAsPersonaFromDevPage(page, role, options = {}) {
+  const { waitForWorkspace = true } = options;
+  if (options.viaDevPage) {
+    const pattern = role === 'caposquadra' ? /Capo \(mobile\)/ : /Operaio \(mobile\)/;
+    return loginAsPersonaViaDevPage(page, pattern, options);
+  }
+  const entry = await pickManifestEntry(page, personaPickOptions(options));
+  const payload = loginPayloadFromEntry(entry, personaByRole(entry, role));
+  const dest = options.target || (waitForWorkspace ? FIELD_WORKSPACE_PATH : '');
+  if (!dest) {
+    await armLoginDiretto(page, payload);
+    return entry;
+  }
+  await loginDiretto(page, payload, dest);
+  if (waitForWorkspace && /field-workspace-standalone\.html/.test(dest)) {
+    await waitForFieldWorkspaceLoaded(page);
+  }
+  return entry;
 }
 
 /** Login caposquadra mobile su tenant manodopera (scenario v4 #8). */
 export async function loginAsCapoFromDevPage(page, options = {}) {
-  return loginAsPersonaFromDevPage(page, /Capo \(mobile\)/, options);
+  return loginAsPersonaFromDevPage(page, 'caposquadra', options);
 }
 
 /** Login operaio mobile su tenant manodopera (scenario v4 #8). */
 export async function loginAsOperaioFromDevPage(page, options = {}) {
-  return loginAsPersonaFromDevPage(page, /Operaio \(mobile\)/, options);
+  return loginAsPersonaFromDevPage(page, 'operaio', options);
 }
 
 /** Login capo + navigazione desktop I miei lavori (scenario 19). */
 export async function loginAsCapoForLavoriDesktop(page, options = {}) {
-  await loginAsPersonaFromDevPage(page, /Capo \(mobile\)/, {
+  await loginAsPersonaFromDevPage(page, 'caposquadra', {
     ...options,
     waitForWorkspace: false,
   });
@@ -988,7 +1081,7 @@ export async function waitForMappaAziendaleLoaded(page) {
 }
 
 export async function gotoMappaAziendale(page) {
-  await page.goto(MAPPA_AZIENDALE_PATH);
+  await gotoDirect(page, MAPPA_AZIENDALE_PATH);
   await waitForMappaAziendaleLoaded(page);
 }
 
@@ -1003,7 +1096,7 @@ export async function waitForStatisticheCoreLoaded(page) {
 }
 
 export async function gotoStatisticheCore(page) {
-  await page.goto(STATISTICHE_CORE_PATH);
+  await gotoDirect(page, STATISTICHE_CORE_PATH);
   await waitForStatisticheCoreLoaded(page);
 }
 
@@ -1017,7 +1110,7 @@ export async function waitForVignetoStatisticheLoaded(page) {
 }
 
 export async function gotoVignetoStatistiche(page) {
-  await page.goto(VIGNETO_STATISTICHE_PATH);
+  await gotoDirect(page, VIGNETO_STATISTICHE_PATH);
   await waitForVignetoStatisticheLoaded(page);
 }
 
@@ -1033,7 +1126,7 @@ export async function waitForGestioneMacchineLoaded(page) {
 }
 
 export async function gotoGestioneMacchine(page) {
-  await page.goto(GESTIONE_MACCHINE_PATH);
+  await gotoDirect(page, GESTIONE_MACCHINE_PATH);
   await waitForGestioneMacchineLoaded(page);
 }
 
@@ -1053,7 +1146,7 @@ export async function waitForGestioneGuastiAdminLoaded(page) {
 }
 
 export async function gotoGestioneGuastiAdmin(page) {
-  await page.goto(GESTIONE_GUASTI_ADMIN_PATH);
+  await gotoDirect(page, GESTIONE_GUASTI_ADMIN_PATH);
   await waitForGestioneGuastiAdminLoaded(page);
   await page.evaluate(() => {
     if (typeof window.resetFilters === 'function') window.resetFilters();
@@ -1083,7 +1176,7 @@ export async function waitForNuovoPreventivoLoaded(page) {
 }
 
 export async function gotoNuovoPreventivo(page) {
-  await page.goto(NUOVO_PREVENTIVO_PATH);
+  await gotoDirect(page, NUOVO_PREVENTIVO_PATH);
   await waitForNuovoPreventivoLoaded(page);
 }
 
@@ -1098,7 +1191,7 @@ export async function waitForCompensiOperaiLoaded(page) {
 }
 
 export async function gotoCompensiOperai(page) {
-  await page.goto(COMPENSI_OPERAI_PATH);
+  await gotoDirect(page, COMPENSI_OPERAI_PATH);
   await waitForCompensiOperaiLoaded(page);
 }
 
@@ -1122,7 +1215,7 @@ export async function waitForSegnaturaOreLoaded(page) {
 }
 
 export async function gotoSegnaturaOre(page) {
-  await page.goto(SEGNATURA_ORE_PATH);
+  await gotoDirect(page, SEGNATURA_ORE_PATH);
   await waitForSegnaturaOreLoaded(page);
 }
 
@@ -1137,7 +1230,7 @@ export async function waitForStatisticheLavoratoreLoaded(page) {
 }
 
 export async function gotoStatisticheLavoratore(page) {
-  await page.goto(STATISTICHE_LAVORATORE_PATH);
+  await gotoDirect(page, STATISTICHE_LAVORATORE_PATH);
   await waitForStatisticheLavoratoreLoaded(page);
 }
 
@@ -1157,7 +1250,7 @@ export async function waitForVendemmiaLoaded(page) {
 }
 
 export async function gotoVendemmia(page) {
-  await page.goto(VENDEMMIA_PATH);
+  await gotoDirect(page, VENDEMMIA_PATH);
   await waitForVendemmiaLoaded(page);
 }
 
@@ -1173,7 +1266,7 @@ export async function waitForCalcoloMaterialiLoaded(page) {
 }
 
 export async function gotoCalcoloMateriali(page) {
-  await page.goto(CALCOLO_MATERIALI_PATH);
+  await gotoDirect(page, CALCOLO_MATERIALI_PATH);
   await waitForCalcoloMaterialiLoaded(page);
 }
 
@@ -1187,7 +1280,7 @@ export async function waitForPianificaImpiantoLoaded(page) {
 }
 
 export async function gotoPianificaImpianto(page) {
-  await page.goto(PIANIFICA_IMPIANTO_PATH);
+  await gotoDirect(page, PIANIFICA_IMPIANTO_PATH);
   await waitForPianificaImpiantoLoaded(page);
 }
 
@@ -1203,7 +1296,7 @@ export async function waitForGestisciUtentiLoaded(page) {
 }
 
 export async function gotoGestisciUtenti(page) {
-  await page.goto(GESTISCI_UTENTI_PATH);
+  await gotoDirect(page, GESTISCI_UTENTI_PATH);
   await waitForGestisciUtentiLoaded(page);
 }
 
@@ -1226,7 +1319,7 @@ export async function waitForImpostazioniLoaded(page) {
 }
 
 export async function gotoImpostazioni(page) {
-  await page.goto(IMPOSTAZIONI_PATH);
+  await gotoDirect(page, IMPOSTAZIONI_PATH);
   await waitForImpostazioniLoaded(page);
 }
 
@@ -1274,7 +1367,7 @@ export async function waitForFruttetoPotaturaListLoaded(page) {
 }
 
 export async function gotoFruttetoPotaturaList(page) {
-  await page.goto(FRUTTETO_POTATURA_LIST_PATH);
+  await gotoDirect(page, FRUTTETO_POTATURA_LIST_PATH);
   await waitForFruttetoPotaturaListLoaded(page);
 }
 
@@ -1288,7 +1381,7 @@ export async function waitForFruttetoTrattamentiListLoaded(page) {
 }
 
 export async function gotoFruttetoTrattamentiList(page) {
-  await page.goto(FRUTTETO_TRATTAMENTI_LIST_PATH);
+  await gotoDirect(page, FRUTTETO_TRATTAMENTI_LIST_PATH);
   await waitForFruttetoTrattamentiListLoaded(page);
 }
 
@@ -1302,7 +1395,7 @@ export async function waitForFruttetoConcimazioniListLoaded(page) {
 }
 
 export async function gotoFruttetoConcimazioniList(page) {
-  await page.goto(FRUTTETO_CONCIMATIONS_LIST_PATH);
+  await gotoDirect(page, FRUTTETO_CONCIMATIONS_LIST_PATH);
   await waitForFruttetoConcimazioniListLoaded(page);
 }
 
@@ -1321,7 +1414,7 @@ export async function waitForFruttetiListLoaded(page, { minRows = 4 } = {}) {
 }
 
 export async function gotoFruttetiList(page, options = {}) {
-  await page.goto(FRUTTETI_LIST_PATH);
+  await gotoDirect(page, FRUTTETI_LIST_PATH);
   await waitForFruttetiListLoaded(page, options);
 }
 
@@ -1336,7 +1429,7 @@ export async function waitForFruttetoDashboardLoaded(page) {
 }
 
 export async function gotoFruttetoDashboard(page) {
-  await page.goto(FRUTTETO_DASHBOARD_PATH);
+  await gotoDirect(page, FRUTTETO_DASHBOARD_PATH);
   await waitForFruttetoDashboardLoaded(page);
 }
 
@@ -1353,6 +1446,6 @@ export async function waitForRaccoltaFruttaListLoaded(page) {
 }
 
 export async function gotoRaccoltaFrutta(page) {
-  await page.goto(RACCOLTA_FRUTTA_PATH);
+  await gotoDirect(page, RACCOLTA_FRUTTA_PATH);
   await waitForRaccoltaFruttaListLoaded(page);
 }

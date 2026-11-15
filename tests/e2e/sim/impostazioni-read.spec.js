@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runImpostazioniReadAssertions } from './scenarios/impostazioni-read.mjs';
 
 test.describe('GFV Farm Simulator — impostazioni read', () => {

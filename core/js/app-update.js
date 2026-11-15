@@ -16,6 +16,21 @@ export const EVENTO_FORM_SALVATO = 'gfv:form-salvato';
 export const ATTRIBUTO_SENZA_AVVISO = 'data-gfv-senza-avviso';
 /** Attesa massima di controllerchange dopo Aggiorna, poi si ricarica a mano. */
 export const ATTESA_ATTIVAZIONE_MS = 10 * 1000;
+
+/**
+ * In produzione resta ATTESA_ATTIVAZIONE_MS.
+ * Su localhost i test possono accorciarla con ?swTestAttesaMs= (tra 400 ms e il valore di produzione).
+ * @param {{ hostname?: string, search?: string }|null} [locationLike]
+ * @returns {number}
+ */
+export function attesaAttivazioneMs(locationLike) {
+    const loc = locationLike || (typeof location !== 'undefined' ? location : null);
+    if (!loc || !hostLocale(loc.hostname)) return ATTESA_ATTIVAZIONE_MS;
+    const raw = new URLSearchParams(loc.search || '').get('swTestAttesaMs');
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 400 || n > ATTESA_ATTIVAZIONE_MS) return ATTESA_ATTIVAZIONE_MS;
+    return Math.round(n);
+}
 const INTERVALLO_SKIP_MS = 400;
 const RIPROVA_NAVIGAZIONE_MS = 1500;
 
@@ -552,13 +567,14 @@ async function preparaAggiornamento(registration) {
         return waiting.state === 'installing' || waiting.state === 'installed';
     };
     const inizio = Date.now();
+    const attesaMs = attesaAttivazioneMs();
     timerSkip = window.setInterval(() => {
         if (ricaricando) {
             window.clearInterval(timerSkip);
             timerSkip = 0;
             return;
         }
-        if (Date.now() - inizio < ATTESA_ATTIVAZIONE_MS) {
+        if (Date.now() - inizio < attesaMs) {
             if (ancoraInAttesa()) inviaSkip();
             return;
         }

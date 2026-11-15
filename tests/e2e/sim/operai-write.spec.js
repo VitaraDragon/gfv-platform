@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runOperaiWriteAssertions } from './scenarios/operai-write.mjs';
 
 test.describe('GFV Farm Simulator — operai write', () => {

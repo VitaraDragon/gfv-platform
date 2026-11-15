@@ -54,7 +54,38 @@ export async function ensureSimulatorSession(auth) {
   if (typeof auth.authStateReady === 'function') {
     await auth.authStateReady();
   }
-  if (auth.currentUser) return auth.currentUser;
+  if (auth.currentUser) {
+    let rawCurrent = null;
+    try {
+      rawCurrent = sessionStorage.getItem(SIM_PENDING_LOGIN_KEY);
+    } catch (_) {
+      return auth.currentUser;
+    }
+    let pendingCurrent = null;
+    if (rawCurrent) {
+      try {
+        pendingCurrent = JSON.parse(rawCurrent);
+      } catch (_) {
+        pendingCurrent = null;
+      }
+    }
+    const altraPersona = pendingCurrent
+      && pendingCurrent.email
+      && pendingCurrent.email !== auth.currentUser.email;
+    if (!altraPersona) {
+      // Stesso utente già dentro: il pending è soddisfatto e va tolto,
+      // altrimenti la pagina dopo non vede il login come concluso.
+      if (rawCurrent) {
+        try { sessionStorage.removeItem(SIM_PENDING_LOGIN_KEY); } catch (_) { /* storage bloccato */ }
+      }
+      return auth.currentUser;
+    }
+    try {
+      await auth.signOut();
+    } catch (_) {
+      return null;
+    }
+  }
 
   let raw;
   try {

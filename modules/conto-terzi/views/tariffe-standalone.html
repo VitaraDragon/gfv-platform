@@ -509,6 +509,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { formatEuro } from '../../../shared/js/formato-importi.js';
 import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -1330,9 +1331,9 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                 html += `<td><strong>${escapeHtml(tariffa.tipoLavoro || '')}</strong></td>`;
                 html += `<td>${colturaDisplay}</td>`;
                 html += `<td>${tipoCampoFormattato}</td>`;
-                html += `<td>€ ${(tariffa.tariffaBase || 0).toFixed(2)}</td>`;
+                html += `<td>${formatEuro(tariffa.tariffaBase || 0)}</td>`;
                 html += `<td>${(tariffa.coefficiente || 1).toFixed(2)}x</td>`;
-                html += `<td><strong>€ ${tariffaFinale.toFixed(2)}</strong></td>`;
+                html += `<td><strong>${formatEuro(tariffaFinale)}</strong></td>`;
                 html += `<td><span class="badge ${tariffa.attiva ? 'badge-success' : 'badge-secondary'}">${tariffa.attiva ? 'Attiva' : 'Disattivata'}</span></td>`;
                 html += `<td><div class="action-buttons">
                     <button class="btn btn-sm btn-primary" onclick="editTariffa('${tariffa.id}')">✏️ Modifica</button>

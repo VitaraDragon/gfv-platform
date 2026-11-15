@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runManodoperaHomeAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/manodopera-home-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Manodopera' })).toBeVisible();
@@ -34,7 +33,6 @@ export async function runManodoperaHomeAssertions(page, expect) {
 }
 
 export async function runGestioneOperaiAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/gestione-operai-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Gestione Operai' })).toBeVisible();
@@ -48,7 +46,6 @@ export async function runGestioneOperaiAssertions(page, expect) {
 }
 
 export async function runGestioneSquadreAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/gestione-squadre-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Gestione Squadre' })).toBeVisible();
@@ -61,7 +58,6 @@ export async function runGestioneSquadreAssertions(page, expect) {
 }
 
 export async function runStatisticheManodoperaAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/statistiche-manodopera-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Statistiche Manodopera' })).toBeVisible();

@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGestioneLavoriAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/gestione-lavori-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Gestione Lavori' })).toBeVisible();
@@ -31,7 +30,6 @@ export async function runGestioneLavoriAssertions(page, expect) {
 }
 
 export async function runValidazioneOreAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/validazione-ore-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Validazione Ore' })).toBeVisible();

@@ -330,15 +330,15 @@
                     <h3>💰 Riepilogo Preventivo</h3>
                     <div class="totale-row">
                         <span>Totale Imponibile:</span>
-                        <span id="totale-imponibile">€ 0.00</span>
+                        <span id="totale-imponibile">€ 0,00</span>
                     </div>
                     <div class="totale-row">
                         <span>IVA (<span id="iva-percentuale">22</span>%):</span>
-                        <span id="totale-iva">€ 0.00</span>
+                        <span id="totale-iva">€ 0,00</span>
                     </div>
                     <div class="totale-row">
                         <span>Totale con IVA:</span>
-                        <span id="totale-con-iva">€ 0.00</span>
+                        <span id="totale-con-iva">€ 0,00</span>
                     </div>
                 </div>
 
@@ -357,6 +357,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { formatEuro, formatEttari } from '../../../shared/js/formato-importi.js';
 import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -374,6 +375,8 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
 
         let currentUser = null;
         let currentTenantId = null;
+        // Numeri già arrotondati a 2 decimali, gli stessi che prima si rileggevano dal testo «€ 915.00».
+        let totaliPreventivoDaSalvare = { imponibile: 0, conIva: 0 };
         let clienti = [];
         let terreni = [];
         let tariffe = [];
@@ -1210,7 +1213,8 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                     terreni.push(data);
                     const option = document.createElement('option');
                     option.value = data.id;
-                    option.textContent = `${data.nome}${data.superficie ? ` (${data.superficie} ha)` : ''}`;
+                    const superficieTendina = formatEttari(data.superficie);
+                    option.textContent = `${data.nome}${data.superficie ? ` (${superficieTendina} ha)` : ''}`;
                     select.appendChild(option);
                 });
                 if (gen !== _loadTerreniClienteGen) {
@@ -1518,6 +1522,22 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             return _pickBestTariffaRow(generic, tipoLavoro);
         }
 
+        function euroDaSalvare(n) {
+            const x = Number(n);
+            if (!Number.isFinite(x)) return 0;
+            return Number((x === 0 ? 0 : x).toFixed(2));
+        }
+
+        function scriviTotaliPreventivo(imponibile, ivaImporto, conIva) {
+            totaliPreventivoDaSalvare = {
+                imponibile: euroDaSalvare(imponibile),
+                conIva: euroDaSalvare(conIva)
+            };
+            document.getElementById('totale-imponibile').textContent = formatEuro(totaliPreventivoDaSalvare.imponibile);
+            document.getElementById('totale-iva').textContent = formatEuro(euroDaSalvare(ivaImporto));
+            document.getElementById('totale-con-iva').textContent = formatEuro(totaliPreventivoDaSalvare.conIva);
+        }
+
         // Calcola totale preventivo - rendi globale per accesso da HTML
         window.calcolaTotale = async function() {
             // Prendi valore da select o da input custom
@@ -1535,9 +1555,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             document.getElementById('iva-percentuale').textContent = iva;
 
             if (!tipoLavoro || !coltura || !tipoCampo || superficie <= 0) {
-                document.getElementById('totale-imponibile').textContent = '€ 0.00';
-                document.getElementById('totale-iva').textContent = '€ 0.00';
-                document.getElementById('totale-con-iva').textContent = '€ 0.00';
+                scriviTotaliPreventivo(0, 0, 0);
                 document.getElementById('tariffa-info').style.display = 'none';
                 return;
             }
@@ -1554,18 +1572,14 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                 const totaleIva = totale * (iva / 100);
                 const totaleConIva = totale + totaleIva;
 
-                document.getElementById('totale-imponibile').textContent = `€ ${totale.toFixed(2)}`;
-                document.getElementById('totale-iva').textContent = `€ ${totaleIva.toFixed(2)}`;
-                document.getElementById('totale-con-iva').textContent = `€ ${totaleConIva.toFixed(2)}`;
+                scriviTotaliPreventivo(totale, totaleIva, totaleConIva);
 
-                // Mostra info tariffa
+                // Mostra info tariffa. Il coefficiente resta a 2 decimali col punto: non è un importo.
                 document.getElementById('tariffa-info-text').textContent = 
-                    `Tariffa: € ${tariffaFinale.toFixed(2)}/ha (Base: € ${tariffa.tariffaBase.toFixed(2)} × ${tariffa.coefficiente.toFixed(2)})`;
+                    `Tariffa: ${formatEuro(tariffaFinale)}/ha (Base: ${formatEuro(tariffa.tariffaBase)} × ${(tariffa.coefficiente || 1).toFixed(2)})`;
                 document.getElementById('tariffa-info').style.display = 'block';
             } else {
-                document.getElementById('totale-imponibile').textContent = '€ 0.00';
-                document.getElementById('totale-iva').textContent = '€ 0.00';
-                document.getElementById('totale-con-iva').textContent = '€ 0.00';
+                scriviTotaliPreventivo(0, 0, 0);
                 var catSel = document.getElementById('coltura-categoria');
                 var catId = catSel ? catSel.value : '';
                 var tipiUnici = [];
@@ -1610,9 +1624,9 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             try {
                 // Calcola totale
                 await calcolaTotale();
-                const totaleImponibile = parseFloat(document.getElementById('totale-imponibile').textContent.replace('€ ', '').replace(',', '.')) || 0;
+                const totaleImponibile = totaliPreventivoDaSalvare.imponibile;
                 const iva = parseFloat(document.getElementById('iva').value) || 22;
-                const totaleConIva = parseFloat(document.getElementById('totale-con-iva').textContent.replace('€ ', '').replace(',', '.')) || 0;
+                const totaleConIva = totaliPreventivoDaSalvare.conIva;
 
                 if (totaleImponibile === 0) {
                     showAlert('Impossibile salvare: totale è 0. Verifica che esista una tariffa per la combinazione selezionata.', 'error');

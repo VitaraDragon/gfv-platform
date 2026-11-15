@@ -4,15 +4,15 @@
  */
 
 /**
- * Gate CI: timeout ridotti senza explore (perf/post-save), v. TONY_E2E_GUIDA §8.
+ * Timeout ridotti della fase Tony. Solo con flag esplicito
+ * (`GFV_TONY_E2E_GATE_FAST=1`), impostato dalla fase Tony di test:promote.
+ * `CI=true` da solo non basta: la fase app tiene i timeout pieni.
  * @returns {boolean}
  */
 export function isTonyE2eGateFast() {
   return (
     process.env.GFV_TONY_E2E_GATE_FAST === '1' ||
-    process.env.GFV_TONY_E2E_GATE_FAST === 'true' ||
-    (process.env.CI === 'true' &&
-      (process.env.GFV_TONY_E2E_MODE === 'gate' || !process.env.GFV_TONY_E2E_MODE))
+    process.env.GFV_TONY_E2E_GATE_FAST === 'true'
   );
 }
 

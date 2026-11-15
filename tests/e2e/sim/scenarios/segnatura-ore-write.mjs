@@ -72,7 +72,6 @@ async function createOraAsCapo(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runSegnaturaOreWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoValidazioneOre(page);

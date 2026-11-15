@@ -118,6 +118,9 @@ export async function tonySendMessage(page, text) {
       ).length
   );
   await page.locator('#tony-input').waitFor({ state: 'attached', timeout: 15_000 });
+  await page.evaluate(() => {
+    window.__gfvTonyTurnMark = new Date().toISOString();
+  });
   await page.evaluate((msg) => {
     const input = document.getElementById('tony-input');
     const send = document.getElementById('tony-send');
@@ -165,6 +168,9 @@ export async function tonySendMessageCrossPage(page, text, opts = {}) {
       ).length
   );
   await page.locator('#tony-input').waitFor({ state: 'attached', timeout: 15_000 });
+  await page.evaluate(() => {
+    window.__gfvTonyTurnMark = new Date().toISOString();
+  });
   await page.evaluate((msg) => {
     const input = document.getElementById('tony-input');
     const send = document.getElementById('tony-send');
@@ -238,8 +244,13 @@ export async function tonyWaitForReply(page, { timeoutMs = DEFAULT_REPLY_TIMEOUT
     }
     await page.waitForTimeout(100);
   }
-  if (lastText) return lastText;
-  throw new Error(`tonyWaitForReply: timeout ${replyTimeout}ms (ultimo: "${lastText.slice(0, 80)}")`);
+  const snap = await page.evaluate(() => ({
+    typing: !!document.querySelector('#tony-messages .tony-msg.typing'),
+    busy: typeof window.__tonyE2eIsBusy === 'function' ? window.__tonyE2eIsBusy() : null,
+  })).catch(() => ({}));
+  throw new Error(
+    `tonyWaitForReply: timeout ${replyTimeout}ms (ultimo: "${lastText.slice(0, 80)}", typing=${!!snap.typing})`
+  );
 }
 
 /**
@@ -273,20 +284,18 @@ export async function waitForTonyTurnPerf(page, opts = {}) {
   const cap = simE2eTonyPerfWaitTimeout();
   const timeoutMs =
     typeof opts.timeoutMs === 'number' ? Math.min(opts.timeoutMs, cap) : cap;
-  await page
-    .waitForFunction(
-      () => {
-        const p = window.__tonyLastPerf;
-        if (!p || typeof p.latencyMs !== 'number') return false;
-        if (typeof window.__tonyE2eIsBusy === 'function' && window.__tonyE2eIsBusy()) {
-          return false;
-        }
-        return true;
-      },
-      null,
-      { timeout: timeoutMs, polling: 150 }
-    )
-    .catch(() => {});
+  await page.waitForFunction(
+    () => {
+      const p = window.__tonyLastPerf;
+      if (!p || typeof p.latencyMs !== 'number' || typeof p.at !== 'string') return false;
+      const since = window.__gfvTonyTurnMark;
+      if (typeof since === 'string' && p.at <= since) return false;
+      if (document.querySelector('#tony-messages .tony-msg.typing')) return false;
+      return true;
+    },
+    null,
+    { timeout: timeoutMs, polling: 150 }
+  );
   return tonyGetLastPerfMetrics(page);
 }
 

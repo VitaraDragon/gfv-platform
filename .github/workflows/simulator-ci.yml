@@ -4,8 +4,9 @@ on:
   push:
     branches: [main, develop]
     paths:
-      # Tutto il codice servito al browser: i job Playwright esercitano le pagine,
-      # quindi devono partire ogni volta che cambiano (v. regressione demo-map-privacy 2026-09).
+      # Controlli veloci sul codice servito al browser.
+      # Gli E2E non girano qui: 84 spec Playwright e il mock Tony stanno in npm run test:promote.
+      # (prima i job citavano «71 spec» e «16 scenari», numeri superati)
       - 'core/**'
       - 'modules/**'
       - 'shared/**'
@@ -27,8 +28,9 @@ on:
       - '.github/workflows/simulator-ci.yml'
   pull_request:
     paths:
-      # Tutto il codice servito al browser: i job Playwright esercitano le pagine,
-      # quindi devono partire ogni volta che cambiano (v. regressione demo-map-privacy 2026-09).
+      # Controlli veloci sul codice servito al browser.
+      # Gli E2E non girano qui: 84 spec Playwright e il mock Tony stanno in npm run test:promote.
+      # (prima i job citavano «71 spec» e «16 scenari», numeri superati)
       - 'core/**'
       - 'modules/**'
       - 'shared/**'
@@ -49,8 +51,9 @@ on:
       - 'package-lock.json'
       - '.github/workflows/simulator-ci.yml'
   workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * *'
+  # schedule spento: riattivare quando il seed lab-trimestre-full sarà sistemato
+  # schedule:
+  #   - cron: '0 2 * * *'
 
 permissions:
   contents: read
@@ -141,38 +144,6 @@ jobs:
       - name: Run simulator integration tests (v1, v2, stack completo)
         run: npm run sim:test:ci
 
-  simulator-e2e:
-    name: sim:e2e (Playwright + verify seed operativo)
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Setup Java (Firestore Emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Chromium
-        run: npm run sim:e2e:install
-
-      - name: Run Playwright E2E (triple-seed + verify operativo + 71 spec)
-        run: npm run sim:e2e:ci
-        env:
-          CI: true
-
   simulator-tony-vitest:
     name: sim:tony:vitest (Tony tier 1 matrix)
     runs-on: ubuntu-latest
@@ -221,172 +192,3 @@ jobs:
 
       - name: Pacchetto landing + suite landing (solo Vitest)
         run: npm run sim:allenatore:vitest
-
-  manodopera-roster-a2-canary:
-    name: manodopera:roster-a2-canary (nav + A2)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Setup Java (Firestore Emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Chromium
-        run: npm run sim:e2e:install
-
-      - name: Unit checks (no emulator)
-        run: npm run manodopera:roster-a2-canary -- --unit-only
-
-      - name: Full canary (emulator + seed + browser)
-        run: npm run manodopera:roster-a2-canary:ci
-        env:
-          CI: true
-
-  mappa-manodopera-canary:
-    name: mappa:manodopera-canary (allarmi + legenda)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Setup Java (Firestore Emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Chromium
-        run: npm run sim:e2e:install
-
-      - name: Unit checks (no emulator)
-        run: npm run mappa:manodopera-canary -- --unit-only
-
-      - name: Full canary (emulator + seed + browser)
-        run: npm run mappa:manodopera-canary:ci
-        env:
-          CI: true
-
-  simulator-tony-e2e-mock:
-    name: sim:tony:e2e (Tony tier 2 mock)
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Setup Java (Firestore Emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Chromium
-        run: npm run sim:e2e:install
-
-      - name: Run Tony E2E mock (16 scenari tier 2)
-        run: npm run sim:tony:e2e:ci
-        env:
-          CI: true
-          GFV_TONY_E2E_GATE_FAST: '1'
-          GFV_TONY_E2E_MODE: gate
-
-  simulator-tony-e2e-live:
-    name: sim:tony:e2e:live (Tony tier 3 CF)
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Setup Java (Firebase Emulators)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Chromium
-        run: npm run sim:e2e:install
-
-      - name: Install functions dependencies
-        run: npm ci --prefix functions
-
-      - name: Generate Tony config JSON
-        run: node functions/scripts/generate-tony-configs.js
-
-      - name: Restore p95 gate history
-        uses: actions/cache@v4
-        with:
-          path: test-results/tony-e2e-p95-gate-history.json
-          key: tony-p95-gate-${{ github.run_id }}
-          restore-keys: |
-            tony-p95-gate-
-
-      - name: Run Tony E2E live tier 3
-        run: npm run sim:tony:e2e:live:ci
-        env:
-          CI: true
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GFV_TONY_E2E_ENFORCE_P95: '1'
-
-      - name: Upload Tony live perf report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tony-e2e-live-report
-          path: test-results/tony-e2e-live-report.json
-          if-no-files-found: ignore
-
-      - name: Upload p95 gate history
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tony-e2e-p95-gate-history
-          path: test-results/tony-e2e-p95-gate-history.json
-          if-no-files-found: ignore

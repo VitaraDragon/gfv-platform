@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runMacchineDashboardAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/macchine-dashboard-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Gestione Parco Macchine' })).toBeVisible();
@@ -26,7 +25,6 @@ export async function runMacchineDashboardAssertions(page, expect) {
 }
 
 export async function runGuastiListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/guasti-list-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Officina' })).toBeVisible();

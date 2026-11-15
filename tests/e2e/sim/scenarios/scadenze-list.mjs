@@ -5,7 +5,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runScadenzeListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/scadenze-list-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Scadenze' })).toBeVisible();

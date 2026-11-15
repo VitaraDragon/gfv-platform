@@ -81,7 +81,6 @@ async function createMarkerVigneto(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runVignetiWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoVignetiList(page);

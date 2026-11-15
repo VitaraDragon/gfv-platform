@@ -5,7 +5,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runDashboardDeadlinesAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/dashboard-standalone\.html/);
   await expect(page.locator('#user-info')).not.toHaveText('Caricamento...');

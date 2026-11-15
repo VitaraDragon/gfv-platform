@@ -289,6 +289,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { formatEttari } from '../../../shared/js/formato-importi.js';
 import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
@@ -510,7 +511,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query,
                 const cardEl = document.getElementById('stat-vm-card');
                 const haCardEl = document.getElementById('stat-vm-ha-card');
                 if (progressEl) progressEl.textContent = k.percentualeCompletata + '%';
-                if (haEl) haEl.textContent = k.ettariResidui.toFixed(2);
+                if (haEl) haEl.textContent = formatEttari(k.ettariResidui, '-');
                 if (cardEl) cardEl.style.display = '';
                 if (haCardEl) haCardEl.style.display = '';
             } catch (err) {

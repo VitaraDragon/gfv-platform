@@ -92,7 +92,6 @@ export async function createGuastoAsOperaio(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGuastiWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
   page.setDefaultTimeout(90_000);
 
   await loginAsManagerManodopera(page);

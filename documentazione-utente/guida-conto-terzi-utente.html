@@ -172,8 +172,8 @@
     var contentEl = document.getElementById('doc-content');
     var hintEl = document.getElementById('local-hint');
     var CANDIDATE_MD = [
-        '../docs-sviluppo/GUIDA/CONTO_TERZI/utente/guida.md',
-        '../core/GUIDA/CONTO_TERZI/utente/guida.md'
+        '../core/GUIDA/CONTO_TERZI/utente/guida.md',
+        '../docs-sviluppo/GUIDA/CONTO_TERZI/utente/guida.md'
     ];
 
     function stripDiacritics(s) {
@@ -266,7 +266,7 @@
             '<p>' + (lastErr ? String(lastErr.message) : 'Errore sconosciuto') + '</p>' +
             (fileProto
                 ? '<p>Stai usando <code>file://</code>: usa un server locale dalla root del repo.</p>'
-                : '<p>Verifica che esista uno tra: <code>docs-sviluppo/GUIDA/CONTO_TERZI/utente/guida.md</code> oppure <code>core/GUIDA/CONTO_TERZI/utente/guida.md</code>.</p>') +
+                : '<p>Verifica che esista uno tra: <code>core/GUIDA/CONTO_TERZI/utente/guida.md</code> oppure <code>docs-sviluppo/GUIDA/CONTO_TERZI/utente/guida.md</code>.</p>') +
             '</div>';
     }
 

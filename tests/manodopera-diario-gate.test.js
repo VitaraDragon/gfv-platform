@@ -123,4 +123,10 @@ describe('gate manodopera / diario', () => {
     expect(nodes['link-diario'].hidden).toBe(false);
     expect(nodes['link-nuovo-lavoro'].hidden).toBe(true);
   });
+
+  test('la pagina gestione lavori ha il gate «Modulo Manodopera non attivo»', () => {
+    const html = readFileSync('core/admin/gestione-lavori-standalone.html', 'utf8');
+    expect(html).toContain('id="gestione-lavori-gate"');
+    expect(html).toContain('Modulo Manodopera non attivo');
+  });
 });

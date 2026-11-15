@@ -58,7 +58,7 @@ if (onlyRaw) {
 
 const pwArgs = ['playwright', 'test', ...pool.map((s) => s.specFile)];
 
-const extraPw = process.argv.filter(
+const extraPw = process.argv.slice(2).filter(
   (a) =>
     !a.startsWith('--mode=') &&
     a !== '--strict' &&
@@ -75,12 +75,20 @@ const env = {
   GFV_E2E_STRICT: strict ? '1' : '0',
   GFV_E2E_FAST: runMode === 'explore' ? '1' : process.env.GFV_E2E_FAST || '',
 };
+// Su Windows con Node 24 il loader ESM di Playwright 1.49 resta in attesa
+// sulla MessageChannel: la CLI non stampa nulla dopo l'elenco scenari.
+// I file di test sono JavaScript nativo, il loader TypeScript non serve.
+if (process.platform === 'win32' && !env.PW_DISABLE_TS_ESM) {
+  env.PW_DISABLE_TS_ESM = '1';
+}
 
-const result = spawnSync('npx', pwArgs, {
-  stdio: 'inherit',
+const cli = join(rootDir, 'node_modules', '@playwright', 'test', 'cli.js');
+const result = spawnSync(process.execPath, [cli, ...pwArgs.slice(1)], {
+  // stdin chiuso: da un terminale non-TTY la CLI altrimenti non procede.
+  stdio: ['ignore', 'inherit', 'inherit'],
   cwd: rootDir,
   env,
-  shell: true,
+  windowsHide: true,
 });
 
 if (runMode === 'explore' && !strict && result.status !== 0) {

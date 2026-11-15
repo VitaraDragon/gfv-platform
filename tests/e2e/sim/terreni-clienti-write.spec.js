@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuovo terreno cliente conto terzi.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoTerreniClientiList, loginAsManagerContoTerzi } from './helpers/sim-login.js';
 import { runTerreniClientiWriteAssertions } from './scenarios/terreni-clienti-write.mjs';
 

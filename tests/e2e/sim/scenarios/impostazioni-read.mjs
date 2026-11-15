@@ -10,7 +10,6 @@ import { gotoImpostazioni, loginAsManagerFromDevPage } from '../helpers/sim-logi
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runImpostazioniReadAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFromDevPage(page);
   await gotoImpostazioni(page);

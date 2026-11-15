@@ -172,6 +172,7 @@
     var contentEl = document.getElementById('doc-content');
     var hintEl = document.getElementById('local-hint');
     var CANDIDATE_MD = [
+        '../core/GUIDA/VENDEMMIA_MECCANICA/utente/guida.md',
         '../docs-sviluppo/GUIDA/VENDEMMIA_MECCANICA/utente/guida.md'
     ];
 
@@ -265,7 +266,7 @@
             '<p>' + (lastErr ? String(lastErr.message) : 'Errore sconosciuto') + '</p>' +
             (fileProto
                 ? '<p>Stai usando <code>file://</code>: usa un server locale dalla root del repo.</p>'
-                : '<p>Verifica che il file esista: <code>docs-sviluppo/GUIDA/VENDEMMIA_MECCANICA/utente/guida.md</code>.</p>') +
+                : '<p>Verifica che esista uno tra: <code>core/GUIDA/VENDEMMIA_MECCANICA/utente/guida.md</code> oppure <code>docs-sviluppo/GUIDA/VENDEMMIA_MECCANICA/utente/guida.md</code>.</p>') +
             '</div>';
     }
 

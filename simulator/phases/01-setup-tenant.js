@@ -22,17 +22,18 @@ function loadDefaults() {
 }
 
 /**
- * @param {{ templateId?: string, seed?: number, appendManifest?: boolean, templateOverrides?: object }} [options]
+ * @param {{ templateId?: string, seed?: number, slot?: number, appendManifest?: boolean, templateOverrides?: object }} [options]
  */
 export async function runSetupTenant(options = {}) {
   resetSimContext();
   const templateId = options.templateId || 'solo-titolare-viticola';
   const template = loadTemplate(templateId, options.templateOverrides || {});
   const defaults = loadDefaults();
-  const seed = options.seed ?? Date.now();
+  const slot = Number.isInteger(options.slot) ? options.slot : 0;
+  const seed = options.seed ?? (Date.now() + slot);
   const profile = generaProfilo(seed);
   const runId = randomUUID();
-  const tenantId = `${defaults.tenantPrefix}${slugify(profile.aziendaNome)}_${String(seed).slice(-6)}`;
+  const tenantId = `${defaults.tenantPrefix}${slugify(profile.aziendaNome)}_${String(seed).slice(-6)}s${slot}`;
 
   const password = defaults.defaultPassword;
   const { db, auth } = initEmulatorAdmin();
@@ -92,7 +93,8 @@ export async function runSetupTenant(options = {}) {
       tenantId,
       userId: authUser.uid,
       email: profile.email,
-      aziendaNome: profile.aziendaNome
+      aziendaNome: profile.aziendaNome,
+      slot
     });
   }
 

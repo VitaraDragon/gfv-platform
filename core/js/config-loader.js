@@ -1,6 +1,6 @@
 /**
  * Config Loader - Carica configurazioni Firebase e Google Maps
- * Gestisce fallback per GitHub Pages
+ * Solo dai file locali (core/config). Nessun caricamento da un URL pubblico.
  */
 
 // Namespace per evitare conflitti
@@ -48,22 +48,7 @@ window.GFVConfigLoader.loadConfig = async function loadConfig() {
 }
 
 function loadFallbackConfig() {
-    return new Promise((resolve, reject) => {
-        const fallbackScript = document.createElement('script');
-        fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-        fallbackScript.onload = function() {
-            if (typeof window.firebaseConfig !== 'undefined') {
-                try { sessionStorage.setItem('gfv_firebase_config', JSON.stringify(window.firebaseConfig)); } catch (_) {}
-                resolve();
-            } else {
-                reject(new Error('Firebase config not found even after loading from GitHub'));
-            }
-        };
-        fallbackScript.onerror = function() {
-            reject(new Error('Failed to load Firebase config from GitHub'));
-        };
-        document.head.appendChild(fallbackScript);
-    });
+    return Promise.reject(new Error('Firebase config non trovata: core/config/firebase-config.js'));
 }
 
 window.GFVConfigLoader.loadGoogleMapsConfig = async function loadGoogleMapsConfig() {
@@ -100,21 +85,8 @@ window.GFVConfigLoader.loadGoogleMapsConfig = async function loadGoogleMapsConfi
 }
 
 function loadGoogleMapsConfigFallback() {
-    return new Promise((resolve, reject) => {
-        const fallback = document.createElement('script');
-        fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-        fallback.onload = function() {
-            if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                try { sessionStorage.setItem('gfv_google_maps_key', window.GOOGLE_MAPS_API_KEY); } catch (_) {}
-            }
-            resolve();
-        };
-        fallback.onerror = function() {
-            console.warn('Failed to load Google Maps config');
-            resolve();
-        };
-        document.head.appendChild(fallback);
-    });
+    console.warn('Google Maps config non trovata: core/config/google-maps-config.js');
+    return Promise.resolve();
 }
 
 /** Carica Firebase e Google Maps config in parallelo (più veloce quando servono entrambi). */

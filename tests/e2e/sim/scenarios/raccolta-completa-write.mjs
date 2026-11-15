@@ -86,7 +86,6 @@ async function completeFirstRaccoltaStub(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runRaccoltaCompletaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFrutteto(page);
   await gotoRaccoltaFrutta(page);

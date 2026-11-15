@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runGestioneMacchineWriteAssertions } from './scenarios/gestione-macchine-write.mjs';
 
 test.describe('GFV Farm Simulator — gestione macchine write', () => {

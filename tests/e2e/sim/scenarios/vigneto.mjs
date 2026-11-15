@@ -6,7 +6,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runPotaturaListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/potatura-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Potatura Vigneto' })).toBeVisible();
@@ -45,7 +44,6 @@ export async function runPotaturaListAssertions(page, expect) {
 }
 
 export async function runTrattamentiListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/trattamenti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Trattamenti Vigneto' })).toBeVisible();
@@ -90,7 +88,6 @@ export async function runTrattamentiListAssertions(page, expect) {
 }
 
 export async function runConcimazioniListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/concimazioni-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Concimazioni Vigneto' })).toBeVisible();
@@ -107,14 +104,15 @@ export async function runConcimazioniListAssertions(page, expect) {
     tableWrap.locator('table').getByRole('link', { name: /Vedi Attività/i }).first()
   ).toBeVisible();
 
+  // Il seed completa le concimazioni (prodotto valorizzato). Lo stub «Completa»
+  // capita solo se il lavoro manodopera è una concimazione: non è garantito.
+  // Lo stub di catena A resta coperto dalla lista trattamenti, nello stesso login.
   const prodottoCells = await tableWrap.locator('table tbody td:nth-child(5)').allTextContents();
-  const hasStubConcimazione = prodottoCells.some((p) => {
+  const filled = prodottoCells.filter((p) => {
     const t = p.trim();
-    return !t || t === '-' || t === '—';
+    return t && t !== '-' && t !== '—';
   });
-  const completaButtons = tableWrap.locator('[data-completa-row]');
-  const stubActions = (await completaButtons.count()) + (hasStubConcimazione ? 1 : 0);
-  expect(stubActions).toBeGreaterThanOrEqual(1);
+  expect(filled.length).toBeGreaterThanOrEqual(3);
 }
 
 /** Potatura + trattamenti fitosanitari + concimazioni (12 trattamenti seed totali). */

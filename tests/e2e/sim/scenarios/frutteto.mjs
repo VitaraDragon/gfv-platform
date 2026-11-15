@@ -4,7 +4,6 @@
  */
 
 export async function runFruttetoPotaturaListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/frutteto\/views\/potatura-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Potatura Frutteto' })).toBeVisible();
@@ -22,7 +21,6 @@ export async function runFruttetoPotaturaListAssertions(page, expect) {
 }
 
 export async function runFruttetoTrattamentiListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/frutteto\/views\/trattamenti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Trattamenti Frutteto' })).toBeVisible();
@@ -56,7 +54,6 @@ export async function runFruttetoTrattamentiListAssertions(page, expect) {
 }
 
 export async function runFruttetoConcimazioniListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/frutteto\/views\/concimazioni-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Concimazioni Frutteto' })).toBeVisible();
@@ -67,7 +64,6 @@ export async function runFruttetoConcimazioniListAssertions(page, expect) {
 }
 
 export async function runRaccoltaFruttaReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/raccolta-frutta-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Raccolta Frutta' })).toBeVisible();

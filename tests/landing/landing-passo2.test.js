@@ -159,13 +159,13 @@ describe('PAGINE_LEGALI e footer LandingHome', () => {
 
 describe('testoRobots', () => {
   it('User-agent e Sitemap senza doppie barre', () => {
-    const t = testoRobots({ urlSito: 'https://gfvagri.com' });
+    const t = testoRobots({ urlSito: 'https://globalfarmview.net' });
     expect(t).toContain('User-agent: *');
-    expect(t).toContain('Sitemap: https://gfvagri.com/sitemap.xml');
-    expect(t).not.toMatch(/https:\/\/gfvagri\.com\/\/sitemap/);
+    expect(t).toContain('Sitemap: https://globalfarmview.net/sitemap.xml');
+    expect(t).not.toMatch(/https:\/\/globalfarmview\.net\/\/sitemap/);
 
-    const conSlash = testoRobots({ urlSito: 'https://gfvagri.com/' });
-    expect(conSlash).toContain('Sitemap: https://gfvagri.com/sitemap.xml');
+    const conSlash = testoRobots({ urlSito: 'https://globalfarmview.net/' });
+    expect(conSlash).toContain('Sitemap: https://globalfarmview.net/sitemap.xml');
     expect(conSlash).not.toMatch(/com\/\/sitemap/);
   });
 });
@@ -181,7 +181,7 @@ describe('testoSitemap', () => {
     });
     expect(oggi).toContain('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"');
     expect(oggi).toContain('<urlset');
-    expect(oggi).toContain('<loc>https://gfvagri.com/</loc>');
+    expect(oggi).toContain('<loc>https://globalfarmview.net/</loc>');
     expect(oggi).not.toContain('/termini');
     expect(oggi).not.toContain('404');
 
@@ -192,7 +192,7 @@ describe('testoSitemap', () => {
         { percorso: '/termini', segnaposto: true },
       ],
     });
-    expect(conPrivacy).toContain('https://gfvagri.com/privacy');
+    expect(conPrivacy).toContain('https://globalfarmview.net/privacy');
     expect(conPrivacy).not.toContain('/termini');
   });
 });
@@ -212,8 +212,8 @@ describe('metaHome', () => {
     expect(html).toContain(
       'content="Il gestionale agricolo semplice: basta uno smartphone o un computer con internet. Tony ti guida dal primo accesso. Gratis per iniziare."'
     );
-    expect(html).toContain('href="https://gfvagri.com/"');
-    expect(html).toContain('property="og:url" content="https://gfvagri.com/"');
+    expect(html).toContain('href="https://globalfarmview.net/"');
+    expect(html).toContain('property="og:url" content="https://globalfarmview.net/"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
     expect(html).not.toContain('og:image');
 
@@ -224,7 +224,7 @@ describe('metaHome', () => {
       testi: testiPagineTecniche.metaHome,
     });
     expect(conImg).toContain(
-      `content="https://gfvagri.com${OG_IMMAGINE}"`
+      `content="https://globalfarmview.net${OG_IMMAGINE}"`
     );
     expect(conImg).toContain('og:image:width" content="1200"');
     expect(conImg).toContain('og:image:height" content="630"');
@@ -247,10 +247,12 @@ describe('firebase.json hosting', () => {
   it('blocco hosting come da brief; altri blocchi invariati', () => {
     const raw = leggiTestoFile('firebase.json');
     const conf = JSON.parse(raw);
+    const hosting = conf.hosting;
+    expect(Array.isArray(hosting)).toBe(true);
 
-    expect(conf.hosting.target).toBe('default');
-    expect(conf.hosting.public).toBe('landing/dist');
-    expect(conf.hosting.ignore).toEqual([
+    const def = hosting.find((h) => h.target === 'default');
+    expect(def.public).toBe('landing/dist');
+    expect(def.ignore).toEqual([
       'firebase.json',
       '**/.*',
       '**/node_modules/**',
@@ -258,10 +260,26 @@ describe('firebase.json hosting', () => {
       '**/docs-sviluppo/**',
       '**/documentazione-utente/**',
     ]);
-    expect(conf.hosting.cleanUrls).toBe(true);
-    expect(conf.hosting.trailingSlash).toBe(false);
-    expect(conf.hosting.rewrites).toBeUndefined();
-    expect(conf.hosting.headers).toBeUndefined();
+    expect(def.cleanUrls).toBe(true);
+    expect(def.trailingSlash).toBe(false);
+    expect(def.rewrites).toBeUndefined();
+    expect(def.headers).toBeUndefined();
+
+    const app = hosting.find((h) => h.target === 'app');
+    expect(app.public).toBe('dist-app');
+    expect(app.cleanUrls).toBe(false);
+    expect(app.trailingSlash).toBeUndefined();
+    expect(app.predeploy).toEqual(['npm run build:app']);
+    expect(app.rewrites).toBeUndefined();
+    expect(app.ignore).toEqual(['firebase.json', '**/.*', '**/node_modules/**']);
+    const headerDump = JSON.stringify(app.headers);
+    expect(headerDump).toContain('no-cache');
+    expect(headerDump).toContain('nosniff');
+    expect(headerDump).toContain('**/*.@(html|js|mjs|css|json|md)');
+    expect(headerDump).toContain('/service-worker.js');
+    expect(headerDump).toContain('/sw-strategy.js');
+    expect(headerDump).not.toMatch(/Content-Security-Policy/i);
+    expect(headerDump).not.toMatch(/Referrer-Policy/i);
 
     expect(conf.firestore).toEqual({
       rules: 'firestore.rules',

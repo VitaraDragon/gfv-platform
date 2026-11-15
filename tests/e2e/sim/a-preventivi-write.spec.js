@@ -2,7 +2,7 @@
  * GFV Farm Simulator v5 — scenario write: nuovo preventivo conto terzi.
  * Prefisso `a-` → esegue prima di accetta/pianifica così il marker 9.99 ha esiste già.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoPreventiviList, loginAsManagerContoTerzi } from './helpers/sim-login.js';
 import { runPreventiviWriteAssertions } from './scenarios/preventivi-write.mjs';
 

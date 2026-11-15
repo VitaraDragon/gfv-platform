@@ -1,6 +1,60 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-12 — Quantità in formato italiano (930 kg, non 930.000).**
+**Ultimo aggiornamento documentazione: 2026-11-14 — test:promote veloce e deterministico.**
+
+## 2026-11-14 — test:promote veloce e deterministico
+
+Su `ci/e2e-veloci-deterministici` (PR verso develop). Nessun merge, nessun deploy. Functions, rules, indici, `firebase.json` e workflow GitHub non si toccano.
+
+Il fumetto «Sto controllando...» non resta in chat dopo una risposta veloce (mock, locale, navigazione) né in caso di errore. `npm run test:promote` usa un solo emulatore: prima la fase app, poi Tony. I timeout corti di Tony partono solo con `GFV_TONY_E2E_GATE_FAST=1`. I test non chiamano Cloud Functions di produzione né esm.sh. Quattro test instabili (modale lavori, scarico trattamento, login attività) falliscono sul fatto, non sul timeout. L’attesa di aggiornamento app resta 10 s in produzione; i test locali la accorciano con `?swTestAttesaMs=`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — CI GitHub leggera, test lunghi in locale.**
+
+## 2026-11-13 — CI GitHub leggera, test lunghi in locale
+
+Su `ci/test-promote-locale` (PR verso develop). Nessun merge, nessun deploy. Codice app, functions, rules, indici, `firebase.json` e landing non si toccano.
+
+Su GitHub restano import-guard, cache PWA, `sim:test`, `sim:tony:vitest` e il Vitest dell’allenatore landing. Via da GitHub: `sim:e2e`, `sim:tony:e2e` (mock), `sim:tony:e2e:live` e i canary di roster e mappa. Gli script npm restano. Lo schedule notturno è spento finché il seed `lab-trimestre-full` non è sistemato. `npm run test:promote` rifà la CI in locale: emulatore pulito, quattro seed con verify, `sim:e2e:gate` con `CI=true`, poi un secondo emulatore con solo il seed viticola e Tony mock (`GFV_TONY_E2E_GATE_FAST=1`). Il manifest git non entra nel giro. Su Windows la CLI di Playwright parte con `PW_DISABLE_TS_ESM=1`. Prima di chiedere il merge di un promote su `main`, quel comando deve essere verde.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — Link dell’app verso gfv-platform-app.web.app.**
+
+## 2026-11-13 — Link dell’app verso gfv-platform-app.web.app
+
+Su `feat/url-app-firebase-hosting` (PR verso develop). Nessun merge, nessun deploy di hosting, functions o `deploy:app`. GitHub Pages resta acceso: prefisso `/gfv-platform`, manifest e service worker non si toccano.
+
+Inviti (`APP_BASE_URL`), icona push (`NOTIFICATION_WEB_ORIGIN`, copia in `functions/lib` via sync), ripiego del ritorno abbonamento e `URL_APP` della landing puntano a `https://gfv-platform-app.web.app`. La landing non si pubblica. `URL_SITO`, `DOMINIO_CONFERMATO`, `LANDING_ATTIVA` e `TONY_BUSSA_ATTIVO` restano com’erano.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — App: build e target Firebase Hosting, senza pubblicare.**
+
+## 2026-11-13 — App: build e target Firebase Hosting, senza pubblicare
+
+Su `feat/app-firebase-hosting` (PR in bozza verso develop). Nessun merge, nessun deploy di hosting, functions, rules o indici. La landing non si tocca (target `default`, `landing/dist`, canali compresi). GitHub Pages resta acceso.
+
+Secondo target hosting `app`, sito `gfv-platform-app`, cartella `dist-app` (in `.gitignore`). `npm run build:app` copia solo i file git tracciati dell’app. Le guide HTML provano prima `../core/GUIDA/`. I fallback `raw.githubusercontent.com` sono tolti. `deploy:landing` e `deploy:hosting` usano `--only hosting:default`. `deploy:app` non è stato eseguito: parte solo da `origin/main` con working tree pulito.
+
+`APP_BASE_URL`, `NOTIFICATION_WEB_ORIGIN` e `URL_APP` della landing restano quelli di Pages fino al passaggio. Il CORS di Storage non è applicato al bucket.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-13 — Conto terzi: ettari e euro in formato italiano.**
+
+## 2026-11-13 — Conto terzi: ettari e euro in formato italiano
+
+Su `fix/preventivi-ettari-euro-italiano` (PR verso develop). Nessun merge, nessun deploy. `functions/`, rules e indici non si toccano. I file della PR quantità (`formato-quantita.js` e chi lo usa) non si toccano.
+
+In Preventivi la tabella mostrava «5.00 ha» e «€ 915.00» per via di `toFixed(2)`. `shared/js/formato-importi.js` formatta solo il testo: `formatEuro` tiene il simbolo davanti («€ 915,00», «€ 1.234,50») e `formatEttari` usa da 2 a 4 decimali («5,00», «0,4567», «1.200,00»). null e NaN diventano «-»; -0 diventa 0.
+
+Copre la tabella preventivi, l’email al cliente (imponibile, IVA, totale, superficie: il template in `functions/email-resend.js` stampa quelle stringhe e non è stato modificato; non c’è un PDF), la conferma «Crea lavoro», il nuovo preventivo (totali e tendina terreni), l’accettazione, le tariffe, la scheda terreni clienti (superficie e spesa), la mappa clienti e gli ettari residui in home. Il salvataggio del nuovo preventivo non rilegge più il testo con `parseFloat`: tiene il numero già arrotondato a 2 decimali, come faceva `toFixed(2)`. Gli e2e (anche T-FLOW-014) cercano in tabella «9,99 ha»; il campo number resta «9.99». Il controllo «totale > 0» toglie il punto delle migliaia prima di `parseFloat`, altrimenti «€ 1.234,50» diventerebbe 1,234. Input, calcoli, link e token restano numeri. Coefficiente, ore e coordinate del podere restano col punto.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-12 — Quantità in formato italiano (930 kg, non 930.000).**
 
 ## 2026-11-12 — Quantità: formato italiano (v2)
 

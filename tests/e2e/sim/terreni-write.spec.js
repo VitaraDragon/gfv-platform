@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator v5 — scenario write: nuovo terreno azienda.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoTerreniList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runTerreniWriteAssertions } from './scenarios/terreni-write.mjs';
 

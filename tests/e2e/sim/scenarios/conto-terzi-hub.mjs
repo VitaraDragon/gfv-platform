@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runContoTerziHomeAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/conto-terzi-home-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'CONTO TERZI' })).toBeVisible();
@@ -33,7 +32,6 @@ export async function runContoTerziHomeAssertions(page, expect) {
 }
 
 export async function runMappaClientiAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/mappa-clienti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Mappa Clienti' })).toBeVisible();

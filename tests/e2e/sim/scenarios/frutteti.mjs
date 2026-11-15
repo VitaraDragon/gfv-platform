@@ -4,7 +4,6 @@
  */
 
 export async function runFruttetiListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/frutteti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Anagrafica Frutteti' })).toBeVisible();

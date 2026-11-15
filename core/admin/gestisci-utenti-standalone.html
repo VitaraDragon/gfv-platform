@@ -548,9 +548,9 @@
             return msg || fallback || 'Errore';
         }
 
-        // Link nelle email di invito (registrazione). Devono puntare dove l’app è DAVVERO ospitata.
-        // Finché l’ERP è solo su GitHub Pages per i test, usa quell’URL. Quando pubblicherete tutta l’app su globalfarmview.net, sostituire con 'https://globalfarmview.net' (senza slash finale).
-        const APP_BASE_URL = 'https://vitaradragon.github.io/gfv-platform';
+        // Link nelle email di invito (registrazione). Sito app Firebase Hosting, radice senza /gfv-platform.
+        // Quando l’ERP sarà su globalfarmview.net, sostituire con 'https://globalfarmview.net' (senza slash finale).
+        const APP_BASE_URL = 'https://gfv-platform-app.web.app';
 
         const getBaseUrl = () => {
             if (APP_BASE_URL) {

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runVendemmiaWriteAssertions } from './scenarios/vendemmia-write.mjs';
 
 test.describe('GFV Farm Simulator — vendemmia write', () => {

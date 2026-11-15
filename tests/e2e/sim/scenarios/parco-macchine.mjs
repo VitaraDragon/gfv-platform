@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runTrattoriListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/trattori-list-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Trattori' })).toBeVisible();
@@ -24,7 +23,6 @@ export async function runTrattoriListAssertions(page, expect) {
 }
 
 export async function runAttrezziListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/attrezzi-list-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Attrezzature' })).toBeVisible();
@@ -42,7 +40,6 @@ export async function runAttrezziListAssertions(page, expect) {
 }
 
 export async function runFlottaListAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/flotta-list-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Flotta Aziendale' })).toBeVisible();

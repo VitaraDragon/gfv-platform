@@ -118,7 +118,9 @@ gfv-platform/
 
 ### Branch e pubblicazione
 
-Il sito online è servito da **GitHub Pages dalla radice di `main`**: ogni commit su `main` è pubblicato subito.
+Il sito online dell’ERP è ancora servito da **GitHub Pages dalla radice di `main`**: ogni commit su `main` è pubblicato subito. Pages resta acceso finché il passaggio a Firebase Hosting non è verificato.
+
+È preparato un target hosting `app` (sito `gfv-platform-app`, cartella `dist-app`, `npm run build:app`) che non è ancora il sito pubblico. Dopo il passaggio servirà `npm run deploy:app` da `origin/main` pulito: il merge su `main` da solo non pubblicherà più l’app. La landing resta su `gfv-platform.web.app` (`deploy:landing` / `deploy:hosting`, cioè `--only hosting:default`). Non usare `--only hosting` senza target.
 
 | Branch | Contenuto | Online |
 |--------|-----------|--------|

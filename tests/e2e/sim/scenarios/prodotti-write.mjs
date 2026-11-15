@@ -89,7 +89,6 @@ async function fillAndSubmitNewProdotto(page, { codice, nome, note }) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runProdottiWriteAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await expect(page).toHaveURL(/prodotti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Anagrafica Prodotti' })).toBeVisible();

@@ -23,9 +23,25 @@ const templateId = process.env.GFV_SIM_E2E_TEMPLATE || 'viticola-conto-terzi-man
 
 async function main() {
   const manifest = readManifest();
-  const entry = [...manifest].reverse().find((e) => e.templateId === templateId);
+  let entries = manifest.filter((e) => e.templateId === templateId);
+  const slotRaw = process.env.GFV_SIM_VERIFY_SLOT;
+  if (slotRaw !== undefined && slotRaw !== '') {
+    const slot = Number(slotRaw);
+    entries = entries.filter((e) => (e.slot === undefined || e.slot === null || e.slot === '' ? 0 : Number(e.slot)) === slot);
+  }
+  if (!entries.length) {
+    const slotNote = slotRaw !== undefined && slotRaw !== '' ? ` slot ${slotRaw}` : '';
+    console.error(`[sim:verify:e2e-seed] Nessuna entry manifest per template ${templateId}${slotNote}`);
+    process.exit(1);
+  }
+  for (const entry of entries) {
+    await verifyEntry(entry);
+  }
+}
+
+async function verifyEntry(entry) {
   if (!entry?.tenantId) {
-    console.error(`[sim:verify:e2e-seed] Nessuna entry manifest per template ${templateId}`);
+    console.error(`[sim:verify:e2e-seed] Entry senza tenant per template ${templateId}`);
     process.exit(1);
   }
 
@@ -155,7 +171,7 @@ async function main() {
   }
 
   console.log('[sim:verify:e2e-seed] OK');
-  console.log(`  tenant: ${tenantId} (${entry.aziendaNome})`);
+  console.log(`  tenant: ${tenantId} (${entry.aziendaNome}) slot ${entry.slot ?? 0}`);
   console.log(
     `  attività ${inspect.counts.attivita}, trattamenti vigneto ${inspect.counts.trattamentiVigneto}, trattamenti frutteto ${inspect.counts.trattamentiFrutteto}, movimenti ${inspect.counts.movimentiMagazzino}${fruttetoOnly ? '' : `, scarichi vigneto ${scarichi.movimentiCollegati}`}`
   );

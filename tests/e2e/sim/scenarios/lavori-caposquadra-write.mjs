@@ -90,7 +90,6 @@ async function suspendLavoroAsCapo(page, expect) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runLavoriCaposquadraWriteAssertions(page, expect) {
-  expect.configure({ timeout: 120_000 });
 
   await loginAsCapoForLavoriDesktop(page);
 
@@ -119,7 +118,6 @@ export async function runLavoriCaposquadraWriteAssertions(page, expect) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runLavoroZonaAlCentoVisibileInSegnaOre(page, expect) {
-  expect.configure({ timeout: 180_000 });
 
   let chiuso = null;
   let restoreError = null;

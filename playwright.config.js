@@ -17,7 +17,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
+  workers: process.env.CI ? 2 : 1,
   reporter: [
     ['list'],
     ['./tests/e2e/sim/reporters/sim-diagnostic-reporter.mjs'],
@@ -34,7 +34,18 @@ export default defineConfig({
   projects: [
     {
       name: 'sim-chromium',
+      workers: process.env.CI ? 2 : 1,
       testMatch: /tests\/e2e\/sim\/.*\.spec\.js/,
+      testIgnore: [
+        /app-update\.spec\.js/,
+        /manodopera-migrazione\.spec\.js/,
+      ],
+    },
+    {
+      name: 'sim-serial',
+      workers: 1,
+      dependencies: ['sim-chromium'],
+      testMatch: /tests\/e2e\/sim\/(app-update|manodopera-migrazione)\.spec\.js/,
     },
   ],
 });

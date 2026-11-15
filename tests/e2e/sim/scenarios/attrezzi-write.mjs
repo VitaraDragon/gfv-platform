@@ -51,7 +51,6 @@ async function createAttrezzoMarker(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runAttrezziWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerFromDevPage(page);
   await gotoAttrezziList(page);

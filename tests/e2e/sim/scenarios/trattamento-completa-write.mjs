@@ -116,7 +116,6 @@ async function completeTrattamentoStubFromLavoro(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runTrattamentoCompletaWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoTrattamentiList(page);

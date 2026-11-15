@@ -12,6 +12,7 @@ import {
   loginAsManagerContoTerzi,
   loginAsManagerFromDevPage,
   loginAsOperaioFromDevPage,
+  DASHBOARD_PATH,
 } from '../helpers/sim-login.js';
 import { runAttivitaListAssertions } from './attivita-list.mjs';
 import { runDashboardDeadlinesAssertions } from './dashboard-deadlines.mjs';
@@ -27,10 +28,9 @@ import { runPreventiviListAssertions } from './conto-terzi.mjs';
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runFlussoOperativoAziendaAssertions(page, expect) {
-  expect.configure({ timeout: 120_000 });
 
   // 1 — Manager: cuore viticola (diario + magazzino seed catena B)
-  await loginAsManagerFromDevPage(page);
+  await loginAsManagerFromDevPage(page, { target: DASHBOARD_PATH });
   await runDashboardDeadlinesAssertions(page, expect);
   await gotoAttivitaList(page);
   await runAttivitaListAssertions(page, expect);

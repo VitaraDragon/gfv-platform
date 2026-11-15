@@ -3,6 +3,8 @@
  * @module tests/e2e/sim/scenarios/gestione-lavori-modale
  */
 
+import { simE2eTimeout } from '../helpers/sim-e2e-timeouts.mjs';
+
 /**
  * @param {import('playwright-core').Page} page
  */
@@ -18,7 +20,12 @@ async function attendiTabella(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGestioneLavoriTrattoreAssertions(page, expect) {
-    expect.configure({ timeout: 60_000 });
+    const onDialog = (dialog) => {
+        console.log(`[e2e] dialog: ${dialog.message()}`);
+        return dialog.accept();
+    };
+    page.on('dialog', onDialog);
+    try {
     await expect(page).toHaveURL(/gestione-lavori-standalone\.html/);
     await attendiTabella(page);
 
@@ -29,10 +36,12 @@ export async function runGestioneLavoriTrattoreAssertions(page, expect) {
             const terreno = terreni.find((t) => t.id === id);
             return terreno && String(terreno.coltura || '').toLowerCase().includes('vite');
         };
-        const lav = lavori.find((l) => eVite(l.terrenoId)) || lavori[0];
+        const senzaMiscela = (l) => l && !l.attrezzoId && !l.miscelaPrevista;
+        const lav = lavori.find((l) => eVite(l.terrenoId) && senzaMiscela(l))
+            || lavori.find((l) => senzaMiscela(l));
         return lav ? { id: lav.id, macchinaId: lav.macchinaId || '' } : null;
     });
-    expect(scelto && scelto.id, 'serve un lavoro, meglio su vigna').toBeTruthy();
+    expect(scelto && scelto.id, 'serve un lavoro su vigna senza attrezzo e senza miscela').toBeTruthy();
 
     await page.evaluate((id) => window.openModificaModal(id), scelto.id);
     await page.locator('#lavoro-modal.active').waitFor({ timeout: 30_000 });
@@ -61,12 +70,24 @@ export async function runGestioneLavoriTrattoreAssertions(page, expect) {
     await expect(page.locator('#lavoro-form button[type="submit"]')).toBeVisible();
     await page.locator('#lavoro-form button[type="submit"]').click();
 
-    await page.waitForFunction(() => {
-        const modal = document.getElementById('lavoro-modal');
-        const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
-        const ok = Array.from(toasts).some((t) => /Lavoro modificato con successo/i.test(t.textContent || ''));
-        return ok && modal && !modal.classList.contains('active');
-    }, { timeout: 60_000 });
+    const esitoSalva = await page.waitForFunction(() => {
+        const toasts = Array.from(document.querySelectorAll('#gfv-standalone-toast-layer .alert, #alert-container .alert'));
+        for (const t of toasts) {
+            const text = (t.textContent || '').trim();
+            if (/Lavoro modificato con successo/i.test(text)) return { ok: true, text };
+        }
+        for (const t of toasts) {
+            const text = (t.textContent || '').trim();
+            const cls = String(t.className || '');
+            if (/alert-danger|alert-error|is-error/i.test(cls) || /errore|impossibile|non riuscit/i.test(text)) {
+                return { ok: false, text };
+            }
+        }
+        return null;
+    }, { timeout: simE2eTimeout(60_000) });
+    const salva = await esitoSalva.jsonValue();
+    if (!salva.ok) throw new Error(salva.text || 'Salvataggio lavoro fallito');
+    await page.locator('#lavoro-modal.active').waitFor({ state: 'hidden', timeout: simE2eTimeout(15_000) });
 
     await page.reload();
     await attendiTabella(page);
@@ -78,6 +99,9 @@ export async function runGestioneLavoriTrattoreAssertions(page, expect) {
         { timeout: 30_000 }
     );
     await expect(page.locator('#lavoro-trattore')).toHaveValue(prossimo);
+    } finally {
+        page.off('dialog', onDialog);
+    }
 }
 
 /**
@@ -87,9 +111,13 @@ export async function runGestioneLavoriTrattoreAssertions(page, expect) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGestioneLavoriCreaSubitoAssertions(page, expect) {
-    expect.configure({ timeout: 30_000 });
+    await page.waitForFunction(() => (
+        typeof window.openCreaModal === 'function'
+        && window.lavoriState
+        && window.lavoriState.hasManodoperaModule !== undefined
+    ), { timeout: simE2eTimeout(45_000) });
     await page.locator('#crea-lavoro-button').click();
-    await page.locator('#lavoro-modal.active').waitFor({ timeout: 20_000 });
+    await page.locator('#lavoro-modal.active').waitFor({ timeout: simE2eTimeout(45_000) });
 
     const stato = await page.evaluate(() => {
         const nome = document.getElementById('lavoro-nome');

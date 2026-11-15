@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { NOME_TITOLARE_FACOLTATIVO_ATTIVO } from '../core/config/nome-titolare-config.js';
-import { URL_REGISTRAZIONE } from '../landing/src/config/landing-config.js';
+import { URL_APP, URL_LOGIN, URL_REGISTRAZIONE } from '../landing/src/config/landing-config.js';
 import {
   isDaLanding,
   isNomeCognomeFacoltativi,
@@ -37,6 +37,14 @@ describe('link landing ?da=landing', () => {
   it('URL_REGISTRAZIONE include da=landing', () => {
     expect(URL_REGISTRAZIONE).toContain('registrazione-standalone.html');
     expect(URL_REGISTRAZIONE).toMatch(/[?&]da=landing(?:&|$)/);
+  });
+
+  it('URL_APP punta a gfv-platform-app.web.app senza doppia barra', () => {
+    expect(URL_APP).toBe('https://gfv-platform-app.web.app/');
+    expect(URL_REGISTRAZIONE).toBe(
+      'https://gfv-platform-app.web.app/core/auth/registrazione-standalone.html?da=landing'
+    );
+    expect(URL_LOGIN).toBe('https://gfv-platform-app.web.app/core/auth/login-standalone.html');
   });
 
   it('urlRegistrazioneConDaLanding non duplica e usa & se ci sono già parametri', () => {

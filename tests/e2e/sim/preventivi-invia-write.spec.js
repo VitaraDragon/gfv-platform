@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runPreventiviInviaWriteAssertions } from './scenarios/preventivi-invia-write.mjs';
 
 test.describe('GFV Farm Simulator — preventivi invia write (conto terzi)', () => {

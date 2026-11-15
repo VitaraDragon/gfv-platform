@@ -6501,7 +6501,12 @@ if (typeof window !== 'undefined') {
         var appendMessageBase = appendMessage;
         appendMessage = function(text, type) {
             appendMessageBase(text, type);
-            if (type === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
+            if ((type === 'tony' || type === 'error') && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
+        };
+        var showMessageInChatBase = showMessageInChat;
+        showMessageInChat = function(text, type) {
+            showMessageInChatBase(text, type);
+            if ((type || 'tony') === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
         };
     }
     window.__tonyFreemiumBlocked = isTonyBlockedForPlan(_initialPlanGate);
@@ -7873,6 +7878,7 @@ if (typeof window !== 'undefined') {
                 if (typeof stopListeningRef === 'function') stopListeningRef();
                 tonyDebugLog('[Tony] Voice turn avviato (build ' + (window.__TONY_CLIENT_BUILD || '?') + '):', text.slice(0, 80));
             }
+            if (!opts.proactive && !opts._displayOnly) tonyE2eTurnStart();
             if (!window.Tony || !window.Tony.isReady()) {
                 if (TONY_QUEUE_ENABLED && !opts._dallaCoda && !opts.proactive && !opts.fromVoice) {
                     mettiInCodaInvioTony(text);
@@ -7913,7 +7919,6 @@ if (typeof window !== 'undefined') {
                 tonySetLastUserMessage(text);
                 try { tonyFotoLavoroSceltoUtente(); } catch (eFoto) { /* ignore */ }
             }
-            if (!opts.proactive && !opts._displayOnly) tonyE2eTurnStart();
             var tonyHaGiaRispostoPrimaTurno = tonyHasAlreadyRespondedInSession();
             if (checkFarewellIntent(text, { tonyHaGiaRisposto: tonyHaGiaRispostoPrimaTurno })) opts.isClosingSession = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -7925,9 +7930,28 @@ if (typeof window !== 'undefined') {
                 userBubbleWritten = true;
             }
             var tonyEarlyTypingTimer = null;
+            var tonyEarlyTypingNode = null;
+            function cancelTonyEarlyTyping() {
+                if (tonyEarlyTypingTimer) {
+                    clearTimeout(tonyEarlyTypingTimer);
+                    tonyEarlyTypingTimer = null;
+                }
+                if (tonyEarlyTypingNode && tonyEarlyTypingNode.parentNode) {
+                    tonyEarlyTypingNode.remove();
+                }
+                tonyEarlyTypingNode = null;
+            }
             if (!opts.proactive) {
                 tonyEarlyTypingTimer = setTimeout(function() {
+                    tonyEarlyTypingTimer = null;
                     appendMessage('Sto controllando...', 'typing');
+                    try {
+                        var typingBox = document.getElementById('tony-messages');
+                        var typingNodes = typingBox ? typingBox.querySelectorAll('.tony-msg.typing') : [];
+                        tonyEarlyTypingNode = typingNodes.length ? typingNodes[typingNodes.length - 1] : null;
+                    } catch (eTypingNode) {
+                        tonyEarlyTypingNode = null;
+                    }
                     if (typeof window.__tonyWarmTTS === 'function') {
                         try { window.__tonyWarmTTS(); } catch (eWarm) { /* ignore */ }
                     }
@@ -7940,7 +7964,7 @@ if (typeof window !== 'undefined') {
                 var propostaLibera = null;
                 try { propostaLibera = window.__tonySegnaOrePropostaLibera; } catch (eProp0) { propostaLibera = null; }
                 if (propostaLibera && propostaLibera.inizio && propostaLibera.fine) {
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     try { window.__tonySegnaOrePropostaLibera = null; } catch (eProp1) { /* ignore */ }
                     var targetProp = resolveSegnaOreTargetWindow();
                     if (targetProp && targetProp.doc) {
@@ -7975,7 +7999,7 @@ if (typeof window !== 'undefined') {
             if (!opts.proactive) {
                 var qhSaveIntercept = tryInterceptQuickHoursSaveBeforeCf(text, {
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                     salvaQuickHours: tonySalvaQuickHoursWorkspace,
                     processTonyCommand: processTonyCommand,
@@ -7992,7 +8016,7 @@ if (typeof window !== 'undefined') {
                 removeTyping: removeTyping,
                 speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
                 clearEarlyTyping: function () {
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                 },
                 saveState: saveTonyState,
             };
@@ -8000,7 +8024,7 @@ if (typeof window !== 'undefined') {
             // Home ERP: da dashboard di modulo (meteo/vigneto/…) «portami alla dashboard» non è «già lì».
             if (!opts.proactive && !getTonyFieldProfileFromContext() &&
                 isTonyMainDashboardNavRequest(text) && !isTonyMainDashboardPath()) {
-                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                cancelTonyEarlyTyping();
                 try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmDash) { /* ignore */ }
                 var dashNavText = 'Ti porto alla dashboard.';
                 try {
@@ -8017,7 +8041,7 @@ if (typeof window !== 'undefined') {
             // Da dashboard (o altra pagina): «portami al meteo» apre il modulo, non legge le previsioni.
             if (!opts.proactive && !getTonyFieldProfileFromContext() &&
                 isTonyMeteoModuleNavRequest(text) && !isTonyMeteoModulePath()) {
-                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                cancelTonyEarlyTyping();
                 try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmMeteo) { /* ignore */ }
                 var meteoNavText = 'Ti porto al modulo meteo.';
                 try {
@@ -8042,7 +8066,7 @@ if (typeof window !== 'undefined') {
                     return aperto('attivita-modal') || aperto('lavoro-modal');
                 })();
                 if (lavoroFattoNav && !registroGiaAperto) {
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmFatto) { /* ignore */ }
                     var fattoPath = (window.location.pathname || '').toLowerCase();
                     var fattoTarget = String(lavoroFattoNav.target || '').toLowerCase();
@@ -8106,7 +8130,7 @@ if (typeof window !== 'undefined') {
                     }
                 }
                 if (fieldNavTarget) {
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmNav) { /* ignore */ }
                     var openedLocal = tonyTryOpenFieldWorkspaceSlideForApriPagina(fieldNavTarget);
                     if (!openedLocal) {
@@ -8192,7 +8216,7 @@ if (typeof window !== 'undefined') {
                     var disambPrevAsked = (disPrevMk && disPrevMk.options && disPrevMk.options.length > 1) ||
                         /su quale terren|molti terreni|dobbiamo lavorare su|indica il nome del terreno/i.test(lastTonyPrevMk);
                     if (disambPrevAsked) {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                         appendMessage('Un attimo…', 'typing');
                         window.TonyFormInjector.applyPreventivoTerrenoFromUserReply(text).then(function(resPrevTer) {
                             removeTyping();
@@ -8219,7 +8243,7 @@ if (typeof window !== 'undefined') {
                 userMessageIsPreventivoScheduleHint(text)) {
                 var terSchedMk = document.getElementById('terreno-id');
                 if (terSchedMk && String(terSchedMk.value || '').trim()) {
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     appendMessage('Un attimo…', 'typing');
                     window.TonyFormInjector.applyPreventivoScheduleFromUserReply(text).then(function(resPrevDt) {
                         removeTyping();
@@ -8266,7 +8290,7 @@ if (typeof window !== 'undefined') {
                     !tipoCorrectionMk && !routeToInterviewMk &&
                     (window.TonyFormInjector.userCanReplyToMacchineDisamb(text) || macchineDisambPending)) {
                     tonyDebugLog('[Tony] Intercept macchine reply client-side:', text);
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     appendMessage('Un attimo…', 'typing');
                     var disambFieldErrMk = disambFieldMk === 'lavoro-attrezzo' ? 'attrezzo' : 'trattore';
                     var disambExamplesMk = disambFieldErrMk === 'attrezzo'
@@ -8308,7 +8332,7 @@ if (typeof window !== 'undefined') {
                     appendMessage: appendMessage,
                     processTonyCommand: processTonyCommand,
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                 });
                 if (saveIntercept.handled) {
@@ -8320,7 +8344,7 @@ if (typeof window !== 'undefined') {
                     appendMessage: appendMessage,
                     processTonyCommand: processTonyCommand,
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                 });
                 if (lavSaveIntercept.handled) {
@@ -8333,7 +8357,7 @@ if (typeof window !== 'undefined') {
                     speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
                     processTonyCommand: processTonyCommand,
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                 });
                 if (prevSaveIntercept.handled) {
@@ -8346,7 +8370,7 @@ if (typeof window !== 'undefined') {
                     speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
                     processTonyCommand: processTonyCommand,
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                 });
                 if (magSaveIntercept.handled) {
@@ -8359,7 +8383,7 @@ if (typeof window !== 'undefined') {
                     speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
                     processTonyCommand: processTonyCommand,
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                 });
                 if (terSaveIntercept.handled) {
@@ -8371,7 +8395,7 @@ if (typeof window !== 'undefined') {
                     processTonyCommand: processTonyCommand,
                     getUrlForTarget: getUrlForTarget,
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                 });
                 if (movCreateIntercept.handled) {
@@ -8384,7 +8408,7 @@ if (typeof window !== 'undefined') {
                     processTonyCommand: processTonyCommand,
                     getUrlForTarget: getUrlForTarget,
                     clearEarlyTyping: function () {
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                     },
                 });
                 if (prodCreateIntercept.handled) {
@@ -8398,6 +8422,8 @@ if (typeof window !== 'undefined') {
                 (tonyIsLocalLavoroCreationIntent(text) || window.__tonyLavoroCreationFlow) &&
                 window.__tonyLavoroCreationTurnBusy) {
                 console.warn('[Tony] Creazione lavoro: ignoro messaggio duplicato (turno già in corso).');
+                cancelTonyEarlyTyping();
+                try { removeTyping(); } catch (eDupType) { /* ignore */ }
                 if (opts.fromVoice) isWaitingForTonyResponse = false;
                 return;
             }
@@ -8406,7 +8432,7 @@ if (typeof window !== 'undefined') {
                 if (!tonyOnGestioneLavoriPage()) {
                     window.__tonyLavoroCreationFlow = true;
                     tonyDebugLog('[Tony] Creazione lavoro cross-page: flusso locale (no CF).');
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     try {
                         sessionStorage.setItem('tony_pending_lavoro_local_intent', JSON.stringify({
                             text: String(text || '').trim(),
@@ -8430,7 +8456,7 @@ if (typeof window !== 'undefined') {
                 window.__tonyLavoroCreationFlow = true;
                 window.__tonyLavoroCreationTurnBusy = true;
                 tonyDebugLog('[Tony] Creazione lavoro: flusso locale (no CF).');
-                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                cancelTonyEarlyTyping();
                 appendMessage('Un attimo…', 'typing');
                 _isSendingMessage = true;
                 var startText = String(text || '').trim();
@@ -8478,7 +8504,7 @@ if (typeof window !== 'undefined') {
             if (!opts.proactive && !opts._skipLavoroLocalCreation && window.TonyFormInjector &&
                 window.__tonyLavoroCreationFlow && !isAnyTonyFormSaveConfirmPending() &&
                 (String(text).trim().length >= 2 || /^\d{1,3}$/.test(String(text).trim()))) {
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     appendMessage('Un attimo…', 'typing');
                     _isSendingMessage = true;
                     window.__tonyLavoroCreationTurnBusy = true;
@@ -8517,7 +8543,7 @@ if (typeof window !== 'undefined') {
                     typeof window.TonyFormInjector.applyLavoroInterviewFromUserReply === 'function' &&
                     window.TonyFormInjector.userCanReplyToLavoroInterview(text)) {
                     tonyDebugLog('[Tony] Intercept intervista lavoro client-side:', text);
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     appendMessage('Un attimo…', 'typing');
                     var waitIv = window.TonyFormInjector.waitForLavoriFormDataReady
                         ? window.TonyFormInjector.waitForLavoriFormDataReady(8000)
@@ -8566,7 +8592,7 @@ if (typeof window !== 'undefined') {
                 var rosterProbe = window.TonyFormInjector.localCaposquadraRosterReply(text);
                 if (rosterProbe && rosterProbe.handled) {
                     tonyDebugLog('[Tony] Elenco caposquadra locale:', text);
-                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    cancelTonyEarlyTyping();
                     var deliverRoster = function (reply) {
                         removeTyping();
                         appendMessage((reply && reply.message) || 'In questa azienda non risultano caposquadra attivi.', 'tony');
@@ -8679,10 +8705,7 @@ if (typeof window !== 'undefined') {
             }
             function tonyDeliverDashboardRiassunto(replyText, voiceOpts) {
                 voiceOpts = voiceOpts || {};
-                if (tonyEarlyTypingTimer) {
-                    clearTimeout(tonyEarlyTypingTimer);
-                    tonyEarlyTypingTimer = null;
-                }
+                cancelTonyEarlyTyping();
                 removeTyping();
                 var reply = String(replyText || '').trim();
                 if (!reply) return;
@@ -8755,10 +8778,7 @@ if (typeof window !== 'undefined') {
                 var openTarget = String(proactiveOpenOffer.openPageTarget || '').trim();
                 var openAck = formatProactiveOpenAck(proactiveOpenOffer);
                 window.__tonyProactiveOpenOffer = null;
-                if (tonyEarlyTypingTimer) {
-                    clearTimeout(tonyEarlyTypingTimer);
-                    tonyEarlyTypingTimer = null;
-                }
+                cancelTonyEarlyTyping();
                 removeTyping();
                 appendMessage(openAck, 'tony');
                 if (typeof speakWithTTS === 'function') {
@@ -8838,7 +8858,7 @@ if (typeof window !== 'undefined') {
                         setTimeout(function() { sendRequestWithContext(formCtx, _ctxRetry + 1); }, 300);
                     } else {
                         console.warn('[Tony] sendRequestWithContext: timeout attesa coda invio');
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                         removeTyping();
                         releaseVoiceTurnFromIntercept();
                         appendMessage('Tony è ancora occupato con la richiesta precedente. Attendi qualche secondo e riprova.', 'error');
@@ -8876,7 +8896,7 @@ if (typeof window !== 'undefined') {
                         setTimeout(function() { doActualSend(formCtx, _doRetry + 1); }, 250);
                     } else {
                         console.warn('[Tony] doActualSend: coda invio bloccata');
-                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        cancelTonyEarlyTyping();
                         removeTyping();
                         releaseVoiceTurnFromIntercept();
                         appendMessage('Tony è occupato. Riprova tra poco.', 'error');
@@ -8890,7 +8910,7 @@ if (typeof window !== 'undefined') {
                     tonyDebugLog('[Tony] Segna ore workspace: percorso locale (CF non usata).');
                     var hSave = tryInterceptQuickHoursSaveBeforeCf(text, {
                         clearEarlyTyping: function () {
-                            if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                            cancelTonyEarlyTyping();
                         },
                         salvaQuickHours: tonySalvaQuickHoursWorkspace,
                         processTonyCommand: processTonyCommand,
@@ -8947,6 +8967,7 @@ if (typeof window !== 'undefined') {
                     if (!_isSendingMessage) return;
                     console.error('[Tony] Timeout risposta (>95s): sblocco invio');
                     _isSendingMessage = false;
+                    cancelTonyEarlyTyping();
                     removeTyping();
                     if (streamingMsgEl) streamingMsgEl.remove();
                     appendMessage('La risposta sta impiegando troppo tempo. Controlla la connessione e riprova.', 'error');
@@ -9131,6 +9152,7 @@ if (typeof window !== 'undefined') {
 
                 function onComplete(response) {
                 try {
+                cancelTonyEarlyTyping();
                 removeTyping();
                 var rawData = response;
                 
@@ -9578,6 +9600,7 @@ if (typeof window !== 'undefined') {
                         streamingMsgEl.classList.remove('streaming');
                         streamingMsgEl = null;
                         messagesEl.scrollTop = messagesEl.scrollHeight;
+                        if (_tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
                     } else {
                         appendMessage(out, 'tony');
                     }
@@ -9699,6 +9722,7 @@ if (typeof window !== 'undefined') {
                     clearTimeout(window.__tonySendWatchdogId);
                     window.__tonySendWatchdogId = null;
                 }
+                cancelTonyEarlyTyping();
                 removeTyping();
                 if (streamingMsgEl) streamingMsgEl.remove();
                 appendMessage('Errore: ' + tonyFormatCallableError(err), 'error');
@@ -9707,6 +9731,8 @@ if (typeof window !== 'undefined') {
             }
 
             function onFinally() {
+                cancelTonyEarlyTyping();
+                try { removeTyping(); } catch (eFinType) { /* ignore */ }
                 clearVoiceTurnGuard();
                 _isSendingMessage = false;
                 if (window.__tonySendWatchdogId) {
@@ -9779,6 +9805,7 @@ if (typeof window !== 'undefined') {
                                 var daMostrare = tonyTestoUscitaSegnaOre(normalizeTonyTextWhitespace(nascondiJsonDaStreaming(streamingAccum)));
                                 var daMostrareVoice = tonyTestoUscitaSegnaOre(normalizeTonyTextWhitespace(cleanTextFromJsonResidue(daMostrare)));
                                 if (!streamingMsgEl) {
+                                    cancelTonyEarlyTyping();
                                     removeTyping();
                                     streamingMsgEl = document.createElement('div');
                                     streamingMsgEl.className = 'tony-msg tony streaming';
@@ -9859,10 +9886,7 @@ if (typeof window !== 'undefined') {
             };
 
             function tonyFinishLocalVoiceReply(replyText) {
-                if (tonyEarlyTypingTimer) {
-                    clearTimeout(tonyEarlyTypingTimer);
-                    tonyEarlyTypingTimer = null;
-                }
+                cancelTonyEarlyTyping();
                 removeTyping();
                 var out = String(replyText || '').trim();
                 if (!out) return;
@@ -9951,7 +9975,7 @@ if (typeof window !== 'undefined') {
             }
             } catch (eSendMsg) {
                 console.error('[Tony] sendMessage errore sincrono:', eSendMsg);
-                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                cancelTonyEarlyTyping();
                 removeTyping();
                 releaseVoiceTurnFromIntercept();
                 _isSendingMessage = false;

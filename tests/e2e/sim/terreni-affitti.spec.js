@@ -2,7 +2,7 @@
  * GFV Farm Simulator v4 — scenario 3: lista terreni → colonna affitti con semafori.
  * Dati seed validati da v3 (seed-terreni-affitti); assert DOM visibile.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { gotoTerreniList, loginAsManagerFromDevPage } from './helpers/sim-login.js';
 import { runTerreniAffittiAssertions } from './scenarios/terreni-affitti.mjs';
 

@@ -54,8 +54,9 @@ export function injectWidget(scriptBase) {
             if (m) { m.appendChild(div); m.scrollTop = m.scrollHeight; }
         }
         function removeTyping() {
-            var typing = m ? m.querySelector('.tony-msg.typing') : null;
-            if (typing) typing.remove();
+            if (!m) return;
+            var nodes = m.querySelectorAll('.tony-msg.typing');
+            for (var i = 0; i < nodes.length; i++) nodes[i].remove();
         }
         function showMessageInChat(text, type) {
             type = type || 'tony';
@@ -180,8 +181,9 @@ export function injectWidget(scriptBase) {
     }
 
     function removeTyping() {
-        var typing = messagesEl.querySelector('.tony-msg.typing');
-        if (typing) typing.remove();
+        if (!messagesEl) return;
+        var nodes = messagesEl.querySelectorAll('.tony-msg.typing');
+        for (var i = 0; i < nodes.length; i++) nodes[i].remove();
     }
 
     function showMessageInChat(text, type) {

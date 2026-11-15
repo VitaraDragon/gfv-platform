@@ -34,6 +34,14 @@ https://www.tuodominio.com/*
 https://*.github.io/*
 ```
 
+### Sito app su Firebase Hosting (quando il passaggio sarà verificato):
+```
+https://gfv-platform-app.web.app/*
+https://gfv-platform-app.firebaseapp.com/*
+```
+
+Non togliere `https://*.github.io/*`: Pages resta acceso finché il nuovo hosting non è verificato. Senza il referrer del nuovo sito le mappe darebbero `RefererNotAllowedMapError`. Il referrer si aggiunge in console al momento del passaggio, non prima.
+
 ### Se usi un altro hosting:
 ```
 https://tuosito.com/*

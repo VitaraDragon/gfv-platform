@@ -2,7 +2,7 @@
 
 ## ⚠️ Problema
 
-L'errore CORS quando si carica il logo indica che il bucket Firebase Storage non ha la configurazione CORS per permettere richieste da GitHub Pages.
+L'errore CORS quando si carica il logo indica che il bucket Firebase Storage non ha la configurazione CORS per permettere richieste dall'origine dell'app. Oggi l'origine pubblica è ancora GitHub Pages. `cors.json` include anche le origini del sito app (`gfv-platform-app`), ma **non** applicare `gsutil cors set` finché non è il passaggio: il bucket di produzione non va aggiornato in questa fase.
 
 ## ✅ Soluzione: Configura CORS sul Bucket Storage
 
@@ -53,6 +53,8 @@ L'errore CORS quando si carica il logo indica che il bucket Firebase Storage non
      {
        "origin": [
          "https://vitaradragon.github.io",
+         "https://gfv-platform-app.web.app",
+         "https://gfv-platform-app.firebaseapp.com",
          "http://localhost:*",
          "http://127.0.0.1:*"
        ],

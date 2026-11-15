@@ -1,7 +1,7 @@
 /**
  * GFV Farm Simulator — modifica ore proprie e annullo validazione.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runOreModificaAnnulloAssertions } from './scenarios/ore-modifica-annullo.mjs';
 
 test.describe('GFV Farm Simulator — modifica ore e annullo validazione', () => {

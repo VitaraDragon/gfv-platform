@@ -21,7 +21,6 @@ const MIN_TERRENI_AZIENDA = 6;
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runMistaAziendaReadAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerMisto(page);
 

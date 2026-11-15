@@ -1,6 +1,6 @@
 # Landing Global Farm View
 
-Progetto Vue 3 + Vite della landing pubblica (Firebase Hosting: `gfv-platform.web.app`, dominio previsto `gfvagri.com`).
+Progetto Vue 3 + Vite della landing pubblica (Firebase Hosting: `gfv-platform.web.app`, dominio principale globalfarmview.net (gfvagri.com rimanda qui)).
 
 ## Flag
 

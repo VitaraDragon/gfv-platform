@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runTrattamentoCompletaWriteAssertions } from './scenarios/trattamento-completa-write.mjs';
 
 test.describe('GFV Farm Simulator — trattamento completa write (catena A+B)', () => {

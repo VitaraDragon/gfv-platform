@@ -16,6 +16,7 @@ import {
   PRODOTTI_LIST_PATH,
 } from '../../sim/helpers/sim-login.js';
 import { withTonyE2eQuery } from './tony-sim-context.js';
+import { formatEttari } from '../../../../shared/js/formato-importi.js';
 
 export const TONY_E2E_ORE_NOTE = 'GFV_SIM_TONY_E2E_ORE';
 export const TONY_E2E_ORA_START = '13:00';
@@ -160,7 +161,6 @@ export async function assertLavoroInLista(page, expect, opts = {}) {
   const nome = opts.nome || TONY_E2E_LAVORO_NOME;
   const note = opts.note || TONY_E2E_LAVORO_NOTE;
 
-  expect.configure({ timeout: 90_000 });
 
   await expect(page).toHaveURL(/gestione-lavori-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Gestione Lavori' })).toBeVisible();
@@ -254,7 +254,6 @@ export async function assertOrePendingInValidazione(page, expect, opts = {}) {
   const oraEnd = opts.oraEnd || TONY_E2E_ORA_END;
   const netHours = opts.netHours || TONY_E2E_NET_HOURS;
 
-  expect.configure({ timeout: 90_000 });
 
   await loginAsManagerManodopera(page);
   await gotoValidazioneOre(page);
@@ -442,7 +441,6 @@ async function waitForProdottiTableWithMarker(page, marker) {
 export async function assertProdottoInLista(page, expect, opts = {}) {
   const nome = opts.nome || TONY_E2E_PRODOTTO_NOME_018;
 
-  expect.configure({ timeout: 90_000 });
 
   await page.goto(withTonyE2eQuery(PRODOTTI_LIST_PATH));
   await expect(page).toHaveURL(/prodotti-standalone\.html/);
@@ -521,10 +519,10 @@ async function waitForPreventiviTableWithMarker(page, superficie, tipoFragment) 
  */
 export async function assertPreventivoInLista(page, expect, opts = {}) {
   const superficie = opts.superficie || TONY_E2E_PREVENTIVO_SUPERFICIE;
+  const superficieVisibile = formatEttari(superficie);
   const tipoLavoro = opts.tipoLavoro || 'Erpicatura';
   const clienteNome = opts.clienteNome || '';
 
-  expect.configure({ timeout: 90_000 });
 
   if (!/preventivi-standalone\.html/.test(page.url())) {
     await page.goto(withTonyE2eQuery(PREVENTIVI_LIST_PATH));
@@ -538,16 +536,16 @@ export async function assertPreventivoInLista(page, expect, opts = {}) {
     await page.evaluate(() => window.resetFilters());
   }
 
-  await waitForPreventiviTableWithMarker(page, superficie, tipoLavoro.split(' ')[0]);
+  await waitForPreventiviTableWithMarker(page, superficieVisibile, tipoLavoro.split(' ')[0]);
 
   const row = page
     .locator('#preventivi-container .preventivi-table tbody tr')
-    .filter({ hasText: superficie })
+    .filter({ hasText: superficieVisibile })
     .filter({ hasText: tipoLavoro.split(' ')[0] })
     .first();
 
   await expect(row).toBeVisible();
-  await expect(row.locator('td').nth(4)).toContainText(`${superficie} ha`);
+  await expect(row.locator('td').nth(4)).toContainText(`${superficieVisibile} ha`);
   await expect(row.locator('.badge-secondary').filter({ hasText: /Bozza/i })).toBeVisible();
   await expect(row.locator('td').nth(5)).toContainText('€');
   if (clienteNome) {

@@ -84,7 +84,6 @@ async function fillAndSubmitNewMovimento(page, { note }) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runMovimentiWriteAssertions(page, expect) {
-  expect.configure({ timeout: 60_000 });
 
   await expect(page).toHaveURL(/movimenti-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Movimenti Magazzino' })).toBeVisible();

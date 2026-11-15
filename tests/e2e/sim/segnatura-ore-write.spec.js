@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/gfv-test.js';
 import { runSegnaturaOreWriteAssertions } from './scenarios/segnatura-ore-write.mjs';
 
 test.describe('GFV Farm Simulator — segnatura ore write', () => {

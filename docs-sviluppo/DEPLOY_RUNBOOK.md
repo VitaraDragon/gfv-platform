@@ -10,12 +10,14 @@
 
 | Artefatto | Destinazione | Comando tipico |
 |-----------|--------------|----------------|
-| **ERP** (`core/`, `modules/`, Tony client, …) | **GitHub Pages** `https://vitaradragon.github.io/gfv-platform/` | PR `develop` → `main` (vedi nota) |
-| **Landing** marketing (`landing/dist`) | **Firebase Hosting** `https://gfv-platform.web.app` | `npm run deploy:landing` |
+| **ERP** (`core/`, `modules/`, Tony client, …) | **Ancora GitHub Pages** `https://vitaradragon.github.io/gfv-platform/`. Passerà a Firebase Hosting, sito `gfv-platform-app` (target `app`, cartella `dist-app`), solo dopo la verifica. Questa modifica non pubblica l’app. | Oggi: PR `develop` → `main` (Pages). Dopo il passaggio: `npm run deploy:app` da `origin/main` pulito |
+| **Landing** marketing (`landing/dist`) | **Firebase Hosting** `https://gfv-platform.web.app` (target `default`, invariato) | `npm run deploy:landing` (`--only hosting:default`) |
 | **Cloud Functions** (Tony, meteo, email, …) | **Firebase / Cloud Run** | `npm run deploy:functions` |
 | **Firestore rules / indexes** | Firebase | `npm run deploy:rules` |
 
-Modifiche solo a `core/js/tony/*.js` → **push GitHub**, non hosting Firebase.
+Modifiche solo a `core/js/tony/*.js` → **push GitHub** (Pages), non hosting Firebase, finché l’ERP è su Pages.
+
+`npm run deploy:hosting` e `npm run deploy:landing` pubblicano **solo** `hosting:default` (la landing). Mai `firebase deploy --only hosting`: con due target pubblicherebbe anche l’app. Mai `hosting:channel:deploy` senza `--only default` (i canali di anteprima della landing, incluso prova-tony, stanno sul sito `gfv-platform`). Per gli emulatori: `--only hosting:default` oppure `--only hosting:app`, non `--only hosting`.
 
 > **Attenzione — dal 2026-09-01 non si pusha più direttamente su `main`.**
 > `main` è il sito pubblico: ogni commit è online all'istante. Il lavoro passa da `develop` e arriva su `main` con una PR di promozione.
@@ -65,10 +67,13 @@ Oppure **non usare** il comando globale `firebase` e usare sempre gli script npm
 | Obiettivo | Comando |
 |-----------|---------|
 | Cloud Functions | `npm run deploy:functions` |
-| Hosting (solo dist già buildata) | `npm run deploy:hosting` |
-| Build landing + hosting | `npm run deploy:landing` |
+| Hosting landing (solo dist già buildata) | `npm run deploy:hosting` → `--only hosting:default` |
+| Build landing + hosting landing | `npm run deploy:landing` → `--only hosting:default` |
+| App ERP (solo al passaggio, da `origin/main` pulito) | `npm run deploy:app` → `--only hosting:app` |
 | Rules + indexes | `npm run deploy:rules` |
 | Functions + rules | `npm run deploy:firebase` |
+
+Non usare `--only hosting` (senza `:default` o `:app`). Non usare `hosting:channel:deploy` senza `--only default`.
 
 Wrapper PowerShell (ricarica PATH + firebase locale):
 
@@ -184,7 +189,7 @@ Error: Directory 'landing/dist' for Hosting does not exist.
 
 ### Fix
 
-`firebase.json` → `"public": "landing/dist"`. La cartella esiste **solo dopo build Vite**:
+`firebase.json`, target `default` → `"public": "landing/dist"`. Il target `app` (`dist-app`) è un altro sito e non si pubblica con questi comandi. La cartella della landing esiste **solo dopo build Vite**:
 
 ```powershell
 npm run build:landing
@@ -193,7 +198,24 @@ npm run deploy:hosting
 npm run deploy:landing
 ```
 
-`landing/dist` è in `.gitignore` — su ogni PC va **rigenerata** prima del primo hosting deploy.
+`landing/dist` è in `.gitignore` — su ogni PC va **rigenerata** prima del primo hosting deploy della landing.
+
+---
+
+## 6b. Build dell’app — cartella `dist-app` (non è ancora il sito pubblico)
+
+`npm run build:app` svuota e ricrea `dist-app/` con i soli file del sito (allow-list, solo file tracciati da git). `dist-app/` è in `.gitignore`.
+
+Il target Firebase è `app`, sito `gfv-platform-app`. Il passaggio non è fatto: Pages resta acceso e `deploy:app` non va lanciato da un branch di lavoro. Il comando rifiuta HEAD diverso da `origin/main` e un working tree sporco. Il predeploy del target lancia di nuovo `build:app`.
+
+Prova locale, senza pubblicare:
+
+```powershell
+npm run build:app
+node ./node_modules/firebase-tools/lib/bin/firebase.js emulators:start --only hosting:app
+```
+
+Per gli emulatori non usare `--only hosting` (partirebbero entrambi i target). La landing si prova con `--only hosting:default`.
 
 ---
 
@@ -207,9 +229,9 @@ npm run deploy:landing
 +  Deploy complete!
 ```
 
-**Hosting:** URL in output → `https://gfv-platform.web.app`
+**Hosting landing:** URL in output → `https://gfv-platform.web.app`
 
-**ERP (Tony client):** dopo `git push`, attendere 1–2 min e hard refresh su GitHub Pages.
+**ERP:** oggi ancora GitHub Pages, dopo il push su `main` (1–2 min, poi hard refresh). Il passaggio a `gfv-platform-app` non è fatto: finché Pages non è spento, il merge su `main` pubblica ancora l’albero del repository. Dopo il passaggio servirà `npm run deploy:app`.
 
 ---
 
@@ -247,5 +269,5 @@ git pull → npm install → functions/.env senza chiavi → npm run sync:functi
 | `scripts/setup-dev-pc.ps1` | check/install ambiente Windows |
 | `functions/.env.example` | regole `.env` vs `.secret.local` |
 | `functions/README.md` | Tony/Gemini, meteo, preventivo pubblico |
-| `firebase.json` | hosting → `landing/dist` |
+| `firebase.json` | hosting `default` → `landing/dist`; hosting `app` → `dist-app` (non pubblicato finché il passaggio non è verificato) |
 | `docs-sviluppo/SETUP_ALTRO_PC_CURSOR.md` | **Setup completo altro PC per Cursor** |

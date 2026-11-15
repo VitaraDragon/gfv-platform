@@ -4,7 +4,6 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runVignetoStatisticheAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/vigneto-statistiche-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'STATISTICHE VIGNETO' })).toBeVisible();
@@ -17,7 +16,6 @@ export async function runVignetoStatisticheAssertions(page, expect) {
 }
 
 export async function runVendemmiaReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/vendemmia-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Gestione Vendemmia' })).toBeVisible();
@@ -35,7 +33,6 @@ export async function runVendemmiaReadAssertions(page, expect) {
 }
 
 export async function runCalcoloMaterialiReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/calcolo-materiali-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Calcolo Materiali Impianto' })).toBeVisible();
@@ -47,7 +44,6 @@ export async function runCalcoloMaterialiReadAssertions(page, expect) {
 }
 
 export async function runPianificaImpiantoReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
 
   await expect(page).toHaveURL(/pianifica-impianto-standalone\.html/);
   await expect(page.locator('#headerTitolo')).toContainText('Pianificazione');

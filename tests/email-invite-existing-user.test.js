@@ -253,4 +253,19 @@ describe('Gestisci Utenti statico', () => {
     expect(html).toMatch(/Link per aggiungere l\\'azienda/);
     expect(html).toMatch(/Ha già un account/);
   });
+
+  it('il link invito usa gfv-platform-app.web.app senza doppia barra', () => {
+    const match = html.match(/const APP_BASE_URL = '([^']+)'/);
+    expect(match).toBeTruthy();
+    const base = match[1].replace(/\/$/, '');
+    const registrationUrl = `${base}/core/auth/registrazione-invito-standalone.html?token=abc`;
+    const loginUrl = `${base}/core/auth/login-standalone.html`;
+    expect(base).toBe('https://gfv-platform-app.web.app');
+    expect(registrationUrl).toBe(
+      'https://gfv-platform-app.web.app/core/auth/registrazione-invito-standalone.html?token=abc'
+    );
+    expect(loginUrl).toBe('https://gfv-platform-app.web.app/core/auth/login-standalone.html');
+    expect(registrationUrl.includes('//core')).toBe(false);
+    expect(html).toMatch(/const registrationUrl = baseUrl \+ registrationPath/);
+  });
 });
