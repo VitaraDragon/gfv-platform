@@ -487,7 +487,7 @@ Le azioni automatiche dipendono dal **modulo Tony**, dal **ruolo** e dalla **pag
 
 All’**iscrizione** potete preparare l’azienda con Tony, in chat. Dopo aver creato l’account Tony propone tre domande: toccate **Sì, iniziamo** oppure **Salta tutto**.
 
-1. **Sede legale.** Tony chiede dov’è la sede: bastano via, numero civico e comune; va bene anche solo il comune (per esempio «Faenza, RA») o una località. Se manca il numero civico Tony lo chiede: ditelo, oppure rispondete «non ce l’ho» o «dopo».
+1. **Sede legale.** Tony chiede dov’è la sede: bastano via, numero civico e comune; va bene anche solo il comune (per esempio «Faenza, RA») o una località. Se manca il numero civico Tony lo chiede una volta sola: ditelo (via e comune già detti restano, il numero si aggiunge alla via), oppure rispondete «non ce l’ho» o «dopo»; se rispondete altro, Tony tiene la sede senza numero e passa ai poderi. Quando Tony parla ad alta voce, dice la stessa frase che leggete in chat.
 2. **Poderi.** Sono facoltativi: dite come li chiamate, oppure che non ne avete.
 3. **Terreni.** Per ogni terreno dite nome, ettari e coltura (per esempio «Vigna Alta, 3 ettari di sangiovese»). Tony conferma ogni terreno ripetendo nome, ettari e coltura e quanti terreni avete su cinque, poi chiede se ne avete altri.
 4. **Riepilogo «Confermi?».** Si apre al quinto terreno, quando dite «no», «basta» o «riepilogo», oppure con **Vedi il riepilogo**. Qui controllate e correggete tutto (per la sede serve almeno il **Comune**) e salvate con **Sì, salva**: solo allora sede, poderi e terreni entrano in azienda.
