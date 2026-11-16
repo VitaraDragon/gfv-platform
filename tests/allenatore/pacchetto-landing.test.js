@@ -30,7 +30,10 @@ import {
   bussataAutomaticaConsentita,
 } from '../../landing/src/lib/tony-bussa-logica.js';
 import {
+  DOMANDA_PODERI,
   domandaDiRientro,
+  passoRientroDallaScheda,
+  storiaDopoRiepilogo,
   interpretaFraseTerreni,
   messaggioSoloConteggioTerreni,
   normalizzaColturaCatalogo,
@@ -906,7 +909,7 @@ describe('dialogo congelato — ritest Pier 12 nov 2026', () => {
     const trebbiano = visti[7];
     expect(trebbiano.terreni.find((t) => t.nome === 'Trebbiano')).toMatchObject({
       superficie: 6,
-      coltura: 'Vite da Vino',
+      coltura: 'Trebbiano',
     });
     expect(trebbiano.testo).toMatch(/Il terreno si chiama Trebbiano/i);
     expect(trebbiano.testo).toMatch(/Ne hai tre su cinque terreni/i);
@@ -932,8 +935,8 @@ describe('dialogo congelato — ritest Pier 12 nov 2026', () => {
     expect(stato.dati.terreni).toHaveLength(5);
     expect(stato.dati.terreni.map((t) => [t.nome, t.superficie, t.coltura])).toEqual([
       ['Castagno', 4, 'Orzo'],
-      ['Pallina', 3, 'Vite da Vino'],
-      ['Trebbiano', 6, 'Vite da Vino'],
+      ['Pallina', 3, 'Sangiovese'],
+      ['Trebbiano', 6, 'Trebbiano'],
       ['Chiesetta', 4, 'Giuggole'],
       ['Salitona', 7, 'Mais'],
     ]);
@@ -1107,7 +1110,7 @@ describe('nome nella stessa frase: che chiamiamo e chiamto', () => {
     return turno(stato, frase, modello || { testo: '', terreni: [] });
   }
 
-  it('4 ha di trebbiano che chiamiamo vitaccia → Vitaccia, Vite da Vino', () => {
+  it('4 ha di trebbiano che chiamiamo vitaccia → Vitaccia, Trebbiano', () => {
     const esito = terreno('4 ha di trebbiano che chiamiamo vitaccia', {
       testo: 'Come si chiama il terreno da 4 ettari di trebbiano?',
       terreni: [{ nome: 'Trebbiano', superficie: 4, coltura: 'Vite da Vino' }],
@@ -1115,7 +1118,7 @@ describe('nome nella stessa frase: che chiamiamo e chiamto', () => {
     expect(esito.terreni[0]).toMatchObject({
       nome: 'Vitaccia',
       superficie: 4,
-      coltura: 'Vite da Vino',
+      coltura: 'Trebbiano',
     });
     expect(esito.testo).not.toMatch(/Come si chiama/i);
     expect(esito.testo).toMatch(/Il terreno si chiama Vitaccia/i);
@@ -1224,6 +1227,39 @@ describe('coltura fuori catalogo: conferma con conteggio, scheda segnala dopo', 
   });
 });
 
+describe('rientro dal riepilogo: il passo poderi non salta ai terreni', () => {
+  it('«Vedi il riepilogo» e «Torna alla chat» riprendono la domanda sui poderi', () => {
+    const dati = {
+      sede: { indirizzo: '12', citta: 'Faenza' },
+      poderi: [],
+      terreni: [],
+    };
+    expect(passoRientroDallaScheda('poderi', dati)).toBe('poderi');
+    expect(domandaDiRientro('poderi', dati)).toBe(DOMANDA_PODERI);
+    const storia = storiaDopoRiepilogo(
+      [{ ruolo: 'tony', testo: DOMANDA_PODERI }],
+      dati,
+      'poderi'
+    );
+    const riassunto = storia[storia.length - 1].testo;
+    expect(riassunto).toMatch(/passo poderi/);
+    expect(riassunto).not.toMatch(/altro terreno|ne hai 0 su 5/i);
+    const chat = fs.readFileSync(path.join(root, 'landing/src/components/TonyChat.vue'), 'utf8');
+    const fn = chat.slice(
+      chat.indexOf('function onTornaDallaScheda'),
+      chat.indexOf('async function suVoceFatto')
+    );
+    expect(fn).toContain('passoRientroDallaScheda');
+    expect(fn).toContain('domandaDiRientro(passoRientro');
+    expect(fn).toContain("suonaFraseFissa('domandaPoderi')");
+    expect(fn).toContain("passoAiuto.value = 'terreni'");
+    const ramoPoderi = fn.slice(fn.indexOf("suonaFraseFissa('domandaPoderi')") - 180);
+    expect(ramoPoderi).toContain("suonaFraseFissa('domandaPoderi')");
+    expect(ramoPoderi).not.toContain("suonaFraseFissa('tornaDalRiepilogo')");
+    expect(fn).toContain("suonaFraseFissa('tornaDalRiepilogo')");
+  });
+});
+
 describe('schedaIntro una volta, e niente frase di errore su ok vuoto', () => {
   it('la frase sta nell’intro della scheda e non viene spinta in chat', () => {
     const chat = fs.readFileSync(path.join(root, 'landing/src/components/TonyChat.vue'), 'utf8');
@@ -1258,15 +1294,21 @@ describe('schedaIntro una volta, e niente frase di errore su ok vuoto', () => {
 });
 
 describe('vitigni: stessa tabella sul client e sulla function', () => {
-  it('trebbiano, sangiovese e albana vanno a Vite da Vino; ciliegio no; ciliegiolo sì', () => {
-    for (const nome of ['trebbiano', 'sangiovese', 'albana']) {
-      expect(normalizzaColturaCatalogo(nome)).toBe('Vite da Vino');
-      expect(risolviColturaConSinonimi(nome)).toBe('Vite da Vino');
-    }
+  it('trebbiano, sangiovese e albana sono colture a sé; ciliegio no; uva resta Vite da Vino', () => {
+    expect(normalizzaColturaCatalogo('trebbiano')).toBe('Trebbiano');
+    expect(risolviColturaConSinonimi('trebbiano')).toBe('Trebbiano');
+    expect(normalizzaColturaCatalogo('sangiovese')).toBe('Sangiovese');
+    expect(risolviColturaConSinonimi('sangiovese')).toBe('Sangiovese');
+    expect(normalizzaColturaCatalogo('albana')).toBe('Albana');
+    expect(risolviColturaConSinonimi('albana')).toBe('Albana');
     expect(normalizzaColturaCatalogo('ciliegio')).toBe('Ciliegio');
     expect(risolviColturaConSinonimi('ciliegio')).toBe('Ciliegio');
-    expect(normalizzaColturaCatalogo('ciliegiolo')).toBe('Vite da Vino');
-    expect(risolviColturaConSinonimi('ciliegiolo')).toBe('Vite da Vino');
+    expect(normalizzaColturaCatalogo('ciliegiolo')).toBe('Ciliegiolo');
+    expect(risolviColturaConSinonimi('ciliegiolo')).toBe('Ciliegiolo');
+    expect(normalizzaColturaCatalogo('uva')).toBe('Vite da Vino');
+    expect(normalizzaColturaCatalogo('vigna')).toBe('Vite da Vino');
+    expect(risolviColturaConSinonimi('uva')).toBe('Vite da Vino');
+    expect(normalizzaColturaCatalogo('vite')).toBe('Vite');
   });
 });
 
@@ -1364,10 +1406,10 @@ describe('dialogo congelato — ritest Pier 12 nov 2026, secondo giro', () => {
       expect(ciliegio.terreni[0]).toMatchObject({
         nome: 'Ciliegio',
         superficie: 7,
-        coltura: 'Vite da Vino',
+        coltura: 'Trebbiano',
       });
       expect(ciliegio.testo).toMatch(/Il terreno si chiama Ciliegio/i);
-      expect(ciliegio.testo).toMatch(/ci coltivi Vite da Vino/i);
+      expect(ciliegio.testo).toMatch(/ci coltivi Trebbiano/i);
       expect(ciliegio.testo).toMatch(/uno su cinque/i);
       expect(ciliegio.testo).not.toMatch(/ci coltivi Ciliegio/i);
       expect(ciliegio.voce).toBe(ciliegio.testo);
@@ -1400,16 +1442,16 @@ describe('dialogo congelato — ritest Pier 12 nov 2026, secondo giro', () => {
       expect(chiestoTrebbiano.testo).toMatch(/Come si chiama/i);
       expect(
         chiestoTrebbiano.terreni.find((t) => t.superficie === 7 && !t.nome).coltura
-      ).toBe('Vite da Vino');
+      ).toBe('Trebbiano');
       expect(chiestoTrebbiano.apriRiepilogo).toBe(false);
 
       const trebbiano = visti[8];
       expect(trebbiano.terreni.find((t) => t.nome === 'Trebbiano')).toMatchObject({
         superficie: 7,
-        coltura: 'Vite da Vino',
+        coltura: 'Trebbiano',
       });
       expect(trebbiano.testo).toMatch(/quattro su cinque/i);
-      expect(trebbiano.testo).toMatch(/ci coltivi Vite da Vino/i);
+      expect(trebbiano.testo).toMatch(/ci coltivi Trebbiano/i);
       expect(trebbiano.voce).toBe(trebbiano.testo);
       expect(trebbiano.apriRiepilogo).toBe(false);
 
@@ -1427,10 +1469,10 @@ describe('dialogo congelato — ritest Pier 12 nov 2026, secondo giro', () => {
 
       expect(stato.dati.terreni).toHaveLength(5);
       expect(stato.dati.terreni.map((t) => [t.nome, t.superficie, t.coltura])).toEqual([
-        ['Ciliegio', 7, 'Vite da Vino'],
+        ['Ciliegio', 7, 'Trebbiano'],
         ['Laghetto', 3, 'Giuggiolo'],
         ['Lungone', 3, 'Orzo'],
-        ['Trebbiano', 7, 'Vite da Vino'],
+        ['Trebbiano', 7, 'Trebbiano'],
         ['Sassone', 4.7, 'Mandorlo'],
       ]);
     }
@@ -1464,14 +1506,14 @@ describe('la coltura detta vince sul nome del terreno', () => {
   }
 
   it.each([
-    ['ciliegio sono 7 ha di trebbiano', 'Ciliegio', 7, 'Vite da Vino', 'Ciliegio'],
-    ['ciliegio sono 7 ha di trebbiano', 'Ciliegio', 7, 'Vite da Vino', 'Vite da Vino'],
-    ["ciliegio è 7 ha e c'è del trebbiano", 'Ciliegio', 7, 'Vite da Vino', 'Ciliegio'],
-    ["ciliegio è 7 ha e c'è del trebbiano", 'Ciliegio', 7, 'Vite da Vino', 'Vite da Vino'],
-    ['ciliegio è 7 ha e ce del trebbiano', 'Ciliegio', 7, 'Vite da Vino', 'Ciliegio'],
-    ['ciliegio è 7 ha e ce del trebbiano', 'Ciliegio', 7, 'Vite da Vino', null],
-    ['ciliegio è 7 ha e cè del trebbiano', 'Ciliegio', 7, 'Vite da Vino', 'trebbiano'],
-    ['ciliegio è 7 ha e cè del trebbiano', 'Ciliegio', 7, 'Vite da Vino', 'Ciliegio'],
+    ['ciliegio sono 7 ha di trebbiano', 'Ciliegio', 7, 'Trebbiano', 'Ciliegio'],
+    ['ciliegio sono 7 ha di trebbiano', 'Ciliegio', 7, 'Trebbiano', 'Vite da Vino'],
+    ["ciliegio è 7 ha e c'è del trebbiano", 'Ciliegio', 7, 'Trebbiano', 'Ciliegio'],
+    ["ciliegio è 7 ha e c'è del trebbiano", 'Ciliegio', 7, 'Trebbiano', 'Vite da Vino'],
+    ['ciliegio è 7 ha e ce del trebbiano', 'Ciliegio', 7, 'Trebbiano', 'Ciliegio'],
+    ['ciliegio è 7 ha e ce del trebbiano', 'Ciliegio', 7, 'Trebbiano', null],
+    ['ciliegio è 7 ha e cè del trebbiano', 'Ciliegio', 7, 'Trebbiano', 'trebbiano'],
+    ['ciliegio è 7 ha e cè del trebbiano', 'Ciliegio', 7, 'Trebbiano', 'Ciliegio'],
     ['il pesco ha 2 ha di albicocco', 'Pesco', 2, 'Albicocche', 'Pesco'],
     ['il pesco ha 2 ha di albicocco', 'Pesco', 2, 'Albicocche', 'Albicocche'],
     ["melo 3 ha c'è del grano", 'Melo', 3, 'Grano', 'Melo'],
@@ -1480,8 +1522,8 @@ describe('la coltura detta vince sul nome del terreno', () => {
     ['melo 3 ha ce del grano', 'Melo', 3, 'Grano', 'Grano'],
     ['noce 5 ettari a mais', 'Noce', 5, 'Mais', 'Noce'],
     ['noce 5 ettari a mais', 'Noce', 5, 'Mais', 'Mais'],
-    ['ciliegiolo 2 ha di trebbiano', 'Ciliegiolo', 2, 'Vite da Vino', 'Ciliegiolo'],
-    ['ciliegiolo 2 ha di trebbiano', 'Ciliegiolo', 2, 'Vite da Vino', 'Vite da Vino'],
+    ['ciliegiolo 2 ha di trebbiano', 'Ciliegiolo', 2, 'Trebbiano', 'Ciliegiolo'],
+    ['ciliegiolo 2 ha di trebbiano', 'Ciliegiolo', 2, 'Trebbiano', 'Vite da Vino'],
     ['ciliegio 7 ha', 'Ciliegio', 7, 'Ciliegio', 'Ciliegio'],
   ])('%s → %s, %s ha, coltura %s (modello %j)', (frase, nome, ha, coltura, colturaModello) => {
     const esito = turno(statoTerreno(), frase, modello(nome, ha, colturaModello));
@@ -1490,7 +1532,7 @@ describe('la coltura detta vince sul nome del terreno', () => {
     expect(esito.voce).toBe(esito.testo);
   });
 
-  it('3 ha di sangiovese e poi il nome: Vite da Vino anche con coltura null', () => {
+  it('3 ha di sangiovese e poi il nome: Sangiovese anche con coltura null', () => {
     const stato = statoTerreno();
     const chiesto = turno(stato, '3 ha di sangiovese', {
       testo: '',
@@ -1498,7 +1540,7 @@ describe('la coltura detta vince sul nome del terreno', () => {
     });
     expect(chiesto.testo).toMatch(/Come si chiama/i);
     expect(chiesto.terreni[0].nome).toBeFalsy();
-    expect(chiesto.terreni[0].coltura).toBe('Vite da Vino');
+    expect(chiesto.terreni[0].coltura).toBe('Sangiovese');
     const dato = turno(stato, 'ronco', {
       testo: '',
       terreni: [{ nome: null, superficie: 3, coltura: null }],
@@ -1506,9 +1548,9 @@ describe('la coltura detta vince sul nome del terreno', () => {
     expect(dato.terreni[0]).toMatchObject({
       nome: 'Ronco',
       superficie: 3,
-      coltura: 'Vite da Vino',
+      coltura: 'Sangiovese',
     });
-    expect(dato.testo).toMatch(/ci coltivi Vite da Vino/i);
+    expect(dato.testo).toMatch(/ci coltivi Sangiovese/i);
     expect(dato.voce).toBe(dato.testo);
   });
 
@@ -1581,6 +1623,39 @@ describe('sede: civico sulla via, una domanda, voce = testo', () => {
     expect(dopo.testo).toBe(PODERI);
   });
 
+  it.each([
+    ['indirizzo sporco', { indirizzo: 'Faenza', citta: null, cap: null, provincia: null }],
+    [
+      'indirizzo e città uguali',
+      { indirizzo: 'Faenza', citta: 'Faenza', cap: '48018', provincia: 'RA' },
+    ],
+  ])('Faenza e poi 12 con modello %s: il comune non finisce nella via', (_etichetta, sedeSporca) => {
+    const stato = statoSede();
+    const prima = turno(stato, 'Faenza', {
+      testo: 'Sede a Faenza.',
+      sede: sedeSporca,
+      poderi: [],
+      terreni: [{ nome: 'Faenza', superficie: 1, coltura: 'Grano' }],
+    });
+    expect(prima.voce).toBe(prima.testo);
+    expect(prima.testo).toBe(CIVICO);
+    expect(prima.passo).toBe('sede');
+    expect(prima.sede.indirizzo).toBeFalsy();
+    expect(prima.sede.citta).toBe('Faenza');
+    expect(prima.terreni).toHaveLength(0);
+    const dopo = turno(stato, '12', {
+      testo: 'Via e numero: Faenza 12.',
+      sede: { indirizzo: 'Faenza 12', citta: 'Faenza' },
+      terreni: [{ nome: 'Dodici', superficie: 12 }],
+    });
+    expect(dopo.voce).toBe(dopo.testo);
+    expect(dopo.sede).toMatchObject({ indirizzo: '12', citta: 'Faenza' });
+    expect(String(dopo.sede.indirizzo)).not.toMatch(/faenza/i);
+    expect(dopo.passo).toBe('poderi');
+    expect(dopo.testo).toBe(PODERI);
+    expect(dopo.terreni).toHaveLength(0);
+  });
+
   it('solo Faenza e poi 12: il numero è l’indirizzo, il comune resta', () => {
     const stato = statoSede();
     turno(stato, 'Faenza', { testo: 'Ok.', sede: null, poderi: [], terreni: [] });
@@ -1617,6 +1692,36 @@ describe('sede: civico sulla via, una domanda, voce = testo', () => {
     expect(dopo.terreni).toHaveLength(0);
   });
 
+  it('«Piazza Garibaldi 3 Bagnacavallo» senza virgola non chiede il civico', () => {
+    const esito = turno(statoSede(), 'Piazza Garibaldi 3 Bagnacavallo', {
+      testo: CIVICO,
+      sede: { indirizzo: 'Piazza Garibaldi 3 Bagnacavallo', citta: null },
+      terreni: [{ nome: 'Garibaldi', superficie: 3, coltura: 'Grano' }],
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).toBe(PODERI);
+    expect(esito.testo).not.toMatch(/numero civico/i);
+    expect(esito.passo).toBe('poderi');
+    expect(esito.sede).toMatchObject({
+      indirizzo: 'Piazza Garibaldi 3',
+      citta: 'Bagnacavallo',
+    });
+    expect(esito.terreni).toHaveLength(0);
+  });
+
+  it('«Corso Mazzini 5, Lugo» resta senza domanda civico e senza diventare terreno', () => {
+    const esito = turno(statoSede(), 'Corso Mazzini 5, Lugo', {
+      testo: CIVICO,
+      sede: { indirizzo: 'Corso Mazzini 5, Lugo', citta: null },
+      terreni: [{ nome: 'Mazzini', superficie: 5, coltura: 'Vite' }],
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).not.toMatch(/numero civico/i);
+    expect(esito.passo).toBe('poderi');
+    expect(esito.sede).toMatchObject({ indirizzo: 'Corso Mazzini 5', citta: 'Lugo' });
+    expect(esito.terreni).toHaveLength(0);
+  });
+
   it('«via Roma 12, Faenza» al primo colpo non chiede il civico', () => {
     const esito = turno(statoSede(), 'via Roma 12, Faenza', {
       testo: 'Non ho capito bene. Riprova con via e comune.',
@@ -1630,5 +1735,30 @@ describe('sede: civico sulla via, una domanda, voce = testo', () => {
     expect(esito.sede).toMatchObject({ indirizzo: 'via Roma 12', citta: 'Faenza' });
     expect(esito.terreni).toHaveLength(0);
     expect(esito.poderi).toHaveLength(0);
+  });
+});
+
+describe('ritest varietà', () => {
+  it('«Collina 3 ettari trebbiano» salva la coltura Trebbiano', () => {
+    const stato = {
+      passo: 'terreni',
+      dati: {
+        sede: { indirizzo: 'via Roma 12', citta: 'Faenza' },
+        poderi: [{ nome: 'Castaldo' }],
+        terreni: [],
+      },
+    };
+    const esito = turno(stato, 'Collina 3 ettari trebbiano', {
+      testo: '',
+      terreni: [{ nome: 'Collina', superficie: 3, coltura: 'Vite da Vino' }],
+    });
+    expect(esito.terreni).toHaveLength(1);
+    expect(esito.terreni[0]).toMatchObject({
+      nome: 'Collina',
+      superficie: 3,
+      coltura: 'Trebbiano',
+    });
+    expect(esito.voce).toBe(esito.testo);
+    expect(esito.testo).toMatch(/Trebbiano/);
   });
 });
