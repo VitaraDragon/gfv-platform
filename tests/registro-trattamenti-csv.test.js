@@ -13,7 +13,8 @@ import {
 import {
   htmlPannelloOpenData,
   registroConfermaBloccata,
-  registroConfermaManuale
+  registroConfermaManuale,
+  valoreInputNumerico
 } from '../shared/js/registro-trattamenti-form.js';
 
 const require = createRequire(import.meta.url);
@@ -158,6 +159,83 @@ describe('ricerca sul CSV', () => {
     const index = readFileSync(path.join(here, '../functions/index.js'), 'utf8');
     expect(index).not.toMatch(/registro-trattamenti-lettura/);
     expect(index).toMatch(/leggiSchedaRegistroTrattamento/);
+  });
+});
+
+describe('ricerca per numero di registrazione', () => {
+  function esitoNumero(chiave, come) {
+    return scheda.componiRispostaScheda({
+      csv: csvCupravit,
+      nome: come === 'nome' ? chiave : '',
+      numero: come === 'numero' ? chiave : '',
+      urlCsv: '/opendata/PROD_FTS_6_20261116.csv'
+    });
+  }
+
+  function htmlDelRevocato(esito, nome) {
+    const html = htmlPannelloOpenData({ esito, nome });
+    expect(esito.esitoRicerca).toBe('unica');
+    expect(esito.righe).toEqual([]);
+    expect(esito.prodotti).toHaveLength(1);
+    expect(esito.proposto.denominazione).toBe('CUPRAVIT');
+    expect(esito.proposto.titolare).toBe('BAYER CROPSCIENCE S.R.L.');
+    expect(esito.proposto.stato).toBe('Revocato');
+    expect(esito.proposto.dataDecorrenzaRevoca).toBe('30/07/2004');
+    expect(esito.proposto.numeroRegistrazione).toBe('002513');
+    expect(html).toContain('registro-banner-stato');
+    expect(html).toContain('Revocato');
+    expect(html).toContain('30/07/2004');
+    expect(html).not.toContain('registro-dose-ha');
+    expect(html).not.toContain('registro-carenza');
+    expect(html).not.toContain('registro-avversita');
+    return html;
+  }
+
+  it('normalizza gli zeri iniziali senza svuotare un numero di soli zeri', () => {
+    expect(scheda.normalizzaNumeroRegistrazione('002513')).toBe('2513');
+    expect(scheda.normalizzaNumeroRegistrazione('2513')).toBe('2513');
+    expect(scheda.normalizzaNumeroRegistrazione(' 015663 ')).toBe('15663');
+    expect(scheda.normalizzaNumeroRegistrazione('000')).toBe('0');
+    expect(scheda.normalizzaNumeroRegistrazione('')).toBe('');
+  });
+
+  it('trova il Cupravit revocato dal numero, come nome o come numero, con o senza zeri', () => {
+    ['002513', '2513', ' 002513 '].forEach((chiave) => {
+      ['nome', 'numero'].forEach((come) => {
+        htmlDelRevocato(esitoNumero(chiave, come), chiave);
+      });
+    });
+    expect(scheda.chiaveRicercaScheda({ nome: '002513' }).ok).toBe(true);
+    expect(scheda.chiaveRicercaScheda({ numero: '2513' }).ok).toBe(true);
+    expect(scheda.chiaveRicercaScheda({ numeroRegistrazione: '002513' }).ok).toBe(true);
+    expect(scheda.chiaveRicercaScheda({}).ok).toBe(false);
+    const callable = readFileSync(path.join(here, '../functions/registro-trattamenti-scheda.js'), 'utf8');
+    expect(callable).toContain('chiaveRicercaScheda');
+    expect(callable).not.toMatch(/if\s*\(\s*!nome\s*\)/);
+  });
+
+  it('trova il Cupravit autorizzato dal numero, con o senza zeri', () => {
+    ['015663', '15663'].forEach((chiave) => {
+      ['nome', 'numero'].forEach((come) => {
+        const esito = esitoNumero(chiave, come);
+        expect(esito.esitoRicerca).toBe('unica');
+        expect(esito.righe).toEqual([]);
+        expect(esito.proposto.denominazione).toBe('CUPRAVIT 35 WG');
+        expect(esito.proposto.numeroRegistrazione).toBe('015663');
+        expect(scheda.eAutorizzato(esito.proposto)).toBe(true);
+      });
+    });
+  });
+
+  it('la ricerca per nome resta quella di prima', () => {
+    const cupravit = scheda.trovaRegistrazioneUnica(scheda.parsaCsvFitosanitari(csvCupravit), 'Cupravit');
+    expect(cupravit.prodotto.numeroRegistrazione).toBe('015663');
+    expect(cupravit.prodotti.map((p) => p.numeroRegistrazione)).toEqual(['015663', '002513']);
+    ['Thiovit Jet', 'TIOVIT JET'].forEach((nome) => {
+      const trovata = scheda.trovaRegistrazioneUnica(scheda.parsaCsvFitosanitari(csvThiovit), nome);
+      expect(trovata.esito).toBe('unica');
+      expect(trovata.prodotto.numeroRegistrazione).toBe('002923');
+    });
   });
 });
 
@@ -340,5 +418,17 @@ describe('semaforo in magazzino', () => {
       statoAmministrativoScheda: 'Sospeso'
     })).toContain('gfv-semaforo--red');
     expect(rosso).not.toMatch(/<button/i);
+  });
+});
+
+describe('valoreInputNumerico', () => {
+  it('lascia vuoto ciò che non è un numero finito e tiene lo zero', () => {
+    expect(valoreInputNumerico(NaN)).toBe('');
+    expect(valoreInputNumerico(undefined)).toBe('');
+    expect(valoreInputNumerico(null)).toBe('');
+    expect(valoreInputNumerico('')).toBe('');
+    expect(valoreInputNumerico('NaN')).toBe('');
+    expect(valoreInputNumerico(0)).toBe(0);
+    expect(valoreInputNumerico(1.5)).toBe(1.5);
   });
 });
