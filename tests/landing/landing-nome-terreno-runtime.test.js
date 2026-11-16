@@ -227,7 +227,7 @@ describe('runtime: nome terreno nella sequenza di Pier', () => {
     expect(nominato.terreni).toHaveLength(1);
     expect(nominato.terreni[0].nome).toBe('Vigna del rio');
     expect(nominato.terreni[0].superficie).toBe(3);
-    expect(nominato.terreni[0].coltura).toBe('Vite da Vino');
+    expect(nominato.terreni[0].coltura).toBe('Trebbiano');
     expect(nominato.terreni[0].podere).toBe('colombaia');
     expect(nominato.testo || '').not.toMatch(/come si chiama/i);
     expect(nominato.poderi).toEqual(['colombaia']);
@@ -257,7 +257,7 @@ describe('runtime: nome terreno nella sequenza di Pier', () => {
     expect(esito.terreni).toHaveLength(1);
     expect(esito.terreni[0].nome).toBe('Vigna Alta');
     expect(esito.terreni[0].superficie).toBe(3);
-    expect(esito.terreni[0].coltura).toBe('Vite da Vino');
+    expect(esito.terreni[0].coltura).toBe('Trebbiano');
     expect(esito.terreni[0].podere).toBe('colombaia');
     expect(esito.testo).not.toMatch(/come si chiama/i);
     expect(esito.bloccaAvanti).toBe(false);
@@ -461,7 +461,7 @@ describe('runtime: collina non duplica il 3 ha con nome null', () => {
         const treHa = collina.terreni.filter((t) => t.superficie === 3);
         expect(treHa).toHaveLength(1);
         expect(treHa[0].nome).toBe('Collina');
-        expect(treHa[0].coltura).toBe('Vite da Vino');
+        expect(treHa[0].coltura).toBe('Trebbiano');
         expect(treHa[0].podere).toBe('Casetti');
         expect(collina.terreni.map((t) => t.nome)).toEqual([
           'Quercione',
@@ -487,7 +487,7 @@ describe('runtime: collina non duplica il 3 ha con nome null', () => {
           visti[2].terreni[0].coltura,
           'Grano',
           'Mais',
-          'Vite da Vino',
+          'Trebbiano',
         ]);
         expect(righe.terreni.every((t) => t.podere === 'Casetti')).toBe(true);
         expect(righe.terreni.some((t) => /null/i.test(t.nome))).toBe(false);
@@ -758,7 +758,7 @@ describe('runtime: Cancello 4 ha pompelmi dopo il rilascio 360', () => {
         expect(visti[5].testo).toMatch(/come si chiama/i);
         expect(visti[6].terreni).toHaveLength(3);
         expect(visti[6].terreni.find((t) => t.superficie === 3).nome).toMatch(/^collina$/i);
-        expect(visti[6].terreni.find((t) => t.superficie === 3).coltura).toBe('Vite da Vino');
+        expect(visti[6].terreni.find((t) => t.superficie === 3).coltura).toBe('Trebbiano');
         expect(primaDelQuarto).toBe(3);
         expect(visti[7].troppi).toBe(false);
         expect(visti[7].testo).not.toMatch(/account gratuito/i);
@@ -1016,8 +1016,7 @@ function attesiFaenza(terreni, modo) {
   expect(perNome(/^cazun$/i)).toMatchObject({ superficie: 6, coltura: 'Pesco' });
   const cancello = perNome(/^cancello$/i);
   expect(cancello.superficie).toBe(7);
-  if (modo === 'json-rotto' || modo === 'omesso') expect(cancello.coltura).toMatch(/^trebbiano$/i);
-  else expect(cancello.coltura).toBe('Vite da Vino');
+  expect(cancello.coltura).toBe('Trebbiano');
   const collina = perNome(/^collina$/i);
   expect(collina).toMatchObject({ superficie: 12, coltura: 'Noce' });
   expect(collina.coltura).not.toBe('Noci');
@@ -1330,7 +1329,7 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
     expect(interpretaFraseTerreni('via monte coralli 5 faenza')[0].superficie).toBeNull();
     expect(interpretaFraseTerreni('ho 3 ha di sangiovese che si piama paletto')[0]).toMatchObject({
       nome: 'paletto',
-      varieta: 'sangiovese',
+      varieta: 'Sangiovese',
       superficie: 3,
     });
     expect(aprireSchedaPerFatto('faenza via monte coralli 5', true)).toBe(false);
@@ -1569,19 +1568,19 @@ describe('runtime: quinto Pozzo 8 ha noci, Barbavara t1388u', () => {
 
 describe('runtime: Pozzo Trebbiano e Salita 12 mais, Bruciata t1392u', () => {
   it('il parser stacca la varietà prima degli ettari e il numero senza unità', () => {
-    expect(normalizzaColturaCatalogo('trebbiano')).toBe('Vite da Vino');
-    expect(normalizzaColturaCatalogo('sangiovese')).toBe('Vite da Vino');
+    expect(normalizzaColturaCatalogo('trebbiano')).toBe('Trebbiano');
+    expect(normalizzaColturaCatalogo('sangiovese')).toBe('Sangiovese');
     expect(normalizzaColturaCatalogo('albicocche')).toBe('Albicocche');
     expect(normalizzaColturaCatalogo('mandorlo')).toBe('Mandorlo');
     expect(normalizzaColturaCatalogo('mais')).toBe('Mais');
     expect(interpretaFraseTerreni('pozzo trebbiano 5 ha')[0]).toMatchObject({
       nome: 'pozzo',
-      varieta: 'trebbiano',
+      varieta: 'Trebbiano',
       superficie: 5,
     });
     expect(interpretaFraseTerreni('collina sangiovese 4 ha')[0]).toMatchObject({
       nome: 'collina',
-      varieta: 'sangiovese',
+      varieta: 'Sangiovese',
       superficie: 4,
     });
     expect(interpretaFraseTerreni('cancello mandorlo 7 ha')[0]).toMatchObject({

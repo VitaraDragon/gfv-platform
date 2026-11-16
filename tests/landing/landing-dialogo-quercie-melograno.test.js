@@ -59,7 +59,7 @@ describe('(a) pulizia nome — verbi/copule/connettivi', () => {
     expect(interpretaFraseTerreni('quercie sono 1,5 ha e cè del trebbiano')[0]).toMatchObject({
       nome: 'quercie',
       superficie: 1.5,
-      varieta: 'trebbiano',
+      varieta: 'Trebbiano',
     });
     expect(interpretaFraseTerreni('lago è 3 ha')[0]).toMatchObject({
       nome: 'lago',
@@ -149,7 +149,7 @@ describe('(c) completamento del terreno in attesa', () => {
     expect(lago.terreni[0]).toMatchObject({
       nome: 'Lago',
       superficie: 3,
-      coltura: 'Vite da Vino',
+      coltura: 'Trebbiano',
     });
   });
 });
@@ -257,7 +257,7 @@ describe('dialogo esatto Pier — regressione Quercie/Melograno', () => {
       terreni: [{ nome: 'Quercie sono', superficie: 1.5, coltura: 'Vite da Vino' }],
     });
     expect(stato.dati.terreni[0].nome).toBe('Quercie');
-    expect(stato.dati.terreni[0].coltura).toBe('Vite da Vino');
+    expect(stato.dati.terreni[0].coltura).toBe('Trebbiano');
 
     turno(stato, 'ho un terreno a trebbiano', {
       testo: 'Come si chiama? Quanti ettari?',
@@ -272,7 +272,7 @@ describe('dialogo esatto Pier — regressione Quercie/Melograno', () => {
     expect(stato.dati.terreni[1] || stato.dati.terreni.find((t) => t.superficie === 3)).toMatchObject({
       nome: 'Lago',
       superficie: 3,
-      coltura: 'Vite da Vino',
+      coltura: 'Trebbiano',
     });
 
     turno(stato, 'ho un terreno che si chiama cimelio ,è 2.7 ha ed è grano', {
@@ -292,7 +292,7 @@ describe('dialogo esatto Pier — regressione Quercie/Melograno', () => {
     expect(melo.nome).toBe('Melograno');
     expect(melo.coltura).toBe('Melograno');
     // Lago non eredita Melograno
-    expect(stato.dati.terreni.find((t) => t.nome === 'Lago').coltura).toBe('Vite da Vino');
+    expect(stato.dati.terreni.find((t) => t.nome === 'Lago').coltura).toBe('Trebbiano');
 
     const quinto = turno(stato, 'ho 4 ha di sangiovese che si chiama discesona', {
       testo: 'Ok, Discesona. Ne hai cinque su 5. Ne hai altri o vediamo il riepilogo?',
@@ -305,10 +305,10 @@ describe('dialogo esatto Pier — regressione Quercie/Melograno', () => {
     const bySup = Object.fromEntries(
       quinto.terreni.map((t) => [String(t.superficie), t])
     );
-    expect(bySup['1.5']).toMatchObject({ nome: 'Quercie', coltura: 'Vite da Vino' });
-    expect(bySup['3']).toMatchObject({ nome: 'Lago', coltura: 'Vite da Vino' });
+    expect(bySup['1.5']).toMatchObject({ nome: 'Quercie', coltura: 'Trebbiano' });
+    expect(bySup['3']).toMatchObject({ nome: 'Lago', coltura: 'Trebbiano' });
     expect(bySup['2.7']).toMatchObject({ nome: 'Cimelio', coltura: 'Grano' });
     expect(bySup['5']).toMatchObject({ nome: 'Melograno', coltura: 'Melograno' });
-    expect(bySup['4']).toMatchObject({ nome: 'Discesona', coltura: 'Vite da Vino' });
+    expect(bySup['4']).toMatchObject({ nome: 'Discesona', coltura: 'Sangiovese' });
   });
 });

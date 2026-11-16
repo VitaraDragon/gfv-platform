@@ -40,7 +40,7 @@ function storageFinto() {
 describe('nome terreno: varietà e ettari non sono il nome', () => {
   it('«ho 3 Ha di trebbiano» non è un nome esplicito', () => {
     expect(interpretaFraseTerreni('ho 3 Ha di trebbiano')).toEqual([
-      { nome: null, varieta: 'trebbiano', superficie: 3 },
+      { nome: null, varieta: 'Trebbiano', superficie: 3 },
     ]);
     const terreni = correggiTerreniEstratti(
       'ho 3 Ha di trebbiano',
@@ -49,7 +49,7 @@ describe('nome terreno: varietà e ettari non sono il nome', () => {
     );
     expect(terreni[0].nome).toBeNull();
     expect(terreni[0].superficie).toBe(3);
-    expect(terreni[0].coltura).toBe('Vite da Vino');
+    expect(terreni[0].coltura).toBe('Trebbiano');
   });
 
   it('«3 ha Trebbiano» non è un nome esplicito', () => {
@@ -88,7 +88,7 @@ describe('nome terreno: varietà e ettari non sono il nome', () => {
       testo: 'Come si chiama il terreno Trebbiano?',
     });
     expect(turno.dati.dati.terreni[0].nome).toBe('Vigna Alta');
-    expect(turno.dati.dati.terreni[0].coltura).toBe('Vite da Vino');
+    expect(turno.dati.dati.terreni[0].coltura).toBe('Trebbiano');
     expect(turno.testo || '').not.toMatch(/come si chiama/i);
     expect(turno.bloccaAvanti).toBe(false);
   });
@@ -142,7 +142,7 @@ describe('nome terreno: varietà e ettari non sono il nome', () => {
     expect(dopo.dati.dati.terreni).toHaveLength(1);
     expect(dopo.dati.dati.terreni[0].nome).toBe('Vigna del rio');
     expect(dopo.dati.dati.terreni[0].superficie).toBe(3);
-    expect(dopo.dati.dati.terreni[0].coltura).toBe('Vite da Vino');
+    expect(dopo.dati.dati.terreni[0].coltura).toBe('Trebbiano');
     expect(dopo.bloccaAvanti).toBe(false);
   });
 });
@@ -162,7 +162,7 @@ describe('poderi facoltativi', () => {
     expect(turno.passo).toBe('poderi');
     expect(turno.bloccaAvanti).toBe(true);
     expect(turno.testo).toBe(
-      'Tengo il terreno da 3 ettari di trebbiano. ' + DOMANDA_PODERI
+      'Tengo il terreno da 3 ettari di Trebbiano. ' + DOMANDA_PODERI
     );
     expect(turno.dati.dati.terreni[0].nome).toBeFalsy();
     expect(turno.dati.dati.terreni[0].superficie).toBe(3);
@@ -284,7 +284,7 @@ describe('stessa regola sul server, senza deploy in questo turno', () => {
     });
     expect(dati.terreni[0].nome).toBeNull();
     expect(dati.terreni[0].superficie).toBe(3);
-    expect(dati.terreni[0].coltura).toBe('Vite da Vino');
+    expect(dati.terreni[0].coltura).toBe('Trebbiano');
     expect(testoSeMancaNomeTerreno('Fatto.', dati)).toMatch(/Come si chiama/);
     expect(testoSeMancaNomeTerreno('Fatto.', dati)).toMatch(/trebbiano|Vite da Vino/i);
   });
