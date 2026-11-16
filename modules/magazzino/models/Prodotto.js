@@ -58,6 +58,9 @@ export class Prodotto extends Base {
     this.principioAttivo = data.principioAttivo != null && String(data.principioAttivo).trim()
       ? String(data.principioAttivo).trim()
       : null;
+    this.titolare = data.titolare != null && String(data.titolare).trim()
+      ? String(data.titolare).trim()
+      : null;
     this.fonteScheda = data.fonteScheda != null && String(data.fonteScheda).trim()
       ? String(data.fonteScheda).trim()
       : null;

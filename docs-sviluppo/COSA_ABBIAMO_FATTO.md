@@ -10,6 +10,18 @@ Nuovo modulo a pagamento `orticole` (3 €/mese, `available: true`, prova 30 gio
 
 ---
 
+**Ultimo aggiornamento precedente: 2026-11-16 — registro trattamenti senza SIAN.**
+
+## 2026-11-16 — tolta la lettura SIAN
+
+Su `fix/registro-senza-sian` (PR verso develop). Nessun deploy.
+
+16/11/2026 — tolta la lettura SIAN; restano solo open data del Ministero; colture e dosi le conferma l'utente. Spariscono dal codice `onProdottoSchedaScritto` e `leggiSchedeRegistroInCoda`. Resta `leggiSchedaRegistroTrattamento`. Nessun deploy: se le due function sono online, il prossimo `firebase deploy --only functions` chiederà di eliminarle.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-14 — test:promote veloce e deterministico.**
+
 ## 2026-11-14 — test:promote veloce e deterministico
 
 Su `ci/e2e-veloci-deterministici` (PR verso develop). Nessun merge, nessun deploy. Functions, rules, indici, `firebase.json` e workflow GitHub non si toccano.
