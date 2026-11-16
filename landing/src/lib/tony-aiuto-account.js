@@ -31,75 +31,87 @@ const MESSAGGI_PASSAGGIO = Object.freeze({
 });
 
 /**
- * Vitigni comuni → Vite da Vino. Chiave esatta: «ciliegiolo» è un vitigno,
- * «ciliegio» resta la coltura Ciliegio. Allineato a functions/lib/tony-landing-account.js.
+ * Vitigni come colture a sé (uva da vino). Chiave esatta: «ciliegiolo» è un vitigno,
+ * «ciliegio» resta la coltura Ciliegio. «uva» / «vite» / «vigna» restano Vite da Vino
+ * (SINONIMI_COLTURA). Allineato a functions/lib/tony-landing-account.js e al catalogo.
  */
 const VITIGNI_VERSO_VITE = Object.freeze([
-  'trebbiano',
-  'sangiovese',
-  'albana',
-  'lambrusco',
-  'merlot',
-  'cabernet',
-  'cabernet sauvignon',
-  'cabernet franc',
-  'chardonnay',
-  'pinot',
-  'pinot grigio',
-  'pinot nero',
-  'pinot noir',
-  'pinot bianco',
-  'barbera',
-  'nebbiolo',
-  'montepulciano',
-  'primitivo',
-  'moscato',
-  'malvasia',
-  'vermentino',
-  'glera',
-  'ciliegiolo',
-  "nero d'avola",
-  'aglianico',
-  'corvina',
-  'negroamaro',
-  'dolcetto',
-  'cannonau',
-  'lagrein',
-  'teroldego',
-  'refosco',
-  'raboso',
-  'schiava',
-  'marzemino',
-  'sauvignon blanc',
-  'fiano',
-  'grechetto',
-  'garganega',
-  'cortese',
-  'verdicchio',
-  'pecorino',
-  'falanghina',
-  'gewürztraminer',
-  'riesling',
-  'syrah',
-  'grenache',
-  'tempranillo',
-  'zinfandel',
-  'malbec',
-  'carménère',
-  'viognier',
-  'sémillon',
-  'chenin blanc',
-  'albariño',
-  'müller-thurgau',
+  'Trebbiano',
+  'Sangiovese',
+  'Albana',
+  'Lambrusco',
+  'Merlot',
+  'Cabernet',
+  'Cabernet Sauvignon',
+  'Cabernet Franc',
+  'Chardonnay',
+  'Pinot',
+  'Pinot Grigio',
+  'Pinot Nero',
+  'Pinot Noir',
+  'Pinot Bianco',
+  'Barbera',
+  'Nebbiolo',
+  'Montepulciano',
+  'Primitivo',
+  'Moscato',
+  'Malvasia',
+  'Vermentino',
+  'Glera',
+  'Ciliegiolo',
+  "Nero d'Avola",
+  'Aglianico',
+  'Corvina',
+  'Negroamaro',
+  'Dolcetto',
+  'Cannonau',
+  'Lagrein',
+  'Teroldego',
+  'Refosco',
+  'Raboso',
+  'Schiava',
+  'Marzemino',
+  'Sauvignon Blanc',
+  'Fiano',
+  'Grechetto',
+  'Garganega',
+  'Cortese',
+  'Verdicchio',
+  'Pecorino',
+  'Falanghina',
+  'Gewürztraminer',
+  'Riesling',
+  'Syrah',
+  'Grenache',
+  'Tempranillo',
+  'Zinfandel',
+  'Malbec',
+  'Carménère',
+  'Viognier',
+  'Sémillon',
+  'Chenin Blanc',
+  'Albariño',
+  'Müller-Thurgau',
 ]);
 
 function risolviVitigno(grezzo) {
   const chiave = chiaveNome(grezzo);
   if (!chiave) return null;
   for (let i = 0; i < VITIGNI_VERSO_VITE.length; i++) {
-    if (chiaveNome(VITIGNI_VERSO_VITE[i]) === chiave) return 'Vite da Vino';
+    if (chiaveNome(VITIGNI_VERSO_VITE[i]) === chiave) return VITIGNI_VERSO_VITE[i];
   }
   return null;
+}
+
+/** «pinot bianco» è Pinot Bianco, non il Pinot più corto. Fino a tre parole. */
+function vitignoPiuLungo(parole, da) {
+  let best = null;
+  const max = Math.min(parole.length, da + 3);
+  for (let n = 1; n <= max - da; n++) {
+    const v = risolviVitigno(parole.slice(da, da + n).join(' '));
+    if (v) best = v;
+  }
+  return best;
 }
 
 /** Allineato a functions/lib/tony-landing-account.js (SINONIMI_COLTURA). */
@@ -335,24 +347,64 @@ function sedeDaTesto(domanda) {
   return null;
 }
 
+function stessoLuogoSede(a, b) {
+  const ka = chiaveNome(a);
+  const kb = chiaveNome(b);
+  return !!ka && ka === kb;
+}
+
+/**
+ * Il modello a volte mette il comune nel campo via («Faenza» o
+ * «Faenza» + «Faenza»). Il comune sta solo in citta: l'indirizzo resta
+ * vuoto finché non arriva il civico, così «12» non diventa «Faenza 12».
+ * @param {object|null|undefined} sede
+ */
+function togliComuneParcheggiatoInIndirizzo(sede) {
+  if (!sede || typeof sede !== 'object') return sede;
+  const indirizzo = normalizzaSpaziSede(sede.indirizzo);
+  if (!indirizzo || /\d/.test(indirizzo)) return sede;
+  const comeComune = luogoComeComune(indirizzo);
+  if (!comeComune) return sede;
+  const citta = normalizzaSpaziSede(sede.citta);
+  if (
+    citta &&
+    !stessoLuogoSede(citta, comeComune.citta) &&
+    !stessoLuogoSede(citta, indirizzo)
+  ) {
+    return sede;
+  }
+  return {
+    indirizzo: null,
+    citta: citta ? sede.citta : comeComune.citta,
+    cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
+    provincia: comeComune.provincia || sede.provincia || null,
+  };
+}
+
 /**
  * Se l'indirizzo tiene ancora via e comune attaccati e la città è vuota,
- * stacca il comune (virgola o « a »). Una sigla o un CAP non sono un comune.
+ * stacca il comune (virgola o « a »). Se l'indirizzo è solo il comune,
+ * lo sposta in citta anche quando il modello l'ha già mandato.
+ * Una sigla o un CAP non sono un comune.
  * @param {object|null|undefined} sede
  */
 export function separaViaEComune(sede) {
   if (!sede || typeof sede !== 'object') return sede;
   const indirizzo = normalizzaSpaziSede(sede.indirizzo);
   const cittaGia = normalizzaSpaziSede(sede.citta);
-  if (!indirizzo || cittaGia) return sede;
-  const spezzato = spezzaIndirizzoEComune(indirizzo);
-  if (!spezzato) return sede;
-  return {
-    indirizzo: spezzato.indirizzo,
-    citta: spezzato.citta,
-    cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
-    provincia: spezzato.provincia || sede.provincia || null,
-  };
+  let base = sede;
+  if (indirizzo) {
+    const spezzato = spezzaIndirizzoEComune(indirizzo);
+    if (spezzato && (!cittaGia || stessoLuogoSede(cittaGia, spezzato.citta))) {
+      base = {
+        indirizzo: spezzato.indirizzo,
+        citta: cittaGia ? sede.citta : spezzato.citta,
+        cap: sede.cap == null || sede.cap === '' ? null : sede.cap,
+        provincia: spezzato.provincia || sede.provincia || null,
+      };
+    }
+  }
+  return togliComuneParcheggiatoInIndirizzo(base);
 }
 
 function luogoComeComune(luogo) {
@@ -388,7 +440,26 @@ function spezzaIndirizzoEComune(indirizzo) {
       return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
     }
   }
-  return null;
+  return spezzaCivicoPoiComune(raw);
+}
+
+/**
+ * «Piazza Garibaldi 3 Bagnacavallo»: civico già detto, comune in coda, senza virgola.
+ * Solo se la frase è un indirizzo e la coda è un comune, non una sigla o un CAP.
+ * @param {string} raw
+ */
+function spezzaCivicoPoiComune(raw) {
+  if (!sembraIndirizzo(raw) || !/\d/.test(raw)) return null;
+  const m = raw.match(
+    /^(.*\d+[a-zA-Z]?)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’.-]*(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’.-]*){0,3})$/
+  );
+  if (!m) return null;
+  const via = normalizzaSpaziSede(m[1]);
+  const coda = normalizzaSpaziSede(m[2]);
+  if (!via || !/\d/.test(via) || sembraIndirizzo(coda)) return null;
+  const luogo = luogoComeComune(coda);
+  if (!luogo) return null;
+  return { indirizzo: via, citta: luogo.citta, provincia: luogo.provincia };
 }
 
 function conDomandaCivico(testo) {
@@ -615,7 +686,8 @@ function varietaDopoUnita(pezzo, matchHa) {
   const coda = String(pezzo || '').slice(matchHa.index + matchHa[0].length);
   const parole = coda.match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
   for (let i = 0; i < parole.length; i++) {
-    if (!eRumoreParlatoNome(parole[i])) return parole[i];
+    if (eRumoreParlatoNome(parole[i])) continue;
+    return vitignoPiuLungo(parole, i) || parole[i];
   }
   return null;
 }
@@ -727,9 +799,45 @@ function pulisciNomeCandidato(grezzo) {
  * @param {string} domanda
  * @returns {Array<{ nome: string|null, varieta: string|null, superficie: number|null }>}
  */
+function superficieCorrezioneNo(domanda) {
+  const d = String(domanda || '').trim();
+  if (!/^no\b/i.test(d)) return null;
+  const m = d.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari\b|ettaro\b|etari\b)/i);
+  if (!m) return null;
+  const n = Number(String(m[1]).replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function rinominaDetta(domanda) {
+  const m = String(domanda || '')
+    .trim()
+    .match(/^si\s+(?:chiama|piama|kiama|chama)\s+([^,]+),\s*non\s+(.+)$/i);
+  if (!m) return null;
+  const nuovo = nomeTerrenoVisibile(m[1]);
+  const vecchio = nomeTerrenoVisibile(m[2]);
+  if (!nuovo || !vecchio || stessoNome(nuovo, vecchio)) return null;
+  return { nuovo, vecchio };
+}
+
+/** «grano, discesa, tre ettari»: coltura, nome, ettari in parole. */
+function fraseColturaNomeEttari(raw) {
+  const m = String(raw || '')
+    .trim()
+    .match(
+      /^([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*),\s*([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*),\s*(un|uno|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+ettari?$/i
+    );
+  if (!m) return null;
+  const n = NUMERI_TERRANI_PAROLA[String(m[3]).toLowerCase()];
+  if (!n) return null;
+  if (!normalizzaColturaCatalogo(m[1]) && !risolviVitigno(m[1])) return null;
+  return { nome: m[2], varieta: m[1], superficie: n };
+}
+
 export function interpretaFraseTerreni(domanda) {
   const raw = String(domanda || '').trim();
   if (!raw) return [];
+  const ordine = fraseColturaNomeEttari(raw);
+  if (ordine) return [ordine];
   if (sembraIndirizzo(raw)) return [{ nome: null, varieta: null, superficie: null }];
   const chiama = raw.match(
     new RegExp(RE_SI_CHIAMA.source + '(.+?)(?:[,.]|$)', 'i')
@@ -794,6 +902,12 @@ export function interpretaFraseTerreni(domanda) {
       if (soloCol && !eRumoreParlatoNome(soloCol[1])) varieta = soloCol[1];
     }
     if (varieta && eRumoreParlatoNome(varieta)) varieta = null;
+    if (varieta) {
+      const paroleVarieta =
+        String(varieta).match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
+      const canonVarieta = paroleVarieta.length ? vitignoPiuLungo(paroleVarieta, 0) : null;
+      if (canonVarieta) varieta = canonVarieta;
+    }
     // Nome esplicito («lo chiamiamo Melograno») resta anche se coincide con la coltura.
     if (
       nome &&
@@ -893,7 +1007,10 @@ export function unisciCivicoAllaSede(sedePrecedente, domanda) {
     };
   }
   const via = String(prev.indirizzo || '').trim();
-  if (via && !/\d/.test(via)) {
+  const luogoVia = !via || /\d/.test(via) ? null : luogoComeComune(via);
+  const viaESoloIlComune =
+    !!luogoVia && (!prev.citta || stessoLuogoSede(via, prev.citta));
+  if (via && !/\d/.test(via) && !viaESoloIlComune) {
     return {
       indirizzo: via + ' ' + portato,
       citta: prev.citta || null,
@@ -903,9 +1020,9 @@ export function unisciCivicoAllaSede(sedePrecedente, domanda) {
   }
   return {
     indirizzo: portato,
-    citta: prev.citta || null,
+    citta: prev.citta || (luogoVia && luogoVia.citta) || null,
     cap: prev.cap || null,
-    provincia: prev.provincia || null,
+    provincia: prev.provincia || (luogoVia && luogoVia.provincia) || null,
   };
 }
 
@@ -922,7 +1039,12 @@ export function nomeLiberoSeInAttesa(domanda, terreniAttuali) {
   if (domandaNomeSenzaRisposta(s)) return null;
   if (/\d/.test(s)) return null;
   if (/\b(ha\b|ettar|podere|poderi|riepilogo|coltura)\b/i.test(s)) return null;
-  if (/^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s)) return null;
+  if (
+    /^(no|nope|sì|si|basta|fatto|niente|boh|mah|bo)\b/i.test(s) &&
+    !new RegExp(RE_SI_CHIAMA.source, 'i').test(s)
+  ) {
+    return null;
+  }
   if (/\b(non so|non lo so|non mi ricordo|non ricordo)\b/i.test(s)) return null;
   const detto = interpretaFraseTerreni(s).find((x) => x.nome);
   const cand = detto && detto.nome ? detto.nome : pulisciNomeCandidato(s);
@@ -967,11 +1089,13 @@ function indiceMisuraFrase(frase, superficie) {
 
 function parolaDopoParticella(pezzo) {
   const re =
-    /(?:c['’]?è\s+(?:del|della|dello|dei|la)|ce\s+(?:del|della|dello)|ci\s+coltivo|\bcoltivo\b|ci\s+ho|\bdi\b|\ba\b)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*)/gi;
+    /(?:c['’]?è\s+(?:del|della|dello|dei|la)|ce\s+(?:del|della|dello)|ci\s+coltivo|\bcoltivo\b|ci\s+ho|\bdi\b|\ba\b)\s+([A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*){0,2})/gi;
   let m;
   const s = String(pezzo || '');
   while ((m = re.exec(s)) !== null) {
-    if (!eRumoreParlatoNome(m[1])) return m[1];
+    const parole = String(m[1] || '').match(/[A-Za-zÀ-ÖØ-öø-ÿ][\wÀ-ÖØ-öø-ÿ'’-]*/g) || [];
+    if (!parole.length || eRumoreParlatoNome(parole[0])) continue;
+    return vitignoPiuLungo(parole, 0) || parole[0];
   }
   return '';
 }
@@ -979,7 +1103,12 @@ function parolaDopoParticella(pezzo) {
 function colturaNellaFinestra(frase, superficie) {
   const finestra = indiceMisuraFrase(frase, superficie);
   if (!finestra) return '';
-  return parolaDopoParticella(String(frase || '').slice(finestra.da, finestra.a));
+  const pezzo = String(frase || '').slice(finestra.da, finestra.a);
+  const dopo = parolaDopoParticella(pezzo);
+  if (dopo) return dopo;
+  const ha = pezzo.match(/(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettari\b|ettaro\b)/i);
+  if (!ha) return '';
+  return varietaDopoUnita(pezzo, ha) || '';
 }
 
 function haSegnalePosizioneNome(frase) {
@@ -1024,8 +1153,9 @@ function applicaColturaNomeEVitigno(out, domanda) {
     const nomeEColtura = !!(nome && (canonSenzaVitigno(nome) || risolviVitigno(nome)));
     const uguale = !!(nome && col && chiaveNome(col) === chiaveNome(nome));
     const destinazione = vitigno || canonDetta;
+    const generica = !col || chiaveNome(col) === chiaveNome('Vite da Vino');
     if (vitigno) {
-      if (!nome || uguale || nomeEColtura) out.coltura = destinazione;
+      if (!nome || uguale || nomeEColtura || generica) out.coltura = destinazione;
     } else if (uguale || !col) {
       out.coltura = destinazione;
     }
@@ -1059,8 +1189,9 @@ function assegnaColtura(out, detto, opts) {
     out.coltura = null;
   } else if (grezzo) {
     const norm = canonSenzaVitigno(grezzo);
+    const vitignoDetto = risolviVitigno(grezzo);
     if (norm) out.coltura = norm;
-    else if (risolviVitigno(grezzo)) out.coltura = inizialeMaiuscola(grezzo);
+    else if (vitignoDetto) out.coltura = vitignoDetto;
     else if (libera && !detto) out.coltura = inizialeMaiuscola(grezzo);
     else out.coltura = null;
   }
@@ -1068,18 +1199,17 @@ function assegnaColtura(out, detto, opts) {
   if (!out.coltura && dettoUtile) {
     if (soloCategoriaColtura(dettoUtile)) out.categoria = out.categoria || dettoUtile;
     else {
-      const canon = canonSenzaVitigno(dettoUtile);
+      const canon = canonSenzaVitigno(dettoUtile) || risolviVitigno(dettoUtile);
       if (canon) out.coltura = canon;
       else if (libera) {
-        // Varietà libera (es. Trebbiano senza particella) solo con ha/di.
         out.coltura = inizialeMaiuscola(dettoUtile);
       } else {
         out.coltura = null;
       }
     }
   } else if (out.coltura && dettoUtile) {
-    // Preferisci il nome canonico del catalogo (noci → Noce), non il grezzo.
-    const daDetto = canonSenzaVitigno(dettoUtile);
+    // La varietà detta (Trebbiano) vince sul generico Vite da Vino del modello.
+    const daDetto = canonSenzaVitigno(dettoUtile) || risolviVitigno(dettoUtile);
     if (daDetto) out.coltura = daDetto;
   }
   if (domanda) applicaColturaNomeEVitigno(out, domanda);
@@ -1212,6 +1342,35 @@ function allineaListaAllaFrase(letti, lista, attuali, domanda) {
 export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
   const letti = interpretaFraseTerreni(domanda);
   const attuali = Array.isArray(terreniAttuali) ? terreniAttuali : [];
+  const supNo = superficieCorrezioneNo(domanda);
+  if (supNo != null) {
+    const nominati = attuali.filter((t) => t && nomeTerrenoVisibile(t.nome));
+    if (nominati.length === 1) {
+      const base = nominati[0];
+      return [
+        {
+          nome: nomeTerrenoVisibile(base.nome),
+          superficie: supNo,
+          coltura: base.coltura || null,
+          podere: base.podere || null,
+        },
+      ];
+    }
+  }
+  const rin = rinominaDetta(domanda);
+  if (rin) {
+    const base = attuali.find((t) => t && stessoNome(t.nome, rin.vecchio));
+    if (base) {
+      return [
+        {
+          nome: rin.nuovo,
+          superficie: typeof base.superficie === 'number' ? base.superficie : null,
+          coltura: base.coltura || null,
+          podere: base.podere || null,
+        },
+      ];
+    }
+  }
   const nomeLibero = nomeLiberoSeInAttesa(domanda, attuali);
   const lista = Array.isArray(terreniNuovi)
     ? terreniNuovi.map((t) => (t && typeof t === 'object' ? Object.assign({}, t) : t))
@@ -1300,11 +1459,15 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
   const usati = Object.create(null);
   const mapped = lista.map((t) => {
     if (!t || typeof t !== 'object') return t;
+    const nomeModello = nomeTerrenoVisibile(t.nome);
     let letto = null;
     if (typeof t.superficie === 'number') {
-      const idx = letti.findIndex(
-        (l, n) => !usati[n] && l.superficie === t.superficie
-      );
+      const idx = letti.findIndex((l, n) => {
+        if (usati[n] || l.superficie !== t.superficie) return false;
+        // «cancello 7 ha» non ruba il Quercione da 7 ha già in lista.
+        if (l.nome && nomeModello && !stessoNome(l.nome, nomeModello)) return false;
+        return true;
+      });
       if (idx >= 0) {
         usati[idx] = true;
         letto = letti[idx];
@@ -1317,7 +1480,6 @@ export function correggiTerreniEstratti(domanda, terreniNuovi, terreniAttuali) {
         letto = letti[idx];
       }
     }
-    const nomeModello = nomeTerrenoVisibile(t.nome);
     const giaDato = nomeModello
       ? attuali.some((a) => a && stessoNome(a.nome, nomeModello))
       : false;
@@ -2307,6 +2469,7 @@ export function numeroEttariDetto(domanda, opts) {
     .replace(/[?!.,;:]+$/g, '')
     .replace(/\s+/g, ' ');
   if (!d) return null;
+  if (/^mezzo\s+ettaro$/i.test(d)) return 0.5;
   const conUnita = d.match(
     /^(?:sono\s+|ho\s+|ne\s+ho\s+)?(\d+(?:[.,]\d+)?)\s*(?:ha|ettari?|etari)$/i
   );
@@ -2556,6 +2719,32 @@ function messaggioFuoriTema(domanda) {
  * @param {{ terreni?: object[] }|null|undefined} dati
  * @returns {string}
  */
+/**
+ * Passo da riprendere dopo «Torna alla chat».
+ * Vince il passo salvato prima della scheda. Se manca: senza poderi e senza
+ * terreni si resta sui poderi (sulla sede, se manca anche quella).
+ * @param {string|null|undefined} passoSalvato
+ * @param {{ sede?: object|null, poderi?: object[], terreni?: object[], senzaPoderi?: boolean }|null|undefined} dati
+ * @returns {'sede'|'poderi'|'terreni'}
+ */
+export function passoRientroDallaScheda(passoSalvato, dati) {
+  const p = String(passoSalvato || '');
+  if (p === 'sede' || p === 'poderi' || p === 'terreni') return p;
+  const d = dati && typeof dati === 'object' ? dati : {};
+  const haPoderi =
+    (Array.isArray(d.poderi) && d.poderi.length > 0) || d.senzaPoderi === true;
+  const nTerreni = (Array.isArray(d.terreni) ? d.terreni : []).filter(
+    (t) =>
+      t &&
+      (nomeTerrenoVisibile(t.nome) || typeof t.superficie === 'number' || t.coltura)
+  ).length;
+  if (!haPoderi && nTerreni === 0) {
+    const haSede = !!(d.sede && (d.sede.indirizzo || d.sede.citta));
+    return haSede ? 'poderi' : 'sede';
+  }
+  return 'terreni';
+}
+
 export function domandaDiRientro(passo, dati) {
   const d = dati && typeof dati === 'object' ? dati : {};
   if (passo === 'sede') return testiLanding.tonyBussa.aiuto.domandaSede;
@@ -2619,11 +2808,44 @@ export function preparaTurnoOnboarding(opts) {
     passo0 === 'sede' &&
     !sedeGiaNota &&
     !fuoriTemaUtente &&
-    sembraSedeDetta(o.domanda) &&
-    !(nuoviIn.sede && (nuoviIn.sede.indirizzo || nuoviIn.sede.citta))
+    sembraSedeDetta(o.domanda)
   ) {
     const dedotta = sedeDaTesto(o.domanda);
-    if (dedotta) nuoviIn.sede = dedotta;
+    const modello = nuoviIn.sede && typeof nuoviIn.sede === 'object' ? nuoviIn.sede : null;
+    const modelloHaSede = !!(modello && (modello.indirizzo || modello.citta));
+    // Solo un comune: la sede dedotta vince anche se il modello ha già
+    // messo il comune in indirizzo. Via e comune detti insieme restano al modello.
+    if (dedotta && (!modelloHaSede || sembraSoloComune(o.domanda))) {
+      nuoviIn.sede =
+        sembraSoloComune(o.domanda) && modello
+          ? {
+              indirizzo: dedotta.indirizzo,
+              citta: dedotta.citta,
+              cap: modello.cap != null && modello.cap !== '' ? modello.cap : dedotta.cap,
+              provincia:
+                modello.provincia != null && modello.provincia !== ''
+                  ? modello.provincia
+                  : dedotta.provincia,
+            }
+          : dedotta;
+    } else if (
+      dedotta &&
+      modello &&
+      sembraIndirizzo(o.domanda) &&
+      /\d/.test(String(dedotta.indirizzo || '')) &&
+      !/\d/.test(String(modello.indirizzo || ''))
+    ) {
+      // Il civico è nella frase e il modello l'ha perso: si tiene la sede dedotta.
+      nuoviIn.sede = {
+        indirizzo: dedotta.indirizzo,
+        citta: dedotta.citta || modello.citta || null,
+        cap: modello.cap != null && modello.cap !== '' ? modello.cap : dedotta.cap,
+        provincia:
+          modello.provincia != null && modello.provincia !== ''
+            ? modello.provincia
+            : dedotta.provincia,
+      };
+    }
   }
   // Sede/podere (o testo già consumato come indirizzo): mai terreni in questo turno.
   const bloccaTerreniDaPasso =
@@ -2652,6 +2874,11 @@ export function preparaTurnoOnboarding(opts) {
     nuoviIn,
     passo0 && PASSI_AIUTO.indexOf(passo0) >= 0 ? passo0 : 'terreni'
   );
+  const rinNome = rinominaDetta(o.domanda);
+  if (rinNome && Array.isArray(uniti.dati.terreni)) {
+    const restano = uniti.dati.terreni.filter((t) => t && !stessoNome(t.nome, rinNome.vecchio));
+    if (restano.length !== uniti.dati.terreni.length) uniti.dati.terreni = restano;
+  }
   const testoIngresso = String(o.testo || '').trim();
   if (!chiedeRiepilogoEsplicito(o.domanda)) {
     o.testo = togliFrasiRiepilogo(togliErroreVuoto(o.testo));
@@ -3060,6 +3287,21 @@ export function preparaTurnoOnboarding(opts) {
     }
   }
 
+  const viaAccettata =
+    uniti.dati && uniti.dati.sede ? String(uniti.dati.sede.indirizzo || '') : '';
+  if (
+    passo0 === 'sede' &&
+    !fuoriTemaUtente &&
+    /\d/.test(viaAccettata) &&
+    /numero civico/i.test(String(testo != null ? testo : o.testo || ''))
+  ) {
+    passo = 'poderi';
+    bloccaAvanti = true;
+    vaiATerreni = false;
+    apriRiepilogo = false;
+    testo = DOMANDA_PODERI;
+  }
+
   if (
     uniti.dati &&
     /numero civico/i.test(String(testo != null ? testo : o.testo || ''))
@@ -3172,9 +3414,10 @@ function battutaConElencoTerreni(testo) {
  * (così il modello non riparte da conteggi vecchi).
  * @param {Array<{ ruolo?: string, testo?: string }>} storia
  * @param {{ sede?: object|null, poderi?: object[], terreni?: object[] }} dati
+ * @param {string} [passo] sede o poderi: il riassunto non apre la raccolta terreni
  * @returns {Array<{ ruolo: 'utente'|'tony', testo: string }>}
  */
-export function storiaDopoRiepilogo(storia, dati) {
+export function storiaDopoRiepilogo(storia, dati, passo) {
   const lista = (Array.isArray(storia) ? storia : [])
     .filter((b) => b && (b.ruolo === 'utente' || b.ruolo === 'tony'))
     .map((b) => {
@@ -3189,16 +3432,28 @@ export function storiaDopoRiepilogo(storia, dati) {
       return { ruolo: b.ruolo, testo };
     });
   const d = dati && typeof dati === 'object' ? dati : {};
-  const terreni = (Array.isArray(d.terreni) ? d.terreni : []).filter((t) => t && t.nome);
-  const nomi = terreni.map((t) => String(t.nome)).join(', ');
-  let riassunto =
-    'Stato aggiornato dopo il riepilogo: ne hai ' +
-    terreni.length +
-    ' su ' +
-    LIMITI.MAX_TERRENI_PER_RICHIESTA +
-    ' terreni' +
-    (nomi ? ' (' + nomi + ')' : '') +
-    '. Vale questo elenco, non le battute precedenti.';
+  const passoAperto = passo === 'sede' || passo === 'poderi' ? passo : '';
+  let riassunto;
+  if (passoAperto) {
+    const domanda = domandaDiRientro(passoAperto, d);
+    riassunto =
+      'Stato aggiornato dopo il riepilogo: siamo al passo ' +
+      passoAperto +
+      '. La prossima domanda è: «' +
+      domanda +
+      '». Vale questo, non le battute precedenti.';
+  } else {
+    const terreni = (Array.isArray(d.terreni) ? d.terreni : []).filter((t) => t && t.nome);
+    const nomi = terreni.map((t) => String(t.nome)).join(', ');
+    riassunto =
+      'Stato aggiornato dopo il riepilogo: ne hai ' +
+      terreni.length +
+      ' su ' +
+      LIMITI.MAX_TERRENI_PER_RICHIESTA +
+      ' terreni' +
+      (nomi ? ' (' + nomi + ')' : '') +
+      '. Vale questo elenco, non le battute precedenti.';
+  }
   if (riassunto.length > MAX_CARATTERI_BATTUTA_CLIENT) {
     riassunto = riassunto.slice(0, MAX_CARATTERI_BATTUTA_CLIENT);
   }

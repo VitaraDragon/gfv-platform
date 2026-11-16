@@ -267,12 +267,18 @@ describe('(15) Coltura (8.7)', () => {
     }
   });
 
-  it('accetta Sangiovese solo se è una coltura dell\'azienda, col nome già salvato', () => {
-    expect(soloColtura('Sangiovese').campi).toEqual([
+  it('accetta Sangiovese dal catalogo, col nome ufficiale', () => {
+    const scritto = soloColtura('  sangiovese ');
+    expect(scritto.daScrivere.terreni[0].coltura).toBe('Sangiovese');
+    expect(scritto.daScrivere.terreni[0].colturaCategoria).toBe('vite');
+  });
+
+  it('accetta una coltura assente dal catalogo solo se l\'azienda l\'ha già, col nome salvato', () => {
+    expect(soloColtura('Stevia').campi).toEqual([
       { campo: 'terreni[0].coltura', errore: 'coltura non trovata' }
     ]);
-    const scritto = soloColtura('  sangiovese ', { coltureAzienda: ['Sangiovese'] });
-    expect(scritto.daScrivere.terreni[0].coltura).toBe('Sangiovese');
+    const scritto = soloColtura('  stevia ', { coltureAzienda: ['Stevia'] });
+    expect(scritto.daScrivere.terreni[0].coltura).toBe('Stevia');
   });
 });
 
@@ -426,7 +432,7 @@ describe('(24) Elenco colture allineato (8.7)', () => {
       if (viste.has(chiave)) throw new Error(MESSAGGIO_RIGENERAZIONE);
       viste.add(chiave);
     }
-    expect(coltureAvute).toHaveLength(99);
+    expect(coltureAvute).toHaveLength(155);
     expect(categorieAvute).toHaveLength(9);
   });
 });

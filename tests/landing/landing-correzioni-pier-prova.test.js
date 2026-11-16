@@ -255,7 +255,7 @@ describe('Pier – giro completo dialogo di riferimento', () => {
     });
     expect(stato.dati.terreni[2]).toMatchObject({
       nome: 'Storto',
-      coltura: 'Vite da Vino',
+      coltura: 'Pinot Bianco',
     });
 
     turno(stato, 'si chiama noceto...ho 6 ha di noci', {

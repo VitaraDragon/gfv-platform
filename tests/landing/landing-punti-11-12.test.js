@@ -8,6 +8,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  DOMANDA_PODERI,
+  domandaDiRientro,
+  passoRientroDallaScheda,
   serializzaRaccolti,
   storiaDopoRiepilogo,
   unisciDati,
@@ -165,6 +168,28 @@ describe('punto 11 – conteggio terreni dopo il riepilogo', () => {
     expect(di_nuovo[di_nuovo.length - 1].testo).toContain('ne hai 4 su 5');
     expect(di_nuovo.some((b) => /\[Elenco superato dal riepilogo\] \[Elenco/.test(b.testo))).toBe(false);
     expect(di_nuovo.length).toBeLessThanOrEqual(10);
+  });
+
+  it('a passo poderi il riassunto non apre i terreni', () => {
+    const datiPoderi = {
+      sede: { indirizzo: '12', citta: 'Faenza' },
+      poderi: [],
+      terreni: [],
+    };
+    expect(passoRientroDallaScheda('poderi', datiPoderi)).toBe('poderi');
+    expect(passoRientroDallaScheda('', datiPoderi)).toBe('poderi');
+    expect(passoRientroDallaScheda('sede', { sede: null, poderi: [], terreni: [] })).toBe('sede');
+    expect(domandaDiRientro('poderi', datiPoderi)).toBe(DOMANDA_PODERI);
+    const nuova = storiaDopoRiepilogo(
+      [{ ruolo: 'tony', testo: 'Ne hai 0 su 5 terreni.' }],
+      datiPoderi,
+      'poderi'
+    );
+    const ultimo = nuova[nuova.length - 1].testo;
+    expect(ultimo).toMatch(/passo poderi/);
+    expect(ultimo).toContain(DOMANDA_PODERI);
+    expect(ultimo).not.toMatch(/altro terreno|ne hai 0 su 5/i);
+    expect(nuova[0].testo).toMatch(/^\[Elenco superato dal riepilogo\]/);
   });
 
   it('TonyChat usa storiaDopoRiepilogo in onTornaDallaScheda', () => {
