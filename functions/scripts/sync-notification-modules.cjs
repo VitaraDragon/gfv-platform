@@ -22,3 +22,10 @@ function copyRewritten(fromRel, toName) {
 copyRewritten("core/config/notification-catalog.js", "notification-catalog.js");
 copyRewritten("core/services/notification-policy.js", "notification-policy.js");
 copyRewritten("core/services/notification-dispatch-core.js", "notification-dispatch-core.js");
+
+// La function in produzione non vede shared/: copia la costante unica come .mjs.
+fs.copyFileSync(
+  path.join(root, "shared/js/registro-trattamenti-fonte.js"),
+  path.join(dest, "registro-trattamenti-fonte.mjs")
+);
+console.log("synced registro-trattamenti-fonte.mjs");

@@ -37,7 +37,7 @@ import {
   scriviAcquaNelForm,
   scriviEsitoScheda
 } from '../../../shared/js/registro-trattamenti-form.js';
-import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
+import { leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
 import { formatQuantita, valoreQuantitaGrezzo } from '../../../shared/js/formato-quantita.js';
 
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
@@ -325,8 +325,6 @@ function renderProdottiTrattamento(rows) {
         return row && row.prodottoId ? listProdottiAnagrafica.find((item) => item.id === row.prodottoId) : null;
       },
       leggiScheda: leggiSchedaRegistroTrattamento,
-      leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
-      chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
       utente: () => utenteRegistroNome,
       salvaSuProdotto: salvaConfermaProdottoSeminativo,
       onConferma: (idx, pacchetto) => {

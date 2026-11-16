@@ -388,7 +388,7 @@ describe('avvisi non duplicati', () => {
       ]
     };
     const out = avvisiMiscelaLavoro({ miscela, terrenoId: 't', data: new Date('2026-05-01'), precedenti, prodottiAnagrafica: [], specie: 'vite da vino' });
-    const nonConfermata = out.filter((m) => m.includes('non è confermata'));
+    const nonConfermata = out.filter((m) => m.includes('conferma dell\'azienda'));
     expect(nonConfermata).toHaveLength(1);
     expect(out.filter((m) => m.includes('trattamento di ieri'))).toHaveLength(1);
   });

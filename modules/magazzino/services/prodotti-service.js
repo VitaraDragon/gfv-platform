@@ -23,7 +23,7 @@ import {
 const COLLECTION_NAME = 'prodotti';
 const MOVIMENTI_COLLECTION = 'movimentiMagazzino';
 
-/** Li scrive solo la lettura sul server. Un salvataggio anagrafica non li rimette indietro. */
+/** Li scrive la conferma dal registro. Un salvataggio anagrafica non li rimette indietro. */
 const CAMPI_SCHEDA_SOLO_SERVER = [
   'letturaSchedaStato',
   'letturaSchedaMotivo',
@@ -31,6 +31,7 @@ const CAMPI_SCHEDA_SOLO_SERVER = [
   'letturaSchedaRichiestaAt',
   'numeroRegistrazione',
   'principioAttivo',
+  'titolare',
   'fonteScheda',
   'dataLetturaScheda',
   'letturaSchedaCompletaAt',

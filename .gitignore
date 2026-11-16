@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+functions/lib/registro-trattamenti-fonte.mjs
 package-lock.json
 yarn.lock
 
