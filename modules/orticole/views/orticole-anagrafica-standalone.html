@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Anagrafica orticole" data-gfv-module="orticole">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Anagrafica appezzamenti — Orticole - GFV</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#E65100">
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="orticole-standalone.css">
+</head>
+<body data-orticole-page="anagrafica" data-page-type="orticole">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🥬 Anagrafica appezzamenti — Orticole</h1>
+                <p>Campagne collegate ai terreni: coltura e varietà per anno, non un impianto permanente.</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" id="btn-nuova-campagna" class="btn btn-primary">Nuova campagna</button>
+                <a href="orticole-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno">
+                        <option value="">Tutti i terreni</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna">
+                        <option value="">Tutte le campagne</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-coltura">Coltura</label>
+                    <select id="filter-coltura">
+                        <option value="">Tutte le colture</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-stato">Stato</label>
+                    <select id="filter-stato">
+                        <option value="">Tutti gli stati</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Terreno, coltura, varietà…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento campagne...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna campagna trovata</h3>
+                    <p>Crea la prima campagna orticole per un terreno della categoria Orticole.</p>
+                </div>
+                <table id="orticole-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Terreno</th>
+                            <th>Campagna</th>
+                            <th>Ciclo</th>
+                            <th>Coltura</th>
+                            <th>Varietà</th>
+                            <th>Superficie (ha)</th>
+                            <th>Resa prev. (q/ha)</th>
+                            <th>Costo Totale Anno (€)</th>
+                            <th>Stato</th>
+                            <th>Dettaglio Spese</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orticole-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="orticole-campagna-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="orticole-campagna-modal-title">Nuova campagna</h2>
+                <button type="button" class="close" id="btn-close-campagna-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <form id="orticole-campagna-form">
+                <input type="hidden" id="campagna-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="campagna-terreno">Terreno *</label>
+                        <select id="campagna-terreno" name="campagna-terreno" required>
+                            <option value="">Seleziona terreno</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-anno">Campagna *</label>
+                        <input type="text" id="campagna-anno" name="campagna-anno" required placeholder="es. 2026/2027">
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-ciclo">Ciclo *</label>
+                        <select id="campagna-ciclo" name="campagna-ciclo" required>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-coltura">Coltura *</label>
+                        <select id="campagna-coltura" name="campagna-coltura" required>
+                            <option value="">Seleziona coltura</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-varieta">Varietà</label>
+                        <div class="varieta-picker">
+                            <select id="campagna-varieta" name="campagna-varieta">
+                                <option value="">Prima scegli la coltura</option>
+                            </select>
+                            <button type="button" id="btn-add-varieta" class="btn btn-secondary btn-add-varieta" title="Aggiungi varietà">+</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-superficie">Superficie (ha)</label>
+                        <input type="number" id="campagna-superficie" name="campagna-superficie" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-resa-prevista">Resa prevista (q/ha)</label>
+                        <input type="number" id="campagna-resa-prevista" name="campagna-resa-prevista" min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-tipo-impianto">Tipo impianto</label>
+                        <select id="campagna-tipo-impianto" name="campagna-tipo-impianto">
+                            <option value="trapianto">Trapianto</option>
+                            <option value="semina">Semina</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-data-impianto">Impianto previsto</label>
+                        <input type="date" id="campagna-data-impianto" name="campagna-data-impianto">
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-data-raccolta">Raccolta prevista</label>
+                        <input type="date" id="campagna-data-raccolta" name="campagna-data-raccolta">
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-destinazione">Destinazione prevista</label>
+                        <select id="campagna-destinazione" name="campagna-destinazione">
+                            <option value="">Seleziona destinazione</option>
+                            <option value="industria">Industria</option>
+                            <option value="mercato">Mercato</option>
+                            <option value="stoccaggio">Stoccaggio</option>
+                            <option value="uso_aziendale">Uso aziendale</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="campagna-stato">Stato</label>
+                        <select id="campagna-stato" name="campagna-stato">
+                            <option value="">Seleziona stato</option>
+                        </select>
+                    </div>
+                    <div class="form-group full">
+                        <label for="campagna-note">Note</label>
+                        <textarea id="campagna-note" name="campagna-note"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel-campagna" class="btn btn-secondary">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="orticole-varieta-modal" class="modal modal-varieta">
+        <div class="modal-content modal-content-narrow">
+            <div class="modal-header">
+                <h2>Nuova varietà</h2>
+                <button type="button" class="close" id="btn-close-varieta-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <form id="orticole-varieta-form">
+                <div class="form-group">
+                    <label for="nuova-varieta">Nome varietà</label>
+                    <input type="text" id="nuova-varieta" required placeholder="es. Bologna">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel-varieta" class="btn btn-secondary">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="orticole-spese-modal" class="modal">
+        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="orticole-spese-title">📊 Dettaglio Spese</h2>
+                <button type="button" class="close" id="btn-close-spese-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <div id="orticole-spese-body" style="padding: 20px;"></div>
+        </div>
+    </div>
+
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { initOrticoleAnagraficaPage } from '../js/orticole-anagrafica-page.js';
+        initOrticoleAnagraficaPage();
+    </script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../../service-worker.js';
+        registraServiceWorker(swPath);
+    </script>
+</body>
+</html>

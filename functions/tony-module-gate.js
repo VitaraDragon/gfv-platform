@@ -12,6 +12,7 @@ const MODULE_LABELS = {
   vigneto: "Vigneto",
   frutteto: "Frutteto",
   seminativo: "Seminativo",
+  orticole: "Orticole",
   report: "Report",
   meteo: "Meteo",
 };
@@ -129,6 +130,19 @@ const TARGET_REQUIRES_MODULE = {
   "raccolta seminativo": "seminativo",
   "statistiche seminativo": "seminativo",
   "seminativo statistiche": "seminativo",
+  orticole: "orticole",
+  "orticole anagrafica": "orticole",
+  "campagne orticole": "orticole",
+  "semina orticole": "orticole",
+  "trapianto orticole": "orticole",
+  "lavorazioni orticole": "orticole",
+  "irrigazione orticole": "orticole",
+  "trattamenti orticole": "orticole",
+  "concimazioni orticole": "orticole",
+  "concimazione orticole": "orticole",
+  "raccolta orticole": "orticole",
+  "statistiche orticole": "orticole",
+  "orticole statistiche": "orticole",
   report: "report",
   "report terreni": "report",
   "report vigneto": "report",
@@ -337,7 +351,7 @@ function sanitizeTonyResultForModules(result, moduliAttivi) {
 
 const TONY_MODULI_ATTIVI_RULE = `
 MODULI ATTIVI (obbligatorio): in [CONTESTO].dashboard.moduli_attivi (o moduli_attivi) c'è l'elenco dei moduli pagati dal tenant.
-- NON menzionare né usare dati di moduli assenti dall'elenco (magazzino → prodotti/scorte/movimenti; contoTerzi → clienti/preventivi/tariffe; parcoMacchine → macchine/scadenze mezzi/guasti; manodopera; vigneto; frutteto; seminativo; report; vendemmiaMeccanica; meteo).
+- NON menzionare né usare dati di moduli assenti dall'elenco (magazzino → prodotti/scorte/movimenti; contoTerzi → clienti/preventivi/tariffe; parcoMacchine → macchine/scadenze mezzi/guasti; manodopera; vigneto; frutteto; seminativo; orticole; report; vendemmiaMeccanica; meteo).
 - NON usare APRI_PAGINA né OPEN_MODAL verso pagine di un modulo non attivo: spiega che il modulo non è attivo e indica la pagina Abbonamento.
 - I dati in azienda.* sono già filtrati lato server: se mancano tariffe o prodotti, non inventare — indica che serve attivare il modulo.
 `;

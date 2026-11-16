@@ -67,5 +67,16 @@ export async function contestoRegistroTerreno(terrenoId) {
     passaggi.push(...daTrattamenti((tutti || []).filter((t) => String(t.terrenoId || '') === id), id));
   } catch (e) { /* modulo assente */ }
 
+  try {
+    const { getAllOrticole } = await import('../../modules/orticole/services/orticole-service.js');
+    const { getAllTrattamentiOrticole } = await import('../../modules/orticole/services/trattamenti-service.js');
+    const campagne = (await getAllOrticole()).filter((c) => String(c.terrenoId || '') === id);
+    if (!specie && campagne[0]) {
+      specie = colturaSchedaRegistro({ modulo: 'orticole', colturaNome: campagne[0].colturaNome });
+    }
+    const tutti = await getAllTrattamentiOrticole();
+    passaggi.push(...daTrattamenti((tutti || []).filter((t) => String(t.terrenoId || '') === id), id));
+  } catch (e) { /* modulo assente */ }
+
   return { specie, passaggi };
 }

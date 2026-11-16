@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Statistiche" data-gfv-module="orticole">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Statistiche — Orticole - GFV</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#E65100">
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="orticole-standalone.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body data-orticole-page="statistiche" data-page-type="statistiche_orticole">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 Statistiche — Orticole</h1>
+                <p>Numeri di campagna: quintali raccolti, resa effettiva e costi. La resa prevista resta quella scritta in anagrafica e non viene ricalcolata qui. Le misure di qualità dell’uva restano alla vendemmia.</p>
+            </div>
+            <div class="header-actions">
+                <a href="orticole-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno"><option value="">Tutti i terreni</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna"><option value="">Tutte le campagne</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" id="kpi-produzione">—</div><div class="stat-label">Quintali raccolti</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-resa-effettiva">—</div><div class="stat-label">Resa effettiva (qli/ha)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-resa-prevista">—</div><div class="stat-label">Resa prevista (qli/ha)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-lavori">—</div><div class="stat-label">Manodopera e macchine (€)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-prodotti">—</div><div class="stat-label">Prodotti (€)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-costo">—</div><div class="stat-label">Costo totale (€)</div></div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><h3>Produzione (qli)</h3><canvas id="chart-produzione"></canvas></div>
+                <div class="stat-card"><h3>Resa prevista e effettiva</h3><canvas id="chart-rese"></canvas></div>
+                <div class="stat-card"><h3>Costi</h3><canvas id="chart-costi"></canvas></div>
+            </div>
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento statistiche...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna campagna</h3>
+                    <p>Le statistiche compaiono quando esiste almeno una campagna orticole.</p>
+                </div>
+                <table id="statistiche-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Campagna</th>
+                            <th>Terreno</th>
+                            <th>Quintali</th>
+                            <th>Resa prevista</th>
+                            <th>Resa effettiva</th>
+                            <th>Manodopera (€)</th>
+                            <th>Macchine (€)</th>
+                            <th>Prodotti (€)</th>
+                            <th>Costo totale (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statistiche-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { initStatistichePage } from '../js/statistiche-page.js';
+        initStatistichePage();
+    </script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../../service-worker.js';
+        registraServiceWorker(swPath);
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 /**
- * Pannello open data e acqua sul form trattamento (vigneto, frutteto, seminativo).
+ * Pannello open data e acqua sul form trattamento (vigneto, frutteto, seminativo, orticole).
  * Coltura, avversità, dose e carenza le scrive l'azienda. Il CSV non le propone.
  * @module shared/js/registro-trattamenti-form
  */

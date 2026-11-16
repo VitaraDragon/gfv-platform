@@ -60,6 +60,17 @@ const RECOMMENDATIONS = {
       },
     },
     {
+      id: "orticole",
+      label: "Orticole",
+      available: true,
+      triggers: [
+        { type: "categoryShare", category: "Ortive", minCount: 3, minShare: 0.35, weight: 80 },
+      ],
+      complements: {
+        magazzino: "per scarichi da trattamenti e concimazioni",
+      },
+    },
+    {
       id: "contoTerzi",
       label: "Conto Terzi",
       available: true,

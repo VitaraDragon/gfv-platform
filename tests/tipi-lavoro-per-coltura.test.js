@@ -86,4 +86,17 @@ describe('tipi-lavoro-per-coltura', () => {
     });
     expect(out.some((t) => /vendemmia/i.test(t.nome))).toBe(false);
   });
+
+  it('Orticole → niente vendemmia né tipi da filare; sì raccolta a pieno campo', () => {
+    const ortive = filtraTipiLavoroPerColtura(tipi, {
+      coltura: 'Pomodoro',
+      colturaCategoria: 'ortive'
+    }).map((t) => t.nome);
+    expect(ortive).not.toContain('Vendemmia Manuale');
+    expect(ortive).not.toContain('Vendemmia Meccanica');
+    expect(ortive).not.toContain('Erpicatura Tra le File');
+    expect(ortive).not.toContain('Raccolta con Scuotitore');
+    expect(ortive).toContain('Raccolta Manuale');
+    expect(ortive).toContain('Erpicatura');
+  });
 });

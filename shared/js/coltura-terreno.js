@@ -12,6 +12,12 @@ const COLTURE_FRUTTETO = [
 
 const SEMINATIVI = ['grano', 'mais', 'orzo', 'favino', 'girasole', 'soia', 'colza', 'avena', 'segale', 'riso'];
 
+const ORTIVE = [
+  'pomodoro', 'zucchine', 'melanzane', 'peperoni', 'insalata', 'carote', 'patate', 'bietole',
+  'fragole', 'cipolle', 'aglio', 'fagioli', 'fagiolini', 'piselli', 'cavolo', 'broccoli',
+  'cavolfiore', 'spinaci', 'lattuga', 'radicchio', 'finocchi', 'sedano', 'cetrioli', 'angurie', 'meloni'
+];
+
 export function isColturaFrutteto(coltura) {
   if (!coltura) return false;
   const colturaLower = String(coltura).toLowerCase();
@@ -26,7 +32,7 @@ export function isColturaVigneto(coltura) {
 
 /**
  * @param {object|string|null|undefined} terrenoOColtura
- * @returns {'vigneto'|'frutteto'|'seminativo'|'altro'|'nessuna'}
+ * @returns {'vigneto'|'frutteto'|'orticole'|'seminativo'|'altro'|'nessuna'}
  */
 export function famigliaColtura(terrenoOColtura) {
   const terreno = terrenoOColtura && typeof terrenoOColtura === 'object' ? terrenoOColtura : null;
@@ -38,6 +44,9 @@ export function famigliaColtura(terrenoOColtura) {
     return 'vigneto';
   }
   if (categoria.includes('frutt') || (!categoria && isColturaFrutteto(nome))) return 'frutteto';
+  if (categoria.includes('ortiv') || categoria.includes('orto') || ORTIVE.some((s) => nome.includes(s))) {
+    return 'orticole';
+  }
   if (categoria.includes('semin') || SEMINATIVI.some((s) => nome.includes(s))) return 'seminativo';
   if (!nome && !categoria) return 'nessuna';
   return 'altro';

@@ -313,6 +313,72 @@
       "module": "seminativo"
     },
     {
+      "target": "orticole",
+      "path": "modules/orticole/views/orticole-dashboard-standalone.html",
+      "label": "Orticole Dashboard",
+      "module": "orticole"
+    },
+    {
+      "target": "orticole anagrafica",
+      "path": "modules/orticole/views/orticole-anagrafica-standalone.html",
+      "label": "Anagrafica Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "campagne orticole",
+      "path": "modules/orticole/views/orticole-anagrafica-standalone.html",
+      "label": "Campagne Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "semina orticole",
+      "path": "modules/orticole/views/impianto-standalone.html",
+      "label": "Semina e trapianto",
+      "module": "orticole"
+    },
+    {
+      "target": "trapianto orticole",
+      "path": "modules/orticole/views/impianto-standalone.html",
+      "label": "Trapianto Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "lavorazioni orticole",
+      "path": "modules/orticole/views/lavorazioni-standalone.html",
+      "label": "Lavorazioni Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "irrigazione orticole",
+      "path": "modules/orticole/views/irrigazione-standalone.html",
+      "label": "Irrigazione Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "trattamenti orticole",
+      "path": "modules/orticole/views/trattamenti-standalone.html",
+      "label": "Trattamenti Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "concimazioni orticole",
+      "path": "modules/orticole/views/concimazioni-standalone.html",
+      "label": "Concimazioni Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "raccolta orticole",
+      "path": "modules/orticole/views/raccolta-standalone.html",
+      "label": "Raccolta Orticole",
+      "module": "orticole"
+    },
+    {
+      "target": "statistiche orticole",
+      "path": "modules/orticole/views/orticole-statistiche-standalone.html",
+      "label": "Statistiche Orticole",
+      "module": "orticole"
+    },
+    {
       "target": "elenco attrezzi",
       "path": "modules/macchine/views/attrezzi-list-standalone.html",
       "label": "Attrezzi List",
