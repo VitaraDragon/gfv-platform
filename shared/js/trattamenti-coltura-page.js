@@ -38,7 +38,7 @@ import {
     scriviAcquaNelForm,
     scriviEsitoScheda
 } from './registro-trattamenti-form.js';
-import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
+import { leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
 import { quantitaRigaProdotto, formattaQuantita } from './quantita-dose.js';
 import { valoreQuantitaGrezzo } from './formato-quantita.js';
 import { applyScaricoMagazzinoUi as applyScaricoMagazzinoUiShared } from './scarico-magazzino-ui.js';
@@ -341,8 +341,6 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
             return row && row.prodottoId ? listProdottiAnagrafica.find((p) => p.id === row.prodottoId) : null;
         },
         leggiScheda: leggiSchedaRegistroTrattamento,
-        leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
-        chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
         utente: () => utenteRegistroNome,
         salvaSuProdotto: salvaConfermaProdotto,
         onConferma: (idx, registro) => {

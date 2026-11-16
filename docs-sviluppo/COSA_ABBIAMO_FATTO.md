@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-14 — test:promote veloce e deterministico.**
+**Ultimo aggiornamento documentazione: 2026-11-16 — registro trattamenti senza SIAN.**
+
+## 2026-11-16 — tolta la lettura SIAN
+
+Su `fix/registro-senza-sian` (PR verso develop). Nessun deploy.
+
+16/11/2026 — tolta la lettura SIAN; restano solo open data del Ministero; colture e dosi le conferma l'utente. Spariscono dal codice `onProdottoSchedaScritto` e `leggiSchedeRegistroInCoda`. Resta `leggiSchedaRegistroTrattamento`. Nessun deploy: se le due function sono online, il prossimo `firebase deploy --only functions` chiederà di eliminarle.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-14 — test:promote veloce e deterministico.**
 
 ## 2026-11-14 — test:promote veloce e deterministico
 

@@ -4,9 +4,31 @@
  * @module shared/js/registro-trattamenti
  */
 
-export const FONTE_OPEN_DATA_FITOSANITARI = 'Ministero della Salute, open data Fitosanitari, licenza Italian Open Data License 2.0';
+import {
+  FONTE_OPEN_DATA_FITOSANITARI,
+  AVVISO_ETICHETTA_FA_FEDE,
+  URL_LICENZA_IODL,
+  URL_DATASET_FITOSANITARI,
+  URL_BANCA_FITOSANITARI,
+  classificaStatoAmministrativo,
+  dataLetturaItaliana,
+  testoAttribuzioneOpenData,
+  htmlAttribuzioneOpenData
+} from './registro-trattamenti-fonte.js';
+
+export {
+  FONTE_OPEN_DATA_FITOSANITARI,
+  AVVISO_ETICHETTA_FA_FEDE,
+  URL_LICENZA_IODL,
+  URL_DATASET_FITOSANITARI,
+  URL_BANCA_FITOSANITARI,
+  classificaStatoAmministrativo,
+  dataLetturaItaliana,
+  testoAttribuzioneOpenData,
+  htmlAttribuzioneOpenData
+};
 export const ANNI_CONSERVAZIONE_REGISTRO = 3;
-export const NOTA_REGISTRO_PRIVATO = 'Registro privato di compilazione. I dati anagrafici del prodotto vengono dal Ministero della Salute; carenza e avversità sono quelle della scheda pubblica, filtrate sulla specie del terreno e confermate in azienda. GFV non invia il file al SIAN né al fascicolo.';
+export const NOTA_REGISTRO_PRIVATO = 'Registro privato di compilazione. Numero di registrazione, titolare, sostanze e stato del prodotto vengono dagli open data del Ministero della Salute. Coltura, avversità, dose e carenza le inserisce o conferma l\'azienda: fa fede l\'etichetta autorizzata. GFV non invia il file al SIAN né al fascicolo.';
 export const NOTA_PASSAGGIO_NON_REGISTRATO = 'Se un trattamento di ieri non è ancora stato registrato, questo avviso non lo vede.';
 
 export function numeroFinito(value) {
@@ -369,7 +391,7 @@ export function avvisoImpieghiEIntervallo(input = {}) {
     numeroFinito(conferma.giorniMinimiTraPassaggi) != null
   );
   if (!haSoglia) {
-    messaggi.push('Per ' + (corrente.nome || 'questo prodotto') + ' la scheda non è confermata: il controllo sul numero massimo e sull\'intervallo non si può fare.');
+    messaggi.push('Per ' + (corrente.nome || 'questo prodotto') + ' non c\'è una conferma dell\'azienda: il controllo sul numero massimo e sull\'intervallo non si può fare.');
   } else {
     const precedenti = (Array.isArray(input.precedenti) ? input.precedenti : []).filter((p) => {
       if (!p || (input.escludiId && p.id && String(p.id) === String(input.escludiId))) return false;
@@ -591,43 +613,24 @@ export function unisciConfermaSpecie(prodotto, specie, riga) {
   if (slug && riga && rigaHaConferma(riga)) conferme[slug] = campi;
   const chiave = chiaveConfermaScheda(campi);
   if (chiave && riga && rigaHaConferma(riga)) conferme[chiave] = campi;
-  return {
+  const out = {
     numeroRegistrazione: (riga && riga.riferimentoRiga && riga.riferimentoRiga.numeroRegistrazione) || (prodotto && prodotto.numeroRegistrazione) || null,
     principioAttivo: (riga && riga.principioAttivo) || (prodotto && prodotto.principioAttivo) || null,
     fonteScheda: (riga && riga.fonteScheda) || FONTE_OPEN_DATA_FITOSANITARI,
     dataLetturaScheda: (riga && riga.dataLetturaScheda) || null,
     confermeSpecie: conferme
   };
-}
-
-/** Stessa soglia della coda: sei mesi dopo l'ultima lettura completa. Senza data, la foto non si propone. */
-export function schedaOltreSeiMesi(iso, oraMs = Date.now()) {
-  const t = Date.parse(iso || '');
-  if (!Number.isFinite(t)) return true;
-  const limite = new Date(t);
-  limite.setUTCMonth(limite.getUTCMonth() + 6);
-  return Number(oraMs) >= limite.getTime();
-}
-
-export function schedaDaRileggere(prodotto, oraMs = Date.now()) {
-  if (!prodotto || prodotto.letturaSchedaStato !== 'pronta') return false;
-  return schedaOltreSeiMesi(prodotto.letturaSchedaCompletaAt, oraMs);
+  if (riga && riga.titolare) out.titolare = String(riga.titolare);
+  if (riga && riga.statoAmministrativoScheda) out.statoAmministrativoScheda = String(riga.statoAmministrativoScheda);
+  if (riga && riga.dataVariazioneScheda) out.dataVariazioneScheda = String(riga.dataVariazioneScheda);
+  return out;
 }
 
 export function testoStatoLetturaScheda(prodotto) {
   if (!prodotto || String(prodotto.categoria || '').toLowerCase() !== 'fitofarmaci') return '';
-  if (prodotto.letturaSchedaStato === 'in_corso') return 'Lettura in corso';
-  if (prodotto.letturaSchedaStato === 'pronta') return 'Scheda letta';
-  if (prodotto.letturaSchedaStato === 'da_riprovare') {
-    if (prodotto.letturaSchedaMotivo === 'nome_non_univoco') {
-      return 'Da riprovare: il nome non corrisponde a una sola registrazione';
-    }
-    if (prodotto.letturaSchedaMotivo === 'non_trovato') {
-      return 'Da riprovare: nome non trovato negli open data';
-    }
-    return 'Da riprovare';
-  }
-  return 'In attesa di lettura';
+  const cls = classificaStatoAmministrativo(prodotto.statoAmministrativoScheda);
+  if (cls === 'non_verificato') return '';
+  return String(prodotto.statoAmministrativoScheda || '').trim();
 }
 
 function escAttrSemaforo(value) {
@@ -637,13 +640,12 @@ function escAttrSemaforo(value) {
     .replace(/</g, '&lt;');
 }
 
-/** Pallino accanto al nome. Verde scheda letta, giallo in lettura, rosso non letta. Nessun pulsante. */
+/** Pallino accanto al nome. Verde se ancora in commercio, rosso se revocato, scaduto o sospeso. Nessun pallino se lo stato non è stato verificato sul CSV. */
 export function htmlSemaforoLetturaScheda(prodotto) {
   const titolo = testoStatoLetturaScheda(prodotto);
   if (!titolo) return '';
-  let colore = 'yellow';
-  if (prodotto.letturaSchedaStato === 'pronta') colore = 'green';
-  else if (prodotto.letturaSchedaStato === 'da_riprovare') colore = 'red';
+  const cls = classificaStatoAmministrativo(prodotto.statoAmministrativoScheda);
+  const colore = cls === 'autorizzato' ? 'green' : 'red';
   const t = escAttrSemaforo(titolo);
   return '<span class="gfv-semaforo gfv-semaforo--' + colore + '" title="' + t + '" role="img" aria-label="' + t + '"></span>';
 }

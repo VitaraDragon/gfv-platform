@@ -1,5 +1,7 @@
 # Registro trattamenti GFV — impostazione
 
+> **16/11/2026.** Tolta la lettura del SIAN: le note legali ne vietano l'uso commerciale. Restano solo gli open data del Ministero della Salute (CSV, licenza IODL 2.0). Coltura, avversità, dose e carenza le inserisce o conferma l'azienda. I paragrafi sotto che citano la banca SIAN descrivono la decisione del 13 ottobre, non il codice attuale.
+
 - Titolo: Registro trattamenti GFV — impostazione
 - Settore: Ricerca
 - Data: 3 ottobre 2026
