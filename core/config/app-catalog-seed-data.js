@@ -442,6 +442,10 @@ export const TIPI_LAVORO_PREDEFINITI = [
   // Manutenzione
   { nome: 'Riparazioni', categoriaCodice: 'manutenzione', descrizione: 'Riparazioni di attrezzature o impianti' },
   { nome: 'Manutenzione Impianti', categoriaCodice: 'manutenzione', descrizione: 'Manutenzione di impianti irrigui o altri' },
+  // Irrigazione (categoria trattamenti — tipi seed modulo orticole)
+  { nome: 'Irrigazione a goccia', categoriaCodice: 'trattamenti', descrizione: 'Irrigazione a goccia' },
+  { nome: 'Irrigazione a aspersione', categoriaCodice: 'trattamenti', descrizione: 'Irrigazione a aspersione' },
+  { nome: 'Irrigazione a scorrimento', categoriaCodice: 'trattamenti', descrizione: 'Irrigazione a scorrimento' },
   // Altro
   { nome: 'Altro', categoriaCodice: 'altro', descrizione: 'Altri tipi di lavoro' }
 ];

@@ -29,6 +29,7 @@ export const QUICK_BAR_SECTION_ORDER = [
     { id: 'vigneto', label: 'Vigneto', dashboardRouteId: 'vigneto' },
     { id: 'frutteto', label: 'Frutteto', dashboardRouteId: 'frutteto' },
     { id: 'seminativo', label: 'Seminativo', dashboardRouteId: 'seminativo' },
+    { id: 'orticole', label: 'Orticole', dashboardRouteId: 'orticole' },
     { id: 'magazzino', label: 'Magazzino', dashboardRouteId: 'magazzino' },
     { id: 'report', label: 'Report', dashboardRouteId: 'report' },
     { id: 'meteo', label: 'Meteo', dashboardRouteId: 'meteo' }
@@ -532,6 +533,87 @@ export const QUICK_BAR_CATALOG = {
         modules: ['seminativo'],
         requireManodopera: false,
         section: 'seminativo'
+    },
+    orticole: {
+        label: 'Orticole',
+        desc: 'Dashboard orticole',
+        icon: '🥬',
+        href: '../modules/orticole/views/orticole-dashboard-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleAnagrafica: {
+        label: 'Anagrafica orticole',
+        desc: 'Campagne collegate ai terreni',
+        icon: '🥬',
+        href: '../modules/orticole/views/orticole-anagrafica-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleImpianto: {
+        label: 'Trapianto / semina',
+        desc: 'Registro trapianti e semine',
+        icon: '🌱',
+        href: '../modules/orticole/views/impianto-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleLavorazioni: {
+        label: 'Lavorazioni (orticole)',
+        desc: 'Lavorazioni di campo',
+        icon: '🚜',
+        href: '../modules/orticole/views/lavorazioni-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleIrrigazione: {
+        label: 'Irrigazione (orticole)',
+        desc: 'Interventi di irrigazione',
+        icon: '💧',
+        href: '../modules/orticole/views/irrigazione-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleTrattamenti: {
+        label: 'Trattamenti (orticole)',
+        desc: 'Trattamenti fitosanitari',
+        icon: '🧪',
+        href: '../modules/orticole/views/trattamenti-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleConcimazioni: {
+        label: 'Concimazioni (orticole)',
+        desc: 'Concimazioni di campo',
+        icon: '🌿',
+        href: '../modules/orticole/views/concimazioni-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleRaccolta: {
+        label: 'Raccolta',
+        desc: 'Registro raccolte orticole',
+        icon: '📦',
+        href: '../modules/orticole/views/raccolta-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
+    },
+    orticoleStatistiche: {
+        label: 'Statistiche orticole',
+        desc: 'KPI e riepiloghi orticole',
+        icon: '📊',
+        href: '../modules/orticole/views/orticole-statistiche-standalone.html',
+        modules: ['orticole'],
+        requireManodopera: false,
+        section: 'orticole'
     },
     fruttetoAlberi: {
         label: 'Frutteti',

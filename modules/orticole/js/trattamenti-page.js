@@ -1,0 +1,800 @@
+/**
+ * Pagina Trattamenti: lavori e diario di categoria Trattamenti, dati prodotto sulla campagna.
+ * @module modules/orticole/js/trattamenti-page
+ */
+
+import { resolvePath } from '../../../core/js/gfv-path.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { publishOrticoleTableData } from './orticole-page-context.js';
+import {
+  deleteTrattamentoOrticole,
+  listRigheTrattamento,
+  saveTrattamentoOrticole
+} from '../services/trattamenti-service.js';
+import { avvisoDosaggioProdotti } from '../models/OrticolaTrattamento.js';
+import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
+import { etichettaTerrenoStorico } from '../../../shared/js/terreno-archivio.js';
+import { apriConAvviso, bindAzioniLista, mostraArchiviatiSelezionato, terreniPerFiltro } from '../../../shared/js/filtri-storico.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
+import { aliasColturaScheda, colturaSchedaRegistro } from '../../../core/config/registro-trattamenti-specie.js';
+import {
+  aziendaDaTenant,
+  registroToCsv,
+  registroToXml,
+  righeExportRegistro,
+  unisciConfermaSpecie,
+  valutaCancellazioneRegistro
+} from '../../../shared/js/registro-trattamenti.js';
+import {
+  attaccaLetturaScheda,
+  bindAcquaCampi,
+  htmlMetaRegistro,
+  leggiAcquaDalForm,
+  leggiRegistroRiga,
+  messaggiAvvisoForm,
+  notaRegistroTesto,
+  scriviAcquaNelForm,
+  scriviEsitoScheda
+} from '../../../shared/js/registro-trattamenti-form.js';
+import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
+import { formatQuantita, valoreQuantitaGrezzo } from '../../../shared/js/formato-quantita.js';
+
+const DIARIO_HREF = '../../../core/attivita-standalone.html';
+const LAVORI_HREF = '../../../core/admin/gestione-lavori-standalone.html';
+
+const REGISTRI = {
+  trattamenti: {
+    pageType: 'trattamenti_orticole',
+    categoria: 'trattamenti',
+    log: 'trattamenti',
+    completa: 'Completa trattamento',
+    modifica: 'Modifica trattamento',
+    summary(count) {
+      if (!count) return 'Nessun trattamento orticole';
+      return `${count} trattament${count === 1 ? 'o' : 'i'} orticole`;
+    }
+  },
+  concimazioni: {
+    pageType: 'concimazioni_orticole',
+    categoria: 'concimazione',
+    log: 'concimazioni',
+    completa: 'Completa concimazione',
+    modifica: 'Modifica concimazione',
+    summary(count) {
+      if (!count) return 'Nessuna concimazione orticole';
+      return `${count} concimazion${count === 1 ? 'e' : 'i'} orticole`;
+    }
+  }
+};
+
+let registro = REGISTRI.trattamenti;
+let utenteRegistroNome = '';
+
+let terreni = [];
+let righe = [];
+let visible = [];
+let hasManodopera = false;
+let hasMagazzino = false;
+let editingRow = null;
+let listProdottiAnagrafica = [];
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function getTerrenoLabel(id) {
+  const terreno = terreni.find((item) => item.id === id);
+  if (!terreno) return '—';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
+}
+
+function campagnaLabel(row) {
+  const coltura = row.colturaNome ? `${row.colturaNome} · ` : '';
+  return `${coltura}${row.campagna || ''}`.trim();
+}
+
+function syncTonyModules(modules) {
+  if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
+    window.Tony.initContextWithModules(modules);
+    return;
+  }
+  if (typeof window.syncTonyModules === 'function') {
+    window.syncTonyModules(modules);
+  }
+}
+
+function fillSelect(el, options, placeholder) {
+  if (!el) return;
+  const current = el.value;
+  el.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>` +
+    options.map((opt) => `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`).join('');
+  if (current && Array.from(el.options).some((option) => option.value === current)) el.value = current;
+}
+
+function euro(value) {
+  return value == null || value === '' ? '—' : Number(value).toFixed(2);
+}
+
+function buildTableData(rows) {
+  const items = rows.map((row) => {
+    const trattamento = row.trattamento;
+    return {
+      id: trattamento ? trattamento.id : (row.lavoroId || row.attivitaId),
+      source: row.source,
+      data: row.data,
+      campagna: campagnaLabel(row),
+      campagnaId: row.campagnaId,
+      terreno: getTerrenoLabel(row.terrenoId),
+      tipoLavoro: row.tipoLavoro,
+      prodotto: trattamento ? trattamento.prodotto : '',
+      costoTotale: trattamento ? trattamento.costoTotale : null
+    };
+  });
+  return {
+    pageType: registro.pageType,
+    summary: registro.summary(items.length),
+    items
+  };
+}
+
+function applyFilters() {
+  const terrenoId = document.getElementById('filter-terreno')?.value || '';
+  const campagnaId = document.getElementById('filter-campagna')?.value || '';
+  const ricerca = (document.getElementById('filter-ricerca')?.value || '').trim().toLowerCase();
+  visible = righe.filter((row) => {
+    if (terrenoId && row.terrenoId !== terrenoId) return false;
+    if (campagnaId && row.campagnaId !== campagnaId) return false;
+    if (ricerca) {
+      const blob = [
+        getTerrenoLabel(row.terrenoId),
+        campagnaLabel(row),
+        row.tipoLavoro,
+        row.data,
+        row.trattamento && row.trattamento.prodotto
+      ].join(' ').toLowerCase();
+      if (!blob.includes(ricerca)) return false;
+    }
+    return true;
+  });
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('trattamenti-table-body');
+  const emptyState = document.getElementById('empty-state');
+  const loadingDiv = document.getElementById('loading');
+  const table = document.getElementById('trattamenti-table');
+  if (loadingDiv) loadingDiv.style.display = 'none';
+  if (!visible.length) {
+    if (tbody) tbody.innerHTML = '';
+    if (table) table.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    publishOrticoleTableData(buildTableData([]));
+    return;
+  }
+  if (emptyState) emptyState.style.display = 'none';
+  if (table) table.style.display = 'table';
+  tbody.innerHTML = visible.map((row, index) => {
+    const trattamento = row.trattamento;
+    const ref = row.source === 'lavoro'
+      ? `<a class="btn btn-sm btn-secondary" href="${LAVORI_HREF}?lavoroId=${encodeURIComponent(row.lavoroId)}">🔗 Vedi Lavoro</a>`
+      : `<a class="btn btn-sm btn-secondary" href="${DIARIO_HREF}?attivitaId=${encodeURIComponent(row.attivitaId || '')}">🔗 Vedi Attività</a>`;
+    const azioni = htmlAzioniRegistro(
+      isRegistroSolaLettura({
+        registro: trattamento || row,
+        terreno: terreni.find((item) => item.id === row.terrenoId)
+      }),
+      trattamento
+        ? `<button type="button" class="btn btn-sm btn-secondary" data-edit-row="${index}">Modifica</button>
+         <button type="button" class="btn btn-sm btn-danger" data-delete-row="${index}">Elimina</button>`
+        : `<button type="button" class="btn btn-sm btn-success" data-completa-row="${index}">Completa</button>`
+    );
+    return `<tr>
+      <td>${escapeHtml(row.data || '—')}</td>
+      <td>${escapeHtml(campagnaLabel(row) || '—')}</td>
+      <td><strong>${escapeHtml(row.tipoLavoro || '—')}</strong></td>
+      <td>${escapeHtml(getTerrenoLabel(row.terrenoId))}</td>
+      <td>${escapeHtml(trattamento ? trattamento.prodotto : '—')}</td>
+      <td>${trattamento && trattamento.superficieTrattata != null ? escapeHtml(trattamento.superficieTrattata) : '—'}</td>
+      <td>${trattamento ? euro(trattamento.costoTotale) : '—'}</td>
+      <td>${ref}</td>
+      <td>${avvisoHtml(trattamento)}</td>
+      <td class="actions-cell">${azioni}</td>
+    </tr>`;
+  }).join('');
+  publishOrticoleTableData(buildTableData(visible));
+}
+
+function populateFilters() {
+  const campagne = [];
+  const seen = new Set();
+  righe.forEach((row) => {
+    if (!row.campagnaId || seen.has(row.campagnaId)) return;
+    seen.add(row.campagnaId);
+    campagne.push({ value: row.campagnaId, label: campagnaLabel(row) });
+  });
+  fillSelect(document.getElementById('filter-terreno'), terreniPerFiltro(terreni, mostraArchiviatiSelezionato()).map((t) => ({
+    value: t.id,
+    label: getTerrenoLabel(t.id)
+  })), 'Tutti i terreni');
+  fillSelect(document.getElementById('filter-campagna'), campagne, 'Tutte le campagne');
+  applyDiarioVsLavoroCta(document, hasManodopera);
+}
+
+function avvisoHtml(trattamento) {
+  if (!trattamento) return '—';
+  const avviso = avvisoDosaggioProdotti(trattamento.prodotti, listProdottiAnagrafica);
+  if (!avviso.hasWarning) return '—';
+  return `<span title="${escapeHtml(avviso.tooltip)}">⚠️</span>`;
+}
+
+function superficieDefault(row) {
+  const trattamento = row.trattamento;
+  if (trattamento && trattamento.superficieTrattata != null && !Number.isNaN(trattamento.superficieTrattata)) {
+    return trattamento.superficieTrattata;
+  }
+  if (row.superficieEttari != null && row.superficieEttari !== '') return row.superficieEttari;
+  const terreno = terreni.find((item) => item.id === row.terrenoId);
+  return terreno && terreno.superficie != null ? terreno.superficie : '';
+}
+
+function applySuperficieAnagrafe() {
+  if (!editingRow) return;
+  const terreno = terreni.find((item) => item.id === editingRow.terrenoId);
+  const input = document.getElementById('trattamento-superficie');
+  const n = terreno && terreno.superficie != null ? parseFloat(terreno.superficie) : NaN;
+  if (input && Number.isFinite(n) && n > 0) {
+    input.value = String(Math.round(n * 100) / 100);
+    ricalcolaQuantitaCostoProdotti();
+  }
+}
+
+function renderProdottiTrattamento(rows) {
+  const tbody = document.getElementById('tbody-prodotti-trattamento');
+  if (!tbody) return;
+  const superficie = parseFloat(document.getElementById('trattamento-superficie')?.value) || 0;
+  const source = rows && rows.length ? rows : [{ prodottoId: null, prodotto: '', dosaggio: null, costo: 0 }];
+  tbody.innerHTML = source.map((row, idx) => {
+    const dose = row.dosaggio != null && !Number.isNaN(Number(row.dosaggio)) ? Number(row.dosaggio) : null;
+    const anag = listProdottiAnagrafica.find((item) => item.id === row.prodottoId);
+    const qta = dose != null && superficie > 0 ? dose * superficie : (row.quantita != null ? Number(row.quantita) : null);
+    const prezzo = anag && anag.prezzoUnitario != null ? Number(anag.prezzoUnitario) : null;
+    const costo = qta != null && prezzo > 0 ? qta * prezzo : (Number(row.costo) || 0);
+    const unita = row.unitaDosaggio || (anag && anag.unitaMisura) || '—';
+    const opts = listProdottiAnagrafica.map((item) => {
+      const selected = item.id === row.prodottoId ? ' selected' : '';
+      return `<option value="${escapeHtml(item.id)}"${selected}>${escapeHtml(item.nome || item.codice || item.id)}</option>`;
+    }).join('');
+    const altro = !row.prodottoId && row.prodotto;
+    const grezzo = valoreQuantitaGrezzo(qta);
+    return `<tr data-idx="${idx}">
+      <td>
+        <select class="prodotto-select" data-idx="${idx}">
+          <option value="">— Seleziona o Altro —</option>${opts}
+        </select>
+        <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${altro ? escapeHtml(row.prodotto) : ''}" style="margin-top:4px;display:${altro ? 'block' : 'none'};width:100%">
+        ${registro.categoria === 'trattamenti' ? htmlMetaRegistro(row) : ''}
+      </td>
+      <td><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${dose != null ? dose : ''}" style="width:75px"></td>
+      <td><span class="prodotto-unita">${escapeHtml(unita)}</span></td>
+      <td><span class="prodotto-quantita"${grezzo !== '' ? ` data-valore="${grezzo}"` : ''}>${formatQuantita(qta, '', '—')}</span></td>
+      <td><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" ${row.prodottoId && prezzo > 0 ? 'readonly' : ''} style="width:100px"></td>
+      <td><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('.prodotto-select').forEach((sel) => {
+    sel.addEventListener('change', () => {
+      const idx = sel.getAttribute('data-idx');
+      const nome = tbody.querySelector(`.prodotto-nome-altro[data-idx="${idx}"]`);
+      if (nome) nome.style.display = sel.value ? 'none' : 'block';
+      const opt = listProdottiAnagrafica.find((item) => item.id === sel.value);
+      const doseInput = tbody.querySelector(`.prodotto-dosaggio[data-idx="${idx}"]`);
+      if (opt && doseInput && (opt.dosaggioMin != null || opt.dosaggioMax != null)) {
+        doseInput.value = opt.dosaggioMin != null ? opt.dosaggioMin : opt.dosaggioMax;
+      }
+      ricalcolaQuantitaCostoProdotti();
+    });
+  });
+  tbody.querySelectorAll('.prodotto-dosaggio, .prodotto-costo').forEach((input) => {
+    input.addEventListener('input', () => ricalcolaQuantitaCostoProdotti());
+  });
+  tbody.querySelectorAll('.rimuovi-prodotto').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const current = getProdottiRowsFromTable();
+      current.splice(Number(btn.getAttribute('data-idx')), 1);
+      renderProdottiTrattamento(current);
+    });
+  });
+  if (registro.categoria === 'trattamenti') {
+    attaccaLetturaScheda({
+      tbody,
+      specie: specieSchedaCorrente,
+      alias: () => aliasColturaScheda(specieSchedaCorrente() || ''),
+      nomeProdotto: (idx) => {
+        const rowsNow = getProdottiRowsFromTable();
+        return rowsNow[Number(idx)] ? rowsNow[Number(idx)].prodotto : '';
+      },
+      prodotto: (idx) => {
+        const rowsNow = getProdottiRowsFromTable();
+        const row = rowsNow[Number(idx)];
+        return row && row.prodottoId ? listProdottiAnagrafica.find((item) => item.id === row.prodottoId) : null;
+      },
+      leggiScheda: leggiSchedaRegistroTrattamento,
+      leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
+      chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
+      utente: () => utenteRegistroNome,
+      salvaSuProdotto: salvaConfermaProdottoOrticole,
+      onConferma: (idx, pacchetto) => {
+        const rowsNow = getProdottiRowsFromTable();
+        const i = Number(idx);
+        if (!rowsNow[i]) return;
+        Object.assign(rowsNow[i], pacchetto);
+        renderProdottiTrattamento(rowsNow);
+      }
+    });
+  }
+  aggiornaTotaleCostoProdotti();
+  aggiornaGiorniCarenzaDaProdotti();
+}
+
+function getProdottiRowsFromTable() {
+  const tbody = document.getElementById('tbody-prodotti-trattamento');
+  if (!tbody) return [];
+  const superficie = parseFloat(document.getElementById('trattamento-superficie')?.value) || 0;
+  return Array.from(tbody.querySelectorAll('tr[data-idx]')).map((tr) => {
+    const sel = tr.querySelector('.prodotto-select');
+    const nomeAltro = tr.querySelector('.prodotto-nome-altro');
+    const dosaggioInp = tr.querySelector('.prodotto-dosaggio');
+    const costoInp = tr.querySelector('.prodotto-costo');
+    const prodottoId = sel && sel.value ? sel.value : null;
+    const anag = listProdottiAnagrafica.find((item) => item.id === prodottoId);
+    const prodotto = prodottoId
+      ? (anag && (anag.nome || anag.codice)) || prodottoId
+      : (nomeAltro && nomeAltro.value.trim()) || '';
+    const dosaggio = dosaggioInp && dosaggioInp.value !== '' ? parseFloat(dosaggioInp.value) : null;
+    const costo = costoInp && costoInp.value !== '' ? parseFloat(costoInp.value) : 0;
+    const quantita = dosaggio != null && superficie > 0 ? Math.round(dosaggio * superficie * 100) / 100 : null;
+    return {
+      prodottoId,
+      prodotto,
+      dosaggio,
+      unitaDosaggio: anag ? anag.unitaMisura || null : null,
+      quantita,
+      costo,
+      ...leggiRegistroRiga(tr)
+    };
+  });
+}
+
+function ricalcolaQuantitaCostoProdotti() {
+  const tbody = document.getElementById('tbody-prodotti-trattamento');
+  if (!tbody) return;
+  const superficie = parseFloat(document.getElementById('trattamento-superficie')?.value) || 0;
+  tbody.querySelectorAll('tr[data-idx]').forEach((tr) => {
+    const sel = tr.querySelector('.prodotto-select');
+    const doseInput = tr.querySelector('.prodotto-dosaggio');
+    const costoInput = tr.querySelector('.prodotto-costo');
+    const prodottoId = sel && sel.value ? sel.value : null;
+    const anag = listProdottiAnagrafica.find((item) => item.id === prodottoId);
+    const dosaggio = doseInput && doseInput.value !== '' ? parseFloat(doseInput.value) : null;
+    const qta = dosaggio != null && superficie > 0 ? dosaggio * superficie : null;
+    const prezzo = anag && anag.prezzoUnitario != null ? Number(anag.prezzoUnitario) : null;
+    const unita = tr.querySelector('.prodotto-unita');
+    const quantita = tr.querySelector('.prodotto-quantita');
+    if (unita) unita.textContent = (anag && anag.unitaMisura) || '—';
+    if (quantita) {
+      quantita.textContent = formatQuantita(qta, '', '—');
+      const grezzo = valoreQuantitaGrezzo(qta);
+      if (grezzo !== '') quantita.setAttribute('data-valore', grezzo);
+      else quantita.removeAttribute('data-valore');
+    }
+    if (costoInput && prodottoId && prezzo > 0 && qta != null) {
+      costoInput.value = (qta * prezzo).toFixed(2);
+      costoInput.readOnly = true;
+    } else if (costoInput) {
+      costoInput.readOnly = false;
+    }
+  });
+  aggiornaTotaleCostoProdotti();
+  aggiornaGiorniCarenzaDaProdotti();
+}
+
+function aggiornaTotaleCostoProdotti() {
+  const totale = getProdottiRowsFromTable().reduce((sum, row) => sum + (Number(row.costo) || 0), 0);
+  const el = document.getElementById('totale-costo-prodotti-trattamento');
+  if (el) el.textContent = 'Totale costo prodotti: ' + totale.toFixed(2) + ' €';
+}
+
+function aggiornaGiorniCarenzaDaProdotti() {
+  let maxCarenza = null;
+  getProdottiRowsFromTable().forEach((row) => {
+    const confermata = row.giorniCarenzaConfermata != null && row.giorniCarenzaConfermata !== ''
+      ? Number(row.giorniCarenzaConfermata) : null;
+    if (Number.isFinite(confermata) && confermata > (maxCarenza || 0)) maxCarenza = confermata;
+    const prod = listProdottiAnagrafica.find((item) => item.id === row.prodottoId);
+    if (confermata == null && prod && prod.giorniCarenza != null && Number(prod.giorniCarenza) > (maxCarenza || 0)) {
+      maxCarenza = Number(prod.giorniCarenza);
+    }
+  });
+  const input = document.getElementById('trattamento-giorni-carenza');
+  if (input && maxCarenza != null) input.value = String(maxCarenza);
+}
+
+function specieSchedaCorrente() {
+  if (!editingRow || registro.categoria !== 'trattamenti') return null;
+  return colturaSchedaRegistro({ modulo: 'orticole', colturaNome: editingRow.colturaNome });
+}
+
+async function salvaConfermaProdottoOrticole(anag, specie, registroRiga) {
+  if (!anag || !anag.id) return;
+  const { getDb, doc, updateDoc } = await import(resolvePath('../../../core/services/firebase-service.js'));
+  const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) return;
+  const payload = unisciConfermaSpecie(anag, specie, registroRiga);
+  await updateDoc(doc(getDb(), 'tenants', tenantId, 'prodotti', anag.id), payload);
+  Object.assign(anag, payload);
+}
+
+async function esportaRegistroOrticole(formato) {
+  const { getCurrentTenant } = await import(resolvePath('../../../core/services/tenant-service.js'));
+  const tenant = await getCurrentTenant().catch(() => null);
+  const azienda = aziendaDaTenant(tenant || {});
+  const interventi = visible.filter((row) => row.trattamento).map((row) => {
+    const t = row.trattamento;
+    const dataVal = t.data instanceof Date ? t.data : (t.data && t.data.toDate ? t.data.toDate() : new Date(t.data || row.data));
+    const iso = dataVal && !Number.isNaN(dataVal.getTime()) ? dataVal.toISOString().slice(0, 10) : String(row.data || '');
+    const specie = colturaSchedaRegistro({ modulo: 'orticole', colturaNome: row.colturaNome });
+    return {
+      ...azienda,
+      data: iso,
+      terreno: getTerrenoLabel(row.terrenoId),
+      coltura: specie || row.colturaNome || '',
+      ettari: t.superficieTrattata != null ? t.superficieTrattata : row.superficieEttari,
+      operatore: t.operatore || '',
+      macchina: t.macchinaId || '',
+      acquaEttolitriTotali: t.acquaEttolitriTotali,
+      acquaEttolitriPerEttaro: t.acquaEttolitriPerEttaro,
+      giorniCarenza: t.giorniCarenza,
+      specie: t.specieUsata || specie || '',
+      prodotti: t.prodotti || []
+    };
+  });
+  const righe = righeExportRegistro(interventi);
+  const testo = formato === 'xml' ? registroToXml(righe) : registroToCsv(righe);
+  const blob = new Blob([testo], { type: formato === 'xml' ? 'application/xml' : 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'registro-trattamenti.' + (formato === 'xml' ? 'xml' : 'csv');
+  a.click();
+  URL.revokeObjectURL(a.href);
+  alert('Export del registro privato scaricato. GFV non lo invia al SIAN.');
+}
+
+function validaDosaggiProdotti(rows) {
+  const avviso = avvisoDosaggioProdotti(rows, listProdottiAnagrafica);
+  return avviso.hasWarning ? { valid: false, message: avviso.tooltip } : { valid: true };
+}
+
+async function loadProdottiAnagrafica() {
+  try {
+    const { getAllProdotti } = await import(resolvePath('../../../modules/magazzino/services/prodotti-service.js'));
+    listProdottiAnagrafica = await getAllProdotti({ soloAttivi: true }) || [];
+  } catch (err) {
+    console.warn('[trattamenti] Anagrafica prodotti non disponibile:', err);
+    listProdottiAnagrafica = [];
+  }
+}
+
+async function openModal(row) {
+  await apriConAvviso(() => compilaModuloTrattamento(row), (messaggio) => alert(messaggio));
+}
+
+async function compilaModuloTrattamento(row) {
+  editingRow = row;
+  const trattamento = row.trattamento;
+  document.getElementById('trattamento-id').value = trattamento ? trattamento.id || '' : '';
+  const superficie = document.getElementById('trattamento-superficie');
+  if (superficie) superficie.value = superficieDefault(row);
+  const anagrafe = document.getElementById('trattamento-superficie-anagrafe');
+  if (anagrafe) anagrafe.checked = !!(trattamento && trattamento.superficieDaAnagrafeTerreno);
+  const note = document.getElementById('trattamento-note');
+  if (note) note.value = trattamento ? trattamento.note || '' : '';
+  const meteo = document.getElementById('trattamento-condizioni-meteo');
+  if (meteo) meteo.value = trattamento && trattamento.condizioniMeteo ? trattamento.condizioniMeteo : '';
+  const copertura = document.getElementById('trattamento-copertura-terreno');
+  if (copertura) copertura.value = trattamento && trattamento.coperturaTerreno ? trattamento.coperturaTerreno : 'non_dichiarata';
+  const carenza = document.getElementById('trattamento-giorni-carenza');
+  if (carenza) carenza.value = trattamento && trattamento.giorniCarenza != null ? trattamento.giorniCarenza : '';
+  scriviAcquaNelForm(trattamento);
+  scriviEsitoScheda('');
+  const operatore = document.getElementById('trattamento-operatore');
+  if (operatore) operatore.value = trattamento ? trattamento.operatore || '' : '';
+  const operatoreGroup = document.getElementById('trattamento-operatore-group');
+  const proprietario = document.getElementById('trattamento-proprietario-message');
+  if (operatoreGroup) operatoreGroup.style.display = hasManodopera ? '' : 'none';
+  if (proprietario) proprietario.style.display = hasManodopera ? 'none' : '';
+  const scaricoGroup = document.getElementById('trattamento-scarico-magazzino-group');
+  if (scaricoGroup) scaricoGroup.style.display = hasMagazzino ? '' : 'none';
+  const scarico = document.getElementById('trattamento-registra-scarico-magazzino');
+  if (scarico) scarico.checked = !!(trattamento && trattamento.magazzinoMovimentoIds && trattamento.magazzinoMovimentoIds.length);
+  const rows = trattamento && trattamento.prodotti && trattamento.prodotti.length
+    ? trattamento.prodotti
+    : [{ prodottoId: null, prodotto: '', dosaggio: null, costo: 0 }];
+  renderProdottiTrattamento(rows);
+  try {
+    const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../../vigneto/services/trattamenti-vigneto-service.js'));
+    const prefill = await getDatiPrecompilazioneTrattamento(null, trattamento || {
+      lavoroId: row.lavoroId,
+      attivitaId: row.attivitaId
+    });
+    const mano = document.getElementById('trattamento-costo-mano');
+    const macchina = document.getElementById('trattamento-costo-macchina');
+    if (mano) mano.value = (Number(prefill.costoManodopera) || 0).toFixed(2);
+    if (macchina) macchina.value = (Number(prefill.costoMacchina) || 0).toFixed(2);
+  } catch (err) {
+    console.warn('[trattamenti] prefill costi:', err);
+  }
+  const title = document.getElementById('modal-trattamento-title');
+  if (title) title.textContent = trattamento ? registro.modifica : registro.completa;
+  const info = document.getElementById('trattamento-contesto');
+  if (info) {
+    info.textContent = `${row.data || ''} · ${row.tipoLavoro || ''} · ${getTerrenoLabel(row.terrenoId)} · ${campagnaLabel(row)}`;
+  }
+  document.getElementById('modal-trattamento').classList.add('active');
+}
+
+function closeModal() {
+  editingRow = null;
+  const modal = document.getElementById('modal-trattamento');
+  if (modal) modal.classList.remove('active');
+}
+
+export function openOrticolaTrattamentoModal() {
+  if (!editingRow && visible.length === 1 && !visible[0].trattamento) {
+    openModal(visible[0]);
+    return;
+  }
+  if (!editingRow) {
+    alert('Scegli Completa sulla riga del lavoro o dell\'attività da integrare.');
+  }
+}
+
+async function onSubmit(event) {
+  event.preventDefault();
+  if (!editingRow) return;
+  const rowsProdotti = getProdottiRowsFromTable().filter((row) => String(row.prodotto || '').trim());
+  if (!rowsProdotti.length) {
+    alert('Aggiungi almeno una riga prodotto con nome.');
+    return;
+  }
+  const checkDose = validaDosaggiProdotti(rowsProdotti);
+  if (!checkDose.valid && !window.confirm('Attenzione: ' + checkDose.message + ' Salvare comunque?')) return;
+  const acquaUsata = registro.categoria === 'trattamenti' ? leggiAcquaDalForm() : { ettolitriPerEttaro: null, ettolitriTotali: null };
+  if (registro.categoria === 'trattamenti') {
+    const avvisiRegistro = messaggiAvvisoForm({
+      data: editingRow.data,
+      terrenoId: editingRow.terrenoId,
+      prodotti: rowsProdotti,
+      ettolitriTotali: acquaUsata.ettolitriTotali,
+      precedenti: passaggiOrticole(editingRow.trattamento && editingRow.trattamento.id),
+      escludiId: editingRow.trattamento && editingRow.trattamento.id
+    });
+    if (avvisiRegistro.length && !window.confirm(avvisiRegistro.join('\n') + '\n\nSalvare comunque?')) return;
+  }
+  const anagrafe = document.getElementById('trattamento-superficie-anagrafe');
+  const usaAnagrafe = !!(anagrafe && anagrafe.checked);
+  if (usaAnagrafe) applySuperficieAnagrafe();
+  const superficie = parseFloat(document.getElementById('trattamento-superficie').value);
+  const { inferTipoTrattamentoColturaFromTipoLavoroNome } = await import(resolvePath('../../../core/config/trattamenti-lavoro-defaults.js'));
+  const tipoEsistente = editingRow.trattamento && editingRow.trattamento.tipoTrattamento;
+  const scaricoGroup = document.getElementById('trattamento-scarico-magazzino-group');
+  const registra = scaricoGroup && scaricoGroup.style.display !== 'none'
+    ? !!document.getElementById('trattamento-registra-scarico-magazzino')?.checked
+    : undefined;
+  try {
+    await saveTrattamentoOrticole({
+      id: document.getElementById('trattamento-id').value || null,
+      campagnaId: editingRow.campagnaId,
+      terrenoId: editingRow.terrenoId,
+      lavoroId: editingRow.lavoroId,
+      attivitaId: editingRow.attivitaId,
+      data: editingRow.data,
+      tipoLavoro: editingRow.tipoLavoro,
+      tipoTrattamento: tipoEsistente || inferTipoTrattamentoColturaFromTipoLavoroNome(editingRow.tipoLavoro),
+      prodotti: rowsProdotti,
+      superficieTrattata: Number.isFinite(superficie) ? superficie : null,
+      superficieDaAnagrafeTerreno: usaAnagrafe,
+      giorniCarenza: document.getElementById('trattamento-giorni-carenza').value,
+      acquaEttolitriPerEttaro: acquaUsata.ettolitriPerEttaro,
+      acquaEttolitriTotali: acquaUsata.ettolitriTotali,
+      specieUsata: specieSchedaCorrente(),
+      costoManodopera: document.getElementById('trattamento-costo-mano').value,
+      costoMacchina: document.getElementById('trattamento-costo-macchina').value,
+      note: document.getElementById('trattamento-note').value,
+      condizioniMeteo: document.getElementById('trattamento-condizioni-meteo').value || null,
+      coperturaTerreno: document.getElementById('trattamento-copertura-terreno').value,
+      operatore: document.getElementById('trattamento-operatore')?.value || '',
+      magazzinoMovimentoIds: editingRow.trattamento ? editingRow.trattamento.magazzinoMovimentoIds : []
+    }, registra === undefined ? {} : { registraScaricoMagazzino: registra });
+    closeModal();
+    await loadRighe();
+  } catch (err) {
+    console.error('[trattamenti]', err);
+    alert(err.message || 'Errore nel salvataggio');
+  }
+}
+
+function passaggiOrticole(escludiId) {
+  return righe.filter((row) => row.trattamento && row.trattamento.id !== escludiId).flatMap((row) => {
+    const t = row.trattamento;
+    return (t.prodotti || []).map((p) => ({
+      id: t.id,
+      data: t.data || row.data,
+      terrenoId: row.terrenoId,
+      prodottoId: p.prodottoId,
+      nome: p.prodotto
+    }));
+  });
+}
+
+async function confirmDelete(index) {
+  const row = visible[index];
+  if (!row || !row.trattamento || !row.trattamento.id) return;
+  const verdict = registro.categoria === 'trattamenti'
+    ? valutaCancellazioneRegistro(row.trattamento)
+    : { consentita: true, messaggio: 'I movimenti di magazzino collegati restano.' };
+  const domanda = verdict.messaggio + '\n\nEliminare i dati prodotto? Il lavoro o l\'attività nel diario restano.';
+  if (!verdict.consentita) {
+    if (!window.confirm(domanda + '\n\nConfermo di avere già esportato il registro.')) return;
+  } else if (!window.confirm(domanda)) return;
+  await deleteTrattamentoOrticole(row.trattamento.id, { exportConfermato: !verdict.consentita });
+  await loadRighe();
+}
+
+async function loadRighe() {
+  const loadingDiv = document.getElementById('loading');
+  if (loadingDiv) loadingDiv.style.display = 'block';
+  const data = await listRigheTrattamento({
+    includeLavori: hasManodopera,
+    categoria: registro.categoria
+  });
+  await loadProdottiAnagrafica();
+  terreni = data.terreni || [];
+  righe = data.righe || [];
+  populateFilters();
+  applyFilters();
+}
+
+function setupEventListeners() {
+  ['filter-terreno', 'filter-campagna'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', applyFilters);
+  });
+  const search = document.getElementById('filter-ricerca');
+  if (search) search.addEventListener('input', applyFilters);
+  const mostraArchiviati = document.getElementById('filter-mostra-archiviati');
+  if (mostraArchiviati) {
+    mostraArchiviati.addEventListener('change', () => {
+      populateFilters();
+      applyFilters();
+    });
+  }
+  const resetBtn = document.getElementById('btn-reset-filtri');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      ['filter-terreno', 'filter-campagna', 'filter-ricerca'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      applyFilters();
+    });
+  }
+  bindAzioniLista(document.querySelector('.table-container'), {
+    onEdit: (idx) => openModal(visible[idx]),
+    onCompleta: (idx) => openModal(visible[idx]),
+    onDelete: (idx) => confirmDelete(idx),
+    onError: (err) => alert((err && err.message) || 'Non riesco ad aprire il trattamento.')
+  });
+  const form = document.getElementById('form-trattamento');
+  if (form) form.addEventListener('submit', onSubmit);
+  const closeBtn = document.getElementById('btn-close-trattamento-modal');
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  const cancelBtn = document.getElementById('cancel-btn');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  bindAcquaCampi();
+  const notaRegistro = document.getElementById('registro-nota');
+  if (notaRegistro) notaRegistro.textContent = notaRegistroTesto();
+  const btnCsv = document.getElementById('btn-export-registro-csv');
+  const btnXml = document.getElementById('btn-export-registro-xml');
+  if (btnCsv) btnCsv.addEventListener('click', () => esportaRegistroOrticole('csv'));
+  if (btnXml) btnXml.addEventListener('click', () => esportaRegistroOrticole('xml'));
+  const addProdotto = document.getElementById('btn-aggiungi-prodotto-trattamento');
+  if (addProdotto) {
+    addProdotto.addEventListener('click', () => {
+      const rows = getProdottiRowsFromTable();
+      rows.push({ prodottoId: null, prodotto: '', dosaggio: null, costo: 0 });
+      renderProdottiTrattamento(rows);
+    });
+  }
+  const superficie = document.getElementById('trattamento-superficie');
+  if (superficie) superficie.addEventListener('input', () => ricalcolaQuantitaCostoProdotti());
+  const anagrafe = document.getElementById('trattamento-superficie-anagrafe');
+  if (anagrafe) {
+    anagrafe.addEventListener('change', () => {
+      if (anagrafe.checked) applySuperficieAnagrafe();
+    });
+  }
+  window.__tonyTrattamentoCampoApi = {
+    renderProdotti: renderProdottiTrattamento,
+    getProdottiAnagrafica: () => listProdottiAnagrafica,
+    syncSuperficieAnagrafeAfterTonyInject: async () => {
+      const box = document.getElementById('trattamento-superficie-anagrafe');
+      if (box) box.checked = true;
+      applySuperficieAnagrafe();
+    }
+  };
+}
+
+async function bootRegistro() {
+  publishOrticoleTableData({
+    pageType: registro.pageType,
+    summary: 'Caricamento dati in corso...',
+    items: []
+  });
+  try {
+    await window.GFVStandaloneReady;
+  } catch (err) {
+    console.error('[' + registro.log + '] Bootstrap failed:', err);
+    throw err;
+  }
+  const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
+  const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+  const { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = firebaseServiceModule;
+    const { getCurrentTenantId, getCurrentTenant, initializeTenantService, hasModuleAccess } = tenantServiceModule;
+  initializeTenantService();
+  setupEventListeners();
+  window.openOrticolaTrattamentoModal = openOrticolaTrattamentoModal;
+  window.applyFilters = applyFilters;
+
+  const auth = getAuthInstance();
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) user = await resolveAuthUser(auth);
+    utenteRegistroNome = user ? (user.displayName || user.email || user.uid) : '';
+    if (!user) {
+      window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
+      return;
+    }
+    const db = getDb();
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (!userDoc.exists()) {
+      window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
+      return;
+    }
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) return;
+    const tenant = await getCurrentTenant().catch(() => null);
+    const modules = resolveEffectiveModules(tenant);
+    hasManodopera = modules.some((item) => String(item || '').toLowerCase() === 'manodopera');
+    hasMagazzino = await hasModuleAccess('magazzino');
+    if (!modules.some((item) => String(item || '').toLowerCase() === 'orticole')) modules.push('orticole');
+    if (!modules.some((item) => String(item || '').toLowerCase() === 'tony')) modules.push('tony');
+    syncTonyModules(modules);
+    await loadRighe();
+  });
+}
+
+export function initTrattamentiPage() {
+  registro = REGISTRI.trattamenti;
+  return bootRegistro();
+}
+
+export function initConcimazioniPage() {
+  registro = REGISTRI.concimazioni;
+  return bootRegistro();
+}

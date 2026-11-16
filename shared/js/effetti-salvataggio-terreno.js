@@ -22,7 +22,7 @@ export function cambioCategoriaColtura(prima, dopo) {
   const a = famigliaColtura(prima);
   const b = famigliaColtura(dopo);
   if (a === b) return false;
-  const speciali = new Set(['vigneto', 'frutteto']);
+  const speciali = new Set(['vigneto', 'frutteto', 'orticole']);
   return speciali.has(a) || speciali.has(b);
 }
 

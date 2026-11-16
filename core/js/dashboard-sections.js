@@ -474,6 +474,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
         if (mods.includes('seminativo')) appendCard(S.createSeminativoCard());
+        if (mods.includes('orticole')) appendCard(S.createOrticoleCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
         if (mods.includes('parcoMacchine')) {
             appendCard(S.createMacchineCard());
@@ -492,6 +493,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
         if (mods.includes('seminativo')) appendCard(S.createSeminativoCard());
+        if (mods.includes('orticole')) appendCard(S.createOrticoleCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
         if (mods.includes('parcoMacchine')) {
             appendCard(S.createMacchineCard());
@@ -710,6 +712,7 @@ window.GFVDashboardSections.createDashboardModuleEntryTilesRow = function create
     if (mods.includes('vigneto')) appendTile(S.createVignetoCard());
     if (mods.includes('frutteto')) appendTile(S.createFruttetoCard());
     if (mods.includes('seminativo')) appendTile(S.createSeminativoCard());
+    if (mods.includes('orticole')) appendTile(S.createOrticoleCard());
     if (mods.includes('magazzino')) appendTile(S.createMagazzinoCard(0));
     if (mods.includes('parcoMacchine')) {
         appendTile(S.createMacchineCard());
@@ -801,6 +804,24 @@ window.GFVDashboardSections.createSeminativoCard = function createSeminativoCard
             <span class="dashboard-module-tile__body">
                 <span class="dashboard-module-tile__title">Seminativo</span>
                 <span class="dashboard-module-tile__desc">Campagne, semina, lavorazioni e raccolta. Colture erbacee da granella.</span>
+            </span>
+        </a>
+    `;
+    return section;
+};
+
+/**
+ * Card Orticole — tile compatto
+ */
+window.GFVDashboardSections.createOrticoleCard = function createOrticoleCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section dashboard-section--module-tile';
+    section.innerHTML = `
+        <a href="../modules/orticole/views/orticole-dashboard-standalone.html" class="dashboard-module-tile" data-module="orticole" style="--module-accent:#E65100;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🥬</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Orticole</span>
+                <span class="dashboard-module-tile__desc">Campagne, trapianto, irrigazione e raccolta. Colture ortive a pieno campo.</span>
             </span>
         </a>
     `;

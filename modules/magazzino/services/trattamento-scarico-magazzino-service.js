@@ -25,7 +25,8 @@ const CODICE_MOVIMENTO_NON_TROVATO = 'MOVIMENTO_NON_TROVATO';
 const PATH_TRATTAMENTI_PER_MODULO = {
   vigneto: (colturaId) => `vigneti/${colturaId}/trattamenti`,
   frutteto: (colturaId) => `frutteti/${colturaId}/trattamenti`,
-  seminativo: () => 'trattamentiSeminativo'
+  seminativo: () => 'trattamentiSeminativo',
+  orticole: () => 'trattamentiOrticole'
 };
 
 /**
@@ -140,7 +141,7 @@ export async function rimuoviMovimentiTrattamento(movimentoIds) {
  *    prodotto sono sommate; la giacenza varia solo della differenza rispetto al movimento già esistente.
  *
  * @param {Object} params
- * @param {'vigneto'|'frutteto'|'seminativo'} params.modulo
+ * @param {'vigneto'|'frutteto'|'seminativo'|'orticole'} params.modulo
  * @param {string} params.colturaId - vignetoId, fruttetoId o campagnaId
  * @param {string} params.trattamentoId
  * @param {Date|import('firebase/firestore').Timestamp} params.dataTrattamento
@@ -252,7 +253,7 @@ export async function aggiornaTrattamentoDopoStornoMovimento(movimento) {
   if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
 
   const colturaId = movimento.origineTrattamentoColturaId;
-  if (modulo !== 'seminativo' && !colturaId) return { aggiornato: false };
+  if (modulo !== 'seminativo' && modulo !== 'orticole' && !colturaId) return { aggiornato: false };
 
   const path = pathFor(colturaId);
   const trattamento = await getDocumentData(path, trattamentoId, tenantId);
