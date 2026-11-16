@@ -41,6 +41,13 @@ describe('tony-module-gate', () => {
     expect(isApriPaginaTargetAllowed('piano colturale', ['seminativo'])).toBe(true);
   });
 
+  it('blocca APRI_PAGINA orticole se il modulo non è attivo', () => {
+    expect(isApriPaginaTargetAllowed('orticole', ['tony', 'seminativo'])).toBe(false);
+    expect(isApriPaginaTargetAllowed('orticole', ['tony', 'orticole'])).toBe(true);
+    expect(isApriPaginaTargetAllowed('irrigazione orticole', ['orticole'])).toBe(true);
+    expect(isApriPaginaTargetAllowed('semina orticole', ['orticole'])).toBe(true);
+  });
+
   it('sanitizza comando navigazione modulo inattivo', () => {
     const result = sanitizeTonyResultForModules(
       {

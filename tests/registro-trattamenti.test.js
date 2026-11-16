@@ -45,6 +45,13 @@ describe('specie della scheda', () => {
     expect(colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: 'Coltura inventata' })).toBeNull();
     expect(aliasColturaScheda('frumento')).toContain('grano');
   });
+
+  it('mappa orticole note e lascia null le sconosciute', () => {
+    expect(colturaSchedaRegistro({ modulo: 'orticole', colturaNome: 'Pomodoro' })).toBe('pomodoro');
+    expect(colturaSchedaRegistro({ modulo: 'orticole', colturaNome: 'Patate' })).toBe('patata');
+    expect(colturaSchedaRegistro({ modulo: 'orticole', colturaNome: 'Cipolle' })).toBe('cipolla');
+    expect(colturaSchedaRegistro({ modulo: 'orticole', colturaNome: 'Coltura inventata' })).toBeNull();
+  });
 });
 
 describe('miscela', () => {
