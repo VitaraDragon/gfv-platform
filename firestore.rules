@@ -710,6 +710,36 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Collection: orticole (Modulo Orticole — campagne a pieno campo)
+    match /tenants/{tenantId}/orticole/{campagnaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: semineOrticole (trapianto / semina collegati a una campagna)
+    match /tenants/{tenantId}/semineOrticole/{seminaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: trattamentiOrticole (prodotto e dose su un lavoro o un'attività di diario)
+    match /tenants/{tenantId}/trattamentiOrticole/{trattamentoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: raccolteOrticole (raccolte orticole su un lavoro o un'attività di diario)
+    match /tenants/{tenantId}/raccolteOrticole/{raccoltaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: irrigazioniOrticole (interventi di irrigazione collegati a una campagna)
+    match /tenants/{tenantId}/irrigazioniOrticole/{irrigazioneId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: raccolteFrutta (raccolte frutta standalone, non sotto frutteti)
     match /tenants/{tenantId}/raccolteFrutta/{raccoltaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
