@@ -1,6 +1,6 @@
 /**
  * Registro trattamenti privato: conferma riga, miscela, avvisi, export, conservazione.
- * Un solo helper per vigneto, frutteto e seminativo. Non invia nulla al SIAN.
+ * Un solo helper per vigneto, frutteto, seminativo e orticole. Non invia nulla al SIAN.
  * @module shared/js/registro-trattamenti
  */
 

@@ -1,5 +1,5 @@
 /**
- * Pannello scheda e acqua sul form trattamento (vigneto, frutteto, seminativo).
+ * Pannello scheda e acqua sul form trattamento (vigneto, frutteto, seminativo, orticole).
  * @module shared/js/registro-trattamenti-form
  */
 

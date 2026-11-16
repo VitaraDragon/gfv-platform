@@ -54,7 +54,7 @@ export function inferColtureTipoLavoro(tipo) {
 export function famigliaDaTerrenoOStringa(terrenoOFamiglia) {
   if (typeof terrenoOFamiglia === 'string') {
     const s = terrenoOFamiglia.toLowerCase();
-    if (['vigneto', 'frutteto', 'seminativo', 'arboreo', 'altro', 'nessuna'].includes(s)) return s;
+    if (['vigneto', 'frutteto', 'seminativo', 'orticole', 'arboreo', 'altro', 'nessuna'].includes(s)) return s;
     return famigliaColtura(terrenoOFamiglia);
   }
   return famigliaColtura(terrenoOFamiglia);
