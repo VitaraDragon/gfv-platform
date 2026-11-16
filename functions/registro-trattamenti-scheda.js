@@ -6,7 +6,8 @@
 const { HttpsError } = require("firebase-functions/v2/https");
 const {
   estraiUrlCsv,
-  componiRispostaScheda
+  componiRispostaScheda,
+  chiaveRicercaScheda
 } = require("./lib/registro-trattamenti-scheda-core");
 
 const PAGINA_DATASET = "https://www.dati.salute.gov.it/it/dataset/fitosanitari/";
@@ -54,8 +55,8 @@ async function handleLeggiSchedaRegistroTrattamento(request) {
     throw new HttpsError("unauthenticated", "Accedi per cercare il prodotto negli open data.");
   }
   const data = request.data || {};
-  const nome = testo(data.nome || data.nomeProdotto);
-  if (!nome) throw new HttpsError("invalid-argument", "Manca il nome del prodotto.");
+  const chiave = chiaveRicercaScheda(data);
+  if (!chiave.ok) throw new HttpsError("invalid-argument", "Manca il nome o il numero del prodotto.");
   const scaricato = await csvCorrente();
   if (!scaricato) {
     return {
@@ -71,8 +72,8 @@ async function handleLeggiSchedaRegistroTrattamento(request) {
   }
   return componiRispostaScheda({
     csv: scaricato.csv,
-    nome,
-    numero: testo(data.numero || data.numeroRegistrazione),
+    nome: chiave.nome,
+    numero: chiave.numero,
     specie: testo(data.specie),
     urlCsv: scaricato.url
   });
