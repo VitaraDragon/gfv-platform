@@ -228,13 +228,25 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="prodotto-numero-registrazione">Numero di registrazione</label>
-                        <input type="text" id="prodotto-numero-registrazione" readonly placeholder="Dalla scheda pubblica, dopo la conferma">
+                        <input type="text" id="prodotto-numero-registrazione" readonly placeholder="Dagli open data del Ministero">
                     </div>
                     <div class="form-group">
                         <label for="prodotto-principio-attivo">Principio attivo</label>
-                        <input type="text" id="prodotto-principio-attivo" readonly placeholder="Dalla scheda pubblica, dopo la conferma">
+                        <input type="text" id="prodotto-principio-attivo" readonly placeholder="Dagli open data del Ministero">
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-titolare">Titolare</label>
+                        <input type="text" id="prodotto-titolare" readonly placeholder="Dagli open data del Ministero">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-stato-amministrativo">Stato</label>
+                        <input type="text" id="prodotto-stato-amministrativo" readonly placeholder="Dagli open data del Ministero">
+                    </div>
+                </div>
+                <p id="prodotto-attribuzione-open-data" class="form-hint"></p>
+                <p id="prodotto-avviso-etichetta" class="form-hint"></p>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="prodotto-fonte-scheda">Fonte</label>
@@ -270,7 +282,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, g
             prodottoCategoriaRichiedeGiorniCarenza,
         } from '../../../core/js/prodotto-form-required.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
-        import { htmlSemaforoLetturaScheda } from '../../../shared/js/registro-trattamenti.js';
+        import { htmlSemaforoLetturaScheda, htmlAttribuzioneOpenData, AVVISO_ETICHETTA_FA_FEDE } from '../../../shared/js/registro-trattamenti.js';
         import { formatQuantita } from '../../../shared/js/formato-quantita.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
@@ -279,6 +291,26 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, g
         } catch (err) {
             console.error('[prodotti] Bootstrap failed:', err);
             throw err;
+        }
+        const avvisoEtichetta = document.getElementById('prodotto-avviso-etichetta');
+        if (avvisoEtichetta) avvisoEtichetta.textContent = AVVISO_ETICHETTA_FA_FEDE;
+
+        function scriviAnagraficaOpenData(p) {
+            const numReg = document.getElementById('prodotto-numero-registrazione');
+            const principio = document.getElementById('prodotto-principio-attivo');
+            const titolare = document.getElementById('prodotto-titolare');
+            const stato = document.getElementById('prodotto-stato-amministrativo');
+            const fonte = document.getElementById('prodotto-fonte-scheda');
+            const dataLettura = document.getElementById('prodotto-data-lettura');
+            const attribuzione = document.getElementById('prodotto-attribuzione-open-data');
+            if (numReg) numReg.value = p && p.numeroRegistrazione ? p.numeroRegistrazione : '';
+            if (principio) principio.value = p && p.principioAttivo ? p.principioAttivo : '';
+            if (titolare) titolare.value = p && p.titolare ? p.titolare : '';
+            if (stato) stato.value = p && p.statoAmministrativoScheda ? p.statoAmministrativoScheda : '';
+            if (fonte) fonte.value = p && p.fonteScheda ? p.fonteScheda : '';
+            if (dataLettura) dataLettura.value = p && p.dataLetturaScheda ? p.dataLetturaScheda : '';
+            const haDati = p && (p.numeroRegistrazione || p.principioAttivo || p.titolare || p.statoAmministrativoScheda || p.fonteScheda);
+            if (attribuzione) attribuzione.innerHTML = haDati ? htmlAttribuzioneOpenData(p.dataLetturaScheda) : '';
         }
         if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
             window.currentTableData = { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };
@@ -673,14 +705,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, g
             document.getElementById('prodotto-dosaggio-min').value = p.dosaggioMin != null ? p.dosaggioMin : '';
             document.getElementById('prodotto-dosaggio-max').value = p.dosaggioMax != null ? p.dosaggioMax : '';
             document.getElementById('prodotto-giorni-carenza').value = p.giorniCarenza != null ? p.giorniCarenza : '';
-            const numReg = document.getElementById('prodotto-numero-registrazione');
-            const principio = document.getElementById('prodotto-principio-attivo');
-            const fonte = document.getElementById('prodotto-fonte-scheda');
-            const dataLettura = document.getElementById('prodotto-data-lettura');
-            if (numReg) numReg.value = p.numeroRegistrazione || '';
-            if (principio) principio.value = p.principioAttivo || '';
-            if (fonte) fonte.value = p.fonteScheda || '';
-            if (dataLettura) dataLettura.value = p.dataLetturaScheda || '';
+            scriviAnagraficaOpenData(p);
             document.getElementById('prodotto-note').value = p.note || '';
             const banner = document.getElementById('prodotto-da-completare-banner');
             if (banner) banner.style.display = p.daCompletare === true ? 'block' : 'none';
@@ -806,10 +831,7 @@ import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, g
             document.getElementById('prodotto-dosaggio-min').value = '';
             document.getElementById('prodotto-dosaggio-max').value = '';
             document.getElementById('prodotto-giorni-carenza').value = '';
-            ['prodotto-numero-registrazione', 'prodotto-principio-attivo', 'prodotto-fonte-scheda', 'prodotto-data-lettura'].forEach((id) => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
+            scriviAnagraficaOpenData(null);
             document.getElementById('prodotto-modal').classList.add('active');
             syncProdottoDosaggioCarenzaRequiredDom();
         }
