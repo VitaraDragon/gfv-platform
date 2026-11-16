@@ -183,6 +183,15 @@ export const AVAILABLE_MODULES = [
     category: 'colture'
   },
   {
+    id: 'orticole',
+    name: 'Orticole',
+    icon: '🥬',
+    description: 'Campagne, trapianto, irrigazione e raccolta',
+    price: 3,
+    available: true,
+    category: 'colture'
+  },
+  {
     id: 'magazzino',
     name: 'Prodotti e Magazzino',
     icon: '📦',
@@ -307,11 +316,12 @@ export const BUNDLES = [
   {
     id: 'gfv-completo',
     name: 'GFV Completo',
-    modules: ALL_AVAILABLE_MODULE_IDS,
+    // Congelato ai 11 moduli pre-orticole: non espandere automaticamente via ALL_AVAILABLE_MODULE_IDS.
+    modules: ['manodopera', 'parcoMacchine', 'contoTerzi', 'vendemmiaMeccanica', 'vigneto', 'frutteto', 'seminativo', 'magazzino', 'tony', 'report', 'meteo'],
     price: 30, // singoli €40 con il seminativo → risparmio €10
     isComplete: true,
     description: 'Tutti i moduli disponibili: colture, manodopera, conto terzi, magazzino, meteo, report e Tony Avanzato',
-    suggestedFor: ALL_AVAILABLE_MODULE_IDS,
+    suggestedFor: ['manodopera', 'parcoMacchine', 'contoTerzi', 'vendemmiaMeccanica', 'vigneto', 'frutteto', 'seminativo', 'magazzino', 'tony', 'report', 'meteo'],
     upsellModules: []
   }
 ];

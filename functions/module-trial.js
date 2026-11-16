@@ -27,6 +27,7 @@ const AVAILABLE_MODULE_IDS = [
   "vigneto",
   "frutteto",
   "seminativo",
+  "orticole",
   "magazzino",
   "tony",
   "report",
