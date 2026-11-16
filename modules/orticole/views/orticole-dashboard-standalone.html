@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Orticole" data-gfv-module="orticole">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dashboard Orticole - GFV</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="orticole-standalone.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🥬 Orticole</h1>
+                <p>Campagne, semina e trapianto, irrigazione, lavorazioni e raccolta.</p>
+            </div>
+            <div class="header-actions">
+                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard Principale</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <h2 id="panoramica-title">Panoramica</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-campagne">—</div>
+                    <div class="stat-label">Campagne aperte</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-ettari">—</div>
+                    <div class="stat-label">Ettari aperti</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-semine">—</div>
+                    <div class="stat-label">Impianti</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-raccolte">—</div>
+                    <div class="stat-label">Raccolte</div>
+                </div>
+            </div>
+
+            <h2>Azioni rapide</h2>
+            <div class="quick-actions" id="orticole-hub-cards"></div>
+
+            <div class="section hub-list">
+                <h2>Raccolte recenti</h2>
+                <div class="table-container">
+                    <table id="table-raccolte">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Terreno</th>
+                                <th>Quantità (Qli)</th>
+                                <th>Resa (Qli/Ha)</th>
+                                <th>Costo Totale (€)</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="loading">Caricamento raccolte...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section hub-list">
+                <h2>Lavori orticole</h2>
+                <div class="table-container">
+                    <table id="table-lavori">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Terreno</th>
+                                <th>Tipo Lavoro</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="loading">Caricamento lavori...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { resolvePath } from '../../../core/js/gfv-path.js';
+        import { richiediModulo } from '../../../core/js/module-page-guard.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { publishOrticoleTableData, placeholderTableData } from '../js/orticole-page-context.js';
+        import { renderOrticoleHubCards, refreshOrticoleHub } from '../js/orticole-hub-page.js';
+
+        function syncTonyModules(modules) {
+            if (typeof window.syncTonyModules === 'function') {
+                window.syncTonyModules(modules);
+            } else if (window.setTonyContext) {
+                window.setTonyContext({ moduli_attivi: modules });
+            } else {
+                window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules } }));
+            }
+        }
+
+        renderOrticoleHubCards();
+        publishOrticoleTableData(placeholderTableData(
+            'orticole_hub',
+            'Caricamento dati in corso...'
+        ));
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[orticole-dashboard] Bootstrap failed:', err);
+            throw err;
+        }
+
+        const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
+        const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+        const { getAuthInstance, onAuthStateChanged } = firebaseServiceModule;
+        const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
+
+        const auth = getAuthInstance();
+        initializeTenantService();
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
+            if (!user) {
+                window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
+                return;
+            }
+            if (!getCurrentTenantId()) {
+                console.warn('[orticole-dashboard] Tenant non disponibile');
+                return;
+            }
+            const tenant = await getCurrentTenant().catch(() => null);
+            if (!richiediModulo(tenant, 'orticole')) return;
+            const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+            const modules = resolveEffectiveModules(tenant);
+            syncTonyModules(modules);
+            try {
+                const includeLavori = modules.some((item) => String(item || '').toLowerCase() === 'manodopera');
+                await refreshOrticoleHub({ includeLavori });
+            } catch (err) {
+                console.error('[orticole-dashboard] Panoramica non disponibile:', err);
+            }
+        });
+    </script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../../service-worker.js';
+        registraServiceWorker(swPath);
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Raccolta" data-gfv-module="orticole">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Raccolta — Orticole - GFV</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#E65100">
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="orticole-standalone.css">
+</head>
+<body data-orticole-page="raccolta" data-page-type="raccolta_orticole">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📦 Raccolta — Orticole</h1>
+                <p>Le raccolte a pieno campo provengono da lavori o attività con categoria <strong>Raccolta</strong>. Si completano quintali, superficie e destinazione: i costi di manodopera e macchina arrivano dal lavoro o dal diario. La vendemmia resta nel vigneto. I dati del lavoro restano in sola lettura.</p>
+            </div>
+            <div class="header-actions">
+                <a id="link-diario" class="btn btn-primary" href="../../../core/attivita-standalone.html">Registra nel diario</a>
+                <a id="link-nuovo-lavoro" class="btn btn-primary" href="../../../core/admin/gestione-lavori-standalone.html" hidden>Nuovo lavoro</a>
+                <a href="orticole-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno"><option value="">Tutti i terreni</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna"><option value="">Tutte le campagne</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Tipo, varietà, terreno…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento raccolte...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna raccolta trovata</h3>
+                    <p>Crea un lavoro o un'attività nel diario con categoria Raccolta a pieno campo, sul terreno di una campagna orticole.</p>
+                </div>
+                <table id="raccolta-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Campagna</th>
+                            <th>Lavoro / Attività</th>
+                            <th>Terreno</th>
+                            <th>Quantità (qli)</th>
+                            <th>Superficie (ha)</th>
+                            <th>Resa (qli/ha)</th>
+                            <th>Destinazione</th>
+                            <th>Costo (€)</th>
+                            <th>Riferimento</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="raccolta-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-raccolta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-raccolta-title">Completa raccolta</h2>
+                <button type="button" class="close" id="btn-close-raccolta-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <p id="raccolta-contesto"></p>
+            <form id="form-raccolta">
+                <input type="hidden" id="raccolta-id">
+                <div class="form-group">
+                    <label for="raccolta-varieta">Varietà</label>
+                    <input type="text" id="raccolta-varieta" readonly>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="raccolta-quantita">Quantità raccolta (quintali) *</label>
+                        <input type="number" id="raccolta-quantita" required min="0.01" step="0.01" placeholder="es. 120">
+                    </div>
+                    <div class="form-group">
+                        <label for="raccolta-superficie">Superficie raccolta (ha) *</label>
+                        <label for="raccolta-superficie-anagrafe" style="display:flex;align-items:flex-start;gap:10px;font-weight:normal;">
+                            <input type="checkbox" id="raccolta-superficie-anagrafe" style="margin-top:4px;">
+                            <span>Tutto il terreno: usa la superficie da anagrafe terreni.</span>
+                        </label>
+                        <input type="number" id="raccolta-superficie" required min="0.01" step="0.01" placeholder="es. 3,20">
+                    </div>
+                </div>
+                <div class="info-box" id="raccolta-resa-info" style="display:none;">
+                    <strong>Resa calcolata:</strong> <span id="raccolta-resa">—</span>
+                </div>
+                <div class="form-group">
+                    <label for="raccolta-destinazione">Destinazione *</label>
+                    <select id="raccolta-destinazione" required>
+                        <option value="">Seleziona</option>
+                        <option value="industria">Industria</option>
+                        <option value="mercato">Mercato</option>
+                        <option value="stoccaggio">Stoccaggio</option>
+                        <option value="uso_aziendale">Uso aziendale</option>
+                    </select>
+                </div>
+                <div id="raccolta-proprietario-message" class="form-group" style="display:none;">
+                    <small>Lavoro svolto dal proprietario (modulo Manodopera non attivo).</small>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="raccolta-costo-mano">Costo manodopera (€)</label>
+                        <input type="number" id="raccolta-costo-mano" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="raccolta-costo-macchina">Costo macchina (€)</label>
+                        <input type="number" id="raccolta-costo-macchina" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="raccolta-note">Note</label>
+                        <textarea id="raccolta-note" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { initRaccoltaPage } from '../js/raccolta-page.js';
+        initRaccoltaPage();
+    </script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../../service-worker.js';
+        registraServiceWorker(swPath);
+    </script>
+</body>
+</html>
