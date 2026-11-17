@@ -37,6 +37,41 @@ export function numeroFinito(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Un solo numero, con virgola o punto. Un intervallo («da 4 a 8», «4-8») non diventa il minimo. */
+export function numeroSingoloTesto(value) {
+  if (typeof value === 'number') return numeroFinito(value);
+  const t = String(value == null ? '' : value).trim().replace(/\s+/g, '');
+  if (!/^-?\d+(?:[.,]\d+)?$/.test(t)) return null;
+  return numeroFinito(t);
+}
+
+const CHIAVI_ORIGINE_VALORE = ['doseHa', 'doseHl', 'carenza', 'massimo', 'intervallo', 'avversita'];
+
+/** Origine etichetta o azienda, senza citazioni lunghe. Assente sui documenti vecchi. */
+export function normalizzaOrigineValori(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const out = {};
+  CHIAVI_ORIGINE_VALORE.forEach((chiave) => {
+    const v = raw[chiave];
+    if (!v || typeof v !== 'object') return;
+    if (v.origine !== 'etichetta' && v.origine !== 'azienda') return;
+    const voce = { origine: v.origine };
+    const pagina = numeroFinito(v.pagina);
+    if (pagina != null) voce.pagina = pagina;
+    if (v.idRiga != null && String(v.idRiga).trim()) voce.idRiga = String(v.idRiga).trim();
+    if (v.unita != null && String(v.unita).trim()) voce.unita = String(v.unita).trim();
+    if (v.condizione != null && String(v.condizione).trim()) voce.condizione = String(v.condizione).trim();
+    if (v.epoca != null && String(v.epoca).trim()) voce.epoca = String(v.epoca).trim();
+    if (v.periodo != null && String(v.periodo).trim()) voce.periodo = String(v.periodo).trim();
+    if (v.testo != null && String(v.testo).trim()) voce.testo = String(v.testo).trim();
+    if (v.nonNecessario === true) voce.nonNecessario = true;
+    out[chiave] = voce;
+  });
+  const dataEtichetta = raw.dataEtichetta != null ? String(raw.dataEtichetta).trim() : '';
+  if (dataEtichetta) out.dataEtichetta = dataEtichetta;
+  return Object.keys(out).length ? out : null;
+}
+
 export function arrotonda(value, decimals = 2) {
   const n = numeroFinito(value);
   if (n == null) return null;
@@ -86,7 +121,9 @@ export function campiConfermaRiga(raw = {}) {
     doseMaxHa: numeroFinito(raw.doseMaxHa),
     doseMinHl: numeroFinito(raw.doseMinHl),
     doseMaxHl: numeroFinito(raw.doseMaxHl),
-    unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null
+    unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null,
+    carenzaNonNecessaria: raw.carenzaNonNecessaria === true ? true : null,
+    origineValori: normalizzaOrigineValori(raw.origineValori)
   };
 }
 

@@ -1,6 +1,26 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-17 — fix Orticole ciclo 1 (Uso Reale).**
+**Ultimo aggiornamento documentazione: 2026-11-17 — diciture etichetta e niente link al Ministero.**
+
+## 2026-11-17 — etichette aggiornate, senza link al sito del Ministero
+
+Su `feat/leggi-scheda-valori-etichetta` (PR #424 verso develop). Nessun merge, nessun deploy.
+
+Sostituiti i 58 file `per-registrazione`: `colture_non_estratte` compilato dove mancava, campi fonte, titolare, date ed etichetta id; tolto `url_etichetta`. Indice, vocabolario e README identici allo zip. Nel pannello il riferimento al Ministero è solo testo («Reg. n. X, consultabile su fitosanitari.salute.gov.it»). I valori riempiti portano fonte, titolare, date e l'avviso che l'estrazione può contenere errori; restano evidenziati fino a Conferma. Il CSV `PROD_FTS_6_20261116` non ha una data di variazione o revisione: si salva comunque `dataEtichetta` in `origineValori`. La clausola sui Termini non è stata scritta: l'unica pagina è il segnaposto in landing, e la versione resta `termini-b2b-0000-00-00`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — valori d'etichetta in «Leggi scheda».**
+
+## 2026-11-17 — «Leggi scheda» riempie i campi dall'etichetta
+
+Su `feat/leggi-scheda-valori-etichetta` (PR verso develop). Nessun merge, nessun promote, nessun deploy.
+
+Dopo il numero di registrazione, il form del registro (vigneto, frutteto, seminativo, orticole) carica solo `shared/data/fitofarmaci-etichette/per-registrazione/<numero>.json`. Dose per ha e per hl si scrivono da sole se la voce è una sola e non è un intervallo; carenza, numero massimo e intervallo con più condizioni restano da scegliere. Ogni valore porta pagina e frase. L'azienda conferma. Un prodotto revocato, scaduto o sospeso non si riempie. GFV non consiglia dosi.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — fix Orticole ciclo 1 (Uso Reale).**
 
 ## 2026-11-17 — Orticole ciclo 1: trattamenti, categoria Ortive, acqua
 

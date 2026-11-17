@@ -1,0 +1,238 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "generato": "2026-11-17T13:30:26",
+ "prodotti": [
+  {
+   "numero_registrazione": "000013",
+   "nome_prodotto": "THIOPRON"
+  },
+  {
+   "numero_registrazione": "001156",
+   "nome_prodotto": "CHEMOL"
+  },
+  {
+   "numero_registrazione": "001583",
+   "nome_prodotto": "MICROTHIOL DISPERSS"
+  },
+  {
+   "numero_registrazione": "002923",
+   "nome_prodotto": "TIOVIT JET"
+  },
+  {
+   "numero_registrazione": "005152",
+   "nome_prodotto": "TIOSPOR WG"
+  },
+  {
+   "numero_registrazione": "008601",
+   "nome_prodotto": "FOLPAN 80 WDG"
+  },
+  {
+   "numero_registrazione": "008735",
+   "nome_prodotto": "TREBON UP"
+  },
+  {
+   "numero_registrazione": "009005",
+   "nome_prodotto": "AGIL"
+  },
+  {
+   "numero_registrazione": "009627",
+   "nome_prodotto": "SOLUTION 20 DISPERSS"
+  },
+  {
+   "numero_registrazione": "010117",
+   "nome_prodotto": "STRATOS ULTRA"
+  },
+  {
+   "numero_registrazione": "010573",
+   "nome_prodotto": "KOCIDE 2000"
+  },
+  {
+   "numero_registrazione": "010771",
+   "nome_prodotto": "MOST MICRO"
+  },
+  {
+   "numero_registrazione": "010976",
+   "nome_prodotto": "METEOR"
+  },
+  {
+   "numero_registrazione": "011070",
+   "nome_prodotto": "TIOGOLD DISPERSS"
+  },
+  {
+   "numero_registrazione": "011243",
+   "nome_prodotto": "LEOPARD 5 EC"
+  },
+  {
+   "numero_registrazione": "011760",
+   "nome_prodotto": "POLITHIOL"
+  },
+  {
+   "numero_registrazione": "011999",
+   "nome_prodotto": "BUSSOLA WG NC"
+  },
+  {
+   "numero_registrazione": "012096",
+   "nome_prodotto": "POLTIGLIA DISPERSS"
+  },
+  {
+   "numero_registrazione": "012737",
+   "nome_prodotto": "AIRONE PIÙ"
+  },
+  {
+   "numero_registrazione": "012768",
+   "nome_prodotto": "SPINTOR FLY"
+  },
+  {
+   "numero_registrazione": "012940",
+   "nome_prodotto": "KARATE ZEON 1.5"
+  },
+  {
+   "numero_registrazione": "013466",
+   "nome_prodotto": "SPOTLIGHT PLUS"
+  },
+  {
+   "numero_registrazione": "013809",
+   "nome_prodotto": "FORCE ULTRA"
+  },
+  {
+   "numero_registrazione": "014102",
+   "nome_prodotto": "BORDOFLOW NEW"
+  },
+  {
+   "numero_registrazione": "014165",
+   "nome_prodotto": "NANDO MAXI"
+  },
+  {
+   "numero_registrazione": "014636",
+   "nome_prodotto": "BIOLID UP"
+  },
+  {
+   "numero_registrazione": "014642",
+   "nome_prodotto": "RIDOMIL GOLD R WG"
+  },
+  {
+   "numero_registrazione": "014884",
+   "nome_prodotto": "CORUM"
+  },
+  {
+   "numero_registrazione": "015142",
+   "nome_prodotto": "ALCANCE SYNC TEC"
+  },
+  {
+   "numero_registrazione": "015149",
+   "nome_prodotto": "COSAVET DF EDGE"
+  },
+  {
+   "numero_registrazione": "015251",
+   "nome_prodotto": "AIRONE LIQUIDO"
+  },
+  {
+   "numero_registrazione": "015264",
+   "nome_prodotto": "ENERVIN SC"
+  },
+  {
+   "numero_registrazione": "015326",
+   "nome_prodotto": "CUPROTEK DISPERSS"
+  },
+  {
+   "numero_registrazione": "015401",
+   "nome_prodotto": "TAIFUN MK CL"
+  },
+  {
+   "numero_registrazione": "015449",
+   "nome_prodotto": "CIDELY"
+  },
+  {
+   "numero_registrazione": "015712",
+   "nome_prodotto": "SATELITE"
+  },
+  {
+   "numero_registrazione": "015748",
+   "nome_prodotto": "SYLLIT 544 SC"
+  },
+  {
+   "numero_registrazione": "015901",
+   "nome_prodotto": "ERCOLE"
+  },
+  {
+   "numero_registrazione": "016205",
+   "nome_prodotto": "MEXIRAM IDRO 20 HIBIO"
+  },
+  {
+   "numero_registrazione": "016261",
+   "nome_prodotto": "BELOUKHA"
+  },
+  {
+   "numero_registrazione": "016273",
+   "nome_prodotto": "SIVANTO PRIME"
+  },
+  {
+   "numero_registrazione": "016335",
+   "nome_prodotto": "LIETO SC"
+  },
+  {
+   "numero_registrazione": "016364",
+   "nome_prodotto": "BISMARK"
+  },
+  {
+   "numero_registrazione": "016481",
+   "nome_prodotto": "CALLISTO 480"
+  },
+  {
+   "numero_registrazione": "016562",
+   "nome_prodotto": "DELAN PRO"
+  },
+  {
+   "numero_registrazione": "016657",
+   "nome_prodotto": "CENTURY PRO"
+  },
+  {
+   "numero_registrazione": "016667",
+   "nome_prodotto": "REVOLUTION"
+  },
+  {
+   "numero_registrazione": "016787",
+   "nome_prodotto": "CLINIC ST"
+  },
+  {
+   "numero_registrazione": "016799",
+   "nome_prodotto": "ALEXIN 75 LS"
+  },
+  {
+   "numero_registrazione": "016831",
+   "nome_prodotto": "GLIFENE BIOGRADE"
+  },
+  {
+   "numero_registrazione": "017472",
+   "nome_prodotto": "JADE"
+  },
+  {
+   "numero_registrazione": "017698",
+   "nome_prodotto": "ASSORAM ELITE 20 WDG"
+  },
+  {
+   "numero_registrazione": "017896",
+   "nome_prodotto": "FORTUNE DISPERSS"
+  },
+  {
+   "numero_registrazione": "018074",
+   "nome_prodotto": "ROUNDUP FUTURE"
+  },
+  {
+   "numero_registrazione": "018084",
+   "nome_prodotto": "SITRIN"
+  },
+  {
+   "numero_registrazione": "018137",
+   "nome_prodotto": "REVYSION"
+  },
+  {
+   "numero_registrazione": "018181",
+   "nome_prodotto": "UNIVOQ"
+  },
+  {
+   "numero_registrazione": "018626",
+   "nome_prodotto": "SURROUND WP CROP PROTECTANT"
+  }
+ ]
+}

@@ -71,6 +71,8 @@ firebase-service-account.json
 !tests/fixtures/geocode/*.json
 !tests/fixtures/zone-lavorate/*.json
 !scripts/guida-code-map.json
+!shared/data/fitofarmaci-etichette/*.json
+!shared/data/fitofarmaci-etichette/per-registrazione/*.json
 !.cursor/environment.json
 
 # Vecchia app - repository separato, non tracciare come submodule
