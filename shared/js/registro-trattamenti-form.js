@@ -307,10 +307,14 @@ function attrsVoce(voce) {
 function htmlFonteEtichetta(voce) {
   if (!voce) return '';
   const pag = voce.pagina != null ? 'da etichetta, pag. ' + voce.pagina : 'da etichetta';
-  let html = '<span class="registro-fonte-etichetta"> ' + esc(pag);
+  let html = '<span class="registro-blocco-fonte">';
+  html += '<span class="registro-fonte-etichetta"> ' + esc(pag);
   if (voce.citazione) {
     html += ' <button type="button" class="btn btn-sm btn-secondary" data-mostra-frase="1">mostra frase</button>';
-    html += '<span class="registro-citazione" hidden>' + esc(voce.citazione) + '</span>';
+  }
+  html += '</span>';
+  if (voce.citazione) {
+    html += '<span class="registro-citazione" hidden>«' + esc(voce.citazione) + '»</span>';
   }
   html += '</span>';
   return html;
@@ -320,7 +324,10 @@ function htmlVociEtichetta(campo) {
   if (!campo || !campo.voci || !campo.voci.length) return '';
   const mostra = campo.voci.length > 1 || campo.dettaglioSempre || !campo.voceScritta;
   if (!mostra) return '';
-  return '<ul class="registro-voci-etichetta" style="margin:4px 0 8px;padding-left:18px;">'
+  const invito = campo.voci.length > 1
+    ? '<p class="registro-scegli-voce" style="margin:4px 0;">Scegli la riga che vale per il tuo caso</p>'
+    : '';
+  return invito + '<ul class="registro-voci-etichetta" style="margin:4px 0 8px;padding-left:18px;">'
     + campo.voci.map((voce) => '<li><button type="button" class="registro-voce-etichetta" data-campo="'
       + esc(voce.campo) + '"' + attrsVoce(voce) + '>' + esc(voce.testo) + '</button>'
       + htmlFonteEtichetta(voce) + '</li>').join('')
@@ -546,7 +553,9 @@ export function registroConfermaBloccata(prodotto, meta = {}) {
 export function registroConfermaManuale(prodotto, campi = {}, meta = {}) {
   const specie = campi.coltura || meta.specie || '';
   const carenzaTesto = String(campi.carenza == null ? '' : campi.carenza).trim();
-  const carenzaNonNecessaria = /^non\s+necessar/i.test(carenzaTesto);
+  const origineCarenza = campi.origineValori && campi.origineValori.carenza;
+  const carenzaNonNecessaria = /^non\s+necessar/i.test(carenzaTesto)
+    || !!(origineCarenza && origineCarenza.nonNecessario === true);
   const doseHa = numeroSingoloTesto(campi.doseHa);
   const registro = {
     ...campiConfermaRiga({
@@ -576,9 +585,13 @@ export function registroConfermaManuale(prodotto, campi = {}, meta = {}) {
 function origineDaInput(el) {
   if (!el) return null;
   const scritto = String(el.value || '').trim();
-  if (!scritto) return null;
   const atteso = el.getAttribute('data-valore-etichetta');
-  const daEtichetta = el.getAttribute('data-origine') === 'etichetta' && atteso != null && scritto === atteso;
+  const origineEtichetta = el.getAttribute('data-origine') === 'etichetta';
+  const nonNecessario = origineEtichetta
+    && el.getAttribute('data-non-necessario') === '1'
+    && (scritto === '' || /^non\s+necessar/i.test(scritto));
+  if (!scritto && !nonNecessario) return null;
+  const daEtichetta = nonNecessario || (origineEtichetta && atteso != null && scritto === atteso);
   const voce = { origine: daEtichetta ? 'etichetta' : 'azienda' };
   if (!daEtichetta) return voce;
   const pagina = el.getAttribute('data-pagina');
@@ -590,11 +603,11 @@ function origineDaInput(el) {
     if (v) voce[chiave] = v;
   });
   if (el.getAttribute('data-non-necessario') === '1') voce.nonNecessario = true;
-  if (numeroSingoloTesto(scritto) == null) voce.testo = scritto;
+  if (scritto && numeroSingoloTesto(scritto) == null) voce.testo = scritto;
   return voce;
 }
 
-function leggiCampiAzienda(box) {
+export function leggiCampiAzienda(box) {
   const valore = (sel) => {
     const el = box.querySelector(sel);
     return el ? el.value : '';
@@ -641,6 +654,136 @@ function copiaAttributiVoce(da, a) {
     const v = da.getAttribute(nome);
     if (v) a.setAttribute(nome, v);
     else a.removeAttribute(nome);
+  });
+}
+
+const MAPPA_CAMPO_INPUT = {
+  doseHa: '.registro-dose-ha',
+  doseHl: '.registro-dose-hl',
+  carenza: '.registro-carenza',
+  massimo: '.registro-massimo',
+  intervallo: '.registro-intervallo'
+};
+
+function valoreVoceScelta(bottone) {
+  if (bottone.getAttribute('data-non-necessario') === '1') return '';
+  const valore = bottone.getAttribute('data-valore-etichetta');
+  return valore == null ? '' : valore;
+}
+
+function testoFonteCampo(bottone) {
+  if (bottone.getAttribute('data-non-necessario') === '1') return 'non necessaria, da etichetta';
+  const pagina = bottone.getAttribute('data-pagina');
+  return pagina ? 'da etichetta, pag. ' + pagina : 'da etichetta';
+}
+
+function aggiornaFonteCampo(input, bottone) {
+  const label = input.closest('label');
+  if (!label) return;
+  let blocco = label.nextElementSibling;
+  const gia = blocco && (
+    blocco.classList.contains('registro-blocco-fonte') || blocco.classList.contains('registro-fonte-etichetta')
+  );
+  if (!gia) {
+    blocco = document.createElement('span');
+    blocco.className = 'registro-blocco-fonte';
+    const riga = document.createElement('span');
+    riga.className = 'registro-fonte-etichetta';
+    blocco.appendChild(riga);
+    label.insertAdjacentElement('afterend', blocco);
+  }
+  const riga = blocco.classList.contains('registro-fonte-etichetta')
+    ? blocco
+    : blocco.querySelector('.registro-fonte-etichetta');
+  if (!riga) return;
+  const pulsante = riga.querySelector('[data-mostra-frase]');
+  riga.textContent = ' ' + testoFonteCampo(bottone);
+  if (pulsante) {
+    riga.appendChild(document.createTextNode(' '));
+    riga.appendChild(pulsante);
+  }
+}
+
+function segnaVoceScelta(bottone) {
+  const lista = bottone.closest('.registro-voci-etichetta');
+  const gruppo = lista ? lista.querySelectorAll('.registro-voce-etichetta') : [bottone];
+  gruppo.forEach((altro) => {
+    altro.classList.remove('registro-voce-selezionata');
+    altro.removeAttribute('aria-pressed');
+    altro.style.fontWeight = '';
+    altro.style.outline = '';
+    altro.style.background = '';
+  });
+  bottone.classList.add('registro-voce-selezionata');
+  bottone.setAttribute('aria-pressed', 'true');
+  bottone.style.fontWeight = '700';
+  bottone.style.outline = '2px solid #b8860b';
+  bottone.style.background = '#fff3cd';
+}
+
+function assicuratiDicitura(box, etichetta) {
+  if (!box.querySelector('.registro-dichiarazione-conferma')) {
+    const btn = box.querySelector('[data-conferma-manuale]');
+    if (btn) {
+      const span = document.createElement('span');
+      span.className = 'registro-dichiarazione-conferma';
+      span.textContent = ' ' + FRASE_CONFERMA_CONTROLLATA;
+      btn.insertAdjacentElement('afterend', span);
+    }
+  }
+  if (!box.querySelector('.registro-dicitura-etichetta') && etichetta && etichetta.meta) {
+    const intro = box.querySelector('.registro-campi-azienda');
+    if (intro) {
+      const p = document.createElement('p');
+      p.className = 'registro-dicitura-etichetta';
+      const meta = etichetta.meta;
+      const pezzi = [];
+      if (meta.fonte) pezzi.push(meta.fonte);
+      if (meta.titolare) pezzi.push('titolare ' + meta.titolare);
+      if (meta.dataEtichetta) pezzi.push('etichetta del ' + meta.dataEtichetta);
+      if (meta.dataEstrazione) pezzi.push('estratto il ' + dataItalianaVisibile(meta.dataEstrazione));
+      pezzi.push(FRASE_VALORE_ESTRATTO);
+      p.textContent = pezzi.join(' · ');
+      intro.insertBefore(p, intro.querySelector('label'));
+    }
+  }
+}
+
+function applicaVoceEtichetta(box, bottone, etichetta) {
+  const input = box.querySelector(MAPPA_CAMPO_INPUT[bottone.getAttribute('data-campo')] || '');
+  if (!input) return;
+  const valore = valoreVoceScelta(bottone);
+  input.value = valore;
+  input.setAttribute('data-origine', 'etichetta');
+  input.setAttribute('data-valore-etichetta', valore);
+  input.classList.add('registro-valore-da-etichetta');
+  input.style.background = '#fff3cd';
+  input.style.border = '1px solid #b8860b';
+  copiaAttributiVoce(bottone, input);
+  aggiornaFonteCampo(input, bottone);
+  segnaVoceScelta(bottone);
+  assicuratiDicitura(box, etichetta);
+}
+
+function toggleFraseEtichetta(bottone) {
+  const blocco = bottone.closest('.registro-blocco-fonte') || bottone.parentElement;
+  const span = blocco && blocco.querySelector('.registro-citazione');
+  if (!span) return;
+  const apri = !!span.hidden;
+  span.hidden = !apri;
+  span.style.display = apri ? 'block' : 'none';
+  if (apri) span.style.fontStyle = 'italic';
+  bottone.textContent = apri ? 'nascondi frase' : 'mostra frase';
+}
+
+/** Clic sulle voci d'etichetta e su «mostra frase». Stesso comportamento in ogni modulo. */
+export function attaccaScelteEtichetta(box, etichetta) {
+  if (!box) return;
+  box.querySelectorAll('.registro-voce-etichetta').forEach((b) => {
+    b.addEventListener('click', () => applicaVoceEtichetta(box, b, etichetta));
+  });
+  box.querySelectorAll('[data-mostra-frase]').forEach((b) => {
+    b.addEventListener('click', () => toggleFraseEtichetta(b));
   });
 }
 
@@ -764,57 +907,7 @@ export function attaccaLetturaScheda(opts) {
             disegna(indiceScelto, { coltura: campoColtura.value, ignoraValoriConferma: true });
           });
         }
-        box.querySelectorAll('.registro-voce-etichetta').forEach((b) => {
-          b.addEventListener('click', () => {
-            const mappa = {
-              doseHa: '.registro-dose-ha',
-              doseHl: '.registro-dose-hl',
-              carenza: '.registro-carenza',
-              massimo: '.registro-massimo',
-              intervallo: '.registro-intervallo'
-            };
-            const input = box.querySelector(mappa[b.getAttribute('data-campo')] || '');
-            if (!input) return;
-            input.value = b.getAttribute('data-valore') || '';
-            input.setAttribute('data-origine', 'etichetta');
-            input.setAttribute('data-valore-etichetta', input.value);
-            input.classList.add('registro-valore-da-etichetta');
-            input.style.background = '#fff3cd';
-            input.style.border = '1px solid #b8860b';
-            copiaAttributiVoce(b, input);
-            if (!box.querySelector('.registro-dichiarazione-conferma')) {
-              const btn = box.querySelector('[data-conferma-manuale]');
-              if (btn) {
-                const span = document.createElement('span');
-                span.className = 'registro-dichiarazione-conferma';
-                span.textContent = ' ' + FRASE_CONFERMA_CONTROLLATA;
-                btn.insertAdjacentElement('afterend', span);
-              }
-            }
-            if (!box.querySelector('.registro-dicitura-etichetta') && etichetta && etichetta.meta) {
-              const intro = box.querySelector('.registro-campi-azienda');
-              if (intro) {
-                const p = document.createElement('p');
-                p.className = 'registro-dicitura-etichetta';
-                const meta = etichetta.meta;
-                const pezzi = [];
-                if (meta.fonte) pezzi.push(meta.fonte);
-                if (meta.titolare) pezzi.push('titolare ' + meta.titolare);
-                if (meta.dataEtichetta) pezzi.push('etichetta del ' + meta.dataEtichetta);
-                if (meta.dataEstrazione) pezzi.push('estratto il ' + dataItalianaVisibile(meta.dataEstrazione));
-                pezzi.push(FRASE_VALORE_ESTRATTO);
-                p.textContent = pezzi.join(' · ');
-                intro.insertBefore(p, intro.querySelector('label'));
-              }
-            }
-          });
-        });
-        box.querySelectorAll('[data-mostra-frase]').forEach((b) => {
-          b.addEventListener('click', () => {
-            const span = b.parentElement && b.parentElement.querySelector('.registro-citazione');
-            if (span) span.hidden = !span.hidden;
-          });
-        });
+        attaccaScelteEtichetta(box, etichetta);
         const bloccata = box.querySelector('[data-conferma-bloccata]');
         if (bloccata) {
           bloccata.addEventListener('click', () => {

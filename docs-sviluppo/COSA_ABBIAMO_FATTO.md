@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-17 — diciture etichetta e niente link al Ministero.**
+**Ultimo aggiornamento documentazione: 2026-11-17 — clic sulle voci di «Leggi scheda».**
+
+## 2026-11-17 — «Leggi scheda»: il clic sulla voce riempie il campo
+
+Su `fix/leggi-scheda-scelta-voce` (PR verso develop). Nessun merge, nessun deploy.
+
+Se carenza o numero massimo hanno più righe, il clic scrive il valore letto da `data-valore-etichetta`, evidenzia il campo e segna la riga scelta. Una voce «non necessaria» lascia il campo vuoto, mostra «non necessaria, da etichetta» e salva `nonNecessario` in `origineValori`, senza scrivere 0. «mostra frase» apre la citazione in un blocco sotto la voce e il pulsante diventa «nascondi frase». GFV non sceglie la riga al posto dell'azienda.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — diciture etichetta e niente link al Ministero.**
 
 ## 2026-11-17 — etichette aggiornate, senza link al sito del Ministero
 
