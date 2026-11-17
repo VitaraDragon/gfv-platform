@@ -658,15 +658,36 @@ async function confirmDelete(index) {
 async function loadRighe() {
   const loadingDiv = document.getElementById('loading');
   if (loadingDiv) loadingDiv.style.display = 'block';
-  const data = await listRigheTrattamento({
-    includeLavori: hasManodopera,
-    categoria: registro.categoria
-  });
-  await loadProdottiAnagrafica();
-  terreni = data.terreni || [];
-  righe = data.righe || [];
-  populateFilters();
-  applyFilters();
+  try {
+    const data = await listRigheTrattamento({
+      includeLavori: hasManodopera,
+      categoria: registro.categoria
+    });
+    await loadProdottiAnagrafica();
+    terreni = data.terreni || [];
+    righe = data.righe || [];
+    const emptyState = document.getElementById('empty-state');
+    const avviso = emptyState && emptyState.querySelector('[data-load-error]');
+    if (avviso) avviso.remove();
+    populateFilters();
+    applyFilters();
+  } catch (err) {
+    console.error(err);
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    const emptyState = document.getElementById('empty-state');
+    const table = document.getElementById('trattamenti-table');
+    if (table) table.style.display = 'none';
+    if (emptyState) {
+      emptyState.style.display = 'block';
+      let avviso = emptyState.querySelector('[data-load-error]');
+      if (!avviso) {
+        avviso = document.createElement('p');
+        avviso.setAttribute('data-load-error', '');
+        emptyState.appendChild(avviso);
+      }
+      avviso.textContent = 'Non riesco a caricare i dati. Ricarica la pagina.';
+    }
+  }
 }
 
 function setupEventListeners() {

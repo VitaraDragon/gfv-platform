@@ -617,6 +617,7 @@
                         <option value="Vigneto">Vigneto</option>
                         <option value="Frutteto">Frutteto</option>
                         <option value="Seminativo">Seminativo</option>
+                        <option value="Ortive">Ortive</option>
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
@@ -1086,12 +1087,11 @@
             const colSel = document.getElementById('filter-coltura');
             const catSel = document.getElementById('filter-categoria');
             if (!colSel) return;
-            const allColture = [...new Set((terreni || []).map(t => (t.coltura || '').trim()).filter(Boolean))].sort();
-            const cat = catSel?.value;
-            let colture = allColture;
-            if (cat && cat !== '') {
-                colture = allColture.filter(c => getCategoriaFromColtura(c) === cat);
-            }
+            const cat = catSel?.value || '';
+            const fonte = !cat
+                ? (terreni || [])
+                : (terreni || []).filter((t) => getCategoriaFromColtura(t) === cat);
+            const colture = [...new Set(fonte.map(t => (t.coltura || '').trim()).filter(Boolean))].sort();
             colSel.innerHTML = '<option value="">Tutti</option>';
             colture.forEach(c => {
                 const opt = document.createElement('option');

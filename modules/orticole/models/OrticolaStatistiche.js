@@ -20,11 +20,13 @@ function numero(value) {
  * @param {Array} input.campagne
  * @param {Array} [input.raccolte]
  * @param {Array} [input.trattamenti] trattamenti e concimazioni, stesso archivio
+ * @param {Array} [input.irrigazioni] volumi in m³, senza i loro costi
  * @param {Record<string, { costoManodopera?: number, costoMacchine?: number, costoTotale?: number }>} [input.spese]
  */
 export function riepilogoCampagne(input = {}) {
   const raccolte = input.raccolte || [];
   const trattamenti = input.trattamenti || [];
+  const irrigazioni = input.irrigazioni || [];
   const spese = input.spese || {};
 
   return (input.campagne || []).map((campagna) => {
@@ -46,6 +48,12 @@ export function riepilogoCampagne(input = {}) {
           .reduce((sum, row) => sum + (Number(row.costoProdotto) || 0), 0)
       );
     const costoLavori = euro(costoManodopera + costoMacchine);
+    const acquaM3 = euro(
+      irrigazioni
+        .filter((row) => row && row.campagnaId === id)
+        .reduce((sum, row) => sum + (Number(row.volumeM3) || 0), 0)
+    );
+    const acquaM3Ha = superficie > 0 ? euro(acquaM3 / superficie) : null;
 
     return {
       id,
@@ -61,7 +69,9 @@ export function riepilogoCampagne(input = {}) {
       costoManodopera,
       costoMacchine,
       costoProdotti,
-      costoTotale: euro(costoLavori + costoProdotti)
+      costoTotale: euro(costoLavori + costoProdotti),
+      acquaM3,
+      acquaM3Ha
     };
   });
 }
@@ -75,6 +85,7 @@ export function totaliStatistiche(righe) {
   const costoMacchine = euro(rows.reduce((sum, row) => sum + (Number(row.costoMacchine) || 0), 0));
   const costoProdotti = euro(rows.reduce((sum, row) => sum + (Number(row.costoProdotti) || 0), 0));
   const costoTotale = euro(rows.reduce((sum, row) => sum + (Number(row.costoTotale) || 0), 0));
+  const acquaM3 = euro(rows.reduce((sum, row) => sum + (Number(row.acquaM3) || 0), 0));
   const conPrevista = rows.filter((row) => row.resaPrevistaQliHa != null && Number(row.superficieEttari) > 0);
   const haPrevista = conPrevista.reduce((sum, row) => sum + Number(row.superficieEttari), 0);
   const resaPrevistaMedia = haPrevista > 0
@@ -89,6 +100,7 @@ export function totaliStatistiche(righe) {
     costoManodopera,
     costoMacchine,
     costoProdotti,
-    costoTotale
+    costoTotale,
+    acquaM3
   };
 }
