@@ -30,6 +30,7 @@ import {
 } from '../services/varieta-orticole-service.js';
 import { spesePerCampagne } from '../services/orticole-spese-service.js';
 import { terreniPerTendina } from '../../../shared/js/coltura-terreno.js';
+import { applicaAvvisoTerreniOrtive } from './avviso-terreni-ortive.js';
 import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 const PAGE_TYPE = 'orticole';
@@ -312,6 +313,7 @@ function renderTable() {
   const loadingDiv = document.getElementById('loading');
   const table = document.getElementById('orticole-table');
   if (loadingDiv) loadingDiv.style.display = 'none';
+  applicaAvvisoTerreniOrtive(terreni);
 
   if (!visibleCampagne.length) {
     if (tbody) tbody.innerHTML = '';
@@ -415,6 +417,7 @@ function openOrticolaCampagnaModal(id) {
       stato: 'pianificato'
     });
   }
+  applicaAvvisoTerreniOrtive(terreni);
   if (modal) modal.classList.add('active');
 }
 
@@ -759,6 +762,7 @@ export async function initOrticoleAnagraficaPage() {
     syncTonyModules(modules);
 
     terreni = await listTerreniOrticole({ includiArchiviati: true });
+    applicaAvvisoTerreniOrtive(terreni);
     colture = await listColtureOrticole();
     populateTerrenoSelects();
     populateColturaSelects();

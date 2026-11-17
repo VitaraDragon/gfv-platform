@@ -41,6 +41,49 @@ function numeroDalCampoProdotto(value) {
   return /^\d+$/.test(t) ? t : '';
 }
 
+/**
+ * Toglie prefissi di categoria e confezioni dal nome di magazzino,
+ * così «Inse. SIVANTO PRIME da 1 lt.» diventa una query che la ricerca per nome già risolve.
+ */
+export function nomeProdottoPerRicercaScheda(nome) {
+  let s = String(nome == null ? '' : nome).trim();
+  s = s.replace(/^(inse\.?|insetticida|fung\.?|fungicida|erb\.?|erbicida|diserbante|conc\.?|concime)\s+/i, '');
+  s = s.replace(/\bda\s+\d[\d.,]*\s*(lt|l|kg|g|ml|cl|q\.?li)?\.?\s*$/i, '');
+  s = s.replace(/\b\d[\d.,]*\s*(lt|l|kg|g|ml|cl)\.?\s*$/i, '');
+  return s.replace(/[.,;:]+$/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Richiesta per la callable. Se l'anagrafica ha il numero, si manda quello.
+ * Altrimenti il nome pulito, non la stringa grezza di magazzino.
+ */
+export function richiestaLetturaScheda({ nome, prodotto, specie } = {}) {
+  const visibile = String(nome == null ? '' : nome).trim();
+  const numeroAnagrafica = prodotto && prodotto.numeroRegistrazione != null
+    ? String(prodotto.numeroRegistrazione).trim()
+    : '';
+  const richiesta = {
+    nome: visibile,
+    nomeProdotto: visibile,
+    specie: specie || ''
+  };
+  if (numeroAnagrafica && /\d/.test(numeroAnagrafica)) {
+    richiesta.numero = numeroAnagrafica;
+    richiesta.numeroRegistrazione = numeroAnagrafica;
+    return richiesta;
+  }
+  const pulito = nomeProdottoPerRicercaScheda(visibile);
+  const nomeQuery = pulito || visibile;
+  richiesta.nome = nomeQuery;
+  richiesta.nomeProdotto = nomeQuery;
+  const numeroCampo = numeroDalCampoProdotto(nomeQuery);
+  if (numeroCampo) {
+    richiesta.numero = numeroCampo;
+    richiesta.numeroRegistrazione = numeroCampo;
+  }
+  return richiesta;
+}
+
 export function notaRegistroTesto() {
   return NOTA_REGISTRO_PRIVATO;
 }
@@ -217,6 +260,8 @@ export function htmlPannelloOpenData(input = {}) {
   if (!prodotti.length) {
     parti.push('<p>Non trovo «' + esc(input.nome || 'questo prodotto') + '» negli open data del Ministero. Non invento numero, titolare, sostanze o stato.</p>');
     parti.push('<p><a href="' + URL_BANCA_FITOSANITARI + '" target="_blank" rel="noopener noreferrer">Apri la banca dati fitosanitari del Ministero</a></p>');
+    parti.push('<p><label>Numero di registrazione <input class="registro-numero-manuale" type="text" inputmode="numeric" autocomplete="off" placeholder="es. 16273"></label> ');
+    parti.push('<button type="button" class="btn btn-sm btn-secondary" data-riprova-numero="1">Cerca per numero</button></p>');
     return parti.join('');
   }
   parti.push('<p class="registro-attribuzione">' + htmlAttribuzioneOpenData(dataLettura) + '</p>');
@@ -347,31 +392,25 @@ export function attaccaLetturaScheda(opts) {
         scriviEsitoScheda('<p>Indica prima il nome del prodotto.</p>');
         return;
       }
-      scriviEsitoScheda('<p>Cerco il prodotto negli open data del Ministero…</p>');
-      let esito = { prodotti: [], righe: [] };
-      try {
-        if (opts.leggiScheda) {
-          const richiesta = { nome, nomeProdotto: nome, specie: specie || '' };
-          const numeroCampo = numeroDalCampoProdotto(nome);
-          if (numeroCampo) {
-            richiesta.numero = numeroCampo;
-            richiesta.numeroRegistrazione = numeroCampo;
-          }
-          esito = await opts.leggiScheda(richiesta) || esito;
-        }
-      } catch (err) {
-        scriviEsitoScheda('<p>Gli open data non si leggono. Non invento numero, titolare, sostanze, avversità, carenza, numero massimo né intervallo.</p>');
-        return;
-      }
       const conferma = confermaSpecieSalvata(anag, specie);
-      const prodotti = Array.isArray(esito.prodotti) ? esito.prodotti : [];
-      const metaBase = {
+      const metaBaseDi = (esito) => ({
         fonte: esito.fonte || FONTE_OPEN_DATA_FITOSANITARI,
         dataLettura: esito.dataLettura || null,
         specie,
         nome,
         utente: opts.utente ? opts.utente() : ''
-      };
+      });
+      const esegui = async (richiesta) => {
+        scriviEsitoScheda('<p>Cerco il prodotto negli open data del Ministero…</p>');
+        let esito = { prodotti: [], righe: [] };
+        try {
+          if (opts.leggiScheda) esito = await opts.leggiScheda(richiesta) || esito;
+        } catch (err) {
+          scriviEsitoScheda('<p>Gli open data non si leggono. Non invento numero, titolare, sostanze, avversità, carenza, numero massimo né intervallo.</p>');
+          return;
+        }
+        const prodotti = Array.isArray(esito.prodotti) ? esito.prodotti : [];
+        const metaBase = metaBaseDi(esito);
       const applica = async (registro) => {
         if (opts.onConferma) opts.onConferma(idx, registro);
         if (opts.salvaSuProdotto && anag && anag.id) {
@@ -413,8 +452,24 @@ export function attaccaLetturaScheda(opts) {
             applica(registroConfermaManuale(prodotto, leggiCampiAzienda(box), metaBase));
           });
         }
+        const riprova = box.querySelector('[data-riprova-numero]');
+        if (riprova) {
+          riprova.addEventListener('click', () => {
+            const numero = String(box.querySelector('.registro-numero-manuale')?.value || '').trim();
+            if (!numero) return;
+            esegui({
+              nome,
+              nomeProdotto: nome,
+              specie: specie || '',
+              numero,
+              numeroRegistrazione: numero
+            });
+          });
+        }
       };
       disegna(prodotti.length === 1 ? 0 : null);
+      };
+      await esegui(richiestaLetturaScheda({ nome, prodotto: anag, specie }));
     });
   });
 }

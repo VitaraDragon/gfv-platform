@@ -15,6 +15,7 @@ import {
     filterTipiLavoroNascondiTipiGenericiTrattamenti,
     isCategoriaTrattamentiFitosanitari
 } from '../../config/trattamenti-lavoro-defaults.js';
+import { notificaSezioneMiscelaSeVisibile } from '../../../shared/js/registro-trattamenti-lavoro.js';
 
 import {
     dateLikeToIsoDateString,
@@ -1812,6 +1813,7 @@ export function populateTipoLavoroDropdown(
     
     if (!select || !tipoLavoroGroup) {
         syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+        notificaSezioneMiscelaSeVisibile();
         return;
     }
 
@@ -1822,6 +1824,7 @@ export function populateTipoLavoroDropdown(
     if (!categoriaId) {
         tipoLavoroGroup.style.display = 'none';
         syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+        notificaSezioneMiscelaSeVisibile();
         return;
     }
     
@@ -1981,6 +1984,7 @@ export function populateTipoLavoroDropdown(
         option.disabled = true;
         select.appendChild(option);
         syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+        notificaSezioneMiscelaSeVisibile();
         return;
     }
 
@@ -2003,6 +2007,7 @@ export function populateTipoLavoroDropdown(
         select.appendChild(option);
     });
     syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+    notificaSezioneMiscelaSeVisibile();
 }
 
 /**
