@@ -37,7 +37,7 @@ import {
   scriviAcquaNelForm,
   scriviEsitoScheda
 } from '../../../shared/js/registro-trattamenti-form.js';
-import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
+import { leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
 import { formatQuantita, valoreQuantitaGrezzo } from '../../../shared/js/formato-quantita.js';
 
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
@@ -325,8 +325,6 @@ function renderProdottiTrattamento(rows) {
         return row && row.prodottoId ? listProdottiAnagrafica.find((item) => item.id === row.prodottoId) : null;
       },
       leggiScheda: leggiSchedaRegistroTrattamento,
-      leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
-      chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
       utente: () => utenteRegistroNome,
       salvaSuProdotto: salvaConfermaProdottoOrticole,
       onConferma: (idx, pacchetto) => {
@@ -660,15 +658,36 @@ async function confirmDelete(index) {
 async function loadRighe() {
   const loadingDiv = document.getElementById('loading');
   if (loadingDiv) loadingDiv.style.display = 'block';
-  const data = await listRigheTrattamento({
-    includeLavori: hasManodopera,
-    categoria: registro.categoria
-  });
-  await loadProdottiAnagrafica();
-  terreni = data.terreni || [];
-  righe = data.righe || [];
-  populateFilters();
-  applyFilters();
+  try {
+    const data = await listRigheTrattamento({
+      includeLavori: hasManodopera,
+      categoria: registro.categoria
+    });
+    await loadProdottiAnagrafica();
+    terreni = data.terreni || [];
+    righe = data.righe || [];
+    const emptyState = document.getElementById('empty-state');
+    const avviso = emptyState && emptyState.querySelector('[data-load-error]');
+    if (avviso) avviso.remove();
+    populateFilters();
+    applyFilters();
+  } catch (err) {
+    console.error(err);
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    const emptyState = document.getElementById('empty-state');
+    const table = document.getElementById('trattamenti-table');
+    if (table) table.style.display = 'none';
+    if (emptyState) {
+      emptyState.style.display = 'block';
+      let avviso = emptyState.querySelector('[data-load-error]');
+      if (!avviso) {
+        avviso = document.createElement('p');
+        avviso.setAttribute('data-load-error', '');
+        emptyState.appendChild(avviso);
+      }
+      avviso.textContent = 'Non riesco a caricare i dati. Ricarica la pagina.';
+    }
+  }
 }
 
 function setupEventListeners() {

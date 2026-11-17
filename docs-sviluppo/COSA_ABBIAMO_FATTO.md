@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-16 — modulo Orticole Fase 1 (pieno campo).**
+**Ultimo aggiornamento documentazione: 2026-11-17 — fix Orticole ciclo 1 (Uso Reale).**
+
+## 2026-11-17 — Orticole ciclo 1: trattamenti, categoria Ortive, acqua
+
+Su `cursor/orticole-fix-ciclo1` (PR verso develop). Nessun merge, nessun deploy.
+
+Trattamenti e Concimazioni orticole non partivano: l'import nominava `chiediRiletturaScheda` e `leggiRigheSchedaProdotto`, tolte dal client scheda. Allineato al seminativo (`leggiSchedaRegistroTrattamento`) e, se il caricamento fallisce, `#loading` si nasconde con un messaggio nello stato vuoto. Filtro Categoria dei terreni: `Ortive` da `famigliaColtura` (anche `colturaCategoria`). Statistiche orticole: KPI e colonna Acqua (m³) da `irrigazioniOrticole`, senza sommare i costi irrigui. Test `named-imports-exist` sugli import nominati relativi.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-16 — modulo Orticole Fase 1 (pieno campo).**
 
 ## 2026-11-16 — Modulo Orticole Fase 1 (pieno campo)
 

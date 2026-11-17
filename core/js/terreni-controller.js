@@ -5,6 +5,7 @@
  */
 
 import { isTerrenoArchiviato } from '../../shared/js/terreno-archivio.js';
+import { famigliaColtura } from '../../shared/js/coltura-terreno.js';
 
 // ============================================
 // IMPORTS
@@ -40,15 +41,17 @@ function isColturaFrutteto(coltura) {
     return coltureFrutteto.some(f => colturaLower.includes(f));
 }
 
-/** Restituisce categoria display (Vigneto, Frutteto, Seminativo) da nome coltura */
-export function getCategoriaFromColtura(coltura) {
-    if (!coltura) return null;
-    const k = String(coltura).toLowerCase().trim();
-    if (k.includes('vite')) return 'Vigneto';
-    if (isColturaFrutteto(coltura)) return 'Frutteto';
-    const seminativo = ['grano', 'mais', 'orzo', 'favino', 'girasole', 'soia', 'colza', 'avena', 'segale', 'riso'];
-    if (seminativo.some(s => k.includes(s))) return 'Seminativo';
-    return null;
+const CATEGORIA_DISPLAY = {
+    vigneto: 'Vigneto',
+    frutteto: 'Frutteto',
+    seminativo: 'Seminativo',
+    orticole: 'Ortive'
+};
+
+/** Restituisce categoria display (Vigneto, Frutteto, Seminativo, Ortive) da terreno o nome coltura. */
+export function getCategoriaFromColtura(terrenoOColtura) {
+    if (!terrenoOColtura) return null;
+    return CATEGORIA_DISPLAY[famigliaColtura(terrenoOColtura)] || null;
 }
 
 /**
@@ -805,7 +808,7 @@ export function filterTerreni(terreni, terreniFiltrati, renderTerreniCallback) {
         
         // Filtro categoria (dedotta da coltura)
         if (filterCategoria) {
-            const catTerreno = getCategoriaFromColtura(terreno.coltura);
+            const catTerreno = getCategoriaFromColtura(terreno);
             if (catTerreno !== filterCategoria) {
                 return;
             }
