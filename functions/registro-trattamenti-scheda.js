@@ -1,12 +1,13 @@
 /**
- * Legge open data del Ministero e, se la pagina risponde, la tabella impieghi.
- * Non scrive l'archivio su Firestore. In memoria di istanza tiene solo il CSV
- * già scaricato, e lo butta quando l'istanza si spegne.
+ * Legge il CSV open data del Ministero della Salute.
+ * Non apre altre banche e non scrive l'archivio su Firestore.
+ * In memoria di istanza tiene solo il CSV già scaricato, e lo butta quando l'istanza si spegne.
  */
 const { HttpsError } = require("firebase-functions/v2/https");
 const {
   estraiUrlCsv,
-  componiRispostaScheda
+  componiRispostaScheda,
+  chiaveRicercaScheda
 } = require("./lib/registro-trattamenti-scheda-core");
 
 const PAGINA_DATASET = "https://www.dati.salute.gov.it/it/dataset/fitosanitari/";
@@ -51,44 +52,31 @@ async function csvCorrente() {
 
 async function handleLeggiSchedaRegistroTrattamento(request) {
   if (!request.auth || !request.auth.uid) {
-    throw new HttpsError("unauthenticated", "Accedi per leggere la scheda.");
+    throw new HttpsError("unauthenticated", "Accedi per cercare il prodotto negli open data.");
   }
   const data = request.data || {};
-  const nome = testo(data.nome || data.nomeProdotto);
-  const specie = testo(data.specie);
-  if (!nome) throw new HttpsError("invalid-argument", "Manca il nome del prodotto.");
-  if (!specie) {
-    return {
-      ok: false,
-      motivo: "specie_mancante",
-      prodotti: [],
-      righe: [],
-      schedaImpieghi: "non_letta"
-    };
-  }
+  const chiave = chiaveRicercaScheda(data);
+  if (!chiave.ok) throw new HttpsError("invalid-argument", "Manca il nome o il numero del prodotto.");
   const scaricato = await csvCorrente();
   if (!scaricato) {
     return {
       ok: false,
-      motivo: "scheda_non_letta",
+      motivo: "open_data_non_letti",
       fonte: null,
       dataLettura: null,
-      specie,
+      specie: testo(data.specie) || null,
       prodotti: [],
-      righe: [],
-      schedaImpieghi: "non_letta"
+      proposto: null,
+      righe: []
     };
   }
-  const htmlScheda = testo(data.htmlScheda);
-  const risposta = componiRispostaScheda({
+  return componiRispostaScheda({
     csv: scaricato.csv,
-    htmlScheda,
-    nome,
-    specie,
-    alias: Array.isArray(data.alias) ? data.alias : [],
+    nome: chiave.nome,
+    numero: chiave.numero,
+    specie: testo(data.specie),
     urlCsv: scaricato.url
   });
-  return risposta;
 }
 
 module.exports = {

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Semina e trapianto" data-gfv-module="orticole">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Semina e trapianto — Orticole - GFV</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#E65100">
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="orticole-standalone.css">
+</head>
+<body data-orticole-page="impianto" data-page-type="impianto_orticole">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🌱 Semina e trapianto — Orticole</h1>
+                <p>Registra data, varietà e dose (semina) o densità piante/ha (trapianto) sulla campagna già creata. Il primo evento porta la campagna a Seminato o Trapiantato.</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" id="btn-nuova-semina" class="btn btn-primary">Nuovo impianto</button>
+                <a href="orticole-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna">
+                        <option value="">Tutte le campagne</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Coltura, varietà, data…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento impianti...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessun impianto trovato</h3>
+                    <p>Registra la semina o il trapianto di una campagna già presente in anagrafica.</p>
+                </div>
+                <table id="semine-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Campagna</th>
+                            <th>Tipo</th>
+                            <th>Varietà</th>
+                            <th>Dose / Densità</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="semine-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="orticole-semina-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="orticole-semina-modal-title">Nuovo impianto</h2>
+                <button type="button" class="close" id="btn-close-semina-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <form id="orticole-semina-form">
+                <input type="hidden" id="semina-id">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label for="semina-campagna">Campagna *</label>
+                        <select id="semina-campagna" name="semina-campagna" required>
+                            <option value="">Seleziona campagna</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="semina-tipo-impianto">Tipo *</label>
+                        <select id="semina-tipo-impianto" name="semina-tipo-impianto" required>
+                            <option value="trapianto">Trapianto</option>
+                            <option value="semina">Semina</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="semina-data">Data impianto *</label>
+                        <input type="date" id="semina-data" name="semina-data" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="semina-varieta">Varietà</label>
+                        <div class="varieta-picker">
+                            <select id="semina-varieta" name="semina-varieta">
+                                <option value="">Prima scegli la campagna</option>
+                            </select>
+                            <button type="button" id="btn-add-varieta" class="btn btn-secondary btn-add-varieta" title="Aggiungi varietà">+</button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="group-dose-seme">
+                        <label for="semina-dose">Dose seme</label>
+                        <input type="number" id="semina-dose" name="semina-dose" min="0" step="0.1">
+                    </div>
+                    <div class="form-group" id="group-unita-dose">
+                        <label for="semina-unita">Unità</label>
+                        <select id="semina-unita" name="semina-unita">
+                            <option value="kg/ha">kg/ha</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="group-densita" style="display:none;">
+                        <label for="semina-densita">Densità piante/ha</label>
+                        <input type="number" id="semina-densita" name="semina-densita" min="0" step="1" placeholder="es. 25000">
+                    </div>
+                    <div class="form-group full">
+                        <label for="semina-note">Note</label>
+                        <textarea id="semina-note" name="semina-note"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel-semina" class="btn btn-secondary">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="orticole-varieta-modal" class="modal modal-varieta">
+        <div class="modal-content modal-content-narrow">
+            <div class="modal-header">
+                <h2>Nuova varietà</h2>
+                <button type="button" class="close" id="btn-close-varieta-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <form id="orticole-varieta-form">
+                <div class="form-group">
+                    <label for="nuova-varieta">Nome varietà</label>
+                    <input type="text" id="nuova-varieta" required placeholder="es. Bologna">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel-varieta" class="btn btn-secondary">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { initImpiantiPage } from '../js/impianti-page.js';
+        initImpiantiPage();
+    </script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../../service-worker.js';
+        registraServiceWorker(swPath);
+    </script>
+</body>
+</html>

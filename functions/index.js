@@ -4968,13 +4968,6 @@ exports.leggiSchedaRegistroTrattamento = onCall(
   handleLeggiSchedaRegistroTrattamento
 );
 
-const {
-  onProdottoSchedaScritto,
-  leggiSchedeRegistroInCoda
-} = require("./registro-trattamenti-lettura");
-exports.onProdottoSchedaScritto = onProdottoSchedaScritto;
-exports.leggiSchedeRegistroInCoda = leggiSchedeRegistroInCoda;
-
 const { handleRegistraAccettazioniLegali } = require("./accettazione-legale");
 // Gestore avvolto: onCall v2 chiama handler(request, response); il secondo argomento
 // NON è il database (handleRegistraAccettazioniLegali(request, db) lo userebbe al posto di admin.firestore()).

@@ -1,6 +1,26 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-14 — test:promote veloce e deterministico.**
+**Ultimo aggiornamento documentazione: 2026-11-16 — modulo Orticole Fase 1 (pieno campo).**
+
+## 2026-11-16 — Modulo Orticole Fase 1 (pieno campo)
+
+Su `cursor/modulo-orticole-fase-1-cd9f` (PR verso develop). Nessun merge, nessun deploy, nessuno script Stripe live.
+
+Nuovo modulo a pagamento `orticole` (3 €/mese, `available: true`, prova 30 giorni) per le colture catalogo `ortive`. Schema Seminativo con collezioni proprie (`orticole`, `semineOrticole`, `trattamentiOrticole`, `raccolteOrticole`, `irrigazioniOrticole`): anagrafica con fino a due cicli per terreno/annata, semina/trapianto, irrigazione in m³ (metodi a goccia/aspersione/scorrimento), trattamenti/concimazioni, raccolta q/ha con destinazione industria/mercato/stoccaggio/uso aziendale, varietà predefinite + personalizzate, cambio coltura da/verso Ortive, scarico magazzino e registro trattamenti. `gfv-completo.modules` congelato agli 11 id pre-orticole (prezzo 30). Tony: solo rotte/gate/consigliere (categoria Ortive); niente form mapping / Avanzato. Fase 2 (settori, calendario, kg/cassette) non in questa PR.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-16 — registro trattamenti senza SIAN.**
+
+## 2026-11-16 — tolta la lettura SIAN
+
+Su `fix/registro-senza-sian` (PR verso develop). Nessun deploy.
+
+16/11/2026 — tolta la lettura SIAN; restano solo open data del Ministero; colture e dosi le conferma l'utente. Spariscono dal codice `onProdottoSchedaScritto` e `leggiSchedeRegistroInCoda`. Resta `leggiSchedaRegistroTrattamento`. Nessun deploy: se le due function sono online, il prossimo `firebase deploy --only functions` chiederà di eliminarle.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-14 — test:promote veloce e deterministico.**
 
 ## 2026-11-14 — test:promote veloce e deterministico
 

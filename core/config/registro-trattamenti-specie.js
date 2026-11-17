@@ -1,12 +1,12 @@
 /**
- * Corrispondenza unica fra i valori GFV e le colture della scheda pubblica.
- * Se il valore manca o non è in questa mappa, non si propone nulla.
+ * Corrispondenza fra i valori GFV e il nome della coltura che l'azienda conferma.
+ * Se il valore manca o non è in questa mappa, il form non precompila la coltura.
  * @module core/config/registro-trattamenti-specie
  */
 
 /**
- * Destinazione uva del vigneto → coltura della banca SIAN.
- * Letto il 13 ottobre 2026 su SIVANTO PRIME, pagina 2: VITE, VITE DA VINO, VITE DA TAVOLA sono tre righe.
+ * Destinazione uva del vigneto → nome coltura.
+ * VITE, VITE DA VINO e VITE DA TAVOLA restano tre nomi distinti.
  * `misto` e la riga generica VITE non si indovinano. UVA SPINA non è vite.
  */
 export const MAPPA_DESTINAZIONE_VIGNETO = {
@@ -16,7 +16,7 @@ export const MAPPA_DESTINAZIONE_VIGNETO = {
 };
 
 /**
- * Specie frutteto (anagrafica) → coltura della scheda.
+ * Specie frutteto (anagrafica) → nome della coltura.
  * `Altro` non si mappa.
  */
 export const MAPPA_SPECIE_FRUTTETO = {
@@ -111,6 +111,41 @@ export function colturaSchedaSeminativo(colturaNome) {
 }
 
 /**
+ * Nome coltura orticole (catalogo) → coltura della scheda.
+ */
+export const MAPPA_COLTURA_ORTICOLE = {
+  Pomodoro: 'pomodoro',
+  Zucchine: 'zucchino',
+  Melanzane: 'melanzana',
+  Peperoni: 'peperone',
+  Insalata: 'insalata',
+  Carote: 'carota',
+  Patate: 'patata',
+  Bietole: 'bietola',
+  Fragole: 'fragola',
+  Cipolle: 'cipolla',
+  Aglio: 'aglio',
+  Fagioli: 'fagiolo',
+  Fagiolini: 'fagiolino',
+  Piselli: 'pisello',
+  Cavolo: 'cavolo',
+  Broccoli: 'broccolo',
+  Cavolfiore: 'cavolfiore',
+  Spinaci: 'spinacio',
+  Lattuga: 'lattuga',
+  Radicchio: 'radicchio',
+  Finocchi: 'finocchio',
+  Sedano: 'sedano',
+  Cetrioli: 'cetriolo',
+  Angurie: 'anguria',
+  Meloni: 'melone'
+};
+
+export function colturaSchedaOrticole(colturaNome) {
+  return daMappa(MAPPA_COLTURA_ORTICOLE, colturaNome);
+}
+
+/**
  * @param {{ modulo?: string, destinazioneUva?: string, specie?: string, colturaNome?: string }} input
  * @returns {string|null}
  */
@@ -119,6 +154,7 @@ export function colturaSchedaRegistro(input = {}) {
   if (modulo === 'vigneto') return colturaSchedaVigneto(input.destinazioneUva);
   if (modulo === 'frutteto') return colturaSchedaFrutteto(input.specie);
   if (modulo === 'seminativo') return colturaSchedaSeminativo(input.colturaNome);
+  if (modulo === 'orticole') return colturaSchedaOrticole(input.colturaNome);
   return null;
 }
 

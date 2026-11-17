@@ -1,18 +1,28 @@
 /**
- * Lettura della scheda pubblica: parser puro, senza rete e senza Firestore.
- * Il file ministeriale non si salva. Si restituiscono solo le righe della specie chiesta.
+ * Open data del Ministero della Salute, prodotti fitosanitari.
+ * Parser puro, senza rete e senza Firestore. Il CSV non si salva.
+ * Coltura, avversità, dose e carenza non si leggono da qui: le conferma l'azienda.
  */
 
-const FONTE = "Ministero della Salute, open data Fitosanitari, licenza Italian Open Data License 2.0";
+const fs = require("fs");
+const path = require("path");
+
+function caricaFonte() {
+  const nelRepo = path.join(__dirname, "../../shared/js/registro-trattamenti-fonte.js");
+  const inDeploy = path.join(__dirname, "registro-trattamenti-fonte.mjs");
+  const file = fs.existsSync(nelRepo) ? nelRepo : inDeploy;
+  if (!fs.existsSync(file)) {
+    throw new Error("Manca la costante open data del registro trattamenti");
+  }
+  return require(file);
+}
+
+const fonteCondivisa = caricaFonte();
+const FONTE = fonteCondivisa.FONTE_OPEN_DATA_FITOSANITARI;
+const classificaStatoAmministrativo = fonteCondivisa.classificaStatoAmministrativo;
 
 function testo(value) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim();
-}
-
-function numero(value) {
-  if (value == null || value === "") return null;
-  const n = parseFloat(String(value).replace(",", "."));
-  return Number.isFinite(n) ? n : null;
 }
 
 function normalizza(value) {
@@ -60,6 +70,10 @@ function dataLetturaDaNomeFile(url) {
   return m[1] + "-" + m[2] + "-" + m[3];
 }
 
+/**
+ * Header verificato su PROD_FTS_6_20261116.csv (16/11/2026, 17.743 righe).
+ * Il titolare è la colonna ragione_sociale.
+ */
 function parsaCsvFitosanitari(csv) {
   const lines = String(csv || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
   if (!lines.length) return [];
@@ -67,6 +81,7 @@ function parsaCsvFitosanitari(csv) {
   const idx = (nomi) => header.findIndex((h) => nomi.some((n) => h === n || h.includes(n)));
   const iNum = idx(["num_registrazione", "numero_registrazione"]);
   const iNome = idx(["denominazione_prodotto", "denominazione"]);
+  const iTitolare = header.findIndex((h) => h === "ragione_sociale");
   const iSost = idx(["sostanze_attive", "principio"]);
   const iStato = idx(["stato_amministrativo"]);
   const iScad = idx(["data_scadenza_autorizzazione"]);
@@ -77,6 +92,7 @@ function parsaCsvFitosanitari(csv) {
     return {
       numeroRegistrazione: iNum >= 0 ? testo(cells[iNum]) : "",
       denominazione: iNome >= 0 ? testo(cells[iNome]) : "",
+      titolare: iTitolare >= 0 ? testo(cells[iTitolare]) : "",
       principioAttivo: iSost >= 0 ? testo(cells[iSost]) : "",
       stato: iStato >= 0 ? testo(cells[iStato]) : "",
       dataScadenzaAutorizzazione: iScad >= 0 ? testo(cells[iScad]) : "",
@@ -100,23 +116,9 @@ function dataVariazioneOpenData(row) {
     || dataUtileOpenData(row.dataScadenzaAutorizzazione);
 }
 
-function schedaOltreSeiMesi(iso, oraMs) {
-  const t = Date.parse(iso || "");
-  if (!Number.isFinite(t)) return true;
-  const limite = new Date(t);
-  limite.setUTCMonth(limite.getUTCMonth() + 6);
-  return Number(oraMs) >= limite.getTime();
-}
-
-function controlloSettimanaleDovuto(iso, oraMs) {
-  const t = Date.parse(iso || "");
-  if (!Number.isFinite(t)) return true;
-  return Number(oraMs) - t >= SETTIMANA_CONTROLLO_MS;
-}
-
 /**
- * Controllo leggero: numero, stato, data di revoca o scadenza.
- * Senza una lettura precedente da confrontare, non tratta il silenzio come un cambiamento.
+ * Controllo su numero, stato e data. Senza una lettura precedente, il silenzio non è un cambiamento.
+ * Non avvia più una coda.
  */
 function controlloLeggeroScheda(prodotto, riga) {
   if (!riga) return { esito: "non_trovato", impronta: null };
@@ -135,460 +137,161 @@ function controlloLeggeroScheda(prodotto, riga) {
   return { esito: cambiato ? "cambiato" : "invariato", impronta };
 }
 
-function cercaProdotti(righe, nome, limite = 8) {
-  const q = normalizza(nome);
-  if (!q) return [];
-  const scored = (righe || []).map((row) => {
-    const den = normalizza(row.denominazione);
-    let punti = 0;
-    if (den === q) punti = 3;
-    else if (den.startsWith(q) || q.startsWith(den)) punti = 2;
-    else if (den.includes(q)) punti = 1;
-    if (!punti) return null;
-    const autorizzato = normalizza(row.stato).startsWith("autorizz") ? 1 : 0;
-    return { row, punti, autorizzato };
-  }).filter(Boolean);
-  scored.sort((a, b) => (b.punti - a.punti) || (b.autorizzato - a.autorizzato) || a.row.denominazione.localeCompare(b.row.denominazione, "it"));
-  return scored.slice(0, limite).map((item) => item.row);
-}
-
-function celleHtml(tr) {
-  return Array.from(String(tr).matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)).map((m) =>
-    testo(m[1].replace(/<[^>]+>/g, " "))
-  );
-}
-
-function parsaTabellaImpieghi(html) {
-  const testoHtml = String(html || "");
-  const righe = Array.from(testoHtml.matchAll(/<tr[\s\S]*?<\/tr>/gi)).map((m) => celleHtml(m[0])).filter((c) => c.length);
-  if (righe.length < 2) return [];
-  const header = righe[0].map(normalizza);
-  const col = (nomi) => header.findIndex((h) => nomi.some((n) => h.includes(n)));
-  const iColtura = col(["coltura", "impiego", "specie"]);
-  const iAvv = col(["avvers"]);
-  const iCar = col(["carenza"]);
-  const iMax = col(["massimo", "max", "n. tratt", "numero"]);
-  const iInt = col(["intervallo", "giorni min"]);
-  const iHa = col(["ettaro", "/ha", "dose ha"]);
-  const iHl = col(["ettolitro", "/hl", "dose hl", "100"]);
-  if (iColtura < 0) return [];
-  return righe.slice(1).map((cells) => ({
-    colturaScheda: cells[iColtura] || "",
-    avversita: iAvv >= 0 ? cells[iAvv] || "" : "",
-    giorniCarenza: iCar >= 0 ? numero(cells[iCar]) : null,
-    impieghiMassimiAnno: iMax >= 0 ? numero(cells[iMax]) : null,
-    giorniMinimiTraPassaggi: iInt >= 0 ? numero(cells[iInt]) : null,
-    dosePerEttaro: iHa >= 0 ? numero(cells[iHa]) : null,
-    dosePerEttolitro: iHl >= 0 ? numero(cells[iHl]) : null
-  })).filter((row) => row.colturaScheda);
-}
-
-function rigaDiSerra(row) {
-  return /serra/.test(normalizza(row.colturaScheda) + " " + normalizza(row.avversita));
-}
-
-function colturaCoincide(richiesta, alias, colturaRiga) {
-  const nome = normalizza(colturaRiga);
-  if (!nome) return false;
-  const chiavi = [normalizza(richiesta), ...(alias || []).map(normalizza)].filter(Boolean);
-  return chiavi.some((k) => nome === k);
-}
-
-function filtraRigheSpecie(righe, specie, alias) {
-  const chiedeSerra = /serra/.test(normalizza(specie));
-  return (righe || []).filter((row) => {
-    if (!chiedeSerra && rigaDiSerra(row)) return false;
-    return colturaCoincide(specie, alias, row.colturaScheda);
-  });
-}
-
-/**
- * @param {{ csv?: string, htmlScheda?: string, nome?: string, specie?: string, alias?: string[], urlCsv?: string }} input
- */
-function componiRispostaScheda(input = {}) {
-  const prodotti = cercaProdotti(parsaCsvFitosanitari(input.csv), input.nome);
-  const specie = testo(input.specie);
-  const tutte = parsaTabellaImpieghi(input.htmlScheda);
-  const righeLette = tutte.length > 0;
-  const righe = specie ? filtraRigheSpecie(tutte, specie, input.alias) : [];
-  return {
-    ok: true,
-    fonte: FONTE,
-    dataLettura: dataLetturaDaNomeFile(input.urlCsv),
-    specie: specie || null,
-    prodotti,
-    righe,
-    schedaImpieghi: righeLette ? "letta" : "non_letta"
-  };
-}
-
-const ATTESA_RIPROVA_MS = 6 * 60 * 60 * 1000;
-const SETTIMANA_CONTROLLO_MS = 7 * 24 * 60 * 60 * 1000;
-
 function normalizzaNomeProdotto(value) {
   return testo(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function eFitofarmaco(data) {
-  return normalizza(data && data.categoria) === "fitofarmaci";
+/**
+ * Confronto prudente: th→t, ph→f, y→i, k→c, doppie consonanti → singola.
+ * Spazi, trattini e punti non contano nella chiave compatta.
+ */
+function chiaveGrafia(value) {
+  let s = testo(value).toLowerCase();
+  s = s.replace(/th/g, "t").replace(/ph/g, "f").replace(/y/g, "i").replace(/k/g, "c");
+  s = s.replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  s = s.replace(/([b-df-hj-np-tv-z])\1+/g, "$1");
+  return s;
 }
 
+function chiaveCompatta(value) {
+  return chiaveGrafia(value).replace(/ /g, "");
+}
+
+function nomeBase(value) {
+  return (chiaveGrafia(value).split(" ")[0]) || "";
+}
+
+/** Ancora in commercio: Autorizzato*, Ri-registrato*, Rinnovato*. Non il solo «Autorizzato» letterale. */
 function eAutorizzato(row) {
-  return normalizza(row && row.stato).startsWith("autorizz");
+  return classificaStatoAmministrativo(row && row.stato) === "autorizzato";
+}
+
+function cercaProdotti(righe, nome, limite = 20) {
+  const qGrafia = chiaveGrafia(nome);
+  const qCompatta = chiaveCompatta(nome);
+  const qBase = nomeBase(nome);
+  if (!qGrafia) return [];
+  const scored = (righe || []).map((row) => {
+    const g = chiaveGrafia(row.denominazione);
+    const c = chiaveCompatta(row.denominazione);
+    if (!g) return null;
+    let punti = 0;
+    let tipo = "";
+    if (g === qGrafia || c === qCompatta) {
+      punti = 3;
+      tipo = "esatto";
+    } else if (g.startsWith(qGrafia + " ")) {
+      punti = 2;
+      tipo = "prefisso";
+    } else if (qGrafia.startsWith(g + " ")) {
+      punti = 2;
+      tipo = "piu_corto";
+    } else if (qGrafia.length >= 4 && g.includes(qGrafia)) {
+      punti = 1;
+      tipo = "contiene";
+    }
+    if (!punti) return null;
+    return {
+      row,
+      punti,
+      tipo,
+      valido: eAutorizzato(row) ? 1 : 0,
+      stessoBase: nomeBase(row.denominazione) === qBase ? 1 : 0
+    };
+  }).filter(Boolean);
+  const haEsatto = scored.some((item) => item.tipo === "esatto");
+  const tenuti = haEsatto ? scored.filter((item) => item.tipo !== "piu_corto") : scored;
+  tenuti.sort((a, b) =>
+    (b.stessoBase - a.stessoBase)
+    || (b.valido - a.valido)
+    || (b.punti - a.punti)
+    || a.row.denominazione.localeCompare(b.row.denominazione, "it")
+  );
+  return tenuti.slice(0, limite).map((item) => item.row);
 }
 
 /**
- * Un nome, un numero. «Folpan» non prende «Folpan Gold».
- * Se ne resta più di una, non si sceglie.
+ * Solo le cifre, senza zeri iniziali. 002513 e 2513 coincidono.
+ * Un numero fatto di soli zeri resta «0»: non diventa stringa vuota.
+ */
+function normalizzaNumeroRegistrazione(value) {
+  const cifre = testo(value).replace(/\D/g, "");
+  if (!cifre) return "";
+  return cifre.replace(/^0+/, "") || "0";
+}
+
+/** Nome di sole cifre, spazi ignorati: è un numero di registrazione, non una denominazione. */
+function soloCifre(value) {
+  const t = testo(value).replace(/ /g, "");
+  return t.length > 0 && /^\d+$/.test(t);
+}
+
+/** Il form può mandare il numero nel campo nome. Vale anche il solo numero, senza nome. */
+function chiaveRicercaScheda(data = {}) {
+  const src = data || {};
+  const nome = testo(src.nome || src.nomeProdotto);
+  const numero = testo(src.numero || src.numeroRegistrazione);
+  return { nome, numero, ok: Boolean(nome || numero) };
+}
+
+/**
+ * Non sceglie in silenzio se restano più candidati.
+ * Se l'unico nome esatto è revocato e c'è un prodotto ancora in commercio con lo stesso nome base,
+ * quello in commercio è la proposta e il revocato resta nell'elenco.
+ * Un numero, anche revocato, è univoco: 002513 e 2513 sono lo stesso confronto.
  */
 function trovaRegistrazioneUnica(righe, nome, numero) {
   const lista = righe || [];
-  const num = testo(numero);
+  const numRichiesto = testo(numero) || (soloCifre(nome) ? testo(nome) : "");
+  const num = normalizzaNumeroRegistrazione(numRichiesto);
   if (num) {
-    const perNumero = lista.filter((row) => testo(row.numeroRegistrazione) === num);
-    if (perNumero.length === 1) return { esito: "unica", prodotto: perNumero[0] };
+    const perNumero = lista.filter((row) => normalizzaNumeroRegistrazione(row.numeroRegistrazione) === num);
+    if (perNumero.length === 1) return { esito: "unica", prodotto: perNumero[0], prodotti: perNumero };
     if (perNumero.length > 1) {
-      const aut = perNumero.filter(eAutorizzato);
-      if (aut.length === 1) return { esito: "unica", prodotto: aut[0] };
-      return { esito: "nome_non_univoco", prodotto: null };
+      return { esito: "nome_non_univoco", prodotto: null, prodotti: perNumero };
+    }
+    if (!testo(nome) || soloCifre(nome)) {
+      return { esito: "non_trovato", prodotto: null, prodotti: [] };
     }
   }
-  const q = normalizzaNomeProdotto(nome);
-  if (!q) return { esito: "non_trovato", prodotto: null };
-  const esatti = lista.filter((row) => normalizzaNomeProdotto(row.denominazione) === q);
-  if (esatti.length === 1) return { esito: "unica", prodotto: esatti[0] };
-  if (esatti.length > 1) {
-    const aut = esatti.filter(eAutorizzato);
-    if (aut.length === 1) return { esito: "unica", prodotto: aut[0] };
-    return { esito: "nome_non_univoco", prodotto: null };
-  }
-  const prefisso = lista.filter((row) => normalizzaNomeProdotto(row.denominazione).startsWith(q + " "));
-  if (prefisso.length === 1) return { esito: "unica", prodotto: prefisso[0] };
-  if (prefisso.length > 1) return { esito: "nome_non_univoco", prodotto: null };
-  return { esito: "non_trovato", prodotto: null };
+  const candidati = cercaProdotti(lista, nome, 50);
+  if (!candidati.length) return { esito: "non_trovato", prodotto: null, prodotti: [] };
+  const validi = candidati.filter(eAutorizzato);
+  if (candidati.length === 1) return { esito: "unica", prodotto: candidati[0], prodotti: candidati };
+  if (validi.length === 1) return { esito: "proposta", prodotto: validi[0], prodotti: candidati };
+  return { esito: "nome_non_univoco", prodotto: null, prodotti: candidati };
 }
 
-function carenzaCella(value) {
-  const t = testo(value);
-  if (!t || t === "-" || t === "—" || /non\s+richiest/i.test(t)) return null;
-  return numero(t);
-}
-
-function nomeColturaCella(value) {
-  return testo(value).replace(/^(coltura|impiego)\s*-\s*/i, "");
-}
-
-function parsaPaginaImpieghiSian(html) {
-  const testoHtml = String(html || "");
-  const pagine = Array.from(testoHtml.matchAll(/name="butPagina"[^>]*value="\s*(\d+)\s*"/gi))
-    .map((m) => Number(m[1]))
-    .filter((n) => Number.isFinite(n));
-  const righe = Array.from(testoHtml.matchAll(/<tr[\s\S]*?<\/tr>/gi)).map((m) => celleHtml(m[0]));
-  const colture = [];
-  righe.forEach((cells) => {
-    if (cells.length < 3) return;
-    if (/impiego/i.test(cells[0]) && /coltura/i.test(cells[0])) return;
-    const colturaScheda = nomeColturaCella(cells[0]);
-    if (!colturaScheda || /impiego/i.test(colturaScheda)) return;
-    colture.push({
-      colturaScheda,
-      giorniCarenza: carenzaCella(cells[1]),
-      giorniCarenzaSerra: carenzaCella(cells[2])
-    });
-  });
-  return { colture, pagine: Array.from(new Set(pagine)) };
-}
-
-function parsaElencoAvversita(html) {
-  const testoHtml = String(html || "");
-  if (/Impiego\s*-\s*Coltura/i.test(testoHtml)) return [];
-  const righe = Array.from(testoHtml.matchAll(/<tr[\s\S]*?<\/tr>/gi)).map((m) => celleHtml(m[0]));
-  const nomi = [];
-  righe.forEach((cells) => {
-    const cella = testo(cells[0]);
-    if (!cella || /classe\s+avvers/i.test(cella)) return;
-    const i = cella.indexOf("-");
-    if (i <= 0) return;
-    const nome = testo(cella.slice(i + 1));
-    if (nome) nomi.push(nome);
-  });
-  return nomi;
-}
-
-function coltureDaPagineImpieghi(pagine) {
-  const viste = new Set();
-  const out = [];
-  (pagine || []).forEach((html) => {
-    parsaPaginaImpieghiSian(html).colture.forEach((c) => {
-      const k = normalizzaNomeProdotto(c.colturaScheda);
-      if (!k || viste.has(k)) return;
-      viste.add(k);
-      out.push(c);
-    });
-  });
-  return out;
-}
-
-function epocheNelTesto(frammento) {
-  const t = testo(frammento).toLowerCase();
-  const trovate = [];
-  if (/dopo la fioritura/.test(t)) trovate.push("dopo la fioritura");
-  else if (/pre[\s-]*fioritura/.test(t)) trovate.push("pre-fioritura");
-  else if (/fioritura/.test(t)) trovate.push("fioritura");
-  if (/vegetazione piena/.test(t)) trovate.push("vegetazione piena");
-  if (/tardiv/.test(t)) trovate.push("trattamento tardivo");
-  if (/precoc/.test(t)) trovate.push("trattamento precoce");
-  return trovate.length === 1 ? trovate[0] : null;
-}
-
-function estraiDoseFrammento(frammento) {
-  const conUnita = String(frammento).match(/(\d+(?:[.,]\d+)?)(?:\s*[–—-]\s*(\d+(?:[.,]\d+)?))?\s*(kg|g|l)\s*\/\s*(ha|hl)/i);
-  if (conUnita) {
-    const min = numero(conUnita[1]);
-    const max = numero(conUnita[2] || conUnita[1]);
-    if (min == null) return null;
-    return { min, max: max == null ? min : max, unita: conUnita[3].toLowerCase(), per: conUnita[4].toLowerCase() };
-  }
-  if (!epocheNelTesto(frammento)) return null;
-  const nudo = String(frammento).match(/(\d+(?:[.,]\d+)?)(?:\s*[–—-]\s*(\d+(?:[.,]\d+)?))?/);
-  if (!nudo) return null;
-  const min = numero(nudo[1]);
-  const max = numero(nudo[2] || nudo[1]);
-  if (min == null) return null;
-  return { min, max: max == null ? min : max, unita: null, per: null };
-}
-
-function contaDosi(frase) {
-  const re = /(\d+(?:[.,]\d+)?)(?:\s*[–—-]\s*\d+(?:[.,]\d+)?)?\s*(?:kg|g|l)\s*\/\s*(?:ha|hl)|(\d+(?:[.,]\d+)?)(?:\s*[–—-]\s*\d+(?:[.,]\d+)?)?\s+in\s+/gi;
-  return (String(frase).match(re) || []).length;
-}
-
-function parsaTestoEtichetta(testoEtichetta) {
-  const frasi = String(testoEtichetta || "").split(/[.;\n]+/);
-  const frammenti = [];
-  frasi.forEach((frase) => {
-    if (contaDosi(frase) > 1 && /,(?!\d)/.test(frase)) frase.split(/,(?!\d)/).forEach((p) => frammenti.push(p));
-    else frammenti.push(frase);
-  });
-  const finestre = [];
-  let unita = null;
-  let per = null;
-  frammenti.forEach((frammento) => {
-    const dose = estraiDoseFrammento(frammento);
-    if (!dose) return;
-    if (dose.unita) unita = dose.unita;
-    if (dose.per) per = dose.per;
-    const perEff = dose.per || per;
-    const unitaEff = dose.unita || unita;
-    if (!perEff || !unitaEff) return;
-    const epoca = epocheNelTesto(frammento);
-    const finestra = {
-      epoca,
-      frammento: testo(frammento),
-      doseMinHa: null,
-      doseMaxHa: null,
-      doseMinHl: null,
-      doseMaxHl: null,
-      unita: unitaEff
-    };
-    if (perEff === "ha") {
-      finestra.doseMinHa = dose.min;
-      finestra.doseMaxHa = dose.max;
-    } else {
-      finestra.doseMinHl = dose.min;
-      finestra.doseMaxHl = dose.max;
-    }
-    finestre.push(finestra);
-  });
-  return finestre;
-}
-
-function limitiNelBlocco(blocco) {
-  const t = testo(blocco);
-  const max = t.match(/(?:massimo|max\.?)\s*(?:di\s*)?(\d+)\s*(?:trattament|impieg)/i);
-  const interv = t.match(/intervallo(?:\s+minimo)?(?:\s+di)?\s*(\d+)\s*giorn/i);
+/** Non legge tabelle impieghi e non restituisce righe di dose o avversità. */
+function componiRispostaScheda(input = {}) {
+  const trovata = trovaRegistrazioneUnica(parsaCsvFitosanitari(input.csv), input.nome, input.numero);
   return {
-    impieghiMassimiAnno: max ? numero(max[1]) : null,
-    giorniMinimiTraPassaggi: interv ? numero(interv[1]) : null
-  };
-}
-
-function blocchiColtura(colture, testoEtichetta) {
-  const originale = String(testoEtichetta || "");
-  const basso = originale.toLowerCase();
-  const punti = [];
-  (colture || []).forEach((c) => {
-    const nome = String(c.colturaScheda || "").toLowerCase();
-    if (nome.length < 4) return;
-    let da = 0;
-    while (da < basso.length) {
-      const at = basso.indexOf(nome, da);
-      if (at < 0) break;
-      punti.push({ coltura: c, at, fine: at + nome.length, nome });
-      da = at + nome.length;
-    }
-  });
-  punti.sort((a, b) => a.at - b.at || b.nome.length - a.nome.length);
-  const tenuti = [];
-  punti.forEach((p) => {
-    const dentro = tenuti.some((t) => p.at >= t.at && p.at < t.fine);
-    if (!dentro) tenuti.push(p);
-  });
-  return tenuti.map((p, i) => {
-    const fineBlocco = i + 1 < tenuti.length ? tenuti[i + 1].at : originale.length;
-    return {
-      coltura: p.coltura,
-      blocco: originale.slice(p.at, fineBlocco)
-    };
-  });
-}
-
-function finestreDelBlocco(blocco, finestre) {
-  const basse = testo(blocco).toLowerCase();
-  return (finestre || []).filter((f) => f.frammento && basse.includes(testo(f.frammento).toLowerCase()));
-}
-
-function rigaScheda(coltura, finestra, avversita, limiti) {
-  const f = finestra || {};
-  return {
-    colturaScheda: coltura.colturaScheda,
-    epoca: f.epoca || null,
-    avversita: testo(avversita),
-    pienoCampo: true,
-    giorniCarenza: coltura.giorniCarenza == null ? null : coltura.giorniCarenza,
-    giorniCarenzaSerra: coltura.giorniCarenzaSerra == null ? null : coltura.giorniCarenzaSerra,
-    doseMinHa: f.doseMinHa == null ? null : f.doseMinHa,
-    doseMaxHa: f.doseMaxHa == null ? null : f.doseMaxHa,
-    doseMinHl: f.doseMinHl == null ? null : f.doseMinHl,
-    doseMaxHl: f.doseMaxHl == null ? null : f.doseMaxHl,
-    unitaDose: f.unita || null,
-    impieghiMassimiAnno: limiti.impieghiMassimiAnno,
-    giorniMinimiTraPassaggi: limiti.giorniMinimiTraPassaggi
-  };
-}
-
-function componiRigheScheda(colture, testoEtichetta, finestre, avversitaPerColtura) {
-  const mappa = avversitaPerColtura || {};
-  const blocchi = blocchiColtura(colture, testoEtichetta);
-  const perNome = new Map(blocchi.map((b) => [normalizzaNomeProdotto(b.coltura.colturaScheda), b.blocco]));
-  const righe = [];
-  (colture || []).forEach((coltura) => {
-    const blocco = perNome.get(normalizzaNomeProdotto(coltura.colturaScheda)) || "";
-    const sue = finestreDelBlocco(blocco, finestre);
-    const limiti = limitiNelBlocco(blocco);
-    const basi = sue.length ? sue : [null];
-    const avv = mappa[coltura.colturaScheda] || mappa[normalizzaNomeProdotto(coltura.colturaScheda)] || [];
-    const nomi = avv.length ? avv : [""];
-    basi.forEach((finestra) => {
-      nomi.forEach((nomeAvv) => {
-        righe.push(rigaScheda(coltura, finestra, nomeAvv, limiti));
-      });
-    });
-  });
-  return righe;
-}
-
-function idRigaScheda(riga, indice) {
-  const base = [riga.colturaScheda, riga.epoca || "", riga.avversita || "", String(indice)]
-    .join(" ")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_|_$/g, "")
-    .slice(0, 180);
-  return base || ("riga_" + indice);
-}
-
-function componiArchivioProdotto(input = {}) {
-  const csv = input.csv || "";
-  const trovata = csv
-    ? trovaRegistrazioneUnica(parsaCsvFitosanitari(csv), input.nome, input.numero)
-    : { esito: "scheda_non_letta", prodotto: null };
-  const dataLettura = dataLetturaDaNomeFile(input.urlCsv) || input.dataLettura || null;
-  const vuoto = {
-    stato: "da_riprovare",
-    motivo: trovata.esito === "unica" ? "impieghi_non_letti" : (trovata.esito || "scheda_non_letta"),
+    ok: trovata.esito !== "non_trovato",
     fonte: FONTE,
-    dataLettura,
-    numeroRegistrazione: null,
-    principioAttivo: null,
+    dataLettura: dataLetturaDaNomeFile(input.urlCsv),
+    specie: testo(input.specie) || null,
+    esitoRicerca: trovata.esito,
+    proposto: trovata.prodotto || null,
+    prodotti: trovata.prodotti || [],
     righe: []
   };
-  if (trovata.esito !== "unica") return vuoto;
-  const colture = coltureDaPagineImpieghi(input.pagineImpieghi || []);
-  const testoEtichetta = input.testoEtichetta || "";
-  const finestre = parsaTestoEtichetta(testoEtichetta);
-  const righe = componiRigheScheda(colture, testoEtichetta, finestre, input.avversitaPerColtura);
-  const anag = {
-    fonte: FONTE,
-    dataLettura,
-    numeroRegistrazione: trovata.prodotto.numeroRegistrazione || null,
-    principioAttivo: trovata.prodotto.principioAttivo || null,
-    statoAmministrativoScheda: testo(trovata.prodotto.stato),
-    dataVariazioneScheda: dataVariazioneOpenData(trovata.prodotto)
-  };
-  if (!righe.length) return { ...vuoto, ...anag, stato: "da_riprovare", motivo: "impieghi_non_letti", righe: [] };
-  if (righe.some((riga) => !testo(riga.avversita))) {
-    return { ...vuoto, ...anag, stato: "da_riprovare", motivo: "avversita_non_lette", righe: [] };
-  }
-  return { ...anag, stato: "pronta", motivo: null, righe };
-}
-
-function richiedeLetturaScheda(before, after) {
-  if (!after || !eFitofarmaco(after) || !testo(after.nome)) return false;
-  if (!before || !eFitofarmaco(before)) return true;
-  return normalizzaNomeProdotto(before.nome) !== normalizzaNomeProdotto(after.nome);
-}
-
-function scegliProdottoInPagina(prodotti, oraMs, attesaMs) {
-  const fit = (prodotti || []).filter((p) => eFitofarmaco(p) && testo(p.nome));
-  const inCorso = fit.find((p) => p.letturaSchedaStato === "in_corso");
-  if (inCorso) return inCorso;
-  const senza = fit.find((p) => !p.letturaSchedaStato);
-  if (senza) return senza;
-  const soglia = Number(oraMs) - Number(attesaMs);
-  const daRiprovare = fit.find((p) => {
-    if (p.letturaSchedaStato !== "da_riprovare") return false;
-    const t = Date.parse(p.letturaSchedaAggiornataAt || "");
-    return !Number.isFinite(t) || t <= soglia;
-  });
-  if (daRiprovare) {
-    daRiprovare.modoLettura = "completa";
-    return daRiprovare;
-  }
-  const pronta = fit.find((p) => {
-    if (p.letturaSchedaStato !== "pronta") return false;
-    return schedaOltreSeiMesi(p.letturaSchedaCompletaAt, oraMs) || controlloSettimanaleDovuto(p.controlloSchedaAt, oraMs);
-  });
-  if (!pronta) return null;
-  pronta.modoLettura = schedaOltreSeiMesi(pronta.letturaSchedaCompletaAt, oraMs) ? "completa" : "leggera";
-  return pronta;
 }
 
 module.exports = {
   FONTE,
-  ATTESA_RIPROVA_MS,
-  SETTIMANA_CONTROLLO_MS,
   dataVariazioneOpenData,
-  schedaOltreSeiMesi,
-  controlloSettimanaleDovuto,
   controlloLeggeroScheda,
   estraiUrlCsv,
   dataLetturaDaNomeFile,
   parsaCsvFitosanitari,
   cercaProdotti,
-  parsaTabellaImpieghi,
-  filtraRigheSpecie,
   componiRispostaScheda,
   normalizzaNomeProdotto,
-  eFitofarmaco,
-  trovaRegistrazioneUnica,
-  parsaPaginaImpieghiSian,
-  parsaElencoAvversita,
-  coltureDaPagineImpieghi,
-  parsaTestoEtichetta,
-  componiRigheScheda,
-  componiArchivioProdotto,
-  idRigaScheda,
-  richiedeLetturaScheda,
-  scegliProdottoInPagina
+  normalizzaNumeroRegistrazione,
+  chiaveRicercaScheda,
+  chiaveGrafia,
+  chiaveCompatta,
+  eAutorizzato,
+  classificaStatoAmministrativo,
+  trovaRegistrazioneUnica
 };

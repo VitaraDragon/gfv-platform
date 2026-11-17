@@ -36,9 +36,10 @@ import {
     messaggiAvvisoForm,
     notaRegistroTesto,
     scriviAcquaNelForm,
-    scriviEsitoScheda
+    scriviEsitoScheda,
+    valoreInputNumerico
 } from './registro-trattamenti-form.js';
-import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
+import { leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
 import { quantitaRigaProdotto, formattaQuantita } from './quantita-dose.js';
 import { valoreQuantitaGrezzo } from './formato-quantita.js';
 import { applyScaricoMagazzinoUi as applyScaricoMagazzinoUiShared } from './scarico-magazzino-ui.js';
@@ -142,7 +143,9 @@ async function applicaDatiDaTrattamentoPrecedente(colturaId, precedenteId) {
         renderProdottiTrattamento(rowsProdotti);
         if (typeof ricalcolaQuantitaCostoProdotti === 'function') ricalcolaQuantitaCostoProdotti();
         const gc = document.getElementById('trattamento-giorni-carenza');
-        if (gc && parent.giorniCarenza != null && parent.giorniCarenza !== '') gc.value = parent.giorniCarenza;
+        if (gc && parent.giorniCarenza != null && parent.giorniCarenza !== '') {
+            gc.value = valoreInputNumerico(parent.giorniCarenza);
+        }
         const cop = document.getElementById('trattamento-copertura-terreno');
         if (cop && parent.coperturaTerreno) cop.value = parent.coperturaTerreno;
     } catch (e) {
@@ -304,7 +307,7 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
                 const dosaggioInput = tbody.querySelector(`.prodotto-dosaggio[data-idx="${idx}"]`);
                 if (dosaggioInput && (opt.dosaggioMin != null || opt.dosaggioMax != null)) {
                     const v = opt.dosaggioMin != null ? opt.dosaggioMin : opt.dosaggioMax;
-                    dosaggioInput.value = v;
+                    dosaggioInput.value = valoreInputNumerico(v);
                 }
                 const unitaSpan = tbody.querySelector(`.prodotto-unita[data-idx="${idx}"]`);
                 if (unitaSpan) unitaSpan.textContent = opt.unitaMisura || '-';
@@ -341,8 +344,6 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
             return row && row.prodottoId ? listProdottiAnagrafica.find((p) => p.id === row.prodottoId) : null;
         },
         leggiScheda: leggiSchedaRegistroTrattamento,
-        leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
-        chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
         utente: () => utenteRegistroNome,
         salvaSuProdotto: salvaConfermaProdotto,
         onConferma: (idx, registro) => {
@@ -580,7 +581,7 @@ function aggiornaGiorniCarenzaDaProdotti() {
         }
     });
     const inp = document.getElementById('trattamento-giorni-carenza');
-    if (inp) inp.value = maxCarenza != null ? maxCarenza : '';
+    if (inp) inp.value = valoreInputNumerico(maxCarenza);
 }
 
 function aggiungiRigaProdottoTrattamento() {
@@ -1261,9 +1262,9 @@ async function openModalCompleta(idx) {
             ? Number(t.superficieTrattata).toFixed(2)
             : '';
         await syncSuperficieAnagrafeCheckboxUi(t, row[cfg.idKey]);
-        document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
-        document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
-        document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
+        document.getElementById('trattamento-costo-mano').value = valoreInputNumerico(t.costoManodopera);
+        document.getElementById('trattamento-costo-macchina').value = valoreInputNumerico(t.costoMacchina);
+        document.getElementById('trattamento-giorni-carenza').value = valoreInputNumerico(t.giorniCarenza);
         scriviAcquaNelForm(t);
         document.getElementById('trattamento-note').value = t.note || '';
         setCondizioniMeteoOnForm(t.condizioniMeteo);
@@ -1303,8 +1304,8 @@ async function openModalCompleta(idx) {
         try {
             const { getDatiPrecompilazioneTrattamento } = await import(resolvePath(cfg.servicePath));
             const prefill = await getDatiPrecompilazioneTrattamento(row[cfg.idKey], found.trattamento);
-            document.getElementById('trattamento-costo-mano').value = prefill.costoManodopera ?? 0;
-            document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? 0;
+            document.getElementById('trattamento-costo-mano').value = valoreInputNumerico(prefill.costoManodopera);
+            document.getElementById('trattamento-costo-macchina').value = valoreInputNumerico(prefill.costoMacchina);
             popolaTabellaMacchineTrattamento(prefill.macchine || []);
         } catch (e) {
             console.warn(cfg.logTag + ' prefill costi/macchine:', e);
@@ -1359,9 +1360,9 @@ async function apriModificaTrattamento(idx) {
         ? Number(t.superficieTrattata).toFixed(2)
         : '';
     await syncSuperficieAnagrafeCheckboxUi(t, colturaId);
-    document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
-    document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
-    document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
+    document.getElementById('trattamento-costo-mano').value = valoreInputNumerico(t.costoManodopera);
+    document.getElementById('trattamento-costo-macchina').value = valoreInputNumerico(t.costoMacchina);
+    document.getElementById('trattamento-giorni-carenza').value = valoreInputNumerico(t.giorniCarenza);
     scriviAcquaNelForm(t);
     document.getElementById('trattamento-note').value = t.note || '';
     scriviEsitoScheda('');
@@ -1406,8 +1407,8 @@ async function apriModificaTrattamento(idx) {
     try {
         const { getDatiPrecompilazioneTrattamento } = await import(resolvePath(cfg.servicePath));
         const prefill = await getDatiPrecompilazioneTrattamento(colturaId, t);
-        document.getElementById('trattamento-costo-mano').value = prefill.costoManodopera ?? t.costoManodopera ?? 0;
-        document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? t.costoMacchina ?? 0;
+        document.getElementById('trattamento-costo-mano').value = valoreInputNumerico(prefill.costoManodopera ?? t.costoManodopera);
+        document.getElementById('trattamento-costo-macchina').value = valoreInputNumerico(prefill.costoMacchina ?? t.costoMacchina);
         popolaTabellaMacchineTrattamento(prefill.macchine || []);
     } catch (e) {
         console.warn(cfg.logTag + ' prefill costi/macchine:', e);
@@ -1495,8 +1496,10 @@ async function saveTrattamento(e) {
         try {
             const { getDatiPrecompilazioneTrattamento } = await import(resolvePath(cfg.servicePath));
             const prefill = await getDatiPrecompilazioneTrattamento(colturaId, { lavoroId: lavoroIdVal || null, attivitaId: attivitaIdVal || null });
-            costoManodopera = prefill.costoManodopera ?? 0;
-            costoMacchina = prefill.costoMacchina ?? 0;
+            const mano = valoreInputNumerico(prefill.costoManodopera);
+            const macchina = valoreInputNumerico(prefill.costoMacchina);
+            costoManodopera = mano === '' ? 0 : mano;
+            costoMacchina = macchina === '' ? 0 : macchina;
         } catch (err) {
             console.warn(cfg.logTag + ' ricalcolo costi in salvataggio:', err);
         }

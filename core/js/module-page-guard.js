@@ -14,6 +14,7 @@ const DEFAULT_LABELS = {
   vigneto: 'Vigneto',
   frutteto: 'Frutteto',
   seminativo: 'Seminativo',
+  orticole: 'Orticole',
   manodopera: 'Manodopera',
   meteo: 'Meteo',
   report: 'Report',
