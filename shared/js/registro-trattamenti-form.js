@@ -17,7 +17,8 @@ import {
   URL_BANCA_FITOSANITARI,
   htmlAttribuzioneOpenData,
   classificaStatoAmministrativo,
-  dataLetturaItaliana
+  dataLetturaItaliana,
+  numeroFinito
 } from './registro-trattamenti.js';
 
 function esc(value) {
@@ -26,6 +27,18 @@ function esc(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/** Per un input type="number": niente NaN. Manca o non è finito → stringa vuota. */
+export function valoreInputNumerico(value) {
+  const n = numeroFinito(value);
+  return n == null ? '' : n;
+}
+
+/** Il campo prodotto è un numero di registrazione se, tolti gli spazi, restano solo cifre. */
+function numeroDalCampoProdotto(value) {
+  const t = String(value == null ? '' : value).replace(/\s+/g, '');
+  return /^\d+$/.test(t) ? t : '';
 }
 
 export function notaRegistroTesto() {
@@ -86,10 +99,10 @@ export function bindAcquaCampi() {
       ettolitriTotali: sorgente === 'ha' ? null : tot.value
     });
     if (sorgente !== 'ha' && acqua.ettolitriPerEttaro != null && document.activeElement !== perHa) {
-      perHa.value = acqua.ettolitriPerEttaro;
+      perHa.value = valoreInputNumerico(acqua.ettolitriPerEttaro);
     }
     if (sorgente !== 'tot' && acqua.ettolitriTotali != null && document.activeElement !== tot) {
-      tot.value = acqua.ettolitriTotali;
+      tot.value = valoreInputNumerico(acqua.ettolitriTotali);
     }
   };
   perHa.addEventListener('input', () => ricalcola('ha'));
@@ -100,8 +113,8 @@ export function bindAcquaCampi() {
 export function scriviAcquaNelForm(trattamento) {
   const perHa = document.getElementById('trattamento-acqua-hl-ha');
   const tot = document.getElementById('trattamento-acqua-hl-tot');
-  if (perHa) perHa.value = trattamento && trattamento.acquaEttolitriPerEttaro != null ? trattamento.acquaEttolitriPerEttaro : '';
-  if (tot) tot.value = trattamento && trattamento.acquaEttolitriTotali != null ? trattamento.acquaEttolitriTotali : '';
+  if (perHa) perHa.value = valoreInputNumerico(trattamento && trattamento.acquaEttolitriPerEttaro);
+  if (tot) tot.value = valoreInputNumerico(trattamento && trattamento.acquaEttolitriTotali);
 }
 
 export function leggiAcquaDalForm() {
@@ -338,7 +351,13 @@ export function attaccaLetturaScheda(opts) {
       let esito = { prodotti: [], righe: [] };
       try {
         if (opts.leggiScheda) {
-          esito = await opts.leggiScheda({ nome, nomeProdotto: nome, specie: specie || '' }) || esito;
+          const richiesta = { nome, nomeProdotto: nome, specie: specie || '' };
+          const numeroCampo = numeroDalCampoProdotto(nome);
+          if (numeroCampo) {
+            richiesta.numero = numeroCampo;
+            richiesta.numeroRegistrazione = numeroCampo;
+          }
+          esito = await opts.leggiScheda(richiesta) || esito;
         }
       } catch (err) {
         scriviEsitoScheda('<p>Gli open data non si leggono. Non invento numero, titolare, sostanze, avversità, carenza, numero massimo né intervallo.</p>');

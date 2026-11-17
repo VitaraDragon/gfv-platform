@@ -211,22 +211,47 @@ function cercaProdotti(righe, nome, limite = 20) {
 }
 
 /**
+ * Solo le cifre, senza zeri iniziali. 002513 e 2513 coincidono.
+ * Un numero fatto di soli zeri resta «0»: non diventa stringa vuota.
+ */
+function normalizzaNumeroRegistrazione(value) {
+  const cifre = testo(value).replace(/\D/g, "");
+  if (!cifre) return "";
+  return cifre.replace(/^0+/, "") || "0";
+}
+
+/** Nome di sole cifre, spazi ignorati: è un numero di registrazione, non una denominazione. */
+function soloCifre(value) {
+  const t = testo(value).replace(/ /g, "");
+  return t.length > 0 && /^\d+$/.test(t);
+}
+
+/** Il form può mandare il numero nel campo nome. Vale anche il solo numero, senza nome. */
+function chiaveRicercaScheda(data = {}) {
+  const src = data || {};
+  const nome = testo(src.nome || src.nomeProdotto);
+  const numero = testo(src.numero || src.numeroRegistrazione);
+  return { nome, numero, ok: Boolean(nome || numero) };
+}
+
+/**
  * Non sceglie in silenzio se restano più candidati.
  * Se l'unico nome esatto è revocato e c'è un prodotto ancora in commercio con lo stesso nome base,
  * quello in commercio è la proposta e il revocato resta nell'elenco.
+ * Un numero, anche revocato, è univoco: 002513 e 2513 sono lo stesso confronto.
  */
 function trovaRegistrazioneUnica(righe, nome, numero) {
   const lista = righe || [];
-  const num = testo(numero);
+  const numRichiesto = testo(numero) || (soloCifre(nome) ? testo(nome) : "");
+  const num = normalizzaNumeroRegistrazione(numRichiesto);
   if (num) {
-    const perNumero = lista.filter((row) => testo(row.numeroRegistrazione) === num);
+    const perNumero = lista.filter((row) => normalizzaNumeroRegistrazione(row.numeroRegistrazione) === num);
     if (perNumero.length === 1) return { esito: "unica", prodotto: perNumero[0], prodotti: perNumero };
     if (perNumero.length > 1) {
-      const aut = perNumero.filter(eAutorizzato);
-      if (aut.length === 1 && perNumero.length === 1) {
-        return { esito: "unica", prodotto: aut[0], prodotti: perNumero };
-      }
       return { esito: "nome_non_univoco", prodotto: null, prodotti: perNumero };
+    }
+    if (!testo(nome) || soloCifre(nome)) {
+      return { esito: "non_trovato", prodotto: null, prodotti: [] };
     }
   }
   const candidati = cercaProdotti(lista, nome, 50);
@@ -262,6 +287,8 @@ module.exports = {
   cercaProdotti,
   componiRispostaScheda,
   normalizzaNomeProdotto,
+  normalizzaNumeroRegistrazione,
+  chiaveRicercaScheda,
   chiaveGrafia,
   chiaveCompatta,
   eAutorizzato,
