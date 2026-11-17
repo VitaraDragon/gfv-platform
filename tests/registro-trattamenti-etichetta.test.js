@@ -3,15 +3,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  FRASE_CONFERMA_CONTROLLATA,
+  FRASE_VALORE_ESTRATTO,
   MSG_ETICHETTA_COLTURA_ASSENTE,
+  MSG_ETICHETTA_DA_RICONTROLLARE,
   MSG_ETICHETTA_MANCANTE,
   MSG_ETICHETTA_NON_ESTRATTA,
   TESTO_VALORI_ETICHETTA,
   candidatiColtura,
+  dataRevisioneOpenData,
   numeroFileEtichetta,
   percorsoValoriEtichetta,
   preparaEtichetta,
-  righePerColtura
+  righePerColtura,
+  testoConsultaEtichetta
 } from '../shared/js/registro-trattamenti-etichetta.js';
 import {
   campiConfermaRiga,
@@ -34,7 +39,7 @@ const sivanto = leggi('per-registrazione/016273.json');
 const thiopron = leggi('per-registrazione/000013.json');
 
 function valoreInput(html, classe) {
-  const m = String(html).match(new RegExp('class="' + classe + '"[^>]*value="([^"]*)"'));
+  const m = String(html).match(new RegExp('class="[^"]*\\b' + classe + '\\b[^"]*"[^>]*value="([^"]*)"'));
   return m ? m[1] : null;
 }
 
@@ -94,8 +99,19 @@ describe('Sivanto Prime su fagiolino', () => {
     expect(html).toContain('ml/hl');
     expect(html).toContain('l/ha');
     expect(html).toContain('da etichetta, pag. 3');
+    expect(html).toContain('mostra frase');
     expect(html).toContain(TESTO_VALORI_ETICHETTA);
-    expect(html).toContain(sivanto.url_etichetta);
+    expect(html).toContain(testoConsultaEtichetta('016273'));
+    expect(html).toContain(sivanto.fonte);
+    expect(html).toContain('titolare ' + sivanto.titolare);
+    expect(html).toContain('etichetta del ' + sivanto.data_etichetta);
+    expect(html).toContain('estratto il 17/11/2026');
+    expect(html).toContain(FRASE_VALORE_ESTRATTO);
+    expect(html).toContain(FRASE_CONFERMA_CONTROLLATA);
+    expect(html).toContain('registro-valore-da-etichetta');
+    expect(html).not.toMatch(/href="[^"]*fitosanitari\.salute\.gov\.it/);
+    expect(html).toContain('iodl/2.0');
+    expect(html).toContain('dati.salute.gov.it');
   });
 
   it('propone le due carenze e i due massimi, senza scegliere un numero', () => {
@@ -125,7 +141,8 @@ describe('senza file e con intervallo di dose', () => {
       etichetta: preparaEtichetta({ scheda: null, coltura: 'melo', vocabolario })
     });
     expect(html).toContain(MSG_ETICHETTA_MANCANTE.split(':')[0]);
-    expect(html).toContain('https://fitosanitari.salute.gov.it/');
+    expect(html).toContain(testoConsultaEtichetta('999999'));
+    expect(html).not.toMatch(/href="[^"]*fitosanitari\.salute\.gov\.it/);
     expect(valoreInput(html, 'registro-dose-ha')).toBe('');
     expect(valoreInput(html, 'registro-dose-hl')).toBe('');
     expect(valoreInput(html, 'registro-carenza')).toBe('');
@@ -183,6 +200,77 @@ describe('senza file e con intervallo di dose', () => {
     expect(assente.messaggio).not.toMatch(/autorizz/i);
     expect(assente.campi.doseHa.scrivi).toBe('');
   });
+
+  it('Thiopron su rosa è in colture non estratte e non mostra numeri', () => {
+    const vista = preparaEtichetta({ scheda: thiopron, coltura: 'rosa', vocabolario });
+    expect(thiopron.colture_non_estratte).toContain('rosa');
+    expect(vista.stato).toBe('non-estratta');
+    expect(vista.messaggio).toBe(MSG_ETICHETTA_NON_ESTRATTA);
+    expect(vista.campi.doseHa.scrivi).toBe('');
+    expect(vista.campi.doseHl.scrivi).toBe('');
+    const html = htmlPannelloOpenData({
+      esito: esitoProdotto({
+        denominazione: 'THIOPRON',
+        numeroRegistrazione: '000013',
+        stato: 'Autorizzato'
+      }),
+      nome: 'Thiopron',
+      specie: 'rosa',
+      etichetta: vista
+    });
+    expect(html).toContain(MSG_ETICHETTA_NON_ESTRATTA);
+    expect(html).toContain(testoConsultaEtichetta('000013'));
+    expect(html).not.toMatch(/href="[^"]*fitosanitari\.salute\.gov\.it/);
+    expect(valoreInput(html, 'registro-dose-ha')).toBe('');
+    expect(valoreInput(html, 'registro-dose-hl')).toBe('');
+    expect(valoreInput(html, 'registro-carenza')).toBe('');
+    expect(html).not.toContain('registro-valore-da-etichetta');
+    expect(html).not.toContain(FRASE_CONFERMA_CONTROLLATA);
+  });
+
+  it('non riempie se la revisione è successiva alla data etichetta', () => {
+    expect(dataRevisioneOpenData({
+      dataRegistrazione: '01/01/2027',
+      dataScadenzaAutorizzazione: '30/06/2030',
+      dataDecretoRevoca: '01/01/2020',
+      dataDecorrenzaRevoca: '01/02/2020'
+    })).toBe('');
+    expect(dataRevisioneOpenData({ dataRevisione: '09/09/2026' })).toBe('09/09/2026');
+
+    const ferma = preparaEtichetta({
+      scheda: sivanto,
+      coltura: 'fagiolino',
+      vocabolario,
+      dataRevisione: '09/09/2026'
+    });
+    expect(ferma.stato).toBe('da-ricontrollare');
+    expect(ferma.messaggio).toBe(MSG_ETICHETTA_DA_RICONTROLLARE);
+    expect(ferma.campi.doseHa.scrivi).toBe('');
+    expect(ferma.campi.doseHl.scrivi).toBe('');
+    expect(ferma.avversita).toEqual([]);
+    expect(ferma.meta.dataEtichetta).toBe('08/09/2026');
+    const html = htmlPannelloOpenData({
+      esito: esitoProdotto(sivantoAnagrafica),
+      nome: 'Sivanto Prime',
+      specie: 'fagiolino',
+      etichetta: ferma
+    });
+    expect(html).toContain(MSG_ETICHETTA_DA_RICONTROLLARE);
+    expect(valoreInput(html, 'registro-dose-ha')).toBe('');
+    expect(valoreInput(html, 'registro-dose-hl')).toBe('');
+    expect(html).not.toContain('value="0,375"');
+    expect(html).not.toContain('value="80"');
+    expect(html).not.toContain(FRASE_CONFERMA_CONTROLLATA);
+
+    const stessa = preparaEtichetta({
+      scheda: sivanto,
+      coltura: 'fagiolino',
+      vocabolario,
+      dataRevisione: '08/09/2026'
+    });
+    expect(stessa.stato).toBe('pronto');
+    expect(stessa.campi.doseHa.scrivi).toBe('0,375');
+  });
 });
 
 describe('conferma', () => {
@@ -199,7 +287,8 @@ describe('conferma', () => {
         doseHl: { origine: 'etichetta', pagina: 3, idRiga: '016273-02371', unita: 'ml/hl' },
         carenza: { origine: 'etichetta', pagina: 5, idRiga: '016273-02371', nonNecessario: true },
         massimo: { origine: 'etichetta', pagina: 3, idRiga: '016273-02371', periodo: 'ogni 2 anni' },
-        avversita: { origine: 'azienda' }
+        avversita: { origine: 'azienda' },
+        dataEtichetta: '08/09/2026'
       }
     }, { utente: 'Anna', ora: '2026-11-17T10:00:00.000Z' });
     expect(registro.dosaggio).toBe(0.375);
@@ -211,6 +300,7 @@ describe('conferma', () => {
     expect(registro.origineValori.doseHa.pagina).toBe(3);
     expect(registro.origineValori.massimo.periodo).toBe('ogni 2 anni');
     expect(registro.origineValori.avversita.origine).toBe('azienda');
+    expect(registro.origineValori.dataEtichetta).toBe('08/09/2026');
 
     const intervallo = registroConfermaManuale(sivantoAnagrafica, {
       doseHa: 'da 4 a 6',

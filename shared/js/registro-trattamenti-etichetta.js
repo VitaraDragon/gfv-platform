@@ -11,7 +11,10 @@ export const MSG_ETICHETTA_MANCANTE = "Valori d'etichetta non ancora disponibili
 export const MSG_ETICHETTA_NON_ESTRATTA = 'Su questa coltura il valore non è ancora estratto: vedi etichetta';
 export const MSG_ETICHETTA_COLTURA_ASSENTE = 'In etichetta non trovo questa coltura';
 export const MSG_ETICHETTA_SENZA_COLTURA = "Indica la coltura per leggere i valori in etichetta.";
+export const MSG_ETICHETTA_DA_RICONTROLLARE = "Etichetta forse aggiornata dopo l'estrazione: da ricontrollare";
 export const TESTO_VALORI_ETICHETTA = "Valori letti dall'etichetta del prodotto. Controllali e premi Conferma: fa fede l'etichetta.";
+export const FRASE_VALORE_ESTRATTO = "Valore estratto automaticamente dall'etichetta, può contenere errori. Fa fede l'etichetta autorizzata.";
+export const FRASE_CONFERMA_CONTROLLATA = "Confermando dichiari di aver controllato i valori riempiti dall'etichetta";
 
 const cacheSchede = new Map();
 let cacheVocabolario = null;
@@ -301,11 +304,80 @@ function campiVuoti() {
   };
 }
 
-function vistaBase(stato, messaggio, urlEtichetta) {
+function metaVuota() {
+  return {
+    fonte: '',
+    titolare: '',
+    dataEtichetta: '',
+    dataEstrazione: '',
+    etichettaId: '',
+    numeroRegistrazione: ''
+  };
+}
+
+export function metaEtichetta(scheda) {
+  if (!scheda || typeof scheda !== 'object') return metaVuota();
+  return {
+    fonte: scheda.fonte ? String(scheda.fonte).trim() : '',
+    titolare: scheda.titolare ? String(scheda.titolare).trim() : '',
+    dataEtichetta: scheda.data_etichetta ? String(scheda.data_etichetta).trim() : '',
+    dataEstrazione: scheda.data_estrazione ? String(scheda.data_estrazione).trim() : '',
+    etichettaId: scheda.etichetta_id != null && String(scheda.etichetta_id).trim()
+      ? String(scheda.etichetta_id).trim()
+      : '',
+    numeroRegistrazione: scheda.numero_registrazione ? String(scheda.numero_registrazione).trim() : ''
+  };
+}
+
+/** gg/mm/aaaa oppure aaaa-mm-gg, per confrontare e per mostrare. */
+export function dataItalianaConfronto(value) {
+  const t = String(value == null ? '' : value).trim();
+  let m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return m[3] + m[2] + m[1];
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1] + m[2] + m[3];
+  return '';
+}
+
+export function dataItalianaVisibile(value) {
+  const t = String(value == null ? '' : value).trim();
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[3] + '/' + iso[2] + '/' + iso[1];
+  return t;
+}
+
+/** Vera solo se la revisione è successiva alla data dell'etichetta scaricata. */
+export function etichettaDaRicontrollare(dataEtichetta, dataRevisione) {
+  const etichetta = dataItalianaConfronto(dataEtichetta);
+  const revisione = dataItalianaConfronto(dataRevisione);
+  if (!etichetta || !revisione) return false;
+  return revisione > etichetta;
+}
+
+/**
+ * Il CSV PROD_FTS_6_20261116 non ha una data di variazione né di revisione.
+ * Ha solo data_registrazione, data_scadenza_autorizzazione, data_decreto_revoca
+ * e data_decorrenza_revoca: nessuna di queste dice che l'etichetta è cambiata.
+ * Si legge solo un campo esplicito, se un giorno il prodotto lo porta.
+ */
+export function dataRevisioneOpenData(prodotto) {
+  if (!prodotto || typeof prodotto !== 'object') return '';
+  const v = prodotto.dataVariazione || prodotto.dataRevisione || '';
+  return String(v || '').trim();
+}
+
+export function testoConsultaEtichetta(numero) {
+  const cifre = String(numero == null ? '' : numero).replace(/\D/g, '');
+  const vis = cifre.replace(/^0+(?=\d)/, '');
+  if (!vis) return '';
+  return 'Reg. n. ' + vis + ', consultabile su fitosanitari.salute.gov.it';
+}
+
+function vistaBase(stato, messaggio, meta) {
   return {
     stato,
     messaggio,
-    urlEtichetta: urlEtichetta || null,
+    meta: meta || metaVuota(),
     avversita: [],
     avversitaScelta: null,
     campi: campiVuoti()
@@ -317,21 +389,24 @@ function vistaBase(stato, messaggio, urlEtichetta) {
  * e non scrive un numero se la dose è un intervallo o ha condizioni diverse.
  * `avversitaScelta` vuota forza la scelta; `altra` lascia il campo libero.
  */
-export function preparaEtichetta({ scheda, coltura, vocabolario, avversitaScelta } = {}) {
+export function preparaEtichetta({ scheda, coltura, vocabolario, avversitaScelta, dataRevisione } = {}) {
   if (!scheda || !Array.isArray(scheda.righe)) {
-    return vistaBase('mancante', MSG_ETICHETTA_MANCANTE, null);
+    return vistaBase('mancante', MSG_ETICHETTA_MANCANTE, metaEtichetta(scheda));
   }
-  const urlEtichetta = scheda.url_etichetta || null;
+  const meta = metaEtichetta(scheda);
+  if (etichettaDaRicontrollare(meta.dataEtichetta, dataRevisione)) {
+    return vistaBase('da-ricontrollare', MSG_ETICHETTA_DA_RICONTROLLARE, meta);
+  }
   const nomeColtura = String(coltura == null ? '' : coltura).trim();
   if (!nomeColtura) {
-    return vistaBase('senza-coltura', MSG_ETICHETTA_SENZA_COLTURA, urlEtichetta);
+    return vistaBase('senza-coltura', MSG_ETICHETTA_SENZA_COLTURA, meta);
   }
   const righe = righePerColtura(scheda, nomeColtura, vocabolario);
   if (!righe.length) {
     if (colturaNonEstratta(scheda, nomeColtura, vocabolario)) {
-      return vistaBase('non-estratta', MSG_ETICHETTA_NON_ESTRATTA, urlEtichetta);
+      return vistaBase('non-estratta', MSG_ETICHETTA_NON_ESTRATTA, meta);
     }
-    return vistaBase('coltura-assente', MSG_ETICHETTA_COLTURA_ASSENTE, urlEtichetta);
+    return vistaBase('coltura-assente', MSG_ETICHETTA_COLTURA_ASSENTE, meta);
   }
   const avversita = avversitaDelleRighe(righe);
   let scelta = avversitaScelta == null ? null : String(avversitaScelta);
@@ -347,7 +422,7 @@ export function preparaEtichetta({ scheda, coltura, vocabolario, avversitaScelta
   return {
     stato: 'pronto',
     messaggio: '',
-    urlEtichetta,
+    meta,
     avversita,
     avversitaScelta: scelta || null,
     campi: righeScelte.length ? campiDalleRighe(righeScelte) : campiVuoti()

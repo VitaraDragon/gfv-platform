@@ -23,11 +23,16 @@ import {
   numeroSingoloTesto
 } from './registro-trattamenti.js';
 import {
+  FRASE_CONFERMA_CONTROLLATA,
+  FRASE_VALORE_ESTRATTO,
   TESTO_VALORI_ETICHETTA,
   caricaSchedaEtichetta,
   caricaVocabolarioColture,
+  dataItalianaVisibile,
+  dataRevisioneOpenData,
   normalizzaNomeColtura,
-  preparaEtichetta
+  preparaEtichetta,
+  testoConsultaEtichetta
 } from './registro-trattamenti-etichetta.js';
 
 function esc(value) {
@@ -263,25 +268,24 @@ function testoCarenzaSalvata(conferma) {
   return conferma.giorniCarenzaConfermata;
 }
 
-function hrefEtichetta(etichetta) {
-  return (etichetta && etichetta.urlEtichetta) || URL_BANCA_FITOSANITARI;
+const STILE_VALORE_ETICHETTA = 'background:#fff3cd;border:1px solid #b8860b;';
+
+function numeroPerConsulta(etichetta, prodotto) {
+  const dalProdotto = prodotto && prodotto.numeroRegistrazione;
+  const dallaScheda = etichetta && etichetta.meta && etichetta.meta.numeroRegistrazione;
+  return dalProdotto || dallaScheda || '';
 }
 
-function linkVediEtichetta(etichetta) {
-  return '<a href="' + esc(hrefEtichetta(etichetta)) + '" target="_blank" rel="noopener noreferrer">vedi etichetta</a>';
+function htmlConsultaEtichetta(etichetta, prodotto) {
+  const testo = testoConsultaEtichetta(numeroPerConsulta(etichetta, prodotto));
+  if (!testo) return '';
+  return '<p class="registro-consulta-etichetta">' + esc(testo) + '</p>';
 }
 
-function htmlMessaggioEtichetta(etichetta) {
+function htmlMessaggioEtichetta(etichetta, prodotto) {
   const msg = String(etichetta && etichetta.messaggio || '');
-  if (!msg) return '';
-  if (msg.includes('vedi etichetta')) {
-    return '<p>' + esc(msg).replace('vedi etichetta', linkVediEtichetta(etichetta)) + '</p>';
-  }
-  return '<p>' + esc(msg) + ' ' + linkVediEtichetta(etichetta) + '</p>';
-}
-
-function htmlApriEtichetta(etichetta) {
-  return '<p><a href="' + esc(hrefEtichetta(etichetta)) + '" target="_blank" rel="noopener noreferrer">Apri l\'etichetta</a></p>';
+  if (!msg) return htmlConsultaEtichetta(etichetta, prodotto);
+  return '<p>' + esc(msg) + '</p>' + htmlConsultaEtichetta(etichetta, prodotto);
 }
 
 function attrsVoce(voce) {
@@ -330,7 +334,8 @@ function valoreProposto(campo, salvato) {
 }
 
 function htmlInputValore(classe, valore, inputmode, voce) {
-  return '<input class="' + classe + '" type="text" inputmode="' + inputmode + '" value="'
+  const stile = voce ? ' style="' + STILE_VALORE_ETICHETTA + '" class="' + classe + ' registro-valore-da-etichetta"' : ' class="' + classe + '"';
+  return '<input' + stile + ' type="text" inputmode="' + inputmode + '" value="'
     + valoreCampo(valore) + '"' + (voce ? attrsVoce(voce) : '') + '>';
 }
 
@@ -362,7 +367,28 @@ function htmlAvversitaEtichetta(etichetta, conferma) {
   return html;
 }
 
-function campiConEtichetta(conferma, specie, etichetta, colturaBozza) {
+function valoriRiempitiDaEtichetta(etichetta, conferma) {
+  const campi = etichetta && etichetta.campi;
+  if (campi && ['doseHa', 'doseHl', 'carenza', 'massimo', 'intervallo'].some((k) => campi[k] && String(campi[k].scrivi || '').trim())) {
+    return true;
+  }
+  const origine = conferma && conferma.origineValori;
+  if (!origine) return false;
+  return ['doseHa', 'doseHl', 'carenza', 'massimo', 'intervallo'].some((k) => origine[k] && origine[k].origine === 'etichetta');
+}
+
+function htmlDicituraEtichetta(etichetta) {
+  const meta = (etichetta && etichetta.meta) || {};
+  const pezzi = [];
+  if (meta.fonte) pezzi.push(meta.fonte);
+  if (meta.titolare) pezzi.push('titolare ' + meta.titolare);
+  if (meta.dataEtichetta) pezzi.push('etichetta del ' + meta.dataEtichetta);
+  if (meta.dataEstrazione) pezzi.push('estratto il ' + dataItalianaVisibile(meta.dataEstrazione));
+  pezzi.push(FRASE_VALORE_ESTRATTO);
+  return '<p class="registro-dicitura-etichetta">' + esc(pezzi.join(' · ')) + '</p>';
+}
+
+function campiConEtichetta(conferma, specie, etichetta, colturaBozza, prodotto) {
   const c = conferma || {};
   const coltura = colturaBozza != null
     ? colturaBozza
@@ -392,11 +418,15 @@ function campiConEtichetta(conferma, specie, etichetta, colturaBozza) {
       citazione: ''
     };
   };
+  const riempiti = valoriRiempitiDaEtichetta(etichetta, c);
   const intro = pronto
-    ? '<p>' + esc(TESTO_VALORI_ETICHETTA) + '</p>' + htmlApriEtichetta(etichetta)
+    ? '<p>' + esc(TESTO_VALORI_ETICHETTA) + '</p>' + htmlConsultaEtichetta(etichetta, prodotto)
     : '<p>Coltura, avversità, dose e carenza le inserisce l\'azienda. Non arrivano dal Ministero.</p>'
-      + htmlMessaggioEtichetta(etichetta);
-  return '<div class="registro-campi-azienda" style="margin-top:8px;">'
+      + htmlMessaggioEtichetta(etichetta, prodotto);
+  const dataEtichetta = etichetta && etichetta.meta && etichetta.meta.dataEtichetta
+    ? ' data-data-etichetta="' + esc(etichetta.meta.dataEtichetta) + '"'
+    : '';
+  return '<div class="registro-campi-azienda" style="margin-top:8px;"' + dataEtichetta + '>'
     + intro
     + '<label>Coltura <input class="registro-coltura" type="text" value="' + valoreCampo(coltura) + '"></label> '
     + htmlAvversitaEtichetta(etichetta, c)
@@ -417,6 +447,7 @@ function campiConEtichetta(conferma, specie, etichetta, colturaBozza) {
     + '<label>Intervallo (giorni) ' + htmlInputValore('registro-intervallo', intervallo.valore, 'text', voceSeNuova(intervallo, 'intervallo')) + '</label>'
     + htmlFonteEtichetta(intervallo.voce)
     + htmlVociEtichetta(campi.intervallo)
+    + (riempiti ? htmlDicituraEtichetta(etichetta) : '')
     + '</div>';
 }
 
@@ -474,9 +505,12 @@ export function htmlPannelloOpenData(input = {}) {
       + '. Non è un dato del Ministero.</p>');
   }
   parti.push(input.etichetta
-    ? campiConEtichetta(input.conferma, input.specie, input.etichetta, input.colturaBozza)
+    ? campiConEtichetta(input.conferma, input.specie, input.etichetta, input.colturaBozza, scelto)
     : campiManuali(input.conferma, input.specie));
-  parti.push('<p><button type="button" class="btn btn-sm btn-primary" data-conferma-manuale="1">Conferma</button></p>');
+  const dichiarazione = input.etichetta && valoriRiempitiDaEtichetta(input.etichetta, input.conferma)
+    ? ' <span class="registro-dichiarazione-conferma">' + esc(FRASE_CONFERMA_CONTROLLATA) + '</span>'
+    : '';
+  parti.push('<p><button type="button" class="btn btn-sm btn-primary" data-conferma-manuale="1">Conferma</button>' + dichiarazione + '</p>');
   return parti.join('');
 }
 
@@ -574,9 +608,12 @@ function leggiCampiAzienda(box) {
     origineValori.avversita = { origine: 'etichetta' };
     const idRiga = opt && opt.getAttribute('data-id-riga');
     if (idRiga) origineValori.avversita.idRiga = idRiga;
-  } else if (String(avversita).trim()) {
+  } else   if (String(avversita).trim()) {
     origineValori.avversita = { origine: 'azienda' };
   }
+  const dataEtichetta = box.querySelector('.registro-campi-azienda')
+    && box.querySelector('.registro-campi-azienda').getAttribute('data-data-etichetta');
+  if (dataEtichetta) origineValori.dataEtichetta = dataEtichetta;
   [
     ['doseHa', '.registro-dose-ha'],
     ['doseHl', '.registro-dose-hl'],
@@ -674,11 +711,13 @@ export function attaccaLetturaScheda(opts) {
           if (extra && Object.prototype.hasOwnProperty.call(extra, 'avversitaScelta')) {
             avversitaScelta = extra.avversitaScelta;
           }
+          const dataRevisione = dataRevisioneOpenData(prodottoScelto);
           etichetta = preparaEtichetta({
             scheda,
             coltura: colturaRichiesta,
             vocabolario,
-            avversitaScelta
+            avversitaScelta,
+            dataRevisione
           });
           const forzaScelta = extra && Object.prototype.hasOwnProperty.call(extra, 'avversitaScelta');
           const ignoraConferma = extra && extra.ignoraValoriConferma;
@@ -689,7 +728,8 @@ export function attaccaLetturaScheda(opts) {
               scheda,
               coltura: colturaRichiesta,
               vocabolario,
-              avversitaScelta: trovata ? trovata.chiave : 'altra'
+              avversitaScelta: trovata ? trovata.chiave : 'altra',
+              dataRevisione
             });
           }
         }
@@ -738,7 +778,35 @@ export function attaccaLetturaScheda(opts) {
             input.value = b.getAttribute('data-valore') || '';
             input.setAttribute('data-origine', 'etichetta');
             input.setAttribute('data-valore-etichetta', input.value);
+            input.classList.add('registro-valore-da-etichetta');
+            input.style.background = '#fff3cd';
+            input.style.border = '1px solid #b8860b';
             copiaAttributiVoce(b, input);
+            if (!box.querySelector('.registro-dichiarazione-conferma')) {
+              const btn = box.querySelector('[data-conferma-manuale]');
+              if (btn) {
+                const span = document.createElement('span');
+                span.className = 'registro-dichiarazione-conferma';
+                span.textContent = ' ' + FRASE_CONFERMA_CONTROLLATA;
+                btn.insertAdjacentElement('afterend', span);
+              }
+            }
+            if (!box.querySelector('.registro-dicitura-etichetta') && etichetta && etichetta.meta) {
+              const intro = box.querySelector('.registro-campi-azienda');
+              if (intro) {
+                const p = document.createElement('p');
+                p.className = 'registro-dicitura-etichetta';
+                const meta = etichetta.meta;
+                const pezzi = [];
+                if (meta.fonte) pezzi.push(meta.fonte);
+                if (meta.titolare) pezzi.push('titolare ' + meta.titolare);
+                if (meta.dataEtichetta) pezzi.push('etichetta del ' + meta.dataEtichetta);
+                if (meta.dataEstrazione) pezzi.push('estratto il ' + dataItalianaVisibile(meta.dataEstrazione));
+                pezzi.push(FRASE_VALORE_ESTRATTO);
+                p.textContent = pezzi.join(' · ');
+                intro.insertBefore(p, intro.querySelector('label'));
+              }
+            }
           });
         });
         box.querySelectorAll('[data-mostra-frase]').forEach((b) => {

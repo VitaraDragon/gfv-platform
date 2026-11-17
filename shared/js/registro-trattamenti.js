@@ -67,6 +67,8 @@ export function normalizzaOrigineValori(raw) {
     if (v.nonNecessario === true) voce.nonNecessario = true;
     out[chiave] = voce;
   });
+  const dataEtichetta = raw.dataEtichetta != null ? String(raw.dataEtichetta).trim() : '';
+  if (dataEtichetta) out.dataEtichetta = dataEtichetta;
   return Object.keys(out).length ? out : null;
 }
 
