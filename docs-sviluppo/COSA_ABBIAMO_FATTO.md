@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-17 — clic sulle voci di «Leggi scheda».**
+**Ultimo aggiornamento documentazione: 2026-11-17 — valori d'etichetta v3.**
+
+## 2026-11-17 — valori d'etichetta v3
+
+Su `feat/etichette-valori-v3` (PR verso develop). Nessun merge, nessun deploy.
+
+Sostituiti indice, vocabolario, README e i 58 file in `shared/data/fitofarmaci-etichette/per-registrazione/` con l'export v3. Stessi campi di prima, senza `url_etichetta`. Il pannello non cambia. FOLPAN 80 WDG (8601) su vite da vino, peronospora, mostra la dose 1,25-1,5 kg/ha e 125-150 g/hl come riga da scegliere, carenza 28 giorni, massimo 10 e intervallo 7-10 giorni, tutti da etichetta pag. 1. Su vite da tavola la carenza è 56 giorni e il massimo 4 con clima siccitoso. Sivanto su fagiolino, Thiopron su rosa e «da ricontrollare» restano verdi.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — clic sulle voci di «Leggi scheda».**
 
 ## 2026-11-17 — «Leggi scheda»: il clic sulla voce riempie il campo
 

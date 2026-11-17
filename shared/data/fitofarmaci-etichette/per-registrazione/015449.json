@@ -1,1 +1,441 @@
-{"schema":"GFV valori etichetta 1.1","avviso":"GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.","numero_registrazione":"015449","nome_prodotto":"CIDELY","colture_non_estratte":[],"righe":[{"id":"015449-02174","coltura":"Vite da vino","colture":["vite da vino"],"gruppo":null,"avversita":"Oidio (Uncinula necator)","epoca":"dall'inizio della fioritura fino ad ingrossamento acini","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":500.0,"max":500.0,"unita":"ml/ha","condizione":null,"pagina":1,"citazione":"Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula … necator). Impiegare 8-10 hl/ha rispettando la dose di 500 ml/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[{"min":40.0,"max":50.0,"unita":"ml/hl","condizione":null,"pagina":1,"citazione":"Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula","da_regola_generale":false,"stato":"confermato_2_su_2"}],"carenza":[{"giorni":21,"non_necessario":false,"condizione":null,"pagina":1,"citazione":"Sospendere i trattamenti prima della raccolta: … 21 giorni per la vite","da_regola_generale":false,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"ingrossamento acini ad intervalli di 10-14 giorni. … Effettuare al massimo 2 interventi all’anno.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":10,"max":14,"condizione":null,"pagina":1,"citazione":"fino ad … ingrossamento acini ad intervalli di 10-14 giorni.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"015449-02175","coltura":"Vite da tavola","colture":["vite da tavola"],"gruppo":null,"avversita":"Oidio (Uncinula necator)","epoca":"dall'inizio della fioritura fino ad ingrossamento acini","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":500.0,"max":500.0,"unita":"ml/ha","condizione":null,"pagina":1,"citazione":"Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula … necator). Impiegare 8-10 hl/ha rispettando la dose di 500 ml/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[{"min":40.0,"max":50.0,"unita":"ml/hl","condizione":null,"pagina":1,"citazione":"Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula","da_regola_generale":false,"stato":"confermato_2_su_2"}],"carenza":[{"giorni":21,"non_necessario":false,"condizione":null,"pagina":1,"citazione":"Sospendere i trattamenti prima della raccolta: … 21 giorni per la vite","da_regola_generale":false,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"ingrossamento acini ad intervalli di 10-14 giorni. … Effettuare al massimo 2 interventi all’anno.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":10,"max":14,"condizione":null,"pagina":1,"citazione":"fino ad … ingrossamento acini ad intervalli di 10-14 giorni.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"015449-02176","coltura":"Melo","colture":["melo"],"gruppo":null,"avversita":"Oidio (Podosphaera leucotricha)","epoca":"dalle prime foglie espanse alla pre-raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":500.0,"max":500.0,"unita":"ml/ha","condizione":null,"pagina":1,"citazione":"Melo: 30-50 ml/hl per il controllo di oidio (Podosphaera leucotricha). … Impiegare 9-15 hl/ha rispettando la dose di 500 ml/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[{"min":30.0,"max":50.0,"unita":"ml/hl","condizione":null,"pagina":1,"citazione":"Melo: 30-50 ml/hl per il controllo di oidio (Podosphaera leucotricha).","da_regola_generale":false,"stato":"confermato_2_su_2"}],"carenza":[{"giorni":14,"non_necessario":false,"condizione":null,"pagina":1,"citazione":"Sospendere i trattamenti prima della raccolta: … 14 giorni per il melo e le drupacee.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"foglie espanse alla pre-raccolta. … Effettuare al massimo 2 interventi all’anno.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":10,"condizione":null,"pagina":1,"citazione":"Intervenire in modalità preventiva ad intervalli di 7-10 giorni dalle prime … foglie espanse alla pre-raccolta.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"015449-02177","coltura":"Pesco","colture":["pesco"],"gruppo":null,"avversita":"Oidio (Sphaerotheca pannosa)","epoca":"da dopo la fioritura fino alla pre-raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":500.0,"max":500.0,"unita":"ml/ha","condizione":null,"pagina":1,"citazione":"Intervenire in modalità preventiva a partire da dopo la fioritura fino alla pre- … raccolta alla dose di 500 ml/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[{"min":50.0,"max":100.0,"unita":"ml/hl","condizione":null,"pagina":1,"citazione":"Drupacee (Pesco, Nettarine e Albicocco): 50-100 ml/hl per il controllo di","da_regola_generale":false,"stato":"confermato_2_su_2"}],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"intervenendo non prima di 7 giorni. … Effettuare al massimo 2 interventi all’anno.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":"non prima di 7 giorni","pagina":1,"citazione":"Se necessario, ripetere il trattamento con lo … stesso prodotto (CIDELY) intervenendo non prima di 7 giorni.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"015449-02178","coltura":"Nettarine","colture":["nettarina"],"gruppo":null,"avversita":"Oidio (Sphaerotheca pannosa)","epoca":"da dopo la fioritura fino alla pre-raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":500.0,"max":500.0,"unita":"ml/ha","condizione":null,"pagina":1,"citazione":"Intervenire in modalità preventiva a partire da dopo la fioritura fino alla pre- … raccolta alla dose di 500 ml/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[{"min":50.0,"max":100.0,"unita":"ml/hl","condizione":null,"pagina":1,"citazione":"Drupacee (Pesco, Nettarine e Albicocco): 50-100 ml/hl per il controllo di","da_regola_generale":false,"stato":"confermato_2_su_2"}],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"intervenendo non prima di 7 giorni. … Effettuare al massimo 2 interventi all’anno.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":"non prima di 7 giorni","pagina":1,"citazione":"Se necessario, ripetere il trattamento con lo … stesso prodotto (CIDELY) intervenendo non prima di 7 giorni.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"015449-02179","coltura":"Albicocco","colture":["albicocco"],"gruppo":null,"avversita":"Oidio (Sphaerotheca pannosa)","epoca":"da dopo la fioritura fino alla pre-raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":500.0,"max":500.0,"unita":"ml/ha","condizione":null,"pagina":1,"citazione":"Intervenire in modalità preventiva a partire da dopo la fioritura fino alla pre- … raccolta alla dose di 500 ml/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[{"min":50.0,"max":100.0,"unita":"ml/hl","condizione":null,"pagina":1,"citazione":"Drupacee (Pesco, Nettarine e Albicocco): 50-100 ml/hl per il controllo di","da_regola_generale":false,"stato":"confermato_2_su_2"}],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"intervenendo non prima di 7 giorni. … Effettuare al massimo 2 interventi all’anno.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":"non prima di 7 giorni","pagina":1,"citazione":"Se necessario, ripetere il trattamento con lo … stesso prodotto (CIDELY) intervenendo non prima di 7 giorni.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]}],"titolare":"SYNGENTA ITALIA S.P.A.","data_etichetta":"07/12/2021","data_estrazione":"2026-11-17","data_download":"2026-11-17","fonte":"Etichetta autorizzata, Ministero della Salute, reg. n. 15449","etichetta_id":"38161"}
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "015449",
+ "nome_prodotto": "CIDELY",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "015449-02174",
+   "coltura": "Vite da vino",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Uncinula necator)",
+   "epoca": "dall'inizio della fioritura fino ad ingrossamento acini",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 500.0,
+     "max": 500.0,
+     "unita": "ml/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula … necator). Impiegare 8-10 hl/ha rispettando la dose di 500 ml/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 40.0,
+     "max": 50.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 21,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Sospendere i trattamenti prima della raccolta: … 21 giorni per la vite",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ingrossamento acini ad intervalli di 10-14 giorni. … Effettuare al massimo 2 interventi all’anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 10,
+     "max": 14,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "fino ad … ingrossamento acini ad intervalli di 10-14 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015449-02175",
+   "coltura": "Vite da tavola",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Uncinula necator)",
+   "epoca": "dall'inizio della fioritura fino ad ingrossamento acini",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 500.0,
+     "max": 500.0,
+     "unita": "ml/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula … necator). Impiegare 8-10 hl/ha rispettando la dose di 500 ml/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 40.0,
+     "max": 50.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite da vino e da tavola: 40-50 ml/hl per il controllo di oidio (Uncinula",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 21,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Sospendere i trattamenti prima della raccolta: … 21 giorni per la vite",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ingrossamento acini ad intervalli di 10-14 giorni. … Effettuare al massimo 2 interventi all’anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 10,
+     "max": 14,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "fino ad … ingrossamento acini ad intervalli di 10-14 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015449-02176",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Podosphaera leucotricha)",
+   "epoca": "dalle prime foglie espanse alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 500.0,
+     "max": 500.0,
+     "unita": "ml/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Melo: 30-50 ml/hl per il controllo di oidio (Podosphaera leucotricha). … Impiegare 9-15 hl/ha rispettando la dose di 500 ml/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 30.0,
+     "max": 50.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Melo: 30-50 ml/hl per il controllo di oidio (Podosphaera leucotricha).",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Sospendere i trattamenti prima della raccolta: … 14 giorni per il melo e le drupacee.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "foglie espanse alla pre-raccolta. … Effettuare al massimo 2 interventi all’anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervenire in modalità preventiva ad intervalli di 7-10 giorni dalle prime … foglie espanse alla pre-raccolta.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015449-02177",
+   "coltura": "Pesco",
+   "colture": [
+    "pesco"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Sphaerotheca pannosa)",
+   "epoca": "da dopo la fioritura fino alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 500.0,
+     "max": 500.0,
+     "unita": "ml/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervenire in modalità preventiva a partire da dopo la fioritura fino alla pre- … raccolta alla dose di 500 ml/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 100.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Drupacee (Pesco, Nettarine e Albicocco): 50-100 ml/hl per il controllo di",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Sospendere i trattamenti prima della raccolta: … 14 giorni per il melo e le drupacee.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "intervenendo non prima di 7 giorni. … Effettuare al massimo 2 interventi all’anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": "non prima di 7 giorni",
+     "pagina": 1,
+     "citazione": "Se necessario, ripetere il trattamento con lo … stesso prodotto (CIDELY) intervenendo non prima di 7 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015449-02178",
+   "coltura": "Nettarine",
+   "colture": [
+    "nettarina"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Sphaerotheca pannosa)",
+   "epoca": "da dopo la fioritura fino alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 500.0,
+     "max": 500.0,
+     "unita": "ml/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervenire in modalità preventiva a partire da dopo la fioritura fino alla pre- … raccolta alla dose di 500 ml/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 100.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Drupacee (Pesco, Nettarine e Albicocco): 50-100 ml/hl per il controllo di",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Sospendere i trattamenti prima della raccolta: … 14 giorni per il melo e le drupacee.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "intervenendo non prima di 7 giorni. … Effettuare al massimo 2 interventi all’anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": "non prima di 7 giorni",
+     "pagina": 1,
+     "citazione": "Se necessario, ripetere il trattamento con lo … stesso prodotto (CIDELY) intervenendo non prima di 7 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015449-02179",
+   "coltura": "Albicocco",
+   "colture": [
+    "albicocco"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Sphaerotheca pannosa)",
+   "epoca": "da dopo la fioritura fino alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 500.0,
+     "max": 500.0,
+     "unita": "ml/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervenire in modalità preventiva a partire da dopo la fioritura fino alla pre- … raccolta alla dose di 500 ml/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 100.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Drupacee (Pesco, Nettarine e Albicocco): 50-100 ml/hl per il controllo di",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Sospendere i trattamenti prima della raccolta: … 14 giorni per il melo e le drupacee.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "intervenendo non prima di 7 giorni. … Effettuare al massimo 2 interventi all’anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": "non prima di 7 giorni",
+     "pagina": 1,
+     "citazione": "Se necessario, ripetere il trattamento con lo … stesso prodotto (CIDELY) intervenendo non prima di 7 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "SYNGENTA ITALIA S.P.A.",
+ "data_etichetta": "07/12/2021",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 15449",
+ "etichetta_id": "38161"
+}

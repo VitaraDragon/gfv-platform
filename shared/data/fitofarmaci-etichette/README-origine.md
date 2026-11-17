@@ -7,8 +7,9 @@ Generato il 17/11/2026 (ora di Roma) dalle 58 etichette in
 `/workspace/archivio-etichette-fitofarmaci/2026-11-16/` (7) e `2026-11-17/` (51).
 
 ## File
-- `valori.json` (v2): `meta` (schema `GFV valori etichetta 1.1`, data, avviso, conteggi, `segnalazioni_aperte`) + `etichette` (copertura per etichetta) + `righe`.
-- `valori-v1.json` / `valori-v1.csv`: versione precedente (prima della revisione del campione di 120 valori), conservata invariata.
+- `valori.json` (v3, 17/11/2026; stesso schema `GFV valori etichetta 1.1`): `meta` (schema `GFV valori etichetta 1.1`, data, avviso, conteggi, `segnalazioni_aperte`) + `etichette` (copertura per etichetta) + `righe`.
+- `valori-v2.json` / `valori-v2.csv`: versione precedente (v2), conservata invariata.
+- `valori-v1.json` / `valori-v1.csv`: versione ancora precedente (prima della revisione del campione di 120 valori), conservata invariata.
   Una riga = prodotto × coltura × avversità (× epoca, se l'etichetta la distingue).
   Contiene **solo** valori confermati (`confermato_2_su_2` o `deciso_dal_terzo`).
 - `valori.csv`: gli stessi dati, una riga per valore, **più** i valori proposti e scartati
@@ -117,3 +118,20 @@ Frasi già esaminate e non trasformabili in valore si possono chiudere in `eccez
   Nel prodotto possono andare solo i dati di fatto confermati, legati al numero di registrazione, con l'avviso che fa fede l'etichetta autorizzata.
   Le citazioni servono per il controllo interno; prima di mostrarle agli utenti va sentito Coord Legale.
 - Questo database non è un consiglio agronomico: GFV mostra solo quanto riportato in etichetta, non consiglia dosi.
+
+## Correzioni v3 (17/11/2026): Folpan 80 WDG e righe «tutte vuote»
+**Segnalazione:** FOLPAN 80 WDG (reg. 008601), vite da vino / peronospora, aveva dose, carenza, massimo e intervallo vuoti, anche se l'etichetta (pag. 1) li riporta.
+**Causa:** non era l'estrazione. Il verificatore A (testo + citazione letterale) confermava già i valori; i verificatori B e C li scartavano per il layout:
+frasi con la dose prima dell'avversità, coltura composta «uva da vino / uva da tavola» che non coincideva con «vite», colture citate in un'altra colonna o in un altro paragrafo,
+elenchi con parentesi, nomi di gruppo (agrumi, pomacee, frutteti), sillabazione e salti pagina, e C che univa colonne nelle etichette A4 orizzontali.
+Per la regola «2 su 2» un valore confermato solo da A restava vuoto: in v2 erano 1662 dei 1783 valori vuoti.
+**Cosa è cambiato (le regole NON sono state abbassate):** ogni valore ha ancora pagina + citazione e deve passare A e B indipendenti; C decide solo sui disaccordi; nel dubbio resta vuoto.
+- B: alias di coltura e di gruppo, parentesi, avversità dopo la dose, sillabazione, pagine unite, «per uva da tavola…» dopo il numero (solo in prosa).
+- C: lettura per colonne (A4 orizzontali), alias di coltura composta, avversità dopo la dose, composti più severi per i massimi trattamenti.
+- Estrazioni: citazioni rese letterali per 008601, 000013, 015251; Folpan uva da tavola ha il massimo 4 con la condizione «con clima siccitoso».
+**Risultato:** valori confermati 2 su 2 7285 → 7881, decisi dal terzo 349 → 317, lasciati vuoti 1783 → 1219 (totale 9417), segnalazioni aperte 4 → 2.
+Righe con dose, carenza, massimo e intervallo tutti vuoti: 340 (10 prodotti, 147 sospette) → 89 (4 prodotti, 43 sospette). `diffusione-v2.json` / `diffusione-v3.json`.
+**Limiti noti:** restano vuoti per scelta i diserbanti con dosi per singola infestante (glifosate), le tabelle ambigue, le citazioni non letterali fatte a mano e i casi «N per quelle in pieno campo».
+Prova con valori sbagliati (`prova_valori_sbagliati.py`, 300 casi): numeri alterati accettati da B 6, da C 10; coltura scambiata accettata da B 65 (21,7%), da C 43 (14%): è un limite dei controlli euristici (prima 18% e 12%), non nascosto.
+**Audit a mano v3:** 145 valori (35 nuovi in v3, 30 Folpan, 80 altri), 0 numeri sbagliati, 3 incompleti poi corretti: `audit-v3/audit-campione-v3.md`.
+GFV non consiglia dosi: mostra solo ciò che dice l'etichetta.

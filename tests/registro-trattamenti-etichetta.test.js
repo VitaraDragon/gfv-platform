@@ -42,6 +42,7 @@ function leggi(rel) {
 const vocabolario = leggi('colture-vocabolario.json');
 const sivanto = leggi('per-registrazione/016273.json');
 const thiopron = leggi('per-registrazione/000013.json');
+const folpan = leggi('per-registrazione/008601.json');
 
 function valoreInput(html, classe) {
   const m = String(html).match(new RegExp('class="[^"]*\\b' + classe + '\\b[^"]*"[^>]*value="([^"]*)"'));
@@ -375,6 +376,77 @@ describe('senza file e con intervallo di dose', () => {
     });
     expect(stessa.stato).toBe('pronto');
     expect(stessa.campi.doseHa.scrivi).toBe('0,375');
+  });
+});
+
+describe('FOLPAN 80 WDG su vite', () => {
+  function vistaPeronospora(coltura) {
+    const prima = preparaEtichetta({ scheda: folpan, coltura, vocabolario });
+    const peronospora = prima.avversita.find((a) => /peronospora/i.test(a.testo) && /plasmopara viticola/i.test(a.testo));
+    expect(peronospora).toBeTruthy();
+    return preparaEtichetta({
+      scheda: folpan,
+      coltura,
+      vocabolario,
+      avversitaScelta: peronospora.chiave
+    });
+  }
+
+  function pannello(coltura, vista) {
+    return htmlPannelloOpenData({
+      esito: esitoProdotto({
+        denominazione: 'FOLPAN 80 WDG',
+        numeroRegistrazione: '008601',
+        titolare: 'ADAMA ITALIA S.R.L.',
+        stato: 'Autorizzato'
+      }),
+      nome: 'FOLPAN 80 WDG',
+      specie: coltura,
+      etichetta: vista
+    });
+  }
+
+  it('su vite da vino la dose è un intervallo da scegliere, carenza 28, massimo 10 e intervallo 7-10, pag. 1', () => {
+    const vista = vistaPeronospora('vite da vino');
+    expect(vista.stato).toBe('pronto');
+    expect(vista.campi.doseHa.scrivi).toBe('');
+    expect(vista.campi.doseHl.scrivi).toBe('');
+    expect(vista.campi.doseHa.voci.map((v) => v.testo)).toEqual(['da 1,25 a 1,5 kg/ha']);
+    expect(vista.campi.doseHl.voci.map((v) => v.testo)).toEqual(['da 125 a 150 g/hl']);
+    expect(vista.campi.carenza.scrivi).toBe('28');
+    expect(vista.campi.massimo.scrivi).toBe('10');
+    expect(vista.campi.massimo.voci.map((v) => v.testo)).toEqual(["10 all'anno"]);
+    expect(vista.campi.intervallo.scrivi).toBe('');
+    expect(vista.campi.intervallo.voci.map((v) => v.testo)).toEqual(['da 7 a 10 giorni']);
+
+    const html = pannello('vite da vino', vista);
+    expect(valoreInput(html, 'registro-dose-ha')).toBe('');
+    expect(valoreInput(html, 'registro-dose-hl')).toBe('');
+    expect(html).toMatch(/class="registro-voce-etichetta"[^>]*>da 1,25 a 1,5 kg\/ha<\/button>/);
+    expect(html).toMatch(/class="registro-voce-etichetta"[^>]*>da 125 a 150 g\/hl<\/button>/);
+    expect(valoreInput(html, 'registro-carenza')).toBe('28');
+    expect(html).toContain('Carenza (giorni)');
+    expect(valoreInput(html, 'registro-massimo')).toBe('10');
+    expect(html).toContain("10 all'anno");
+    expect(valoreInput(html, 'registro-intervallo')).toBe('');
+    expect(html).toMatch(/class="registro-voce-etichetta"[^>]*>da 7 a 10 giorni<\/button>/);
+    expect(html.match(/da etichetta, pag\. 1/g)).toHaveLength(6);
+    expect(html).not.toMatch(/da etichetta, pag\. (?!1\b)/);
+    expect(html).not.toMatch(/href="[^"]*fitosanitari\.salute\.gov\.it/);
+  });
+
+  it('su vite da tavola la carenza è 56 giorni e il massimo 4 con clima siccitoso', () => {
+    const vista = vistaPeronospora('vite da tavola');
+    expect(vista.campi.carenza.scrivi).toBe('56');
+    expect(vista.campi.carenza.voci.map((v) => v.testo)).toEqual(['56 giorni']);
+    expect(vista.campi.massimo.scrivi).toBe('4');
+    expect(vista.campi.massimo.voci.map((v) => v.testo)).toEqual(['4 — con clima siccitoso']);
+    const html = pannello('vite da tavola', vista);
+    expect(valoreInput(html, 'registro-carenza')).toBe('56');
+    expect(valoreInput(html, 'registro-massimo')).toBe('4');
+    expect(html).toContain('con clima siccitoso');
+    expect(html).toContain('da etichetta, pag. 1');
+    expect(html).not.toMatch(/href="[^"]*fitosanitari\.salute\.gov\.it/);
   });
 });
 
