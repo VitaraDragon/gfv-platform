@@ -7,6 +7,7 @@
     "VIGNETO",
     "FRUTTETO",
     "SEMINATIVO",
+    "ORTICOLE",
     "CONTO_TERZI",
     "PARCO_MACCHINE",
     "METEO",
@@ -1023,11 +1024,12 @@
         "VIGNETO",
         "FRUTTETO",
         "SEMINATIVO",
+        "ORTICOLE",
         "MAGAZZINO",
         "MANODOPERA",
         "INTERSEZIONI"
       ],
-      "label": "Registro privato trattamenti: scheda pubblica, conferma riga, acqua, avvisi, export, miscela prevista (lavoro e campo)"
+      "label": "Registro privato trattamenti: ricerca open data (nome o numero, anche revocati), conferma riga, acqua, avvisi, export, miscela prevista (lavoro e campo)"
     },
     {
       "prefix": "functions/registro-trattamenti",
@@ -1035,9 +1037,10 @@
         "VIGNETO",
         "FRUTTETO",
         "SEMINATIVO",
+        "ORTICOLE",
         "MAGAZZINO"
       ],
-      "label": "CF leggiSchedaRegistroTrattamento + lettura scheda in coda (onProdottoSchedaScritto, leggiSchedeRegistroInCoda)"
+      "label": "CF leggiSchedaRegistroTrattamento (solo open data CSV del Ministero; niente SIAN, niente lettura in coda)"
     },
     {
       "prefix": "functions/lib/registro-trattamenti",
@@ -1045,18 +1048,20 @@
         "VIGNETO",
         "FRUTTETO",
         "SEMINATIVO",
+        "ORTICOLE",
         "MAGAZZINO"
       ],
-      "label": "Core lettura scheda fitofarmaci (open data, impieghi, avversità)"
+      "label": "Core ricerca prodotti fitosanitari sul CSV open data (nome, numero di registrazione, revocati)"
     },
     {
       "prefix": "core/config/registro-trattamenti-specie",
       "modules": [
         "VIGNETO",
         "FRUTTETO",
-        "SEMINATIVO"
+        "SEMINATIVO",
+        "ORTICOLE"
       ],
-      "label": "Specie GFV → coltura della scheda pubblica (vite da vino/tavola, frutteto, seminativo)"
+      "label": "Specie GFV → nome coltura precompilata nel registro (vite da vino/tavola, frutteto, seminativo, orticole)"
     },
     {
       "prefix": "core/mobile/js/field-menu-visibility",
@@ -1713,7 +1718,8 @@
     {
       "prefix": "core/config/subscription-plans.js",
       "modules": [
-        "CORE"
+        "CORE",
+        "ORTICOLE"
       ],
       "label": "Piani Free/Base, resolveTenantPlanId (#289)"
     },
@@ -2402,6 +2408,127 @@
         "TONY"
       ],
       "label": "Test landing nome terreno runtime (solo tecnica)"
+    },
+    {
+      "prefix": "modules/orticole/",
+      "modules": [
+        "ORTICOLE"
+      ],
+      "label": "Modulo orticole (hub, anagrafica campagne, impianto, lavorazioni, irrigazione, trattamenti, concimazioni, raccolta, statistiche)"
+    },
+    {
+      "prefix": "tests/orticole-",
+      "modules": [
+        "ORTICOLE"
+      ],
+      "label": "Test modulo orticole"
+    },
+    {
+      "prefix": "shared/js/registro-trattamenti-fonte",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "ORTICOLE",
+        "MAGAZZINO"
+      ],
+      "label": "Testi fonte/licenza open data e stato amministrativo del prodotto"
+    },
+    {
+      "prefix": "shared/js/coltura-terreno.js",
+      "modules": [
+        "CORE",
+        "ORTICOLE"
+      ],
+      "label": "Famiglia coltura (ortive → orticole)"
+    },
+    {
+      "prefix": "shared/js/tipi-lavoro-per-coltura.js",
+      "modules": [
+        "CORE",
+        "ORTICOLE"
+      ],
+      "label": "Tipi lavoro per famiglia coltura (anche orticole)"
+    },
+    {
+      "prefix": "shared/js/effetti-salvataggio-terreno.js",
+      "modules": [
+        "CORE",
+        "ORTICOLE"
+      ],
+      "label": "Effetti del cambio coltura (famiglie speciali vigneto, frutteto, orticole)"
+    },
+    {
+      "prefix": "core/js/module-page-guard.js",
+      "modules": [
+        "CORE",
+        "ORTICOLE"
+      ],
+      "label": "Guard pagine di modulo (messaggio modulo non attivo)"
+    },
+    {
+      "prefix": "core/js/dashboard-",
+      "modules": [
+        "CORE",
+        "ORTICOLE"
+      ],
+      "label": "Dashboard: hub moduli, riquadri, I miei accessi (anche Orticole)"
+    },
+    {
+      "prefix": "core/config/tony-module-gate.js",
+      "modules": [
+        "TONY",
+        "ORTICOLE"
+      ],
+      "label": "Gate moduli Tony (target Orticole)"
+    },
+    {
+      "prefix": "core/config/tony-routes.json",
+      "modules": [
+        "TONY",
+        "ORTICOLE"
+      ],
+      "label": "Rotte Tony (target Orticole)"
+    },
+    {
+      "prefix": "functions/tony-module-gate.js",
+      "modules": [
+        "TONY",
+        "ORTICOLE"
+      ],
+      "label": "Gate moduli Tony lato server (target Orticole)"
+    },
+    {
+      "prefix": "functions/scripts/generate-tony-configs.js",
+      "modules": [
+        "TONY",
+        "ORTICOLE"
+      ],
+      "label": "Consigliere moduli Tony (Orticole su categoria Ortive)"
+    },
+    {
+      "prefix": "functions/scripts/sync-stripe-catalog.js",
+      "modules": [
+        "CORE",
+        "ORTICOLE"
+      ],
+      "label": "Catalogo Stripe moduli (Orticole)"
+    },
+    {
+      "prefix": "core/config/app-catalog-seed-data.js",
+      "modules": [
+        "CORE",
+        "ORTICOLE"
+      ],
+      "label": "Seed catalogo (ortive, tipi irrigazione)"
+    },
+    {
+      "prefix": "modules/magazzino/services/trattamento-scarico-magazzino-service.js",
+      "modules": [
+        "MAGAZZINO",
+        "ORTICOLE"
+      ],
+      "label": "Scarico magazzino da trattamenti (vigneto, frutteto, seminativo, orticole)"
     }
   ]
 }

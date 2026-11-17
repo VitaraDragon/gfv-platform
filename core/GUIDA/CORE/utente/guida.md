@@ -385,7 +385,7 @@ Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può 
 Quando pubblichiamo una versione nuova dell’app, in fondo allo schermo compare una barra scura con la scritta **C’è una nuova versione** e il pulsante verde **Aggiorna**.
 
 - **Quando compare:** solo se online c’è davvero una versione più nuova di quella che state usando. L’app controlla quando la aprite, quando ci tornate da un’altra app o scheda e ogni 15 minuti circa. La prima volta che aprite l’app su un dispositivo la barra non compare.  
-- **Dove:** in quasi tutte le pagine dell’app: accesso, registrazione da invito, dashboard, versione mobile di campo, **Segna ore**, **Diario attività**, **Statistiche**, **Terreni**, **Impostazioni**, le pagine di amministrazione (per esempio **Gestione lavori**, **Validazione ore**, **Gestione squadre**, **Guasti**, **Report**, **Abbonamento**), la mappa dell’azienda e le pagine dei moduli (**Manodopera**, **Vigneto**, **Frutteto**, **Seminativo**, **Conto terzi**, **Magazzino**, **Parco macchine**, **Meteo**, **Report**). Non serve tornare alla dashboard per aggiornare.  
+- **Dove:** in quasi tutte le pagine dell’app: accesso, registrazione da invito, dashboard, versione mobile di campo, **Segna ore**, **Diario attività**, **Statistiche**, **Terreni**, **Impostazioni**, le pagine di amministrazione (per esempio **Gestione lavori**, **Validazione ore**, **Gestione squadre**, **Guasti**, **Report**, **Abbonamento**), la mappa dell’azienda e le pagine dei moduli (**Manodopera**, **Vigneto**, **Frutteto**, **Seminativo**, **Orticole**, **Conto terzi**, **Magazzino**, **Parco macchine**, **Meteo**, **Report**). Non serve tornare alla dashboard per aggiornare.  
 - **Niente si ricarica prima di Aggiorna:** potete finire quello che state facendo. Il ricaricamento parte solo dopo che avete toccato **Aggiorna**.  
 - **Aggiorna** resta sempre toccabile: la barra sta sopra le finestre aperte e sopra Tony (il pulsante di Tony si sposta un po’ più in alto).
 
@@ -448,7 +448,7 @@ Nella pagina **Abbonamento** (ingranaggio in alto a destra → **Abbonamento**) 
 
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
-- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni con il piano Base, un modulo alla volta e una sola volta per modulo): ogni modulo aggiunge voci al **pannello moduli** e nuove pagine.
+- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, **Orticole**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni con il piano Base, un modulo alla volta e una sola volta per modulo): ogni modulo aggiunge voci al **pannello moduli** e nuove pagine.
 - Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, **fotografare bolle e fatture** (Tony legge le cifre; voi confermate e i dati scendono in magazzino). È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica

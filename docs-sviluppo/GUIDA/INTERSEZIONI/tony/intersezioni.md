@@ -30,6 +30,7 @@ Archiviare un terreno (non cancellarlo) toglie il terreno da tendine, conteggio 
 |--------|------------|-------------------|
 | Manodopera | KPI + Pianificazione / Persone / Controllo | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
 | Vigneto / Frutteto | Dashboard coltura (statistiche, azioni rapide) | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Orticole | Dashboard Orticole (panoramica campagne, azioni rapide, raccolte e lavori recenti) | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
 | Magazzino | Riepilogo giacenze, azioni rapide, Archivio documenti | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
 | Conto Terzi | Panoramica clienti, preventivi, lavori | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
 | Parco Macchine | Panoramica mezzi, azioni rapide | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
@@ -58,6 +59,7 @@ Archiviare un terreno (non cancellarlo) toglie il terreno da tendine, conteggio 
 - **Core ↔ tutti i moduli:** ruoli, azienda selezionata, abbonamento e pannello moduli governano tutto.
 - **Terreni ↔ Lavori/Attività:** ogni lavoro nasce su un terreno; ore e attività ereditano quel contesto (Pulsante moduli → **Terreni** / **Diario** / **Manodopera** a seconda del passo).
 - **Terreni ↔ Vigneto/Frutteto:** anagrafiche coltura legate al terreno; icone grappolo/mela per anagrafica rapida.
+- **Terreni ↔ Orticole:** le campagne orticole si creano solo su terreni con coltura della categoria **Ortive**; lavori e attività Diario su quel terreno (tipi Irrigazione, Trattamenti, Concimazione, Raccolta, lavorazioni di campo aperto) compaiono nei registri Orticole se la data cade nell’annata di una campagna. Dettagli in `GUIDA/ORTICOLE`.
 - **Lavori/Attività ↔ Vigneto/Frutteto:** trattamenti, concimazioni, potatura nascono da **lavoro** o **attività Diario** con categoria corretta; vendemmia/raccolta spesso dirette dal modulo coltura.
 - **Vigneto/Frutteto ↔ Magazzino:** prodotti, dosaggi, opzione scarico, movimenti uscita, **Tracciabilità consumi**.
 - **Conto terzi ↔ Lavori:** preventivo accettato → lavoro da pianificare → **Gestione lavori** (Manodopera) → ore; elenco in corso/completati in **Gestione lavori** filtrata conto terzi (con Manodopera) o nel **Diario** filtrato (senza).
@@ -84,8 +86,8 @@ Ruoli: manager/amministratore per preventivi e pianificazione; caposquadra/opera
 ### 2.2 Trattamento/concimazione → scarico magazzino → tracciabilità
 
 1. Creare prima **lavoro** (**Gestione lavori** / **Manodopera**) o **attività Diario** sul terreno con categoria **Trattamenti** / **Concimazione** / **Potatura**. Su un lavoro di **trattamento** il manager può indicare la **Miscela prevista** (acqua, prodotti, dose/ha); con la **capacità botte** sull’attrezzo (**Parco Macchine**) l’app calcola botti piene e ultima botte, e operaio/caposquadra la leggono nella scheda **Lavoro** in campo.
-2. Pulsante moduli → **Vigneto**, **Frutteto** o **Seminativo** → pagina registro (**Trattamenti**, **Concimazioni**, **Potatura**) → riga in elenco → **Azioni** → completare prodotti, superficie, dosaggi. Sui trattamenti: **registro privato** — confermare avversità, dose e carenza della scheda pubblica (**Leggi scheda** / **Conferma**), acqua usata, avvisi non bloccanti al Salva, **Esporta CSV / XML**. GFV non invia nulla al SIAN.
-3. Se modulo **Magazzino** attivo: spuntare **Registra scarico in magazzino** (se previsto) al salvataggio. I fitofarmaci in **Anagrafica prodotti** hanno il pallino di lettura scheda (giallo / verde / rosso) e conservano le conferme per coltura.
+2. Pulsante moduli → **Vigneto**, **Frutteto**, **Seminativo** o **Orticole** → pagina registro (**Trattamenti**, **Concimazioni**, **Potatura**; Orticole ha **Trattamenti** e **Concimazioni**, **Esporta CSV / XML** solo in Trattamenti) → riga in elenco → **Azioni** → completare prodotti, superficie, dosaggi. Sui trattamenti: **registro privato** — confermare avversità, dose e carenza della scheda pubblica (**Leggi scheda**: ricerca negli open data del Ministero per nome o per numero di registrazione, anche revocati; poi **Conferma** dei dati scritti dall’azienda), acqua usata, avvisi non bloccanti al Salva, **Esporta CSV / XML**. GFV non invia nulla al SIAN.
+3. Se modulo **Magazzino** attivo: spuntare **Registra scarico in magazzino** (se previsto) al salvataggio. I fitofarmaci in **Anagrafica prodotti** hanno il pallino sullo stato del prodotto (verde in commercio, rosso revocato/scaduto/sospeso, nessun pallino se non verificato) e conservano le conferme per coltura. Con **Orticole** lo scarico si registra da **Trattamenti** e **Concimazioni**.
 4. Pulsante moduli → **Magazzino** → **Movimenti** (verifica uscita) e **Tracciabilità consumi** (filtri prodotto/terreno). Cancellare un trattamento confermato non toglie i movimenti di magazzino.
 
 Ruoli: principalmente manager/amministratore.

@@ -58,11 +58,11 @@ Pagina **Anagrafica prodotti** (da home magazzino o menu).
 
 Di solito potete filtrare per **stato** (attivo / non attivo), **categoria** (es. fitofarmaci, fertilizzanti, sementi, altro, secondo come avete configurato l'azienda) e **ricerca testuale**. **Pulisci filtri** azzera le scelte.
 
-La tabella mostra nome, categoria, unità di misura, giacenza, soglia di scorta, prezzo dove previsto, stato. Accanto al nome dei **fitofarmaci** c’è un pallino colorato sulla lettura della scheda pubblica (passateci sopra per leggere lo stato):
+La tabella mostra nome, categoria, unità di misura, giacenza, soglia di scorta, prezzo dove previsto, stato. Accanto al nome dei **fitofarmaci** può comparire un pallino colorato sullo **stato amministrativo** del prodotto, preso dagli open data del Ministero della Salute (passateci sopra per leggere lo stato):
 
-- **giallo** — «In attesa di lettura» oppure «Lettura in corso»;  
-- **verde** — «Scheda letta»: ogni coltura della scheda ha il nome dell’avversità;  
-- **rosso** — «Da riprovare», per esempio «il nome non corrisponde a una sola registrazione» o «nome non trovato negli open data». Controllate il nome del prodotto come è scritto in etichetta e salvate di nuovo.
+- **verde** — prodotto ancora in commercio (autorizzato, ri-registrato o rinnovato);  
+- **rosso** — **revocato**, **scaduto** o **sospeso**;  
+- **nessun pallino** — lo stato non è stato verificato (per esempio il prodotto non è mai stato cercato dal registro dei trattamenti).
 
 ### Nuovo prodotto
 
@@ -73,7 +73,7 @@ La tabella mostra nome, categoria, unità di misura, giacenza, soglia di scorta,
 
 ### Scheda pubblica dei fitofarmaci
 
-Dopo il **Salva** di un fitofarmaco l’app legge da sola, un prodotto alla volta, la scheda pubblica del Ministero della Salute (open data, colture, avversità, etichetta): non dovete aspettare sulla pagina, il pallino in elenco vi dice a che punto è. Quando la lettura è fatta, nel modulo del prodotto trovate in sola lettura **Numero di registrazione**, **Principio attivo**, **Fonte** e **Data di lettura**: non si scrivono a mano. Queste informazioni servono nella pagina **Trattamenti** di vigneto, frutteto e seminativo, dove confermate avversità, dose e carenza per la coltura del campo; la conferma resta sul prodotto per la volta dopo. Una scheda letta più di sei mesi fa viene riletta prima di proporre la dose.
+L’app **non legge più da sola** la scheda dopo il **Salva**: la lettura avviene solo quando voi cercate il prodotto con **Leggi scheda** nella pagina **Trattamenti** di vigneto, frutteto, seminativo e orticole. I dati arrivano dagli **open data del Ministero della Salute** (licenza IODL 2.0) e nel modulo del prodotto, in sola lettura, trovate **Numero di registrazione**, **Principio attivo**, **Titolare**, **Stato**, **Fonte** e **Data di lettura**, con l’avviso «Verifica sempre l’etichetta autorizzata: è quella che fa fede». Non si scrivono a mano. Avversità, dose e carenza non arrivano dal Ministero: le conferma l’azienda nella pagina **Trattamenti** e la conferma resta sul prodotto per la volta dopo. Il prodotto si può cercare anche per **numero di registrazione**, anche se revocato (vedi la guida del modulo coltura).
 
 ### Modifica ed eliminazione
 

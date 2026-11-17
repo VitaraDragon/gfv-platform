@@ -18,6 +18,7 @@ Documentazione divisa per **ambito** e per **pubblico**:
 | `CONTO_TERZI/` | Conto Terzi: clienti esterni, terreni clienti, mappa, tariffe, preventivi (bozza–invio–accettazione–pianifica lavoro), legame con Gestione lavori e Diario |
 | `METEO/` | Meteo sede (piano Base) e modulo Meteo (mappa campi, alert, previsioni per terreno; legame dashboard, Terreni, Tony briefing) |
 | `SEMINATIVO/` | Seminativo: campagne annuali (terreno + coltura + varietà + anno), semina, lavorazioni terreno, trattamenti, concimazioni, raccolta/mietitura, piano colturale, statistiche |
+| `ORTICOLE/` | Orticole: campagne a pieno campo (terreno + coltura + varietà + annata + ciclo 1/2), semina e trapianto, lavorazioni, irrigazione, trattamenti (registro privato), concimazioni, raccolta, statistiche. |
 | `TONY/` | Modulo Tony (Tony Avanzato): assistente in chat, widget, voce, differenza tra guida e automazioni, piani, profilo campo, briefing dashboard |
 | `INTERSEZIONI/` | Flussi che attraversano più moduli |
 | Altri ambiti | Da compilare modulo per modulo dove manca ancora una cartella `GUIDA/<MODULO>/` |
