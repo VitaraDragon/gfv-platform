@@ -1,7 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   FRASE_CONFERMA_CONTROLLATA,
   FRASE_VALORE_ESTRATTO,
@@ -23,7 +26,9 @@ import {
   numeroSingoloTesto
 } from '../shared/js/registro-trattamenti.js';
 import {
+  attaccaScelteEtichetta,
   htmlPannelloOpenData,
+  leggiCampiAzienda,
   registroConfermaManuale
 } from '../shared/js/registro-trattamenti-form.js';
 
@@ -125,6 +130,106 @@ describe('Sivanto Prime su fagiolino', () => {
     expect(html).toContain('ogni 2 anni');
     expect(html).toContain('applicazioni tardive');
     expect(html).toContain('applicazioni precoci');
+    expect(html.indexOf('Scegli la riga che vale per il tuo caso'))
+      .toBeLessThan(html.indexOf('class="registro-voci-etichetta"'));
+  });
+});
+
+describe('clic sulla voce, Sivanto su fagiolino', () => {
+  function bottone(box, campo, testo) {
+    return [...box.querySelectorAll('.registro-voce-etichetta')].find((b) => {
+      return b.getAttribute('data-campo') === campo && b.textContent.includes(testo);
+    });
+  }
+
+  function pannello() {
+    const vista = preparaEtichetta({
+      scheda: sivanto,
+      coltura: 'fagiolino',
+      vocabolario
+    });
+    document.body.innerHTML = '<div id="registro-scheda-esito">' + htmlPannelloOpenData({
+      esito: esitoProdotto(sivantoAnagrafica),
+      nome: 'Sivanto Prime',
+      specie: 'fagiolino',
+      etichetta: vista
+    }) + '</div>';
+    const box = document.getElementById('registro-scheda-esito');
+    attaccaScelteEtichetta(box, vista);
+    return box;
+  }
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('scrive 7 in carenza, 1 nel massimo, e non necessaria non scrive 0', () => {
+    const box = pannello();
+    const carenza = box.querySelector('.registro-carenza');
+    const massimo = box.querySelector('.registro-massimo');
+    expect(carenza.value).toBe('');
+    expect(massimo.value).toBe('');
+
+    const sette = bottone(box, 'carenza', '7 giorni');
+    expect(sette.getAttribute('data-valore-etichetta')).toBe('7');
+    expect(sette.hasAttribute('data-valore')).toBe(false);
+    sette.click();
+    expect(carenza.value).toBe('7');
+    expect(carenza.classList.contains('registro-valore-da-etichetta')).toBe(true);
+    expect(carenza.closest('label').nextElementSibling.textContent).toContain('da etichetta');
+    expect(sette.classList.contains('registro-voce-selezionata')).toBe(true);
+    expect(sette.getAttribute('aria-pressed')).toBe('true');
+    expect(box.querySelector('.registro-dicitura-etichetta').textContent).toContain(FRASE_VALORE_ESTRATTO);
+
+    const non = bottone(box, 'carenza', 'non necessaria');
+    non.click();
+    expect(carenza.value).toBe('');
+    expect(carenza.value).not.toBe('0');
+    expect(carenza.closest('label').nextElementSibling.textContent).toContain('non necessaria, da etichetta');
+    expect(non.classList.contains('registro-voce-selezionata')).toBe(true);
+    expect(sette.classList.contains('registro-voce-selezionata')).toBe(false);
+    const campi = leggiCampiAzienda(box);
+    expect(campi.origineValori.carenza.nonNecessario).toBe(true);
+    expect(campi.origineValori.carenza.origine).toBe('etichetta');
+    const registro = registroConfermaManuale(sivantoAnagrafica, campi);
+    expect(registro.giorniCarenzaConfermata).toBeNull();
+    expect(registro.carenzaNonNecessaria).toBe(true);
+    expect(registro.origineValori.carenza.nonNecessario).toBe(true);
+
+    const anno = bottone(box, 'massimo', "all'anno");
+    const biennio = bottone(box, 'massimo', 'ogni 2 anni');
+    anno.click();
+    expect(massimo.value).toBe('1');
+    expect(anno.classList.contains('registro-voce-selezionata')).toBe(true);
+    expect(biennio.classList.contains('registro-voce-selezionata')).toBe(false);
+    expect(non.classList.contains('registro-voce-selezionata')).toBe(true);
+    biennio.click();
+    expect(massimo.value).toBe('1');
+    expect(massimo.getAttribute('data-periodo')).toBe('ogni 2 anni');
+    expect(biennio.classList.contains('registro-voce-selezionata')).toBe(true);
+    expect(anno.classList.contains('registro-voce-selezionata')).toBe(false);
+  });
+
+  it('mostra frase si apre sotto la voce e si richiude', () => {
+    const box = pannello();
+    const pulsanti = [...box.querySelectorAll('[data-mostra-frase]')];
+    expect(pulsanti.length).toBeGreaterThan(0);
+    pulsanti.forEach((btn) => {
+      const blocco = btn.closest('.registro-blocco-fonte');
+      const frase = blocco.querySelector('.registro-citazione');
+      expect(btn.parentElement.contains(frase)).toBe(false);
+      expect(frase.hidden).toBe(true);
+      expect(btn.textContent).toBe('mostra frase');
+      btn.click();
+      expect(frase.hidden).toBe(false);
+      expect(frase.style.display).toBe('block');
+      expect(frase.style.fontStyle).toBe('italic');
+      expect(frase.textContent.startsWith('«')).toBe(true);
+      expect(btn.textContent).toBe('nascondi frase');
+      btn.click();
+      expect(frase.hidden).toBe(true);
+      expect(btn.textContent).toBe('mostra frase');
+    });
   });
 });
 
