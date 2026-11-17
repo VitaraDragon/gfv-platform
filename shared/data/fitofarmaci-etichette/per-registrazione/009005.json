@@ -1,1 +1,2988 @@
-{"schema":"GFV valori etichetta 1.1","avviso":"GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.","numero_registrazione":"009005","nome_prodotto":"AGIL","colture_non_estratte":[],"righe":[{"id":"009005-00274","coltura":"Melo","colture":["melo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00275","coltura":"Pero","colture":["pero"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00276","coltura":"Nespolo del Giappone","colture":["nespolo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00277","coltura":"Cotogno","colture":["cotogno"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00278","coltura":"Pesco","colture":["pesco"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00279","coltura":"Nettarino","colture":["nettarina"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00280","coltura":"Albicocco","colture":["albicocco"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00281","coltura":"Susino","colture":["susino"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00282","coltura":"Ciliegio","colture":["ciliegio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00283","coltura":"Vite","colture":["vite"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00284","coltura":"Arancio","colture":["arancio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00285","coltura":"Clementino","colture":["clementino"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00286","coltura":"Mandarino","colture":["mandarino"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00287","coltura":"Limone","colture":["limone"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00288","coltura":"Pompelmo","colture":["pompelmo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00289","coltura":"Chinotto","colture":["chinotto"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00290","coltura":"Bergamotto","colture":["bergamotto"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00291","coltura":"Cedro","colture":["cedro"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00292","coltura":"Frutta a guscio","colture":["noce","nocciolo","castagno","mandorlo","pistacchio","pecan"],"gruppo":"frutta a guscio","avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00293","coltura":"Vivai di fruttiferi","colture":["vivai"],"gruppo":"vivai","avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00294","coltura":"Pomodoro","colture":["pomodoro"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00295","coltura":"Melanzana","colture":["melanzana"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00296","coltura":"Cocomero","colture":["cocomero"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":65,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Melone, cocomero e zucca … 65","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00297","coltura":"Melone","colture":["melone"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":65,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Melone, cocomero e zucca … 65","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00298","coltura":"Zucca","colture":["zucca"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":65,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Melone, cocomero e zucca … 65","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00299","coltura":"Broccoli","colture":["cavolo broccolo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00300","coltura":"Cavolfiore","colture":["cavolfiore"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00301","coltura":"Cavolo cappuccio","colture":["cavolo cappuccio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00302","coltura":"Lino","colture":["lino"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":90,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00303","coltura":"Colza","colture":["colza"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":90,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00304","coltura":"Girasole","colture":["girasole"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":90,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00305","coltura":"Soia","colture":["soia"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":90,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00306","coltura":"Cotone","colture":["cotone"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":60,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Cotone … 60","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00307","coltura":"Barbabietola da zucchero e da foraggio","colture":["barbabietola da zucchero","barbabietola da foraggio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":45,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00308","coltura":"Piante ornamentali","colture":["piante ornamentali"],"gruppo":"piante ornamentali","avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00309","coltura":"Vivai e piante forestali","colture":["vivai","forestali"],"gruppo":"vivai, forestali","avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00310","coltura":"Tabacco","colture":["tabacco"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":40,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … baccello per consumo fresco), … patata e tabacco … 40","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00311","coltura":"Coriandolo da seme","colture":["coriandolo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":2.0,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00312","coltura":"Patata","colture":["patata"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":40,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … baccello per consumo fresco), … patata e tabacco … 40","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00313","coltura":"Carota","colture":["carota"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00314","coltura":"Prezzemolo a grossa radice","colture":["prezzemolo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00315","coltura":"Aglio","colture":["aglio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00316","coltura":"Cipolla","colture":["cipolla"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00317","coltura":"Scalogno","colture":["scalogno"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00318","coltura":"Spinacio","colture":["spinacio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00319","coltura":"Fagiolo","colture":["fagiolo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":50,"non_necessario":false,"condizione":"per consumo secco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50","da_regola_generale":true,"stato":"confermato_2_su_2"},{"giorni":40,"non_necessario":false,"condizione":"con e senza baccello per consumo fresco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (con e senza … baccello per consumo fresco), … patata e tabacco … 40","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00320","coltura":"Pisello","colture":["pisello"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":50,"non_necessario":false,"condizione":"per consumo secco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50","da_regola_generale":true,"stato":"confermato_2_su_2"},{"giorni":40,"non_necessario":false,"condizione":"con e senza baccello per consumo fresco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (con e senza … baccello per consumo fresco), … patata e tabacco … 40","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00321","coltura":"Cece","colture":["cece"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":50,"non_necessario":false,"condizione":"pisello e fagiolo per consumo secco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00322","coltura":"Favino","colture":["favino"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":50,"non_necessario":false,"condizione":"pisello e fagiolo per consumo secco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00323","coltura":"Fava","colture":["fava"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":50,"non_necessario":false,"condizione":"pisello e fagiolo per consumo secco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00324","coltura":"Lenticchia","colture":["lenticchia"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":50,"non_necessario":false,"condizione":"pisello e fagiolo per consumo secco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00325","coltura":"Lupino","colture":["lupino"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":50,"non_necessario":false,"condizione":"pisello e fagiolo per consumo secco","pagina":2,"citazione":"raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00326","coltura":"Erba medica","colture":["erba medica"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":45,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00327","coltura":"Trifoglio","colture":["trifoglio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":45,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00328","coltura":"Veccia","colture":["veccia"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.5,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":45,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00329","coltura":"Lattuga","colture":["lattuga"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.2,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00330","coltura":"Asparago","colture":["asparago"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.2,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00331","coltura":"Finocchio","colture":["finocchio"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.2,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00332","coltura":"Basilico","colture":["basilico"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.2,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00333","coltura":"Prezzemolo","colture":["prezzemolo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.2,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00334","coltura":"Carciofo","colture":["carciofo"],"gruppo":null,"avversita":"Infestanti graminacee (elenco generale dell'etichetta)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":0.8,"max":1.2,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":30,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30","da_regola_generale":true,"stato":"confermato_2_su_2"}],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00335","coltura":"Riso (pre-semina)","colture":["riso"],"gruppo":null,"avversita":"riso crodo e giavone (Echinochloa crus-galli)","epoca":null,"modalita":"da solo","ambiente":["pre-semina"],"esclusioni":[],"dose_ha":[{"min":1.0,"max":1.2,"unita":"l/ha","condizione":null,"pagina":1,"citazione":"giavone (Echinochloa crus-galli). Impiegare 1-1,2 l/ha di prodotto … da solo","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"009005-00336","coltura":"Riso (pre-semina)","colture":["riso"],"gruppo":null,"avversita":"riso crodo e giavone (Echinochloa crus-galli)","epoca":null,"modalita":"in miscela con Glifosate","ambiente":["pre-semina"],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":"anno","condizione":null,"pagina":1,"citazione":"In tutte le applicazioni è consentito 1 solo trattamento … all’anno","da_regola_generale":true,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]}],"titolare":"ADAMA ITALIA S.R.L.","data_etichetta":"10/03/2026","data_estrazione":"2026-11-17","data_download":"2026-11-17","fonte":"Etichetta autorizzata, Ministero della Salute, reg. n. 9005","etichetta_id":"45625"}
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "009005",
+ "nome_prodotto": "AGIL",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "009005-00274",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00275",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00276",
+   "coltura": "Nespolo del Giappone",
+   "colture": [
+    "nespolo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00277",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00278",
+   "coltura": "Pesco",
+   "colture": [
+    "pesco"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00279",
+   "coltura": "Nettarino",
+   "colture": [
+    "nettarina"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00280",
+   "coltura": "Albicocco",
+   "colture": [
+    "albicocco"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00281",
+   "coltura": "Susino",
+   "colture": [
+    "susino"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00282",
+   "coltura": "Ciliegio",
+   "colture": [
+    "ciliegio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00283",
+   "coltura": "Vite",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00284",
+   "coltura": "Arancio",
+   "colture": [
+    "arancio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00285",
+   "coltura": "Clementino",
+   "colture": [
+    "clementino"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00286",
+   "coltura": "Mandarino",
+   "colture": [
+    "mandarino"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00287",
+   "coltura": "Limone",
+   "colture": [
+    "limone"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00288",
+   "coltura": "Pompelmo",
+   "colture": [
+    "pompelmo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00289",
+   "coltura": "Chinotto",
+   "colture": [
+    "chinotto"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00290",
+   "coltura": "Bergamotto",
+   "colture": [
+    "bergamotto"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00291",
+   "coltura": "Cedro",
+   "colture": [
+    "cedro"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00292",
+   "coltura": "Frutta a guscio",
+   "colture": [
+    "noce",
+    "nocciolo",
+    "castagno",
+    "mandorlo",
+    "pistacchio",
+    "pecan"
+   ],
+   "gruppo": "frutta a guscio",
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00293",
+   "coltura": "Vivai di fruttiferi",
+   "colture": [
+    "vivai"
+   ],
+   "gruppo": "vivai",
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00294",
+   "coltura": "Pomodoro",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00295",
+   "coltura": "Melanzana",
+   "colture": [
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00296",
+   "coltura": "Cocomero",
+   "colture": [
+    "cocomero"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 65,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Melone, cocomero e zucca … 65",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00297",
+   "coltura": "Melone",
+   "colture": [
+    "melone"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 65,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Melone, cocomero e zucca … 65",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00298",
+   "coltura": "Zucca",
+   "colture": [
+    "zucca"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 65,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Melone, cocomero e zucca … 65",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00299",
+   "coltura": "Broccoli",
+   "colture": [
+    "cavolo broccolo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00300",
+   "coltura": "Cavolfiore",
+   "colture": [
+    "cavolfiore"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00301",
+   "coltura": "Cavolo cappuccio",
+   "colture": [
+    "cavolo cappuccio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00302",
+   "coltura": "Lino",
+   "colture": [
+    "lino"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 90,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00303",
+   "coltura": "Colza",
+   "colture": [
+    "colza"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 90,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00304",
+   "coltura": "Girasole",
+   "colture": [
+    "girasole"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 90,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00305",
+   "coltura": "Soia",
+   "colture": [
+    "soia"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 90,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i … trattamenti … prima della … raccolta (giorni) … Colza, girasole, soia, lino … 90",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00306",
+   "coltura": "Cotone",
+   "colture": [
+    "cotone"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Cotone … 60",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00307",
+   "coltura": "Barbabietola da zucchero e da foraggio",
+   "colture": [
+    "barbabietola da zucchero",
+    "barbabietola da foraggio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 45,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00308",
+   "coltura": "Piante ornamentali",
+   "colture": [
+    "piante ornamentali"
+   ],
+   "gruppo": "piante ornamentali",
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00309",
+   "coltura": "Vivai e piante forestali",
+   "colture": [
+    "vivai",
+    "forestali"
+   ],
+   "gruppo": "vivai, forestali",
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00310",
+   "coltura": "Tabacco",
+   "colture": [
+    "tabacco"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 40,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … baccello per consumo fresco), … patata e tabacco … 40",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00311",
+   "coltura": "Coriandolo da seme",
+   "colture": [
+    "coriandolo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Coriandolo da … seme: … Intervenire alla dose di 0,8-2,0 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00312",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 40,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … baccello per consumo fresco), … patata e tabacco … 40",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00313",
+   "coltura": "Carota",
+   "colture": [
+    "carota"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00314",
+   "coltura": "Prezzemolo a grossa radice",
+   "colture": [
+    "prezzemolo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00315",
+   "coltura": "Aglio",
+   "colture": [
+    "aglio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00316",
+   "coltura": "Cipolla",
+   "colture": [
+    "cipolla"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00317",
+   "coltura": "Scalogno",
+   "colture": [
+    "scalogno"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00318",
+   "coltura": "Spinacio",
+   "colture": [
+    "spinacio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00319",
+   "coltura": "Fagiolo",
+   "colture": [
+    "fagiolo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 50,
+     "non_necessario": false,
+     "condizione": "per consumo secco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "giorni": 40,
+     "non_necessario": false,
+     "condizione": "con e senza baccello per consumo fresco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (con e senza … baccello per consumo fresco), … patata e tabacco … 40",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00320",
+   "coltura": "Pisello",
+   "colture": [
+    "pisello"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 50,
+     "non_necessario": false,
+     "condizione": "per consumo secco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "giorni": 40,
+     "non_necessario": false,
+     "condizione": "con e senza baccello per consumo fresco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (con e senza … baccello per consumo fresco), … patata e tabacco … 40",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00321",
+   "coltura": "Cece",
+   "colture": [
+    "cece"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 50,
+     "non_necessario": false,
+     "condizione": "pisello e fagiolo per consumo secco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00322",
+   "coltura": "Favino",
+   "colture": [
+    "favino"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 50,
+     "non_necessario": false,
+     "condizione": "pisello e fagiolo per consumo secco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00323",
+   "coltura": "Fava",
+   "colture": [
+    "fava"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 50,
+     "non_necessario": false,
+     "condizione": "pisello e fagiolo per consumo secco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00324",
+   "coltura": "Lenticchia",
+   "colture": [
+    "lenticchia"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 50,
+     "non_necessario": false,
+     "condizione": "pisello e fagiolo per consumo secco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00325",
+   "coltura": "Lupino",
+   "colture": [
+    "lupino"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 50,
+     "non_necessario": false,
+     "condizione": "pisello e fagiolo per consumo secco",
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Pisello e fagiolo (per consumo … secco), cece, lenticchia, lupino, … fava, favino … 50",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00326",
+   "coltura": "Erba medica",
+   "colture": [
+    "erba medica"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 45,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00327",
+   "coltura": "Trifoglio",
+   "colture": [
+    "trifoglio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 45,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00328",
+   "coltura": "Veccia",
+   "colture": [
+    "veccia"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica, Trifoglio, Veccia: … Intervenire alla dose di 0,8-1,5 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 45,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Barbabietola da zucchero, … barbabietola da foraggio, veccia, … trifoglio ed erba medica … 45",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00329",
+   "coltura": "Lattuga",
+   "colture": [
+    "lattuga"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00330",
+   "coltura": "Asparago",
+   "colture": [
+    "asparago"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00331",
+   "coltura": "Finocchio",
+   "colture": [
+    "finocchio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00332",
+   "coltura": "Basilico",
+   "colture": [
+    "basilico"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00333",
+   "coltura": "Prezzemolo",
+   "colture": [
+    "prezzemolo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00334",
+   "coltura": "Carciofo",
+   "colture": [
+    "carciofo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti graminacee (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.8,
+     "max": 1.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Lattuga, Asparago, Finocchio, Basilico, Prezzemolo, … Carciofo: … Intervenire alla dose di 0,8-1,2 l/ha adattando il dosaggio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "raccolta (giorni) … Agrumi, frutta a guscio, melo, … carciofo … 30",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00335",
+   "coltura": "Riso (pre-semina)",
+   "colture": [
+    "riso"
+   ],
+   "gruppo": null,
+   "avversita": "riso crodo e giavone (Echinochloa crus-galli)",
+   "epoca": null,
+   "modalita": "da solo",
+   "ambiente": [
+    "pre-semina"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 1.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "giavone (Echinochloa crus-galli). Impiegare 1-1,2 l/ha di prodotto … da solo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "009005-00336",
+   "coltura": "Riso (pre-semina)",
+   "colture": [
+    "riso"
+   ],
+   "gruppo": null,
+   "avversita": "riso crodo e giavone (Echinochloa crus-galli)",
+   "epoca": null,
+   "modalita": "in miscela con Glifosate",
+   "ambiente": [
+    "pre-semina"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 0.75,
+     "max": 1.0,
+     "unita": "l/ha",
+     "condizione": "in miscela con Glifosate",
+     "pagina": 1,
+     "citazione": "oppure 0,75-1 l/ha in miscela con Glifosate",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le applicazioni è consentito 1 solo trattamento … all’anno",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "ADAMA ITALIA S.R.L.",
+ "data_etichetta": "10/03/2026",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 9005",
+ "etichetta_id": "45625"
+}
