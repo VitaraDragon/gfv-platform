@@ -12,6 +12,11 @@ import {
 import { isTerrenoSeminativo } from '../modules/seminativo/models/SeminativoCampagna.js';
 import { famigliaColtura } from '../shared/js/coltura-terreno.js';
 import { cambioCategoriaColtura } from '../shared/js/effetti-salvataggio-terreno.js';
+import {
+  htmlAvvisoNessunTerrenoOrtivo,
+  HREF_TERRENI_DA_ORTICOLE,
+  mancaTerrenoOrtivoOperativo
+} from '../modules/orticole/js/avviso-terreni-ortive.js';
 
 describe('Orticole anagrafica — unicità e terreni', () => {
   it('validate rifiuta ciclo fuori da 1|2 e accetta destinazione', () => {
@@ -85,5 +90,15 @@ describe('Orticole anagrafica — unicità e terreni', () => {
       { coltura: 'Grano', colturaCategoria: 'seminativo' },
       { coltura: 'Prato', colturaCategoria: 'prato' }
     )).toBe(false);
+  });
+
+  it('avvisa se non ci sono terreni operativi a ortive', () => {
+    expect(mancaTerrenoOrtivoOperativo([])).toBe(true);
+    expect(mancaTerrenoOrtivoOperativo([{ id: 'arch', stato: 'archiviato' }])).toBe(true);
+    expect(mancaTerrenoOrtivoOperativo([{ id: 'ok', stato: 'attivo' }])).toBe(false);
+    const html = htmlAvvisoNessunTerrenoOrtivo();
+    expect(html).toContain(HREF_TERRENI_DA_ORTICOLE);
+    expect(html).toContain('pomodoro');
+    expect(html).toContain('Nessun terreno con coltura ortiva');
   });
 });

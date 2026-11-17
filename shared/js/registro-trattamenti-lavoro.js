@@ -37,17 +37,92 @@ export function configuraMiscelaPerModuli(moduli = []) {
   }
   const nome = document.getElementById('lavoro-miscela-nome-label');
   if (nome) nome.textContent = hasMagazzino ? 'Nome se non è in magazzino' : 'Nome prodotto';
+  if (hasMagazzino) notificaSezioneMiscelaSeVisibile();
   return hasMagazzino;
+}
+
+export const MESSAGGIO_ERRORE_PRODOTTI_MISCELA = 'Non riesco a leggere i prodotti del magazzino. Puoi scrivere il nome a mano.';
+
+let onCaricaProdottiMiscela = null;
+
+/** Il form lavoro registra qui il caricamento reale (getAllProdotti). Restituisce il precedente. */
+export function registraCaricamentoProdottiMiscela(fn) {
+  const precedente = onCaricaProdottiMiscela;
+  onCaricaProdottiMiscela = typeof fn === 'function' ? fn : null;
+  return precedente;
 }
 
 export function aggiornaSezioneMiscelaLavoro() {
   const section = document.getElementById('lavoro-miscela-section');
-  if (!section) return;
+  if (!section) return { visibile: false };
   const sel = document.getElementById('lavoro-tipo-lavoro');
   const nome = sel && sel.options && sel.selectedIndex >= 0
     ? (sel.options[sel.selectedIndex].text || sel.value)
     : '';
-  section.style.display = tipoLavoroETrattamento(nome) ? 'block' : 'none';
+  const visibile = tipoLavoroETrattamento(nome);
+  section.style.display = visibile ? 'block' : 'none';
+  return { visibile };
+}
+
+/** La tendina si riempie solo a sezione visibile e select abilitata (modulo Magazzino). */
+export function miscelaPuoCaricareProdotti() {
+  const section = document.getElementById('lavoro-miscela-section');
+  const select = document.getElementById('lavoro-miscela-prodotto');
+  if (!section || section.style.display === 'none') return false;
+  if (!select || select.disabled) return false;
+  return true;
+}
+
+export function scriviErroreProdottiMiscela(messaggio) {
+  const group = document.getElementById('lavoro-miscela-prodotto-group')
+    || document.getElementById('lavoro-miscela-section');
+  if (!group) return;
+  let el = document.getElementById('lavoro-miscela-prodotti-errore');
+  if (!el) {
+    el = document.createElement('p');
+    el.id = 'lavoro-miscela-prodotti-errore';
+    el.style.color = '#842029';
+    el.style.margin = '6px 0 0';
+    group.appendChild(el);
+  }
+  const testo = String(messaggio || '').trim();
+  el.textContent = testo;
+  el.style.display = testo ? 'block' : 'none';
+}
+
+/**
+ * Aggiorna la sezione e, se è visibile, carica i prodotti.
+ * Copre il tipo impostato in codice, senza un change su #lavoro-tipo-lavoro.
+ */
+export function notificaSezioneMiscelaSeVisibile() {
+  const esito = aggiornaSezioneMiscelaLavoro();
+  if (esito.visibile && typeof onCaricaProdottiMiscela === 'function') {
+    return onCaricaProdottiMiscela();
+  }
+  return esito;
+}
+
+/**
+ * Carica la tendina se la sezione è pronta.
+ * Se era nascosta o la select era disabilitata, segna il salto: il prossimo giro visibile riprova.
+ */
+export async function caricaProdottiMiscelaNelForm({ getProdotti, specie } = {}) {
+  aggiornaSezioneMiscelaLavoro();
+  const section = document.getElementById('lavoro-miscela-section');
+  if (!miscelaPuoCaricareProdotti()) {
+    if (section) section.dataset.prodottiSaltati = '1';
+    return { esito: 'saltato' };
+  }
+  if (section) delete section.dataset.prodottiSaltati;
+  try {
+    const prodotti = typeof getProdotti === 'function' ? await getProdotti() : [];
+    await riempiSelectProdottiMiscela(prodotti, specie);
+    scriviErroreProdottiMiscela('');
+    return { esito: 'ok' };
+  } catch (err) {
+    scriviErroreProdottiMiscela(MESSAGGIO_ERRORE_PRODOTTI_MISCELA);
+    return { esito: 'errore', errore: err };
+  }
 }
 
 function leggiProdottiMiscelaDalForm() {
@@ -186,7 +261,8 @@ export function installaMiscelaLavoro(opts = {}) {
   form.addEventListener('change', (e) => {
     const id = e.target && e.target.id;
     if (id === 'lavoro-tipo-lavoro' || id === 'lavoro-categoria-principale' || id === 'lavoro-sottocategoria') {
-      aggiornaSezioneMiscelaLavoro();
+      const esito = aggiornaSezioneMiscelaLavoro();
+      if (esito.visibile && typeof onCaricaProdottiMiscela === 'function') onCaricaProdottiMiscela();
     }
   });
   const btn = document.getElementById('btn-miscela-aggiungi');

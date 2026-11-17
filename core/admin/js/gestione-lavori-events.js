@@ -36,14 +36,15 @@ import {
     risolviColturaDaTerreno
 } from '../../../shared/js/storico-sola-lettura.js';
 import { applicaSolaLetturaAlForm } from '../../../shared/js/form-sola-lettura.js';
+import {
+    caricaProdottiMiscelaNelForm,
+    installaMiscelaLavoro,
+    registraCaricamentoProdottiMiscela,
+    scriviMiscelaNelForm,
+    testoAnteprimaMiscela
+} from '../../../shared/js/registro-trattamenti-lavoro.js';
 
 async function caricaProdottiMiscela() {
-    const { aggiornaSezioneMiscelaLavoro, riempiSelectProdottiMiscela } = await import('../../../shared/js/registro-trattamenti-lavoro.js');
-    aggiornaSezioneMiscelaLavoro();
-    const section = document.getElementById('lavoro-miscela-section');
-    if (!section || section.style.display === 'none') return;
-    const selectProdotto = document.getElementById('lavoro-miscela-prodotto');
-    if (!selectProdotto || selectProdotto.disabled) return;
     const terrenoId = document.getElementById('lavoro-terreno')?.value || '';
     let specie = null;
     try {
@@ -54,16 +55,24 @@ async function caricaProdottiMiscela() {
         console.warn('[GESTIONE-LAVORI] specie registro', err);
     }
     try {
-        const { getAllProdotti } = await import('../../../modules/magazzino/services/prodotti-service.js');
-        const prodotti = await getAllProdotti({ soloAttivi: true }) || [];
-        await riempiSelectProdottiMiscela(prodotti, specie);
+        const esito = await caricaProdottiMiscelaNelForm({
+            getProdotti: async () => {
+                const { getAllProdotti } = await import('../../../modules/magazzino/services/prodotti-service.js');
+                return await getAllProdotti({ soloAttivi: true }) || [];
+            },
+            specie
+        });
+        if (esito && esito.esito === 'errore') {
+            console.warn('[GESTIONE-LAVORI] prodotti miscela', esito.errore);
+        }
     } catch (err) {
         console.warn('[GESTIONE-LAVORI] prodotti miscela', err);
     }
 }
 
+registraCaricamentoProdottiMiscela(() => { caricaProdottiMiscela(); });
+
 async function preparaMiscelaNelForm(miscela) {
-    const { installaMiscelaLavoro, scriviMiscelaNelForm, testoAnteprimaMiscela } = await import('../../../shared/js/registro-trattamenti-lavoro.js');
     installaMiscelaLavoro();
     await caricaProdottiMiscela();
     scriviMiscelaNelForm(miscela);
@@ -73,15 +82,13 @@ async function preparaMiscelaNelForm(miscela) {
 
 function installaMiscelaSulFormLavoro() {
     const form = document.getElementById('lavoro-form');
-    import('../../../shared/js/registro-trattamenti-lavoro.js').then((mod) => {
-        mod.installaMiscelaLavoro();
-        if (!form || form.dataset.miscelaProdotti === '1') return;
-        form.dataset.miscelaProdotti = '1';
-        form.addEventListener('change', (e) => {
-            const id = e.target && e.target.id;
-            if (id === 'lavoro-tipo-lavoro' || id === 'lavoro-terreno') caricaProdottiMiscela();
-        });
-    }).catch((err) => console.warn('[GESTIONE-LAVORI] miscela', err));
+    installaMiscelaLavoro();
+    if (!form || form.dataset.miscelaProdotti === '1') return;
+    form.dataset.miscelaProdotti = '1';
+    form.addEventListener('change', (e) => {
+        const id = e.target && e.target.id;
+        if (id === 'lavoro-terreno') caricaProdottiMiscela();
+    });
 }
 
 async function miscelaPrevistaPerSalvataggio(state, terrenoId, dataInizio, tipoLavoro, attrezzoId) {

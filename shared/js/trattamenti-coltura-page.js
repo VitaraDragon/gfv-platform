@@ -42,6 +42,7 @@ import {
 import { leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
 import { quantitaRigaProdotto, formattaQuantita } from './quantita-dose.js';
 import { valoreQuantitaGrezzo } from './formato-quantita.js';
+import { leggiOperatoreDalForm, mostraOperatoreNelForm } from './registro-operatore.js';
 import { applyScaricoMagazzinoUi as applyScaricoMagazzinoUiShared } from './scarico-magazzino-ui.js';
 
 export async function mountTrattamentiColturaPage(cfg) {
@@ -1257,7 +1258,6 @@ async function openModalCompleta(idx) {
         const t = found.trattamento;
         const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
         document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
-        document.getElementById('trattamento-operatore').value = t.operatore || '';
         document.getElementById('trattamento-superficie').value = Number.isFinite(Number(t.superficieTrattata)) && t.superficieTrattata !== ''
             ? Number(t.superficieTrattata).toFixed(2)
             : '';
@@ -1288,10 +1288,7 @@ async function openModalCompleta(idx) {
             }
         }
         document.getElementById('trattamento-precedente-id').value = parentTrattamentoIdRipresa || '';
-        if (t.operatore) {
-            const operatoreNome = await getDisplayNameForUserId(t.operatore);
-            document.getElementById('trattamento-operatore').value = operatoreNome || t.operatore;
-        }
+        await mostraOperatoreNelForm(t.operatore || '', { risolviNome: getDisplayNameForUserId });
         document.getElementById('trattamento-operatore').removeAttribute('required');
         document.getElementById('trattamento-superficie').removeAttribute('required');
         if (lavoroRipresaDa && parentTrattamentoIdRipresa) {
@@ -1355,7 +1352,6 @@ async function apriModificaTrattamento(idx) {
     document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
     const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
     document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
-    document.getElementById('trattamento-operatore').value = t.operatore || '';
     document.getElementById('trattamento-superficie').value = Number.isFinite(Number(t.superficieTrattata)) && t.superficieTrattata !== ''
         ? Number(t.superficieTrattata).toFixed(2)
         : '';
@@ -1385,10 +1381,7 @@ async function apriModificaTrattamento(idx) {
         if (parentFound && parentFound[cfg.idKey] === colturaId) parentIdEdit = parentFound.trattamentoId;
     }
     document.getElementById('trattamento-precedente-id').value = parentIdEdit || '';
-    if (t.operatore) {
-        const operatoreNome = await getDisplayNameForUserId(t.operatore);
-        document.getElementById('trattamento-operatore').value = operatoreNome || t.operatore;
-    }
+    await mostraOperatoreNelForm(t.operatore || '', { risolviNome: getDisplayNameForUserId });
     if (row.lavoroId || row.attivitaId) {
         document.getElementById('trattamento-operatore').removeAttribute('required');
         document.getElementById('trattamento-superficie').removeAttribute('required');
@@ -1597,7 +1590,7 @@ async function saveTrattamento(e) {
         costoProdotto: costoProdottoTotale,
         tipoTrattamento: tipoTrattamentoResolved,
         operatore: (document.getElementById('trattamento-operatore-group') && document.getElementById('trattamento-operatore-group').style.display !== 'none')
-            ? document.getElementById('trattamento-operatore').value.trim()
+            ? leggiOperatoreDalForm()
             : '',
         superficieTrattata: superficieTrattataNum,
         superficieDaAnagrafeTerreno: usaSuperficieAnagrafe,
