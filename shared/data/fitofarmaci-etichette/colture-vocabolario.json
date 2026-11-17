@@ -1,0 +1,279 @@
+{
+ "descrizione": "Vocabolario colture GFV: nomi in minuscolo, singolare, senza asterischi. 'gruppi' = elenco standard GFV usato SOLO quando l'etichetta nomina il gruppo senza elencare le colture (in quel caso la riga ha 'gruppo' valorizzato e 'colture_da_elenco_standard': true). 'categorie' = gruppi troppo ampi per un elenco standard: restano come categoria. 'sinonimi' = forma in etichetta -> nome canonico. 'padre' = coltura generica di riferimento (es. vite da vino -> vite).",
+ "gruppi": {
+  "agrumi": [
+   "arancio",
+   "arancio amaro",
+   "limone",
+   "mandarino",
+   "clementino",
+   "pompelmo",
+   "bergamotto",
+   "cedro",
+   "chinotto",
+   "limetta",
+   "tangerino",
+   "tangelo",
+   "mapo",
+   "pomelo"
+  ],
+  "pomacee": [
+   "melo",
+   "pero",
+   "cotogno",
+   "nespolo"
+  ],
+  "drupacee": [
+   "pesco",
+   "nettarina",
+   "albicocco",
+   "ciliegio",
+   "susino"
+  ],
+  "frutta a guscio": [
+   "noce",
+   "nocciolo",
+   "castagno",
+   "mandorlo",
+   "pistacchio",
+   "pecan"
+  ],
+  "cereali": [
+   "frumento tenero",
+   "frumento duro",
+   "orzo",
+   "avena",
+   "segale",
+   "triticale",
+   "farro"
+  ],
+  "cereali minori": [
+   "avena",
+   "segale",
+   "triticale",
+   "farro",
+   "miglio"
+  ],
+  "cucurbitacee": [
+   "cetriolo",
+   "cetriolino",
+   "zucchino",
+   "melone",
+   "cocomero",
+   "zucca"
+  ],
+  "piccoli frutti": [
+   "lampone",
+   "mora di rovo",
+   "ribes",
+   "mirtillo",
+   "uva spina"
+  ],
+  "lattughe e insalate": [
+   "lattuga",
+   "scarola",
+   "indivia",
+   "cicoria",
+   "radicchio",
+   "rucola",
+   "dolcetta",
+   "crescione"
+  ],
+  "ortaggi a bulbo": [
+   "aglio",
+   "cipolla",
+   "scalogno",
+   "cipollina"
+  ],
+  "legumi": [
+   "fagiolo",
+   "fagiolino",
+   "pisello",
+   "fava",
+   "cece",
+   "lenticchia"
+  ],
+  "cavoli": [
+   "cavolfiore",
+   "cavolo broccolo",
+   "cavolo cappuccio",
+   "cavolo verza",
+   "cavoletti di bruxelles"
+  ],
+  "cavoli a testa": [
+   "cavolo cappuccio",
+   "cavolo verza",
+   "cavoletti di bruxelles"
+  ],
+  "cavoli ad infiorescenza": [
+   "cavolfiore",
+   "cavolo broccolo"
+  ],
+  "cavoli a testa e infiorescenza": [
+   "cavolo cappuccio",
+   "cavolo verza",
+   "cavoletti di bruxelles",
+   "cavolfiore",
+   "cavolo broccolo"
+  ],
+  "ortaggi a stelo": [
+   "carciofo",
+   "cardo",
+   "sedano",
+   "finocchio",
+   "asparago",
+   "porro"
+  ],
+  "ortaggi a radice": [
+   "carota",
+   "ravanello",
+   "rapa",
+   "barbabietola rossa",
+   "sedano rapa",
+   "pastinaca",
+   "rafano",
+   "salsefrica"
+  ],
+  "ortaggi a foglia": [
+   "lattuga",
+   "scarola",
+   "indivia",
+   "cicoria",
+   "radicchio",
+   "rucola",
+   "dolcetta",
+   "crescione",
+   "spinacio",
+   "bietola da foglia"
+  ],
+  "ortaggi a tubero": [
+   "patata"
+  ],
+  "solanacee": [
+   "pomodoro",
+   "melanzana",
+   "peperone"
+  ],
+  "oleaginose": [
+   "soia",
+   "girasole",
+   "colza",
+   "ravizzone",
+   "arachide",
+   "cotone",
+   "lino"
+  ],
+  "spinaci e simili": [
+   "spinacio",
+   "bietola da costa",
+   "bietola da foglia"
+  ]
+ },
+ "categorie": [
+  "orticole",
+  "ortaggi",
+  "fruttiferi",
+  "floreali",
+  "ornamentali",
+  "floreali e ornamentali",
+  "forestali",
+  "vivai",
+  "piante ornamentali",
+  "frutticoltura",
+  "colture baby leaf",
+  "erbe fresche",
+  "bulbose da fiore",
+  "tappeti erbosi",
+  "prati",
+  "pascoli",
+  "aree non agricole",
+  "terreni senza coltura",
+  "arboree",
+  "foraggere"
+ ],
+ "sinonimi": {
+  "cavolfiori": "cavolfiore",
+  "broccoli": "cavolo broccolo",
+  "broccolo": "cavolo broccolo",
+  "cavolini di bruxelles": "cavoletti di bruxelles",
+  "cavoli di bruxelles": "cavoletti di bruxelles",
+  "zucche": "zucca",
+  "rape": "rapa",
+  "ravanelli": "ravanello",
+  "lenticchie": "lenticchia",
+  "spinaci": "spinacio",
+  "bietole": "bietola",
+  "bietole da costa": "bietola da costa",
+  "bietole da foglia": "bietola da foglia",
+  "bietola rossa": "barbabietola rossa",
+  "cipolline": "cipollina",
+  "cipolletta": "cipollina",
+  "scarole": "scarola",
+  "indivie a foglie larghe": "indivia",
+  "indivie": "indivia",
+  "lattughe": "lattuga",
+  "insalate": "lattughe e insalate",
+  "lattuga e simili": "lattughe e insalate",
+  "lattughe e simili": "lattughe e insalate",
+  "nettarine": "nettarina",
+  "nettarino": "nettarina",
+  "percoche": "pesco",
+  "percoca": "pesco",
+  "kiwi": "actinidia",
+  "kaki": "kaki",
+  "cachi": "kaki",
+  "grano": "frumento",
+  "nespolo del giappone": "nespolo",
+  "anguria": "cocomero",
+  "fruttiferi a guscio": "frutta a guscio",
+  "frutti a guscio": "frutta a guscio",
+  "fragola": "fragola",
+  "more di rovo": "mora di rovo",
+  "olivicoltura": "olivo",
+  "agrumicoltura": "agrumi",
+  "frutticoltura a gemme chiuse": "frutticoltura",
+  "frutticoltura al verde": "frutticoltura",
+  "olive da olio": "olivo da olio",
+  "olive da tavola": "olivo da tavola",
+  "uva da vino": "vite da vino",
+  "uva da tavola": "vite da tavola",
+  "lattughe e insalate": "lattughe e insalate",
+  "floricole": "floreali",
+  "floricoltura": "floreali",
+  "rose": "rosa",
+  "pioppi": "pioppo",
+  "ortaggi a radice o tubero": "ortaggi a radice",
+  "piante forestali": "forestali",
+  "colture floreali": "floreali",
+  "vivai di floreali": "vivai",
+  "vivai di fruttiferi": "vivai",
+  "vivai e piante forestali": "vivai",
+  "coriandolo da seme": "coriandolo",
+  "prezzemolo a grossa radice": "prezzemolo",
+  "foglie di sedano": "sedano",
+  "peperone dolce": "peperone",
+  "patata ed ortaggi a tubero": "patata",
+  "barbabietola": "barbabietola da zucchero",
+  "trifoglio da seme": "trifoglio",
+  "grano saraceno": "grano saraceno",
+  "clementina": "clementino"
+ },
+ "padre": {
+  "vite da vino": "vite",
+  "vite da tavola": "vite",
+  "olivo da olio": "olivo",
+  "olivo da tavola": "olivo",
+  "frumento tenero": "frumento",
+  "frumento duro": "frumento",
+  "mais dolce": "mais",
+  "pomodoro da mensa": "pomodoro",
+  "pomodoro da industria": "pomodoro",
+  "pisello con baccello": "pisello",
+  "pisello senza baccello": "pisello",
+  "pisello da granella": "pisello",
+  "pisello mangiatutto": "pisello",
+  "pisello proteico": "pisello",
+  "barbabietola da foraggio": "barbabietola",
+  "barbabietola da zucchero": "barbabietola"
+ }
+}

@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-17 — fix Orticole ciclo 1 (Uso Reale).**
+**Ultimo aggiornamento documentazione: 2026-11-17 — valori d'etichetta in «Leggi scheda».**
+
+## 2026-11-17 — «Leggi scheda» riempie i campi dall'etichetta
+
+Su `feat/leggi-scheda-valori-etichetta` (PR verso develop). Nessun merge, nessun promote, nessun deploy.
+
+Dopo il numero di registrazione, il form del registro (vigneto, frutteto, seminativo, orticole) carica solo `shared/data/fitofarmaci-etichette/per-registrazione/<numero>.json`. Dose per ha e per hl si scrivono da sole se la voce è una sola e non è un intervallo; carenza, numero massimo e intervallo con più condizioni restano da scegliere. Ogni valore porta pagina e frase. L'azienda conferma. Un prodotto revocato, scaduto o sospeso non si riempie. GFV non consiglia dosi.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — fix Orticole ciclo 1 (Uso Reale).**
 
 ## 2026-11-17 — Orticole ciclo 1: trattamenti, categoria Ortive, acqua
 
