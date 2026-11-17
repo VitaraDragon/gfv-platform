@@ -349,6 +349,65 @@ export function righeSenzaCampiVuoti(prodotti) {
   });
 }
 
+/**
+ * Righe da mostrare in «Completa».
+ * Se la scheda non c'è, o ha solo la riga vuota, prende prodotti, dosi, quantità e acqua
+ * dalla miscela prevista sul lavoro. Una scheda già compilata non si tocca.
+ * Senza prodotti in miscela non inventa righe.
+ * @returns {{ daMiscela: boolean, prodotti: Array, acquaEttolitriPerEttaro: number|null, acquaEttolitriTotali: number|null }}
+ */
+export function prodottiSchedaDaMiscelaLavoro(lavoro, trattamento, superficieHa, anagrafica) {
+  const acquaDi = (src) => ({
+    acquaEttolitriPerEttaro: numeroFinito(src && src.acquaEttolitriPerEttaro),
+    acquaEttolitriTotali: numeroFinito(src && src.acquaEttolitriTotali)
+  });
+  const compilato = !!(trattamento && !trattamentoHaSoloRigaVuota(trattamento));
+  if (compilato) {
+    const salvati = Array.isArray(trattamento.prodotti) ? trattamento.prodotti : [];
+    const prodotti = salvati.length
+      ? salvati
+      : [{
+        prodottoId: null,
+        prodotto: trattamento.prodotto || '',
+        dosaggio: numeroFinito(trattamento.dosaggio),
+        costo: numeroFinito(trattamento.costoProdotto) || 0
+      }];
+    return { daMiscela: false, prodotti, ...acquaDi(trattamento) };
+  }
+  const da = righeTrattamentoDaMiscela(lavoro && lavoro.miscelaPrevista, superficieHa);
+  if (!da.prodotti.length) {
+    return {
+      daMiscela: false,
+      prodotti: [{ prodottoId: null, prodotto: '', dosaggio: null, costo: 0 }],
+      ...acquaDi(trattamento)
+    };
+  }
+  const conCosti = applicaCostiDaAnagrafica(da.prodotti, anagrafica);
+  return {
+    daMiscela: true,
+    prodotti: conCosti.prodotti,
+    acquaEttolitriPerEttaro: da.acquaEttolitriPerEttaro,
+    acquaEttolitriTotali: da.acquaEttolitriTotali
+  };
+}
+
+/**
+ * Testo dello stato vuoto di Trattamenti o Concimazioni.
+ * Senza Manodopera non cita Gestione Lavori: la CTA visibile è solo il Diario.
+ */
+export function testoStatoVuotoRegistro({ coltura, categoria, hasManodopera } = {}) {
+  const concimazione = String(categoria || '') === 'concimazione';
+  const nomeCategoria = concimazione ? 'Concimazione' : 'Trattamenti';
+  const dove = `sul terreno a ${coltura || 'orticole'} già collegato a una campagna`;
+  const dopo = concimazione
+    ? 'Poi torna in questa pagina e premi Completa per inserire prodotto e dose.'
+    : 'Poi torna in questa pagina e premi Completa per inserire prodotto, dose e Leggi scheda.';
+  if (hasManodopera) {
+    return `Registra un'attività nel Diario oppure un lavoro con Nuovo lavoro in Gestione Lavori, di categoria ${nomeCategoria}, ${dove}. ${dopo}`;
+  }
+  return `Registra un'attività nel Diario, di categoria ${nomeCategoria}, ${dove}. ${dopo}`;
+}
+
 /** Vero se il trattamento ha ancora solo la riga prodotto vuota (nessun dato reale da proteggere). */
 export function trattamentoHaSoloRigaVuota(trattamento) {
   if (!trattamento) return false;

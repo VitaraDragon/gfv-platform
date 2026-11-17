@@ -24,8 +24,11 @@ import {
   registroToXml,
   righeExportRegistro,
   unisciConfermaSpecie,
+  prodottiSchedaDaMiscelaLavoro,
+  testoStatoVuotoRegistro,
   valutaCancellazioneRegistro
 } from '../../../shared/js/registro-trattamenti.js';
+import { leggiOperatoreDalForm, mostraOperatoreNelForm, operatoreDaLavoro } from '../../../shared/js/registro-operatore.js';
 import {
   attaccaLetturaScheda,
   bindAcquaCampi,
@@ -173,6 +176,7 @@ function renderTable() {
   if (!visible.length) {
     if (tbody) tbody.innerHTML = '';
     if (table) table.style.display = 'none';
+    aggiornaTestoStatoVuoto();
     if (emptyState) emptyState.style.display = 'block';
     publishOrticoleTableData(buildTableData([]));
     return;
@@ -208,6 +212,17 @@ function renderTable() {
     </tr>`;
   }).join('');
   publishOrticoleTableData(buildTableData(visible));
+}
+
+function aggiornaTestoStatoVuoto() {
+  const emptyState = document.getElementById('empty-state');
+  const p = emptyState && emptyState.querySelector('p:not([data-load-error])');
+  if (!p) return;
+  p.textContent = testoStatoVuotoRegistro({
+    coltura: 'ortive',
+    categoria: registro.categoria,
+    hasManodopera
+  });
 }
 
 function populateFilters() {
@@ -509,10 +524,7 @@ async function compilaModuloTrattamento(row) {
   if (copertura) copertura.value = trattamento && trattamento.coperturaTerreno ? trattamento.coperturaTerreno : 'non_dichiarata';
   const carenza = document.getElementById('trattamento-giorni-carenza');
   if (carenza) carenza.value = trattamento && trattamento.giorniCarenza != null ? trattamento.giorniCarenza : '';
-  scriviAcquaNelForm(trattamento);
   scriviEsitoScheda('');
-  const operatore = document.getElementById('trattamento-operatore');
-  if (operatore) operatore.value = trattamento ? trattamento.operatore || '' : '';
   const operatoreGroup = document.getElementById('trattamento-operatore-group');
   const proprietario = document.getElementById('trattamento-proprietario-message');
   if (operatoreGroup) operatoreGroup.style.display = hasManodopera ? '' : 'none';
@@ -521,10 +533,33 @@ async function compilaModuloTrattamento(row) {
   if (scaricoGroup) scaricoGroup.style.display = hasMagazzino ? '' : 'none';
   const scarico = document.getElementById('trattamento-registra-scarico-magazzino');
   if (scarico) scarico.checked = !!(trattamento && trattamento.magazzinoMovimentoIds && trattamento.magazzinoMovimentoIds.length);
-  const rows = trattamento && trattamento.prodotti && trattamento.prodotti.length
-    ? trattamento.prodotti
-    : [{ prodottoId: null, prodotto: '', dosaggio: null, costo: 0 }];
-  renderProdottiTrattamento(rows);
+  let lavoroScheda = null;
+  if (row.lavoroId) {
+    try {
+      const { getLavoro } = await import(resolvePath('../../../core/services/lavori-service.js'));
+      lavoroScheda = await getLavoro(row.lavoroId);
+    } catch (err) {
+      console.warn('[trattamenti] lavoro per scheda:', err);
+    }
+  }
+  const scheda = prodottiSchedaDaMiscelaLavoro(
+    lavoroScheda,
+    trattamento,
+    superficieDefault(row),
+    listProdottiAnagrafica
+  );
+  scriviAcquaNelForm({
+    acquaEttolitriPerEttaro: scheda.acquaEttolitriPerEttaro,
+    acquaEttolitriTotali: scheda.acquaEttolitriTotali
+  });
+  renderProdottiTrattamento(scheda.prodotti);
+  const operatoreGia = trattamento && String(trattamento.operatore || '').trim();
+  const operatoreValore = operatoreGia || (hasManodopera ? (operatoreDaLavoro(lavoroScheda) || '') : '');
+  try {
+    await mostraOperatoreNelForm(operatoreValore);
+  } catch (err) {
+    console.warn('[trattamenti] operatore:', err);
+  }
   try {
     const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../../vigneto/services/trattamenti-vigneto-service.js'));
     const prefill = await getDatiPrecompilazioneTrattamento(null, trattamento || {
@@ -617,7 +652,7 @@ async function onSubmit(event) {
       note: document.getElementById('trattamento-note').value,
       condizioniMeteo: document.getElementById('trattamento-condizioni-meteo').value || null,
       coperturaTerreno: document.getElementById('trattamento-copertura-terreno').value,
-      operatore: document.getElementById('trattamento-operatore')?.value || '',
+      operatore: leggiOperatoreDalForm(),
       magazzinoMovimentoIds: editingRow.trattamento ? editingRow.trattamento.magazzinoMovimentoIds : []
     }, registra === undefined ? {} : { registraScaricoMagazzino: registra });
     closeModal();

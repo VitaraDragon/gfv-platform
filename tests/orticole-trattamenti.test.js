@@ -7,6 +7,10 @@ import {
   OrticolaTrattamento,
   selezionaRigheTrattamento
 } from '../modules/orticole/models/OrticolaTrattamento.js';
+import {
+  prodottiSchedaDaMiscelaLavoro,
+  testoStatoVuotoRegistro
+} from '../shared/js/registro-trattamenti.js';
 
 describe('Orticole — trattamenti', () => {
   it('hub trattamenti non è placeholder', () => {
@@ -46,5 +50,44 @@ describe('Orticole — trattamenti', () => {
     });
     expect(ok.validate().valid).toBe(true);
     expect(ok.toFirestore().costoTotale).toBe(37.5);
+  });
+
+  it('Completa precompila la miscela e non sovrascrive una scheda già compilata', () => {
+    const lavoro = {
+      miscelaPrevista: {
+        ettolitriPerEttaro: 4,
+        ettolitriTotali: 8,
+        prodotti: [{ prodottoId: 'p1', nome: 'Sivanto Prime', unita: 'l', dosePerEttaro: 0.5 }]
+      }
+    };
+    const scheda = prodottiSchedaDaMiscelaLavoro(lavoro, null, 2, [{ id: 'p1', prezzoUnitario: 10 }]);
+    expect(scheda.daMiscela).toBe(true);
+    expect(scheda.prodotti[0]).toMatchObject({ prodottoId: 'p1', prodotto: 'Sivanto Prime', dosaggio: 0.5, quantita: 1, costo: 10 });
+    expect(scheda.acquaEttolitriTotali).toBe(8);
+    const senzaSuperficie = prodottiSchedaDaMiscelaLavoro(lavoro, null, null, []);
+    expect(senzaSuperficie.prodotti[0].quantita).toBeNull();
+    const gia = prodottiSchedaDaMiscelaLavoro(lavoro, {
+      prodotti: [{ prodottoId: 'p9', prodotto: 'Rame', dosaggio: 2, quantita: 4, costo: 3 }]
+    }, 2, []);
+    expect(gia.daMiscela).toBe(false);
+    expect(gia.prodotti[0].prodotto).toBe('Rame');
+    const vuota = prodottiSchedaDaMiscelaLavoro(lavoro, {
+      prodotti: [{ prodottoId: null, prodotto: '', dosaggio: null, costo: 0 }]
+    }, 2, []);
+    expect(vuota.daMiscela).toBe(true);
+    expect(vuota.prodotti[0].prodotto).toBe('Sivanto Prime');
+  });
+
+  it('stato vuoto cita Completa e, senza Manodopera, non cita Gestione Lavori', () => {
+    const spento = testoStatoVuotoRegistro({ coltura: 'ortive', categoria: 'trattamenti', hasManodopera: false });
+    const acceso = testoStatoVuotoRegistro({ coltura: 'ortive', categoria: 'trattamenti', hasManodopera: true });
+    const concime = testoStatoVuotoRegistro({ coltura: 'ortive', categoria: 'concimazione', hasManodopera: false });
+    expect(spento).toContain('Completa');
+    expect(spento).not.toContain('Gestione Lavori');
+    expect(acceso).toContain('Nuovo lavoro');
+    expect(acceso).toContain('Leggi scheda');
+    expect(concime).toContain('Completa');
+    expect(concime).toContain('Concimazione');
+    expect(concime).not.toContain('Gestione Lavori');
   });
 });
