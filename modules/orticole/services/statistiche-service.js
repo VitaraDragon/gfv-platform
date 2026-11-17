@@ -6,6 +6,7 @@
 import { getAllOrticole, listTerreniOrticole } from './orticole-service.js';
 import { getAllRaccolteOrticole } from './raccolta-service.js';
 import { getAllTrattamentiOrticole } from './trattamenti-service.js';
+import { getAllIrrigazioniOrticole } from './irrigazione-service.js';
 import { spesePerCampagne } from './orticole-spese-service.js';
 import { riepilogoCampagne } from '../models/OrticolaStatistiche.js';
 
@@ -14,13 +15,14 @@ export async function caricaStatisticheOrticole() {
     listTerreniOrticole({ includiArchiviati: true }).catch(() => []),
     getAllOrticole().catch(() => [])
   ]);
-  const [raccolte, trattamenti, spese] = await Promise.all([
+  const [raccolte, trattamenti, spese, irrigazioni] = await Promise.all([
     getAllRaccolteOrticole().catch(() => []),
     getAllTrattamentiOrticole().catch(() => []),
-    spesePerCampagne(campagne).catch(() => ({}))
+    spesePerCampagne(campagne).catch(() => ({})),
+    getAllIrrigazioniOrticole().catch(() => [])
   ]);
   return {
     terreni,
-    righe: riepilogoCampagne({ campagne, raccolte, trattamenti, spese })
+    righe: riepilogoCampagne({ campagne, raccolte, trattamenti, spese, irrigazioni })
   };
 }
