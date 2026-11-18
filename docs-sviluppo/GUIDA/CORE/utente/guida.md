@@ -222,6 +222,8 @@ Se un **podere** non compare sul terreno, va creato in **Impostazioni** con **�
 - **Grappolo:** non è un «gioco»: serve ad aprire l’**anagrafica vigneti** del modulo Vigneto già **legata a quel terreno** (il link apre direttamente la scheda vigneti collegata al campo che stavi guardando). Da lì gestisci i vigneti di quel campo; per il **riepilogo viola** del modulo (numeri, vendemmie, azioni rapide) usa il pulsante **Dashboard** che trovi in quella pagina oppure la voce **Vigneto** dal **pannello moduli** (pulsante in alto → **Vigneto**).
 - **Mela:** stesso schema per il modulo **Frutteto**, aprendo l’**anagrafica frutteti** per quel terreno.
 
+**Filtri sopra la lista:** il filtro **Categoria** ha le voci Vigneto, Frutteto, Seminativo e **Ortive**; scegliendo una categoria, l’elenco **Coltura** mostra solo le colture dei terreni di quella categoria.
+
 **Compilare i campi, uno alla volta**
 
 Campi **obbligatori** (il form non lascia salvare vuoto): **Nome Terreno** e **Tipo Possesso**. **Categoria Coltura** e **Coltura** vanno scelte sempre lo stesso (prima la categoria, poi la coltura): senza, il **Diario attività** non vi fa scegliere la coltura e non salva la giornata.

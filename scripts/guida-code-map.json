@@ -1029,7 +1029,55 @@
         "MANODOPERA",
         "INTERSEZIONI"
       ],
-      "label": "Registro privato trattamenti: ricerca open data (nome o numero, anche revocati), conferma riga, acqua, avvisi, export, miscela prevista (lavoro e campo)"
+      "label": "Registro privato trattamenti: ricerca open data (nome o numero, anche revocati; nome di magazzino ripulito), conferma riga, valori d'etichetta (registro-trattamenti-etichetta.js: compilazione campi, voci cliccabili, origine dei valori), acqua, avvisi, export, miscela prevista (lavoro e campo), stato vuoto e Completa da miscela"
+    },
+    {
+      "prefix": "shared/js/registro-operatore",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "ORTICOLE",
+        "MANODOPERA"
+      ],
+      "label": "Operatore della scheda trattamento/concimazione: tendina operai e caposquadra attivi + «Altro», valore dal lavoro"
+    },
+    {
+      "prefix": "shared/data/fitofarmaci-etichette/",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "ORTICOLE",
+        "MAGAZZINO"
+      ],
+      "label": "Dati valori d'etichetta (dose, carenza, massimo, intervallo) per numero di registrazione e vocabolario colture, letti da «Leggi scheda»"
+    },
+    {
+      "prefix": "modules/orticole/js/avviso-terreni-ortive.js",
+      "modules": [
+        "ORTICOLE",
+        "CORE"
+      ],
+      "label": "Avviso «Nessun terreno con coltura ortiva» in Anagrafica campagne, con link a Terreni"
+    },
+    {
+      "prefix": "tests/registro-trattamenti-etichetta",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "ORTICOLE"
+      ],
+      "label": "Test valori d'etichetta del registro trattamenti"
+    },
+    {
+      "prefix": "tests/named-imports-exist",
+      "modules": [
+        "ORTICOLE",
+        "INTERSEZIONI"
+      ],
+      "label": "Test: gli import con nome dei moduli puntano a export esistenti (evita pagine bloccate su Caricamento)"
     },
     {
       "prefix": "functions/registro-trattamenti",
