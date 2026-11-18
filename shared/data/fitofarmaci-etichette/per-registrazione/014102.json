@@ -1,0 +1,1756 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "014102",
+ "nome_prodotto": "BORDOFLOW NEW",
+ "colture_non_estratte": [
+  "actinidia",
+  "aglio",
+  "albicocco",
+  "asparago",
+  "barbabietola rossa",
+  "bietola",
+  "carciofo",
+  "carota",
+  "cavolfiore",
+  "cavolo broccolo",
+  "cetriolo",
+  "cicoria",
+  "ciliegio",
+  "cipolla",
+  "cipollina",
+  "lattuga",
+  "melone",
+  "nettarina",
+  "nocciolo",
+  "noce",
+  "pastinaca",
+  "pesco",
+  "rapa",
+  "ravanello",
+  "rosa",
+  "sedano",
+  "sedano rapa",
+  "susino",
+  "zucca",
+  "zucchino"
+ ],
+ "righe": [
+  {
+   "id": "014102-01896",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia inaequalis)",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01897",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria galligena)",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01898",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01899",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia inaequalis)",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01900",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria galligena)",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01901",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01902",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia inaequalis)",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01903",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria galligena)",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01904",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla fine della fioritura alla pre-raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 500.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … Dalla fine della fioritura alla pre-raccolta … 200-500 ml/hl … 2,0-5 L … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01905",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia inaequalis)",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01906",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria galligena)",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01907",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01908",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia inaequalis)",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01909",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria galligena)",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01910",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01911",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia inaequalis)",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01912",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria galligena)",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01913",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla fine della raccolta alla schiusura delle gemme fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 12.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1200.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE … Dalla fine della raccolta alla schiusura … delle gemme fiorali. … 800-1200 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 15,
+     "max": 15,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … POMACEE … delle gemme fiorali. … 800-1200 ml/hl … 8,0-12,0 L … 4 … 15",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01914",
+   "coltura": "Vite",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Plasmopara viticola)",
+   "epoca": "pre fioritura fino alla raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 8.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … VITE … Pre fioritura fino alla raccolta … 300-800 ml/hl … 3,0–8,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 300.0,
+     "max": 800.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE … Peronospora (Plasmopara viticola) … Pre fioritura fino alla raccolta … 300-800 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "cucurbitacee a buccia edibile; 7 … giorni per legumi con baccello, carciofo, cucurbitacee a buccia non edibile, ortaggi a radice, lattughe ed altre insalate e altri ortaggi a foglia, pomacee … (post fioritura), vite",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … VITE … 300-800 ml/hl … 3,0–8,0 L … 8 … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … VITE … 300-800 ml/hl … 3,0–8,0 L … 8 … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01915",
+   "coltura": "Olivo",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Occhio di Pavone (Spilocaea oleagina)",
+   "epoca": "da fine inverno all'invaiatura e dopo la raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 7.5,
+     "max": 10.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … OLIVO … 750-1000 ml/hl … 7,5-10,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 750.0,
+     "max": 1000.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "OLIVO … Occhio di Pavone (Spilocaea oleagina) … 750-1000 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "14 giorni per cavoli (broccoli, cavolfiore), olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … OLIVO … 750-1000 ml/hl … 7,5-10,0 L … 4 … 20",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 20,
+     "max": 20,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … OLIVO … 750-1000 ml/hl … 7,5-10,0 L … 4 … 20",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01916",
+   "coltura": "Arancio",
+   "colture": [
+    "arancio"
+   ],
+   "gruppo": null,
+   "avversita": "Gommosi (Phytophtora citricola)",
+   "epoca": "da fine inverno",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 10.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … AGRUMI (Arancio, Limone, … Gommosi (Phytophtora citricola) … 800-1000 ml/hl … 8,0-10,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1000.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "AGRUMI (Arancio, Limone, … Mandarino ecc.) … Gommosi (Phytophtora citricola) … 800-1000 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 20,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "20 giorni per agrumi, actinidia",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … AGRUMI (Arancio, Limone, … 800-1000 ml/hl … 8,0-10,0 L … 4 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 8,
+     "max": 8,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … AGRUMI (Arancio, Limone, … 800-1000 ml/hl … 8,0-10,0 L … 4 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01917",
+   "coltura": "Limone",
+   "colture": [
+    "limone"
+   ],
+   "gruppo": null,
+   "avversita": "Gommosi (Phytophtora citricola)",
+   "epoca": "da fine inverno",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 10.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … AGRUMI (Arancio, Limone, … Gommosi (Phytophtora citricola) … 800-1000 ml/hl … 8,0-10,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1000.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "AGRUMI (Arancio, Limone, … Mandarino ecc.) … Gommosi (Phytophtora citricola) … 800-1000 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 20,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "20 giorni per agrumi, actinidia",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … AGRUMI (Arancio, Limone, … 800-1000 ml/hl … 8,0-10,0 L … 4 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 8,
+     "max": 8,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … AGRUMI (Arancio, Limone, … 800-1000 ml/hl … 8,0-10,0 L … 4 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01918",
+   "coltura": "Mandarino",
+   "colture": [
+    "mandarino"
+   ],
+   "gruppo": null,
+   "avversita": "Gommosi (Phytophtora citricola)",
+   "epoca": "da fine inverno",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 10.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi/ha … AGRUMI (Arancio, Limone, … Gommosi (Phytophtora citricola) … 800-1000 ml/hl … 8,0-10,0 L",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 800.0,
+     "max": 1000.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "AGRUMI (Arancio, Limone, … Mandarino ecc.) … Gommosi (Phytophtora citricola) … 800-1000 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 20,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "20 giorni per agrumi, actinidia",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max … trattamenti … anno … AGRUMI (Arancio, Limone, … 800-1000 ml/hl … 8,0-10,0 L … 4 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 8,
+     "max": 8,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo tra … i trattamenti … (gg) … AGRUMI (Arancio, Limone, … 800-1000 ml/hl … 8,0-10,0 L … 4 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01919",
+   "coltura": "Pomodoro",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophtora spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO, MELANZANA in … Peronospora (Phytophtora spp.), Alternaria … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": "pomodoro da mensa",
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": "pomodoro da industria",
+     "pagina": 2,
+     "citazione": "10 giorni per pomodoro da industria",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01920",
+   "coltura": "Pomodoro",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria porri)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO, MELANZANA in … Peronospora (Phytophtora spp.), Alternaria … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": "pomodoro da mensa",
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": "pomodoro da industria",
+     "pagina": 2,
+     "citazione": "10 giorni per pomodoro da industria",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01921",
+   "coltura": "Pomodoro",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO, MELANZANA in … Peronospora (Phytophtora spp.), Alternaria … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": "pomodoro da mensa",
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": "pomodoro da industria",
+     "pagina": 2,
+     "citazione": "10 giorni per pomodoro da industria",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01922",
+   "coltura": "Melanzana",
+   "colture": [
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophtora spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO, MELANZANA in … Peronospora (Phytophtora spp.), Alternaria … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa, melanzana",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01923",
+   "coltura": "Melanzana",
+   "colture": [
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria porri)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO, MELANZANA in … Peronospora (Phytophtora spp.), Alternaria … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa, melanzana",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01924",
+   "coltura": "Melanzana",
+   "colture": [
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO, MELANZANA in … Peronospora (Phytophtora spp.), Alternaria … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa, melanzana",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01925",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophtora infestans)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PATATA … Peronospora (Phytophtora infestans), … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa, melanzana, patata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014102-01926",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 750.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PATATA … Peronospora (Phytophtora infestans), … 500-750 ml/hl",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti 3 giorni prima della raccolta per pomodoro da mensa, melanzana, patata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "MANICA S.P.A.",
+ "data_etichetta": "11/12/2019",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 14102",
+ "etichetta_id": "34486"
+}

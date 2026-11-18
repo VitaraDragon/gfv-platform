@@ -1,0 +1,1812 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "008601",
+ "nome_prodotto": "FOLPAN 80 WDG",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "008601-00135",
+   "coltura": "VITE (UVA DA VINO)",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Escoriosi (Phomopsis viticola)",
+   "epoca": "intervenendo dalla ripresa vegetativa e quando si intravedono le prime foglie aperte",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (Phomopsis viticola) e Marciume nero",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 200.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (Phomopsis viticola) e Marciume nero",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 28,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Eseguire non più di … 10 trattamenti all'anno per uva da vino",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00136",
+   "coltura": "VITE (UVA DA VINO)",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Marciume nero (Guignardia bidwellii)",
+   "epoca": "intervenendo dalla ripresa vegetativa e quando si intravedono le prime foglie aperte",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (…) e Marciume nero (Guignardia bidwellii)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 200.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (…) e Marciume nero (Guignardia bidwellii)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 28,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Eseguire non più di … 10 trattamenti all'anno per uva da vino",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00137",
+   "coltura": "VITE (UVA DA VINO)",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Plasmopara viticola)",
+   "epoca": null,
+   "modalita": "iniziando i trattamenti quando si verificano le condizioni favorevoli allo sviluppo della malattia",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) per la protezione da Peronospora (Plasmopara viticola anche in fase d'allevamento e in vivai)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) per la protezione da Peronospora (Plasmopara viticola anche in fase d'allevamento e in vivai)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 28,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Eseguire non più di … 10 trattamenti all'anno per uva da vino",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00138",
+   "coltura": "VITE (UVA DA VINO)",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Marciume bianco (Coniella diplodiella)",
+   "epoca": null,
+   "modalita": "intervenendo tempestivamente entro 12-18 ore dalla grandinata",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.6,
+     "max": 1.8,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,6-1,8 kg/ha (160-180 g/hl) per la protezione da Marciume bianco (Coniella diplodiella)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 160.0,
+     "max": 180.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,6-1,8 kg/ha (160-180 g/hl) per la protezione da Marciume bianco (Coniella diplodiella)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 28,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Eseguire non più di … 10 trattamenti all'anno per uva da vino",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00139",
+   "coltura": "VITE (UVA DA VINO)",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysipha necator)",
+   "epoca": "dalla pre-fioritura",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di Oidio (Erysipha necator)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di Oidio (Erysipha necator)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 28,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Eseguire non più di … 10 trattamenti all'anno per uva da vino",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00140",
+   "coltura": "VITE (UVA DA VINO)",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Muffa grigia (Botrytis cinerea)",
+   "epoca": "in pre-chiusura grappolo",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 28,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Eseguire non più di … 10 trattamenti all'anno per uva da vino",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00141",
+   "coltura": "VITE (UVA DA VINO)",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Marciumi secondari (Aspergillus spp. e Penicillium spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Marciumi secondari (Aspergillus spp. e Penicillium spp.)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Marciumi secondari (Aspergillus spp. e Penicillium spp.)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 28,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Eseguire non più di … 10 trattamenti all'anno per uva da vino",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00142",
+   "coltura": "VITE (UVA DA TAVOLA)",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Escoriosi (Phomopsis viticola)",
+   "epoca": "intervenendo dalla ripresa vegetativa e quando si intravedono le prime foglie aperte",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (Phomopsis viticola) e Marciume nero",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 200.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (Phomopsis viticola) e Marciume nero",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 56,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": null,
+     "condizione": "con clima siccitoso",
+     "pagina": 1,
+     "citazione": "non più di … 4 trattamenti per uva da tavola con clima siccitoso",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00143",
+   "coltura": "VITE (UVA DA TAVOLA)",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Marciume nero (Guignardia bidwellii)",
+   "epoca": "intervenendo dalla ripresa vegetativa e quando si intravedono le prime foglie aperte",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (…) e Marciume nero (Guignardia bidwellii)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 200.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 2 kg/ha (200 g/hl) per la protezione da Escoriosi (…) e Marciume nero (Guignardia bidwellii)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 56,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": null,
+     "condizione": "con clima siccitoso",
+     "pagina": 1,
+     "citazione": "non più di … 4 trattamenti per uva da tavola con clima siccitoso",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00144",
+   "coltura": "VITE (UVA DA TAVOLA)",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Plasmopara viticola)",
+   "epoca": null,
+   "modalita": "iniziando i trattamenti quando si verificano le condizioni favorevoli allo sviluppo della malattia",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) per la protezione da Peronospora (Plasmopara viticola anche in fase d'allevamento e in vivai)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) per la protezione da Peronospora (Plasmopara viticola anche in fase d'allevamento e in vivai)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 56,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": null,
+     "condizione": "con clima siccitoso",
+     "pagina": 1,
+     "citazione": "non più di … 4 trattamenti per uva da tavola con clima siccitoso",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00145",
+   "coltura": "VITE (UVA DA TAVOLA)",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Marciume bianco (Coniella diplodiella)",
+   "epoca": null,
+   "modalita": "intervenendo tempestivamente entro 12-18 ore dalla grandinata",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.6,
+     "max": 1.8,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,6-1,8 kg/ha (160-180 g/hl) per la protezione da Marciume bianco (Coniella diplodiella)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 160.0,
+     "max": 180.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,6-1,8 kg/ha (160-180 g/hl) per la protezione da Marciume bianco (Coniella diplodiella)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 56,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": null,
+     "condizione": "con clima siccitoso",
+     "pagina": 1,
+     "citazione": "non più di … 4 trattamenti per uva da tavola con clima siccitoso",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00146",
+   "coltura": "VITE (UVA DA TAVOLA)",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysipha necator)",
+   "epoca": "dalla pre-fioritura",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di Oidio (Erysipha necator)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di Oidio (Erysipha necator)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 56,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": null,
+     "condizione": "con clima siccitoso",
+     "pagina": 1,
+     "citazione": "non più di … 4 trattamenti per uva da tavola con clima siccitoso",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00147",
+   "coltura": "VITE (UVA DA TAVOLA)",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Muffa grigia (Botrytis cinerea)",
+   "epoca": "in pre-chiusura grappolo",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 56,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": null,
+     "condizione": "con clima siccitoso",
+     "pagina": 1,
+     "citazione": "non più di … 4 trattamenti per uva da tavola con clima siccitoso",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00148",
+   "coltura": "VITE (UVA DA TAVOLA)",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Marciumi secondari (Aspergillus spp. e Penicillium spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Marciumi secondari (Aspergillus spp. e Penicillium spp.)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 125.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "• 1,25-1,5 kg/ha (125-150 g/hl) azione collaterale nei confronti di … Marciumi secondari (Aspergillus spp. e Penicillium spp.)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 56,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": null,
+     "condizione": "con clima siccitoso",
+     "pagina": 1,
+     "citazione": "non più di … 4 trattamenti per uva da tavola con clima siccitoso",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "…ripetendoli ad intervalli di … 7-10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00149",
+   "coltura": "POMODORO (pieno campo)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro Peronospora",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro Peronospora",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00150",
+   "coltura": "POMODORO (pieno campo)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Alternariosi (Alternaria solani)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Alternariosi (Alternaria solani)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Alternariosi (Alternaria solani)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00151",
+   "coltura": "POMODORO (pieno campo)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Cladosporiosi (Fulvia fulva)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Cladosporiosi (Fulvia fulva)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Cladosporiosi (Fulvia fulva)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00152",
+   "coltura": "POMODORO (pieno campo)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Septoriosi (Septoria lycopersici)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Septoriosi (Septoria lycopersici)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Septoriosi (Septoria lycopersici)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00153",
+   "coltura": "POMODORO (pieno campo)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Muffa grigia (Botrytis cinerea)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00154",
+   "coltura": "POMODORO (serra)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro Peronospora",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro Peronospora",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Non eseguire più di … 3 trattamenti all'anno per colture in serra, e … 4 per quelle in pieno campo.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00155",
+   "coltura": "POMODORO (serra)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Alternariosi (Alternaria solani)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Alternariosi (Alternaria solani)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Alternariosi (Alternaria solani)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Non eseguire più di … 3 trattamenti all'anno per colture in serra, e … 4 per quelle in pieno campo.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00156",
+   "coltura": "POMODORO (serra)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Cladosporiosi (Fulvia fulva)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Cladosporiosi (Fulvia fulva)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Cladosporiosi (Fulvia fulva)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Non eseguire più di … 3 trattamenti all'anno per colture in serra, e … 4 per quelle in pieno campo.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00157",
+   "coltura": "POMODORO (serra)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Septoriosi (Septoria lycopersici)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Septoriosi (Septoria lycopersici)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Septoriosi (Septoria lycopersici)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Non eseguire più di … 3 trattamenti all'anno per colture in serra, e … 4 per quelle in pieno campo.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00158",
+   "coltura": "POMODORO (serra)",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Muffa grigia (Botrytis cinerea)",
+   "epoca": null,
+   "modalita": "intervenire preventivamente; al verificarsi di condizioni favorevoli allo sviluppo dei patogeni",
+   "ambiente": [
+    "serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 1.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 150.0,
+     "max": 150.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMODORO (pieno campo e serra) … 1,5 kg/ha (150 g/hl ) contro … Muffa grigia (Botrytis cinerea)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI SU UVA DA VINO ALMENO … 28 GIORNI PRIMA DELLA VENDEMMIA, 56 GIORNI PER UVA DA TAVOLA, 10 GIORNI PER POMODORO",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Non eseguire più di … 3 trattamenti all'anno per colture in serra, e … 4 per quelle in pieno campo.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "ripetendo le applicazioni a distanza di … 7-10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00159",
+   "coltura": "FLOREALI E ORNAMENTALI",
+   "colture": [
+    "floreali e ornamentali"
+   ],
+   "gruppo": "floreali e ornamentali",
+   "avversita": "Muffa grigia (Botrytis cinerea)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "FLOREALI E ORNAMENTALI … 2-3 kg/ha (200-300 g/hl) contro Muffa grigia (Botrytis cinerea) e marciumi radicali e basali e Phytophthora spp..",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 300.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "FLOREALI E ORNAMENTALI … 2-3 kg/ha (200-300 g/hl) contro Muffa grigia (Botrytis cinerea) e marciumi radicali e basali e Phytophthora spp..",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00160",
+   "coltura": "FLOREALI E ORNAMENTALI",
+   "colture": [
+    "floreali e ornamentali"
+   ],
+   "gruppo": "floreali e ornamentali",
+   "avversita": "Marciumi radicali e basali",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "FLOREALI E ORNAMENTALI … 2-3 kg/ha (200-300 g/hl) contro Muffa grigia (Botrytis cinerea) e marciumi radicali e basali e Phytophthora spp..",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 300.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "FLOREALI E ORNAMENTALI … 2-3 kg/ha (200-300 g/hl) contro Muffa grigia (Botrytis cinerea) e marciumi radicali e basali e Phytophthora spp..",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "008601-00161",
+   "coltura": "FLOREALI E ORNAMENTALI",
+   "colture": [
+    "floreali e ornamentali"
+   ],
+   "gruppo": "floreali e ornamentali",
+   "avversita": "Phytophthora spp.",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "FLOREALI E ORNAMENTALI … 2-3 kg/ha (200-300 g/hl) contro Muffa grigia (Botrytis cinerea) e marciumi radicali e basali e Phytophthora spp..",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 300.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "FLOREALI E ORNAMENTALI … 2-3 kg/ha (200-300 g/hl) contro Muffa grigia (Botrytis cinerea) e marciumi radicali e basali e Phytophthora spp..",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "ADAMA ITALIA S.R.L.",
+ "data_etichetta": "12/07/2026",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-16",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 8601",
+ "etichetta_id": "46426"
+}

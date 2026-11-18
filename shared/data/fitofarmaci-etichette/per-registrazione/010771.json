@@ -1,0 +1,1803 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "010771",
+ "nome_prodotto": "MOST MICRO",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "010771-00860",
+   "coltura": "Aglio",
+   "colture": [
+    "aglio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 2.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Aglio: 1,7-2,5 litri/ha pre-emergenza e post-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00861",
+   "coltura": "Asparago (solo asparagiaia impiantata)",
+   "colture": [
+    "asparago"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "solo asparagiaia impiantata"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Asparago: (solo su asparagiaia impiantata): 2,5-3 litri/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00862",
+   "coltura": "Carciofo",
+   "colture": [
+    "carciofo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Carciofo: 2-3 litri/ha pre-trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00863",
+   "coltura": "Cardo",
+   "colture": [
+    "cardo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Cardo: 2,5-3 litri/ha pre trapianto-pre ricaccio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "60 giorni per … sedano, cardo, carota, fagiolo, pisello e pisello … proteico, fava;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00864",
+   "coltura": "Carota",
+   "colture": [
+    "carota"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Carota: 1,25-3 … litri/ha pre-emergenza e post-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "60 giorni per … sedano, cardo, carota, fagiolo, pisello e pisello … proteico, fava;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00865",
+   "coltura": "Cavoli a testa e infiorescenza",
+   "colture": [
+    "cavolo cappuccio",
+    "cavolo verza",
+    "cavoletti di bruxelles",
+    "cavolfiore",
+    "cavolo broccolo"
+   ],
+   "gruppo": "cavoli a testa e infiorescenza",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "solo pre-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Cavoli a … testa e infiorescenza: 2-3 litri/ha solo pre-trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 100,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "100 giorni per cavoli.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00866",
+   "coltura": "Cipolla",
+   "colture": [
+    "cipolla"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 2.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Cipolla: 1- … 2,5 litri/ha pre-emergenza o pre-trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00867",
+   "coltura": "Fagiolino",
+   "colture": [
+    "fagiolino"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 2.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Fagiolino: 1,7-2,5 … litri/ha; Fagiolo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 45,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "45 giorni per … fagiolino;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00868",
+   "coltura": "Fagiolo",
+   "colture": [
+    "fagiolo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 2.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Fagiolo: 1,7-2,5 litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "60 giorni per … sedano, cardo, carota, fagiolo, pisello e pisello … proteico, fava;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00869",
+   "coltura": "Fava",
+   "colture": [
+    "fava"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Fava: 1,7-3 … litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "60 giorni per … sedano, cardo, carota, fagiolo, pisello e pisello … proteico, fava;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00870",
+   "coltura": "Finocchio",
+   "colture": [
+    "finocchio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 2.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Finocchio: 1,25-2,5 litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00871",
+   "coltura": "Finocchio",
+   "colture": [
+    "finocchio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 2.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "pre-trapianto 1,7-2,5 litri/ha e post-",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00872",
+   "coltura": "Finocchio",
+   "colture": [
+    "finocchio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "post-emergenza o post-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "emergenza o post-trapianto 1,25-2 litri/ha; Girasole",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00873",
+   "coltura": "Girasole",
+   "colture": [
+    "girasole"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Girasole: 2-3 litri/ha … pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00874",
+   "coltura": "Grano",
+   "colture": [
+    "frumento"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Grano, Orzo, Segale: 1,7-3 litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00875",
+   "coltura": "Orzo",
+   "colture": [
+    "orzo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Grano, Orzo, Segale: 1,7-3 litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00876",
+   "coltura": "Segale",
+   "colture": [
+    "segale"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Grano, Orzo, Segale: 1,7-3 litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00877",
+   "coltura": "Mais",
+   "colture": [
+    "mais"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Mais: 2-3 litri/ha pre-emergenza e",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00878",
+   "coltura": "Melanzana",
+   "colture": [
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "solo pre-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 2.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Melanzana: 1,25-2,2 litri/ha solo pre-",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00879",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Patata: 1,7-3 litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 90,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "90 giorni per … patata;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00880",
+   "coltura": "Peperone",
+   "colture": [
+    "peperone"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "solo pre-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 2.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Peperone: 1,25- … 2,2 litri/ha solo pre-trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00881",
+   "coltura": "Pisello",
+   "colture": [
+    "pisello"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pisello e pisello proteico: 1,7-3 … litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "60 giorni per … sedano, cardo, carota, fagiolo, pisello e pisello … proteico, fava;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00882",
+   "coltura": "Pisello proteico",
+   "colture": [
+    "pisello proteico"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pisello e pisello proteico: 1,7-3 … litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "60 giorni per … sedano, cardo, carota, fagiolo, pisello e pisello … proteico, fava;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00883",
+   "coltura": "Pomodoro",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "solo pre-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 2.2,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pomodoro: 1,25-2,2 litri/ha solo pre-trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 75,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "75 giorni per … aglio, cipolla, finocchio, melanzana, peperone, … pomodoro;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00884",
+   "coltura": "Riso (solo semina in asciutta)",
+   "colture": [
+    "riso"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-emergenza",
+   "modalita": null,
+   "ambiente": [
+    "solo semina in asciutta"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Riso (solo con semina in asciutta): 2-3 litri/ha pre-emergenza",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00885",
+   "coltura": "Sedano",
+   "colture": [
+    "sedano"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Sedano: 3 l/ha pre trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 60,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "60 giorni per … sedano, cardo, carota, fagiolo, pisello e pisello … proteico, fava;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00886",
+   "coltura": "Soia",
+   "colture": [
+    "soia"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.5,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Soia: 2-2,5 litri/ha pre-semina",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00887",
+   "coltura": "Lattuga e simili",
+   "colture": [
+    "lattuga",
+    "scarola",
+    "indivia",
+    "cicoria",
+    "radicchio",
+    "rucola",
+    "dolcetta",
+    "crescione"
+   ],
+   "gruppo": "lattughe e insalate",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Lattuga e simili: 1,5-2 l/ha pre",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 30,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti: … 30 giorni per … lattuga e simili;",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00888",
+   "coltura": "Tabacco",
+   "colture": [
+    "tabacco"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Tabacco: 1,25-3 litri/ha pre-trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00889",
+   "coltura": "Pioppo",
+   "colture": [
+    "pioppo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "post-trapianto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pioppo: 3 litri/ha … post-trapianto",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00890",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre ripresa vegetativa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Melo-Pero: 2,5-3 l/ha pre ripresa vegetativa",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00891",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre ripresa vegetativa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Melo-Pero: 2,5-3 l/ha pre ripresa vegetativa",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00892",
+   "coltura": "Drupacee",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre ripresa vegetativa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Drupacee: 2,5-3 l/ha pre ripresa vegetativa",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00893",
+   "coltura": "Vite",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre ripresa vegetativa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite: 2,5-3 l/ha pre",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00894",
+   "coltura": "Agrumi",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre ripresa vegetativa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Agrumi: 2,5-3 l/ha pre ripresa vegetativa",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00895",
+   "coltura": "Frutta a guscio",
+   "colture": [
+    "noce",
+    "nocciolo",
+    "castagno",
+    "mandorlo",
+    "pistacchio",
+    "pecan"
+   ],
+   "gruppo": "frutta a guscio",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre ripresa vegetativa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Frutta a guscio: 2,5-3 l/ha pre ripresa vegetativa",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00896",
+   "coltura": "Ornamentali (anche in vivaio)",
+   "colture": [
+    "ornamentali"
+   ],
+   "gruppo": "ornamentali",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": "pre ricaccio",
+   "modalita": null,
+   "ambiente": [
+    "anche in vivaio"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Ornamentali … (anche in VIVAIO): 2,5-3 litri/ha pre ricaccio",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00897",
+   "coltura": "Tappeti erbosi",
+   "colture": [
+    "tappeti erbosi"
+   ],
+   "gruppo": "tappeti erbosi",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": "unica soluzione",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Impiegare alla dose di 2,5-3 litri/ha (i dosaggi più elevati",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": "stagione",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "In tutte le colture deve essere effettuato un solo trattamento per … stagione.",
+     "da_regola_generale": true,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "010771-00898",
+   "coltura": "Tappeti erbosi",
+   "colture": [
+    "tappeti erbosi"
+   ],
+   "gruppo": "tappeti erbosi",
+   "avversita": "Infestanti annuali graminacee e dicotiledoni (elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": "in due interventi",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "1,5 … litri/ha in due interventi distanziati di 45-60 giorni",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 45,
+     "max": 60,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "1,5 … litri/ha in due interventi distanziati di 45-60 giorni",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "SIPCAM OXON S.P.A.",
+ "data_etichetta": "08/09/2026",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 10771",
+ "etichetta_id": "46878"
+}

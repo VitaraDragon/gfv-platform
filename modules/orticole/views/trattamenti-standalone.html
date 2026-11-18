@@ -16,7 +16,7 @@
         <div class="header">
             <div>
                 <h1>🧪 Trattamenti — Orticole</h1>
-                <p>Registro privato di compilazione. I trattamenti arrivano da lavori o attività con categoria <strong>Trattamenti</strong>. Qui si confermano prodotto, dose, avversità e carenza della scheda pubblica. GFV non invia nulla al SIAN né al fascicolo.</p>
+                <p>Registro privato di compilazione. I trattamenti arrivano da lavori o attività con categoria <strong>Trattamenti</strong>. Qui l'azienda inserisce o conferma coltura, dose, avversità e carenza. GFV non invia nulla al SIAN né al fascicolo.</p>
             </div>
             <div class="header-actions">
                 <button type="button" class="btn btn-secondary" id="btn-export-registro-csv">Esporta CSV</button>
@@ -55,7 +55,7 @@
                 <div id="loading" class="loading">Caricamento trattamenti...</div>
                 <div id="empty-state" class="empty-state" style="display: none;">
                     <h3>Nessun trattamento trovato</h3>
-                    <p>Crea un lavoro o un'attività nel diario con categoria Trattamenti, sul terreno di una campagna orticole.</p>
+                    <p>Registra un'attività nel Diario, di categoria Trattamenti, sul terreno a ortive già collegato a una campagna. Poi torna in questa pagina e premi Completa per inserire prodotto, dose e Leggi scheda.</p>
                 </div>
                 <table id="trattamenti-table" style="display: none;">
                     <thead>
@@ -120,7 +120,11 @@
                 </div>
                 <div id="trattamento-operatore-group" class="form-group">
                     <label for="trattamento-operatore">Operatore</label>
-                    <input type="text" id="trattamento-operatore" placeholder="Nome operatore">
+                    <select id="trattamento-operatore">
+                        <option value="">— Seleziona —</option>
+                        <option value="__altro__">Altro</option>
+                    </select>
+                    <input type="text" id="trattamento-operatore-altro" autocomplete="off" placeholder="Nome operatore" style="display:none;margin-top:6px;">
                 </div>
                 <div id="trattamento-proprietario-message" class="form-group" style="display:none;">
                     <small>Lavoro svolto dal proprietario (modulo Manodopera non attivo).</small>

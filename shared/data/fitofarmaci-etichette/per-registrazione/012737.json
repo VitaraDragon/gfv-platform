@@ -1,0 +1,661 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "012737",
+ "nome_prodotto": "AIRONE PIÙ",
+ "colture_non_estratte": [
+  "aglio",
+  "albicocco",
+  "barbabietola da zucchero",
+  "carciofo",
+  "cardo",
+  "castagno",
+  "cavolfiore",
+  "cetriolino",
+  "cetriolo",
+  "ciliegio",
+  "cipolla",
+  "cipollina",
+  "cipresso",
+  "cocomero",
+  "cotogno",
+  "fragola",
+  "lattuga",
+  "mandorlo",
+  "melo",
+  "melone",
+  "nettarina",
+  "nocciolo",
+  "noce",
+  "pero",
+  "pesco",
+  "rafano",
+  "rapa",
+  "ravanello",
+  "rosa",
+  "scalogno",
+  "susino",
+  "zucca",
+  "zucchino"
+ ],
+ "righe": [
+  {
+   "id": "012737-01645",
+   "coltura": "Vite",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Plasmopara viticola)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 2.0,
+     "unita": "kg/ha",
+     "condizione": "nei trattamenti fino alla fioritura",
+     "pagina": 2,
+     "citazione": "Peronospora, Black Rot: nei trattamenti fino alla fioritura intervenire alla dose di 1,7 – 2,0 kg\\ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 2.7,
+     "max": 2.7,
+     "unita": "kg/ha",
+     "condizione": "quando applicato successivamente a prodotti sistemici o citotropici e in difesa con soli prodotti di contatto",
+     "pagina": 2,
+     "citazione": "Quando applicato … successivamente a prodotti sistemici o citotropici e in situazioni di difesa con soli prodotti di contatto la dose può essere … elevata a 2,7 kg\\ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.17,
+     "max": 0.27,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite … Peronospora … Plasmopara viticola … 0.17-0.27 … kg/hL",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "I trattamenti vanno ripetuti ogni 7-10 giorni a seconda delle condizioni climatiche",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01646",
+   "coltura": "Vite",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Black Rot (Guignardia bidwellii)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.7,
+     "max": 2.0,
+     "unita": "kg/ha",
+     "condizione": "nei trattamenti fino alla fioritura",
+     "pagina": 2,
+     "citazione": "Peronospora, Black Rot: nei trattamenti fino alla fioritura intervenire alla dose di 1,7 – 2,0 kg\\ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 2.7,
+     "max": 2.7,
+     "unita": "kg/ha",
+     "condizione": "quando applicato successivamente a prodotti sistemici o citotropici e in difesa con soli prodotti di contatto",
+     "pagina": 2,
+     "citazione": "Quando applicato … successivamente a prodotti sistemici o citotropici e in situazioni di difesa con soli prodotti di contatto la dose può essere … elevata a 2,7 kg\\ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "I trattamenti vanno ripetuti ogni 7-10 giorni a seconda delle condizioni climatiche",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01647",
+   "coltura": "Agrumi",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Allupatura (Phytophthora spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.7,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Agrumi … Allupatura, Antracnosi, Batteriosi … carenza alla dose di 2.7-4.0 kg/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.27,
+     "max": 0.27,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Agrumi … Allupatura … Phytophthora spp. … 71-PHI … 0.27 kg/hL … 2-5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 20,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Agrumi … Allupatura, Antracnosi, Batteriosi … con un intervallo di 14-20 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01648",
+   "coltura": "Agrumi",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Antracnosi (Colletotrichum gloeosporioides)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.7,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Agrumi … Allupatura, Antracnosi, Batteriosi … carenza alla dose di 2.7-4.0 kg/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 20,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Agrumi … Allupatura, Antracnosi, Batteriosi … con un intervallo di 14-20 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01649",
+   "coltura": "Agrumi",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Batteriosi (Xanthomonas spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.7,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Agrumi … Allupatura, Antracnosi, Batteriosi … carenza alla dose di 2.7-4.0 kg/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 20,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Agrumi … Allupatura, Antracnosi, Batteriosi … con un intervallo di 14-20 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01650",
+   "coltura": "Olivo",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Occhio di Pavone (Spilocea oleaginea)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.8,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Olivo … Occhio di Pavone, Rogna, Antracnosi … alla dose di 2.0-2.8 kg/ha ad intervalli … di 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.17,
+     "max": 0.25,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Olivo … Occhio di Pavone … Spilocea oleaginea … Sempre … 0.17-0.25 … kg/hL … 2-6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "CARENZA (giorni prima della raccolta): … Cavolfiori, Olivo, Noce, Nocciolo, Castagno, Rapa, Ravanello, Rafano, Agrumi, Barbabietola … da zucchero … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Olivo … Occhio di Pavone, Rogna, Antracnosi … Intervenire 2-6 volte in primavera e durante il periodo autunnale",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 14,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Olivo … Occhio di Pavone, Rogna, Antracnosi … alla dose di 2.0-2.8 kg/ha ad intervalli … di 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01651",
+   "coltura": "Olivo",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Rogna (Pseudomonas savastanoi)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.8,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Olivo … Occhio di Pavone, Rogna, Antracnosi … alla dose di 2.0-2.8 kg/ha ad intervalli … di 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "CARENZA (giorni prima della raccolta): … Cavolfiori, Olivo, Noce, Nocciolo, Castagno, Rapa, Ravanello, Rafano, Agrumi, Barbabietola … da zucchero … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Olivo … Occhio di Pavone, Rogna, Antracnosi … Intervenire 2-6 volte in primavera e durante il periodo autunnale",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 14,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Olivo … Occhio di Pavone, Rogna, Antracnosi … alla dose di 2.0-2.8 kg/ha ad intervalli … di 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01652",
+   "coltura": "Pomodoro",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.4,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pomodoro … Melanzana (in serra … Peronospora … Phytophthora … 15-89 … 0.20-0.40 … kg/hL … 3-6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01653",
+   "coltura": "Pomodoro",
+   "colture": [
+    "pomodoro"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.4,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pomodoro … Melanzana (in serra … Peronospora … Phytophthora … 15-89 … 0.20-0.40 … kg/hL … 3-6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01654",
+   "coltura": "Melanzana",
+   "colture": [
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.4,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pomodoro … Melanzana (in serra … Peronospora … Phytophthora … 15-89 … 0.20-0.40 … kg/hL … 3-6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01655",
+   "coltura": "Melanzana",
+   "colture": [
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.4,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Pomodoro … Melanzana (in serra … Peronospora … Phytophthora … 15-89 … 0.20-0.40 … kg/hL … 3-6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01656",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 0.3,
+     "max": 0.45,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Patata (in campo) … Peronospora … Alternaria … 15-85 … 0.30-0.45 … kg/hL … 3-6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "CARENZA (giorni prima della raccolta): … Patata, Melone, Cocomero, Zucca, Lattuga, Insalate … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "012737-01657",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria solani)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [
+    {
+     "min": 0.3,
+     "max": 0.45,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Patata (in campo) … Peronospora … Alternaria … 15-85 … 0.30-0.45 … kg/hL … 3-6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "CARENZA (giorni prima della raccolta): … Patata, Melone, Cocomero, Zucca, Lattuga, Insalate … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "GOWAN ITALIA S.R.L.",
+ "data_etichetta": "06/06/2025",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 12737",
+ "etichetta_id": "44657"
+}

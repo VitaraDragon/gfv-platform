@@ -1,6 +1,7 @@
 /**
  * Pannello open data e acqua sul form trattamento (vigneto, frutteto, seminativo, orticole).
- * Coltura, avversità, dose e carenza le scrive l'azienda. Il CSV non le propone.
+ * Il CSV del Ministero non propone dosi. Se c'è il file d'etichetta, i campi si riempiono
+ * con quei valori e l'azienda conferma. GFV non consiglia dosi.
  * @module shared/js/registro-trattamenti-form
  */
 
@@ -18,8 +19,21 @@ import {
   htmlAttribuzioneOpenData,
   classificaStatoAmministrativo,
   dataLetturaItaliana,
-  numeroFinito
+  numeroFinito,
+  numeroSingoloTesto
 } from './registro-trattamenti.js';
+import {
+  FRASE_CONFERMA_CONTROLLATA,
+  FRASE_VALORE_ESTRATTO,
+  TESTO_VALORI_ETICHETTA,
+  caricaSchedaEtichetta,
+  caricaVocabolarioColture,
+  dataItalianaVisibile,
+  dataRevisioneOpenData,
+  normalizzaNomeColtura,
+  preparaEtichetta,
+  testoConsultaEtichetta
+} from './registro-trattamenti-etichetta.js';
 
 function esc(value) {
   return String(value == null ? '' : value)
@@ -39,6 +53,49 @@ export function valoreInputNumerico(value) {
 function numeroDalCampoProdotto(value) {
   const t = String(value == null ? '' : value).replace(/\s+/g, '');
   return /^\d+$/.test(t) ? t : '';
+}
+
+/**
+ * Toglie prefissi di categoria e confezioni dal nome di magazzino,
+ * così «Inse. SIVANTO PRIME da 1 lt.» diventa una query che la ricerca per nome già risolve.
+ */
+export function nomeProdottoPerRicercaScheda(nome) {
+  let s = String(nome == null ? '' : nome).trim();
+  s = s.replace(/^(inse\.?|insetticida|fung\.?|fungicida|erb\.?|erbicida|diserbante|conc\.?|concime)\s+/i, '');
+  s = s.replace(/\bda\s+\d[\d.,]*\s*(lt|l|kg|g|ml|cl|q\.?li)?\.?\s*$/i, '');
+  s = s.replace(/\b\d[\d.,]*\s*(lt|l|kg|g|ml|cl)\.?\s*$/i, '');
+  return s.replace(/[.,;:]+$/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Richiesta per la callable. Se l'anagrafica ha il numero, si manda quello.
+ * Altrimenti il nome pulito, non la stringa grezza di magazzino.
+ */
+export function richiestaLetturaScheda({ nome, prodotto, specie } = {}) {
+  const visibile = String(nome == null ? '' : nome).trim();
+  const numeroAnagrafica = prodotto && prodotto.numeroRegistrazione != null
+    ? String(prodotto.numeroRegistrazione).trim()
+    : '';
+  const richiesta = {
+    nome: visibile,
+    nomeProdotto: visibile,
+    specie: specie || ''
+  };
+  if (numeroAnagrafica && /\d/.test(numeroAnagrafica)) {
+    richiesta.numero = numeroAnagrafica;
+    richiesta.numeroRegistrazione = numeroAnagrafica;
+    return richiesta;
+  }
+  const pulito = nomeProdottoPerRicercaScheda(visibile);
+  const nomeQuery = pulito || visibile;
+  richiesta.nome = nomeQuery;
+  richiesta.nomeProdotto = nomeQuery;
+  const numeroCampo = numeroDalCampoProdotto(nomeQuery);
+  if (numeroCampo) {
+    richiesta.numero = numeroCampo;
+    richiesta.numeroRegistrazione = numeroCampo;
+  }
+  return richiesta;
 }
 
 export function notaRegistroTesto() {
@@ -199,9 +256,205 @@ function campiManuali(conferma, specie) {
     + '<label>Avversità <input class="registro-avversita" type="text" value="' + valoreCampo(c.avversita) + '"></label> '
     + '<label>Dose per ha <input class="registro-dose-ha" type="text" inputmode="decimal" value="' + valoreCampo(c.dosePerEttaroScheda) + '"></label> '
     + '<label>Dose per hl <input class="registro-dose-hl" type="text" inputmode="decimal" value="' + valoreCampo(c.dosePerEttolitroScheda) + '"></label> '
-    + '<label>Carenza (giorni) <input class="registro-carenza" type="text" inputmode="numeric" value="' + valoreCampo(c.giorniCarenzaConfermata) + '"></label> '
+    + '<label>Carenza (giorni) <input class="registro-carenza" type="text" inputmode="numeric" value="' + valoreCampo(testoCarenzaSalvata(c)) + '"></label> '
     + '<label>Numero massimo <input class="registro-massimo" type="text" inputmode="numeric" value="' + valoreCampo(c.impieghiMassimiAnno) + '"></label> '
     + '<label>Intervallo (giorni) <input class="registro-intervallo" type="text" inputmode="numeric" value="' + valoreCampo(c.giorniMinimiTraPassaggi) + '"></label>'
+    + '</div>';
+}
+
+function testoCarenzaSalvata(conferma) {
+  if (conferma && conferma.carenzaNonNecessaria === true) return 'non necessaria';
+  if (!conferma || conferma.giorniCarenzaConfermata == null || conferma.giorniCarenzaConfermata === '') return '';
+  return conferma.giorniCarenzaConfermata;
+}
+
+const STILE_VALORE_ETICHETTA = 'background:#fff3cd;border:1px solid #b8860b;';
+
+function numeroPerConsulta(etichetta, prodotto) {
+  const dalProdotto = prodotto && prodotto.numeroRegistrazione;
+  const dallaScheda = etichetta && etichetta.meta && etichetta.meta.numeroRegistrazione;
+  return dalProdotto || dallaScheda || '';
+}
+
+function htmlConsultaEtichetta(etichetta, prodotto) {
+  const testo = testoConsultaEtichetta(numeroPerConsulta(etichetta, prodotto));
+  if (!testo) return '';
+  return '<p class="registro-consulta-etichetta">' + esc(testo) + '</p>';
+}
+
+function htmlMessaggioEtichetta(etichetta, prodotto) {
+  const msg = String(etichetta && etichetta.messaggio || '');
+  if (!msg) return htmlConsultaEtichetta(etichetta, prodotto);
+  return '<p>' + esc(msg) + '</p>' + htmlConsultaEtichetta(etichetta, prodotto);
+}
+
+function attrsVoce(voce) {
+  if (!voce) return '';
+  const parti = [
+    ' data-origine="etichetta"',
+    ' data-valore-etichetta="' + valoreCampo(voce.valore) + '"'
+  ];
+  if (voce.pagina != null) parti.push(' data-pagina="' + esc(voce.pagina) + '"');
+  if (voce.idRiga) parti.push(' data-id-riga="' + esc(voce.idRiga) + '"');
+  if (voce.unita) parti.push(' data-unita="' + esc(voce.unita) + '"');
+  if (voce.condizione) parti.push(' data-condizione="' + esc(voce.condizione) + '"');
+  if (voce.epoca) parti.push(' data-epoca="' + esc(voce.epoca) + '"');
+  if (voce.periodo) parti.push(' data-periodo="' + esc(voce.periodo) + '"');
+  if (voce.nonNecessario) parti.push(' data-non-necessario="1"');
+  return parti.join('');
+}
+
+function htmlFonteEtichetta(voce) {
+  if (!voce) return '';
+  const pag = voce.pagina != null ? 'da etichetta, pag. ' + voce.pagina : 'da etichetta';
+  let html = '<span class="registro-blocco-fonte">';
+  html += '<span class="registro-fonte-etichetta"> ' + esc(pag);
+  if (voce.citazione) {
+    html += ' <button type="button" class="btn btn-sm btn-secondary" data-mostra-frase="1">mostra frase</button>';
+  }
+  html += '</span>';
+  if (voce.citazione) {
+    html += '<span class="registro-citazione" hidden>«' + esc(voce.citazione) + '»</span>';
+  }
+  html += '</span>';
+  return html;
+}
+
+function htmlVociEtichetta(campo) {
+  if (!campo || !campo.voci || !campo.voci.length) return '';
+  const mostra = campo.voci.length > 1 || campo.dettaglioSempre || !campo.voceScritta;
+  if (!mostra) return '';
+  const invito = campo.voci.length > 1
+    ? '<p class="registro-scegli-voce" style="margin:4px 0;">Scegli la riga che vale per il tuo caso</p>'
+    : '';
+  return invito + '<ul class="registro-voci-etichetta" style="margin:4px 0 8px;padding-left:18px;">'
+    + campo.voci.map((voce) => '<li><button type="button" class="registro-voce-etichetta" data-campo="'
+      + esc(voce.campo) + '"' + attrsVoce(voce) + '>' + esc(voce.testo) + '</button>'
+      + htmlFonteEtichetta(voce) + '</li>').join('')
+    + '</ul>';
+}
+
+function valoreProposto(campo, salvato) {
+  if (salvato != null && salvato !== '') return { valore: salvato, voce: null };
+  if (campo && campo.scrivi) return { valore: campo.scrivi, voce: campo.voceScritta };
+  return { valore: '', voce: null };
+}
+
+function htmlInputValore(classe, valore, inputmode, voce) {
+  const stile = voce ? ' style="' + STILE_VALORE_ETICHETTA + '" class="' + classe + ' registro-valore-da-etichetta"' : ' class="' + classe + '"';
+  return '<input' + stile + ' type="text" inputmode="' + inputmode + '" value="'
+    + valoreCampo(valore) + '"' + (voce ? attrsVoce(voce) : '') + '>';
+}
+
+function htmlUnita(campo, voce) {
+  const unita = (voce && voce.unita) || (campo && campo.unita) || '';
+  if (!unita || unita === 'giorni') return '';
+  return ' <span class="registro-unita-etichetta">' + esc(unita) + '</span>';
+}
+
+function htmlAvversitaEtichetta(etichetta, conferma) {
+  const c = conferma || {};
+  if (!etichetta || etichetta.stato !== 'pronto' || !etichetta.avversita || !etichetta.avversita.length) {
+    return '<label>Avversità <input class="registro-avversita" type="text" value="' + valoreCampo(c.avversita) + '"></label> ';
+  }
+  const scelta = etichetta.avversitaScelta;
+  const altra = scelta === 'altra';
+  let html = '<label>Avversità <select class="registro-avversita-scelta">';
+  if (etichetta.avversita.length > 1) {
+    html += '<option value=""' + (!scelta ? ' selected' : '') + '>Scegli…</option>';
+  }
+  etichetta.avversita.forEach((a) => {
+    html += '<option value="' + esc(a.chiave) + '"'
+      + (a.idRiga ? ' data-id-riga="' + esc(a.idRiga) + '"' : '')
+      + (scelta === a.chiave ? ' selected' : '') + '>' + esc(a.testo) + '</option>';
+  });
+  html += '<option value="altra"' + (altra ? ' selected' : '') + '>Altra…</option></select></label> ';
+  html += '<input class="registro-avversita" type="text" value="' + valoreCampo(altra ? c.avversita : '') + '"'
+    + (altra ? '' : ' hidden') + '> ';
+  return html;
+}
+
+function valoriRiempitiDaEtichetta(etichetta, conferma) {
+  const campi = etichetta && etichetta.campi;
+  if (campi && ['doseHa', 'doseHl', 'carenza', 'massimo', 'intervallo'].some((k) => campi[k] && String(campi[k].scrivi || '').trim())) {
+    return true;
+  }
+  const origine = conferma && conferma.origineValori;
+  if (!origine) return false;
+  return ['doseHa', 'doseHl', 'carenza', 'massimo', 'intervallo'].some((k) => origine[k] && origine[k].origine === 'etichetta');
+}
+
+function htmlDicituraEtichetta(etichetta) {
+  const meta = (etichetta && etichetta.meta) || {};
+  const pezzi = [];
+  if (meta.fonte) pezzi.push(meta.fonte);
+  if (meta.titolare) pezzi.push('titolare ' + meta.titolare);
+  if (meta.dataEtichetta) pezzi.push('etichetta del ' + meta.dataEtichetta);
+  if (meta.dataEstrazione) pezzi.push('estratto il ' + dataItalianaVisibile(meta.dataEstrazione));
+  pezzi.push(FRASE_VALORE_ESTRATTO);
+  return '<p class="registro-dicitura-etichetta">' + esc(pezzi.join(' · ')) + '</p>';
+}
+
+function campiConEtichetta(conferma, specie, etichetta, colturaBozza, prodotto) {
+  const c = conferma || {};
+  const coltura = colturaBozza != null
+    ? colturaBozza
+    : ((c.riferimentoRiga && c.riferimentoRiga.colturaScheda) || c.specieUsata || specie || '');
+  const pronto = etichetta && etichetta.stato === 'pronto';
+  const campi = (pronto && etichetta.campi) || {};
+  const origine = (c.origineValori) || {};
+  const doseHa = valoreProposto(campi.doseHa, c.dosePerEttaroScheda);
+  const doseHl = valoreProposto(campi.doseHl, c.dosePerEttolitroScheda);
+  const carenzaSalvata = testoCarenzaSalvata(c);
+  const carenza = valoreProposto(campi.carenza, carenzaSalvata);
+  const massimo = valoreProposto(campi.massimo, c.impieghiMassimiAnno);
+  const intervallo = valoreProposto(campi.intervallo, c.giorniMinimiTraPassaggi);
+  const voceSeNuova = (proposto, chiave) => {
+    if (proposto.voce) return proposto.voce;
+    const salvata = origine[chiave];
+    if (!salvata || salvata.origine !== 'etichetta') return null;
+    return {
+      valore: proposto.valore,
+      pagina: salvata.pagina,
+      idRiga: salvata.idRiga,
+      unita: salvata.unita,
+      condizione: salvata.condizione,
+      epoca: salvata.epoca,
+      periodo: salvata.periodo,
+      nonNecessario: salvata.nonNecessario,
+      citazione: ''
+    };
+  };
+  const riempiti = valoriRiempitiDaEtichetta(etichetta, c);
+  const intro = pronto
+    ? '<p>' + esc(TESTO_VALORI_ETICHETTA) + '</p>' + htmlConsultaEtichetta(etichetta, prodotto)
+    : '<p>Coltura, avversità, dose e carenza le inserisce l\'azienda. Non arrivano dal Ministero.</p>'
+      + htmlMessaggioEtichetta(etichetta, prodotto);
+  const dataEtichetta = etichetta && etichetta.meta && etichetta.meta.dataEtichetta
+    ? ' data-data-etichetta="' + esc(etichetta.meta.dataEtichetta) + '"'
+    : '';
+  return '<div class="registro-campi-azienda" style="margin-top:8px;"' + dataEtichetta + '>'
+    + intro
+    + '<label>Coltura <input class="registro-coltura" type="text" value="' + valoreCampo(coltura) + '"></label> '
+    + htmlAvversitaEtichetta(etichetta, c)
+    + '<label>Dose per ha ' + htmlInputValore('registro-dose-ha', doseHa.valore, 'decimal', voceSeNuova(doseHa, 'doseHa'))
+    + htmlUnita(campi.doseHa, doseHa.voce) + '</label>'
+    + htmlFonteEtichetta(doseHa.voce)
+    + htmlVociEtichetta(campi.doseHa)
+    + '<label>Dose per hl ' + htmlInputValore('registro-dose-hl', doseHl.valore, 'decimal', voceSeNuova(doseHl, 'doseHl'))
+    + htmlUnita(campi.doseHl, doseHl.voce) + '</label>'
+    + htmlFonteEtichetta(doseHl.voce)
+    + htmlVociEtichetta(campi.doseHl)
+    + '<label>Carenza (giorni) ' + htmlInputValore('registro-carenza', carenza.valore, 'text', voceSeNuova(carenza, 'carenza')) + '</label>'
+    + htmlFonteEtichetta(carenza.voce)
+    + htmlVociEtichetta(campi.carenza)
+    + '<label>Numero massimo ' + htmlInputValore('registro-massimo', massimo.valore, 'text', voceSeNuova(massimo, 'massimo')) + '</label>'
+    + htmlFonteEtichetta(massimo.voce)
+    + htmlVociEtichetta(campi.massimo)
+    + '<label>Intervallo (giorni) ' + htmlInputValore('registro-intervallo', intervallo.valore, 'text', voceSeNuova(intervallo, 'intervallo')) + '</label>'
+    + htmlFonteEtichetta(intervallo.voce)
+    + htmlVociEtichetta(campi.intervallo)
+    + (riempiti ? htmlDicituraEtichetta(etichetta) : '')
     + '</div>';
 }
 
@@ -217,6 +470,8 @@ export function htmlPannelloOpenData(input = {}) {
   if (!prodotti.length) {
     parti.push('<p>Non trovo «' + esc(input.nome || 'questo prodotto') + '» negli open data del Ministero. Non invento numero, titolare, sostanze o stato.</p>');
     parti.push('<p><a href="' + URL_BANCA_FITOSANITARI + '" target="_blank" rel="noopener noreferrer">Apri la banca dati fitosanitari del Ministero</a></p>');
+    parti.push('<p><label>Numero di registrazione <input class="registro-numero-manuale" type="text" inputmode="numeric" autocomplete="off" placeholder="es. 16273"></label> ');
+    parti.push('<button type="button" class="btn btn-sm btn-secondary" data-riprova-numero="1">Cerca per numero</button></p>');
     return parti.join('');
   }
   parti.push('<p class="registro-attribuzione">' + htmlAttribuzioneOpenData(dataLettura) + '</p>');
@@ -256,8 +511,13 @@ export function htmlPannelloOpenData(input = {}) {
       + (quando ? ' il ' + esc(quando) : '')
       + '. Non è un dato del Ministero.</p>');
   }
-  parti.push(campiManuali(input.conferma, input.specie));
-  parti.push('<p><button type="button" class="btn btn-sm btn-primary" data-conferma-manuale="1">Conferma</button></p>');
+  parti.push(input.etichetta
+    ? campiConEtichetta(input.conferma, input.specie, input.etichetta, input.colturaBozza, scelto)
+    : campiManuali(input.conferma, input.specie));
+  const dichiarazione = input.etichetta && valoriRiempitiDaEtichetta(input.etichetta, input.conferma)
+    ? ' <span class="registro-dichiarazione-conferma">' + esc(FRASE_CONFERMA_CONTROLLATA) + '</span>'
+    : '';
+  parti.push('<p><button type="button" class="btn btn-sm btn-primary" data-conferma-manuale="1">Conferma</button>' + dichiarazione + '</p>');
   return parti.join('');
 }
 
@@ -289,9 +549,14 @@ export function registroConfermaBloccata(prodotto, meta = {}) {
   };
 }
 
-/** Conferma con i valori scritti dall'azienda. */
+/** Conferma con i valori scritti dall'azienda, o copiati dall'etichetta e poi confermati. */
 export function registroConfermaManuale(prodotto, campi = {}, meta = {}) {
   const specie = campi.coltura || meta.specie || '';
+  const carenzaTesto = String(campi.carenza == null ? '' : campi.carenza).trim();
+  const origineCarenza = campi.origineValori && campi.origineValori.carenza;
+  const carenzaNonNecessaria = /^non\s+necessar/i.test(carenzaTesto)
+    || !!(origineCarenza && origineCarenza.nonNecessario === true);
+  const doseHa = numeroSingoloTesto(campi.doseHa);
   const registro = {
     ...campiConfermaRiga({
       avversita: campi.avversita,
@@ -303,34 +568,223 @@ export function registroConfermaManuale(prodotto, campi = {}, meta = {}) {
       },
       confermatoDa: meta.utente || null,
       confermatoIl: meta.ora || new Date().toISOString(),
-      impieghiMassimiAnno: campi.massimo,
-      giorniMinimiTraPassaggi: campi.intervallo,
-      dosePerEttaroScheda: campi.doseHa,
-      dosePerEttolitroScheda: campi.doseHl,
-      giorniCarenzaConfermata: campi.carenza
+      impieghiMassimiAnno: numeroSingoloTesto(campi.massimo),
+      giorniMinimiTraPassaggi: numeroSingoloTesto(campi.intervallo),
+      dosePerEttaroScheda: doseHa,
+      dosePerEttolitroScheda: numeroSingoloTesto(campi.doseHl),
+      giorniCarenzaConfermata: carenzaNonNecessaria ? null : numeroSingoloTesto(carenzaTesto),
+      carenzaNonNecessaria: carenzaNonNecessaria || null,
+      origineValori: campi.origineValori || null
     }),
     ...anagraficaRegistro(prodotto, meta)
   };
-  if (campi.doseHa != null && campi.doseHa !== '' && Number.isFinite(Number(String(campi.doseHa).replace(',', '.')))) {
-    registro.dosaggio = Number(String(campi.doseHa).replace(',', '.'));
-  }
+  if (doseHa != null) registro.dosaggio = doseHa;
   return registro;
 }
 
-function leggiCampiAzienda(box) {
+function origineDaInput(el) {
+  if (!el) return null;
+  const scritto = String(el.value || '').trim();
+  const atteso = el.getAttribute('data-valore-etichetta');
+  const origineEtichetta = el.getAttribute('data-origine') === 'etichetta';
+  const nonNecessario = origineEtichetta
+    && el.getAttribute('data-non-necessario') === '1'
+    && (scritto === '' || /^non\s+necessar/i.test(scritto));
+  if (!scritto && !nonNecessario) return null;
+  const daEtichetta = nonNecessario || (origineEtichetta && atteso != null && scritto === atteso);
+  const voce = { origine: daEtichetta ? 'etichetta' : 'azienda' };
+  if (!daEtichetta) return voce;
+  const pagina = el.getAttribute('data-pagina');
+  if (pagina) voce.pagina = Number(pagina);
+  const idRiga = el.getAttribute('data-id-riga');
+  if (idRiga) voce.idRiga = idRiga;
+  ['unita', 'condizione', 'epoca', 'periodo'].forEach((chiave) => {
+    const v = el.getAttribute('data-' + chiave);
+    if (v) voce[chiave] = v;
+  });
+  if (el.getAttribute('data-non-necessario') === '1') voce.nonNecessario = true;
+  if (scritto && numeroSingoloTesto(scritto) == null) voce.testo = scritto;
+  return voce;
+}
+
+export function leggiCampiAzienda(box) {
   const valore = (sel) => {
     const el = box.querySelector(sel);
     return el ? el.value : '';
   };
+  const select = box.querySelector('.registro-avversita-scelta');
+  let avversita = valore('.registro-avversita');
+  const origineValori = {};
+  if (select && select.value && select.value !== 'altra') {
+    const opt = select.selectedOptions && select.selectedOptions[0];
+    avversita = opt ? String(opt.textContent || '').trim() : avversita;
+    origineValori.avversita = { origine: 'etichetta' };
+    const idRiga = opt && opt.getAttribute('data-id-riga');
+    if (idRiga) origineValori.avversita.idRiga = idRiga;
+  } else   if (String(avversita).trim()) {
+    origineValori.avversita = { origine: 'azienda' };
+  }
+  const dataEtichetta = box.querySelector('.registro-campi-azienda')
+    && box.querySelector('.registro-campi-azienda').getAttribute('data-data-etichetta');
+  if (dataEtichetta) origineValori.dataEtichetta = dataEtichetta;
+  [
+    ['doseHa', '.registro-dose-ha'],
+    ['doseHl', '.registro-dose-hl'],
+    ['carenza', '.registro-carenza'],
+    ['massimo', '.registro-massimo'],
+    ['intervallo', '.registro-intervallo']
+  ].forEach(([chiave, sel]) => {
+    const voce = origineDaInput(box.querySelector(sel));
+    if (voce) origineValori[chiave] = voce;
+  });
   return {
     coltura: valore('.registro-coltura'),
-    avversita: valore('.registro-avversita'),
+    avversita,
     doseHa: valore('.registro-dose-ha'),
     doseHl: valore('.registro-dose-hl'),
     carenza: valore('.registro-carenza'),
     massimo: valore('.registro-massimo'),
-    intervallo: valore('.registro-intervallo')
+    intervallo: valore('.registro-intervallo'),
+    origineValori
   };
+}
+
+function copiaAttributiVoce(da, a) {
+  ['data-pagina', 'data-id-riga', 'data-unita', 'data-condizione', 'data-epoca', 'data-periodo', 'data-non-necessario'].forEach((nome) => {
+    const v = da.getAttribute(nome);
+    if (v) a.setAttribute(nome, v);
+    else a.removeAttribute(nome);
+  });
+}
+
+const MAPPA_CAMPO_INPUT = {
+  doseHa: '.registro-dose-ha',
+  doseHl: '.registro-dose-hl',
+  carenza: '.registro-carenza',
+  massimo: '.registro-massimo',
+  intervallo: '.registro-intervallo'
+};
+
+function valoreVoceScelta(bottone) {
+  if (bottone.getAttribute('data-non-necessario') === '1') return '';
+  const valore = bottone.getAttribute('data-valore-etichetta');
+  return valore == null ? '' : valore;
+}
+
+function testoFonteCampo(bottone) {
+  if (bottone.getAttribute('data-non-necessario') === '1') return 'non necessaria, da etichetta';
+  const pagina = bottone.getAttribute('data-pagina');
+  return pagina ? 'da etichetta, pag. ' + pagina : 'da etichetta';
+}
+
+function aggiornaFonteCampo(input, bottone) {
+  const label = input.closest('label');
+  if (!label) return;
+  let blocco = label.nextElementSibling;
+  const gia = blocco && (
+    blocco.classList.contains('registro-blocco-fonte') || blocco.classList.contains('registro-fonte-etichetta')
+  );
+  if (!gia) {
+    blocco = document.createElement('span');
+    blocco.className = 'registro-blocco-fonte';
+    const riga = document.createElement('span');
+    riga.className = 'registro-fonte-etichetta';
+    blocco.appendChild(riga);
+    label.insertAdjacentElement('afterend', blocco);
+  }
+  const riga = blocco.classList.contains('registro-fonte-etichetta')
+    ? blocco
+    : blocco.querySelector('.registro-fonte-etichetta');
+  if (!riga) return;
+  const pulsante = riga.querySelector('[data-mostra-frase]');
+  riga.textContent = ' ' + testoFonteCampo(bottone);
+  if (pulsante) {
+    riga.appendChild(document.createTextNode(' '));
+    riga.appendChild(pulsante);
+  }
+}
+
+function segnaVoceScelta(bottone) {
+  const lista = bottone.closest('.registro-voci-etichetta');
+  const gruppo = lista ? lista.querySelectorAll('.registro-voce-etichetta') : [bottone];
+  gruppo.forEach((altro) => {
+    altro.classList.remove('registro-voce-selezionata');
+    altro.removeAttribute('aria-pressed');
+    altro.style.fontWeight = '';
+    altro.style.outline = '';
+    altro.style.background = '';
+  });
+  bottone.classList.add('registro-voce-selezionata');
+  bottone.setAttribute('aria-pressed', 'true');
+  bottone.style.fontWeight = '700';
+  bottone.style.outline = '2px solid #b8860b';
+  bottone.style.background = '#fff3cd';
+}
+
+function assicuratiDicitura(box, etichetta) {
+  if (!box.querySelector('.registro-dichiarazione-conferma')) {
+    const btn = box.querySelector('[data-conferma-manuale]');
+    if (btn) {
+      const span = document.createElement('span');
+      span.className = 'registro-dichiarazione-conferma';
+      span.textContent = ' ' + FRASE_CONFERMA_CONTROLLATA;
+      btn.insertAdjacentElement('afterend', span);
+    }
+  }
+  if (!box.querySelector('.registro-dicitura-etichetta') && etichetta && etichetta.meta) {
+    const intro = box.querySelector('.registro-campi-azienda');
+    if (intro) {
+      const p = document.createElement('p');
+      p.className = 'registro-dicitura-etichetta';
+      const meta = etichetta.meta;
+      const pezzi = [];
+      if (meta.fonte) pezzi.push(meta.fonte);
+      if (meta.titolare) pezzi.push('titolare ' + meta.titolare);
+      if (meta.dataEtichetta) pezzi.push('etichetta del ' + meta.dataEtichetta);
+      if (meta.dataEstrazione) pezzi.push('estratto il ' + dataItalianaVisibile(meta.dataEstrazione));
+      pezzi.push(FRASE_VALORE_ESTRATTO);
+      p.textContent = pezzi.join(' · ');
+      intro.insertBefore(p, intro.querySelector('label'));
+    }
+  }
+}
+
+function applicaVoceEtichetta(box, bottone, etichetta) {
+  const input = box.querySelector(MAPPA_CAMPO_INPUT[bottone.getAttribute('data-campo')] || '');
+  if (!input) return;
+  const valore = valoreVoceScelta(bottone);
+  input.value = valore;
+  input.setAttribute('data-origine', 'etichetta');
+  input.setAttribute('data-valore-etichetta', valore);
+  input.classList.add('registro-valore-da-etichetta');
+  input.style.background = '#fff3cd';
+  input.style.border = '1px solid #b8860b';
+  copiaAttributiVoce(bottone, input);
+  aggiornaFonteCampo(input, bottone);
+  segnaVoceScelta(bottone);
+  assicuratiDicitura(box, etichetta);
+}
+
+function toggleFraseEtichetta(bottone) {
+  const blocco = bottone.closest('.registro-blocco-fonte') || bottone.parentElement;
+  const span = blocco && blocco.querySelector('.registro-citazione');
+  if (!span) return;
+  const apri = !!span.hidden;
+  span.hidden = !apri;
+  span.style.display = apri ? 'block' : 'none';
+  if (apri) span.style.fontStyle = 'italic';
+  bottone.textContent = apri ? 'nascondi frase' : 'mostra frase';
+}
+
+/** Clic sulle voci d'etichetta e su «mostra frase». Stesso comportamento in ogni modulo. */
+export function attaccaScelteEtichetta(box, etichetta) {
+  if (!box) return;
+  box.querySelectorAll('.registro-voce-etichetta').forEach((b) => {
+    b.addEventListener('click', () => applicaVoceEtichetta(box, b, etichetta));
+  });
+  box.querySelectorAll('[data-mostra-frase]').forEach((b) => {
+    b.addEventListener('click', () => toggleFraseEtichetta(b));
+  });
 }
 
 export function attaccaLetturaScheda(opts) {
@@ -347,31 +801,25 @@ export function attaccaLetturaScheda(opts) {
         scriviEsitoScheda('<p>Indica prima il nome del prodotto.</p>');
         return;
       }
-      scriviEsitoScheda('<p>Cerco il prodotto negli open data del Ministero…</p>');
-      let esito = { prodotti: [], righe: [] };
-      try {
-        if (opts.leggiScheda) {
-          const richiesta = { nome, nomeProdotto: nome, specie: specie || '' };
-          const numeroCampo = numeroDalCampoProdotto(nome);
-          if (numeroCampo) {
-            richiesta.numero = numeroCampo;
-            richiesta.numeroRegistrazione = numeroCampo;
-          }
-          esito = await opts.leggiScheda(richiesta) || esito;
-        }
-      } catch (err) {
-        scriviEsitoScheda('<p>Gli open data non si leggono. Non invento numero, titolare, sostanze, avversità, carenza, numero massimo né intervallo.</p>');
-        return;
-      }
       const conferma = confermaSpecieSalvata(anag, specie);
-      const prodotti = Array.isArray(esito.prodotti) ? esito.prodotti : [];
-      const metaBase = {
+      const metaBaseDi = (esito) => ({
         fonte: esito.fonte || FONTE_OPEN_DATA_FITOSANITARI,
         dataLettura: esito.dataLettura || null,
         specie,
         nome,
         utente: opts.utente ? opts.utente() : ''
-      };
+      });
+      const esegui = async (richiesta) => {
+        scriviEsitoScheda('<p>Cerco il prodotto negli open data del Ministero…</p>');
+        let esito = { prodotti: [], righe: [] };
+        try {
+          if (opts.leggiScheda) esito = await opts.leggiScheda(richiesta) || esito;
+        } catch (err) {
+          scriviEsitoScheda('<p>Gli open data non si leggono. Non invento numero, titolare, sostanze, avversità, carenza, numero massimo né intervallo.</p>');
+          return;
+        }
+        const prodotti = Array.isArray(esito.prodotti) ? esito.prodotti : [];
+        const metaBase = metaBaseDi(esito);
       const applica = async (registro) => {
         if (opts.onConferma) opts.onConferma(idx, registro);
         if (opts.salvaSuProdotto && anag && anag.id) {
@@ -384,19 +832,82 @@ export function attaccaLetturaScheda(opts) {
           + '<p class="registro-avviso-etichetta">' + esc(AVVISO_ETICHETTA_FA_FEDE) + '</p>'
           + (quando ? '<p class="registro-attribuzione">' + htmlAttribuzioneOpenData(esito.dataLettura) + '</p>' : ''));
       };
-      const disegna = (indiceScelto) => {
+      const disegna = async (indiceScelto, extra) => {
+        const prodottoScelto = indiceScelto == null ? (prodotti.length === 1 ? prodotti[0] : null) : prodotti[indiceScelto];
+        let etichetta = null;
+        if (prodottoScelto && !prodottoBloccato(prodottoScelto)) {
+          const colturaRichiesta = extra && extra.coltura != null
+            ? extra.coltura
+            : ((conferma && conferma.riferimentoRiga && conferma.riferimentoRiga.colturaScheda)
+              || (conferma && conferma.specieUsata)
+              || specie
+              || '');
+          let scheda = null;
+          let vocabolario = null;
+          try {
+            scheda = await caricaSchedaEtichetta(prodottoScelto.numeroRegistrazione);
+            if (scheda) vocabolario = await caricaVocabolarioColture();
+          } catch (e) {
+            scheda = null;
+          }
+          let avversitaScelta;
+          if (extra && Object.prototype.hasOwnProperty.call(extra, 'avversitaScelta')) {
+            avversitaScelta = extra.avversitaScelta;
+          }
+          const dataRevisione = dataRevisioneOpenData(prodottoScelto);
+          etichetta = preparaEtichetta({
+            scheda,
+            coltura: colturaRichiesta,
+            vocabolario,
+            avversitaScelta,
+            dataRevisione
+          });
+          const forzaScelta = extra && Object.prototype.hasOwnProperty.call(extra, 'avversitaScelta');
+          const ignoraConferma = extra && extra.ignoraValoriConferma;
+          if (!forzaScelta && !ignoraConferma && conferma && conferma.avversita && etichetta.stato === 'pronto') {
+            const salvata = normalizzaNomeColtura(conferma.avversita);
+            const trovata = (etichetta.avversita || []).find((a) => normalizzaNomeColtura(a.testo) === salvata);
+            etichetta = preparaEtichetta({
+              scheda,
+              coltura: colturaRichiesta,
+              vocabolario,
+              avversitaScelta: trovata ? trovata.chiave : 'altra',
+              dataRevisione
+            });
+          }
+        }
         scriviEsitoScheda(htmlPannelloOpenData({
           esito,
           nome,
           specie,
-          conferma,
-          indiceScelto
+          conferma: extra && extra.ignoraValoriConferma ? null : conferma,
+          indiceScelto,
+          etichetta,
+          colturaBozza: extra && extra.coltura != null ? extra.coltura : undefined
         }));
         const box = document.getElementById('registro-scheda-esito');
         if (!box) return;
         box.querySelectorAll('[data-scegli-prodotto]').forEach((b) => {
           b.addEventListener('click', () => disegna(Number(b.getAttribute('data-scegli-prodotto'))));
         });
+        const sceltaAvversita = box.querySelector('.registro-avversita-scelta');
+        if (sceltaAvversita) {
+          sceltaAvversita.addEventListener('change', () => {
+            const coltura = box.querySelector('.registro-coltura')?.value || '';
+            disegna(indiceScelto, {
+              coltura,
+              avversitaScelta: sceltaAvversita.value,
+              ignoraValoriConferma: true
+            });
+          });
+        }
+        const campoColtura = box.querySelector('.registro-coltura');
+        if (campoColtura && etichetta) {
+          campoColtura.addEventListener('change', () => {
+            disegna(indiceScelto, { coltura: campoColtura.value, ignoraValoriConferma: true });
+          });
+        }
+        attaccaScelteEtichetta(box, etichetta);
         const bloccata = box.querySelector('[data-conferma-bloccata]');
         if (bloccata) {
           bloccata.addEventListener('click', () => {
@@ -413,8 +924,24 @@ export function attaccaLetturaScheda(opts) {
             applica(registroConfermaManuale(prodotto, leggiCampiAzienda(box), metaBase));
           });
         }
+        const riprova = box.querySelector('[data-riprova-numero]');
+        if (riprova) {
+          riprova.addEventListener('click', () => {
+            const numero = String(box.querySelector('.registro-numero-manuale')?.value || '').trim();
+            if (!numero) return;
+            esegui({
+              nome,
+              nomeProdotto: nome,
+              specie: specie || '',
+              numero,
+              numeroRegistrazione: numero
+            });
+          });
+        }
       };
       disegna(prodotti.length === 1 ? 0 : null);
+      };
+      await esegui(richiestaLetturaScheda({ nome, prodotto: anag, specie }));
     });
   });
 }

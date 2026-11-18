@@ -209,7 +209,11 @@
                 </div>
                 <div id="trattamento-operatore-group" class="form-group">
                     <label for="trattamento-operatore">Operatore *</label>
-                    <input type="text" id="trattamento-operatore" required placeholder="Nome operatore">
+                    <select id="trattamento-operatore" required>
+                        <option value="">— Seleziona —</option>
+                        <option value="__altro__">Altro</option>
+                    </select>
+                    <input type="text" id="trattamento-operatore-altro" autocomplete="off" placeholder="Nome operatore" style="display:none;margin-top:6px;">
                 </div>
                 <div id="trattamento-proprietario-message" class="form-group" style="display: none;">
                     <small style="color: #6c757d;">Lavoro svolto dal proprietario (modulo Manodopera non attivo).</small>

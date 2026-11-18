@@ -37,6 +37,41 @@ export function numeroFinito(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Un solo numero, con virgola o punto. Un intervallo («da 4 a 8», «4-8») non diventa il minimo. */
+export function numeroSingoloTesto(value) {
+  if (typeof value === 'number') return numeroFinito(value);
+  const t = String(value == null ? '' : value).trim().replace(/\s+/g, '');
+  if (!/^-?\d+(?:[.,]\d+)?$/.test(t)) return null;
+  return numeroFinito(t);
+}
+
+const CHIAVI_ORIGINE_VALORE = ['doseHa', 'doseHl', 'carenza', 'massimo', 'intervallo', 'avversita'];
+
+/** Origine etichetta o azienda, senza citazioni lunghe. Assente sui documenti vecchi. */
+export function normalizzaOrigineValori(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const out = {};
+  CHIAVI_ORIGINE_VALORE.forEach((chiave) => {
+    const v = raw[chiave];
+    if (!v || typeof v !== 'object') return;
+    if (v.origine !== 'etichetta' && v.origine !== 'azienda') return;
+    const voce = { origine: v.origine };
+    const pagina = numeroFinito(v.pagina);
+    if (pagina != null) voce.pagina = pagina;
+    if (v.idRiga != null && String(v.idRiga).trim()) voce.idRiga = String(v.idRiga).trim();
+    if (v.unita != null && String(v.unita).trim()) voce.unita = String(v.unita).trim();
+    if (v.condizione != null && String(v.condizione).trim()) voce.condizione = String(v.condizione).trim();
+    if (v.epoca != null && String(v.epoca).trim()) voce.epoca = String(v.epoca).trim();
+    if (v.periodo != null && String(v.periodo).trim()) voce.periodo = String(v.periodo).trim();
+    if (v.testo != null && String(v.testo).trim()) voce.testo = String(v.testo).trim();
+    if (v.nonNecessario === true) voce.nonNecessario = true;
+    out[chiave] = voce;
+  });
+  const dataEtichetta = raw.dataEtichetta != null ? String(raw.dataEtichetta).trim() : '';
+  if (dataEtichetta) out.dataEtichetta = dataEtichetta;
+  return Object.keys(out).length ? out : null;
+}
+
 export function arrotonda(value, decimals = 2) {
   const n = numeroFinito(value);
   if (n == null) return null;
@@ -86,7 +121,9 @@ export function campiConfermaRiga(raw = {}) {
     doseMaxHa: numeroFinito(raw.doseMaxHa),
     doseMinHl: numeroFinito(raw.doseMinHl),
     doseMaxHl: numeroFinito(raw.doseMaxHl),
-    unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null
+    unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null,
+    carenzaNonNecessaria: raw.carenzaNonNecessaria === true ? true : null,
+    origineValori: normalizzaOrigineValori(raw.origineValori)
   };
 }
 
@@ -347,6 +384,65 @@ export function righeSenzaCampiVuoti(prodotti) {
     });
     return out;
   });
+}
+
+/**
+ * Righe da mostrare in «Completa».
+ * Se la scheda non c'è, o ha solo la riga vuota, prende prodotti, dosi, quantità e acqua
+ * dalla miscela prevista sul lavoro. Una scheda già compilata non si tocca.
+ * Senza prodotti in miscela non inventa righe.
+ * @returns {{ daMiscela: boolean, prodotti: Array, acquaEttolitriPerEttaro: number|null, acquaEttolitriTotali: number|null }}
+ */
+export function prodottiSchedaDaMiscelaLavoro(lavoro, trattamento, superficieHa, anagrafica) {
+  const acquaDi = (src) => ({
+    acquaEttolitriPerEttaro: numeroFinito(src && src.acquaEttolitriPerEttaro),
+    acquaEttolitriTotali: numeroFinito(src && src.acquaEttolitriTotali)
+  });
+  const compilato = !!(trattamento && !trattamentoHaSoloRigaVuota(trattamento));
+  if (compilato) {
+    const salvati = Array.isArray(trattamento.prodotti) ? trattamento.prodotti : [];
+    const prodotti = salvati.length
+      ? salvati
+      : [{
+        prodottoId: null,
+        prodotto: trattamento.prodotto || '',
+        dosaggio: numeroFinito(trattamento.dosaggio),
+        costo: numeroFinito(trattamento.costoProdotto) || 0
+      }];
+    return { daMiscela: false, prodotti, ...acquaDi(trattamento) };
+  }
+  const da = righeTrattamentoDaMiscela(lavoro && lavoro.miscelaPrevista, superficieHa);
+  if (!da.prodotti.length) {
+    return {
+      daMiscela: false,
+      prodotti: [{ prodottoId: null, prodotto: '', dosaggio: null, costo: 0 }],
+      ...acquaDi(trattamento)
+    };
+  }
+  const conCosti = applicaCostiDaAnagrafica(da.prodotti, anagrafica);
+  return {
+    daMiscela: true,
+    prodotti: conCosti.prodotti,
+    acquaEttolitriPerEttaro: da.acquaEttolitriPerEttaro,
+    acquaEttolitriTotali: da.acquaEttolitriTotali
+  };
+}
+
+/**
+ * Testo dello stato vuoto di Trattamenti o Concimazioni.
+ * Senza Manodopera non cita Gestione Lavori: la CTA visibile è solo il Diario.
+ */
+export function testoStatoVuotoRegistro({ coltura, categoria, hasManodopera } = {}) {
+  const concimazione = String(categoria || '') === 'concimazione';
+  const nomeCategoria = concimazione ? 'Concimazione' : 'Trattamenti';
+  const dove = `sul terreno a ${coltura || 'orticole'} già collegato a una campagna`;
+  const dopo = concimazione
+    ? 'Poi torna in questa pagina e premi Completa per inserire prodotto e dose.'
+    : 'Poi torna in questa pagina e premi Completa per inserire prodotto, dose e Leggi scheda.';
+  if (hasManodopera) {
+    return `Registra un'attività nel Diario oppure un lavoro con Nuovo lavoro in Gestione Lavori, di categoria ${nomeCategoria}, ${dove}. ${dopo}`;
+  }
+  return `Registra un'attività nel Diario, di categoria ${nomeCategoria}, ${dove}. ${dopo}`;
 }
 
 /** Vero se il trattamento ha ancora solo la riga prodotto vuota (nessun dato reale da proteggere). */

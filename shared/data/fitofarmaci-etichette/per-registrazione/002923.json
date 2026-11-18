@@ -1,0 +1,644 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "002923",
+ "nome_prodotto": "TIOVIT JET",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "002923-00089",
+   "coltura": "Vite (pieno campo)",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysiphe necator)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": "medio-bassa pressione della malattia",
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … 2 - 4 … Medio-bassa … pressione della",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 6.0,
+     "max": 8.0,
+     "unita": "kg/ha",
+     "condizione": "alta pressione della malattia",
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … 6 - 8 … Alta pressione",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.4,
+     "unita": "kg/hl",
+     "condizione": "medio-bassa pressione della malattia",
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … 0,2 – 0,4 … Medio-bassa … pressione della",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 0.6,
+     "max": 0.8,
+     "unita": "kg/hl",
+     "condizione": "alta pressione della malattia",
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … 0,6 – 0,8 … Alta pressione",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 10,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 10 … applicazioni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00090",
+   "coltura": "Pomacee (pieno campo)",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Oidio (Podosphaera leucotricha)",
+   "epoca": "pre-fioritura",
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 9.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … leucotricha) … 6 - 9 … Massimo 14 … trattamenti in … pre-fioritura",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.6,
+     "max": 0.6,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … Oidio … (Podosphaera … leucotricha) … 0,6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 14 … trattamenti in … pre-fioritura",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00091",
+   "coltura": "Pomacee (pieno campo)",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Oidio (Podosphaera leucotricha)",
+   "epoca": "post-fioritura",
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 4.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … 3 - 4,5 … Massimo 14 … trattamenti in … post-fioritura",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.3,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … 0,2 – 0,3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 14 … trattamenti in … post-fioritura",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00092",
+   "coltura": "Drupacee (pieno campo)",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Oidio (Sphaerotheca pannosa)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 9.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … 3 - 9 … Utilizzare la",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.6,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … pannosa) … 0,2 – 0,6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 6 … applicazioni ad",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00093",
+   "coltura": "Nocciolo (pieno campo)",
+   "colture": [
+    "nocciolo"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Phyllactinia guttata, Phyllactinia suffulta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … 3 – 7,5 … Massimo 14 … trattamenti",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.5,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … suffulta) … 0,2 – 0,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 14 … trattamenti … dalla prima … foglia distesa a",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 10,
+     "max": 12,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "foglia distesa a … intervalli di 10- … 12 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00094",
+   "coltura": "Nocciolo (pieno campo)",
+   "colture": [
+    "nocciolo"
+   ],
+   "gruppo": null,
+   "avversita": "Eriofide (Phytoptus avellanae)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … 3 – 7,5 … Massimo 14 … trattamenti",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.5,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … suffulta) … 0,2 – 0,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 14 … trattamenti … dalla prima … foglia distesa a",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 10,
+     "max": 12,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "foglia distesa a … intervalli di 10- … 12 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00095",
+   "coltura": "Barbabietola da zucchero (pieno campo)",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysiphe betae)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 8.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … betae) … 2 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … betae) … 2 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 2 … applicazioni ad … un intervallo di … 20 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 20,
+     "max": 20,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 2 … applicazioni ad … un intervallo di … 20 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00096",
+   "coltura": "Cereali (pieno campo)",
+   "colture": [
+    "frumento tenero",
+    "frumento duro",
+    "orzo",
+    "avena",
+    "segale",
+    "triticale",
+    "farro"
+   ],
+   "gruppo": "cereali",
+   "avversita": "Oidio (Erysiphe graminis)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 8.0,
+     "max": 8.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … graminis) … 2 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … graminis) … 2 … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00097",
+   "coltura": "Ortaggi (pieno campo e serra)",
+   "colture": [
+    "ortaggi"
+   ],
+   "gruppo": "ortaggi",
+   "avversita": "Oidio (Oidium spp)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo e serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … Ortaggi … 1,5 - 5 … Massimo 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.15,
+     "max": 0.5,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … Ortaggi … 0,15 – … 0,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 6 … trattamenti ad … intervalli di 7- … 10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Massimo 6 … trattamenti ad … intervalli di 7- … 10 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00098",
+   "coltura": "Fragola (pieno campo e serra)",
+   "colture": [
+    "fragola"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Sphaerotheca macularis)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo e serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … Fragola … 2 - 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.2,
+     "max": 0.5,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … Fragola … macularis) … 0,2 – 0,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "002923-00099",
+   "coltura": "Floricole e Ornamentali (pieno campo e serra)",
+   "colture": [
+    "floreali e ornamentali"
+   ],
+   "gruppo": "floreali e ornamentali",
+   "avversita": "Oidio (Oidium spp)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [
+    "pieno campo e serra"
+   ],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/ha) … Ornamentali … 1,5 - 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 0.15,
+     "max": 0.5,
+     "unita": "kg/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dosi … (kg/hl)* … Floricole e … Ornamentali … 0,15 – 0,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "SYNGENTA ITALIA S.P.A.",
+ "data_etichetta": "28/09/2026",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 2923",
+ "etichetta_id": "47045"
+}

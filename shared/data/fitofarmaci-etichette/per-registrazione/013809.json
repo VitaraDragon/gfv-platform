@@ -1,0 +1,225 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "013809",
+ "nome_prodotto": "FORCE ULTRA",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "013809-01889",
+   "coltura": "Mais",
+   "colture": [
+    "mais"
+   ],
+   "gruppo": null,
+   "avversita": "Diabrotica spp.",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 12.2,
+     "max": 12.2,
+     "unita": "kg/ha",
+     "condizione": "distanza interfila 75 cm; trattamento lungo la fila",
+     "pagina": 1,
+     "citazione": "Dose … kg/ha … Mais … Diabrotica … spp. … 12,2 … 91,5 … (distanza interfila 75",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "013809-01890",
+   "coltura": "Mais",
+   "colture": [
+    "mais"
+   ],
+   "gruppo": null,
+   "avversita": "Agriotes spp.",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 7.0,
+     "max": 12.2,
+     "unita": "kg/ha",
+     "condizione": "distanza interfila 75 cm; trattamento lungo la fila",
+     "pagina": 1,
+     "citazione": "Dose … kg/ha … Agriotes spp … 7 – 12,2 … 52,5 – 91,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "013809-01891",
+   "coltura": "Barbabietola da zucchero",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Agriotes spp.",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "distanza interfila 45 cm; trattamento lungo la fila",
+     "pagina": 1,
+     "citazione": "Dose … kg/ha … Barbabietola … da zucchero … Tipula spp. … 4 - 5 … 18,0 – 22,5 … (distanza interfila 45",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "013809-01892",
+   "coltura": "Barbabietola da zucchero",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Atomaria linearis",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "distanza interfila 45 cm; trattamento lungo la fila",
+     "pagina": 1,
+     "citazione": "Dose … kg/ha … Barbabietola … da zucchero … Tipula spp. … 4 - 5 … 18,0 – 22,5 … (distanza interfila 45",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "013809-01893",
+   "coltura": "Barbabietola da zucchero",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Chaetocnema tibialis",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "distanza interfila 45 cm; trattamento lungo la fila",
+     "pagina": 1,
+     "citazione": "Dose … kg/ha … Barbabietola … da zucchero … Tipula spp. … 4 - 5 … 18,0 – 22,5 … (distanza interfila 45",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "013809-01894",
+   "coltura": "Barbabietola da zucchero",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Scutigerella immaculata",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "distanza interfila 45 cm; trattamento lungo la fila",
+     "pagina": 1,
+     "citazione": "Dose … kg/ha … Barbabietola … da zucchero … Tipula spp. … 4 - 5 … 18,0 – 22,5 … (distanza interfila 45",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "013809-01895",
+   "coltura": "Barbabietola da zucchero",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Tipula spp.",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "distanza interfila 45 cm; trattamento lungo la fila",
+     "pagina": 1,
+     "citazione": "Dose … kg/ha … Barbabietola … da zucchero … Tipula spp. … 4 - 5 … 18,0 – 22,5 … (distanza interfila 45",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "SYNGENTA ITALIA S.P.A.",
+ "data_etichetta": "22/06/2024",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 13809",
+ "etichetta_id": "42686"
+}

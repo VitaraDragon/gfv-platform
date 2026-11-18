@@ -1,0 +1,3476 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "015326",
+ "nome_prodotto": "CUPROTEK DISPERSS",
+ "colture_non_estratte": [
+  "actinidia",
+  "asparago",
+  "bietola",
+  "carciofo",
+  "carota",
+  "castagno",
+  "cavoletti di bruxelles",
+  "cavolfiore",
+  "cavolo broccolo",
+  "cetriolino",
+  "cetriolo",
+  "ciliegio",
+  "cocomero",
+  "crescione",
+  "dolcetta",
+  "fagiolino",
+  "fagiolo",
+  "indivia",
+  "lattuga",
+  "lenticchia",
+  "melanzana",
+  "melone",
+  "nettarina",
+  "nocciolo",
+  "noce",
+  "peperone",
+  "pesco",
+  "pisello",
+  "pisello mangiatutto",
+  "rapa",
+  "ravanello",
+  "rucola",
+  "scarola",
+  "sedano",
+  "sedano rapa",
+  "zucca",
+  "zucchino"
+ ],
+ "righe": [
+  {
+   "id": "015326-02089",
+   "coltura": "Vite da vino",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Plasmopara viticola)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … VITE DA VINO E … DA TAVOLA … Peronospora (Plasmopara … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … VITE DA VINO E … DA TAVOLA … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … VITE DA VINO E … minimo: 5 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE DA VINO E … 2,0-6,0 … 200-600 … Intervallo … minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02090",
+   "coltura": "Vite da vino",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Elsinoe ampelina, Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … VITE DA VINO E … DA TAVOLA … Peronospora (Plasmopara … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … VITE DA VINO E … DA TAVOLA … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … VITE DA VINO E … minimo: 5 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE DA VINO E … 2,0-6,0 … 200-600 … Intervallo … minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02091",
+   "coltura": "Vite da vino",
+   "colture": [
+    "vite da vino"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … VITE DA VINO E … DA TAVOLA … Peronospora (Plasmopara … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … VITE DA VINO E … DA TAVOLA … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … VITE DA VINO E … minimo: 5 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE DA VINO E … 2,0-6,0 … 200-600 … Intervallo … minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02092",
+   "coltura": "Vite da tavola",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Plasmopara viticola)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … VITE DA VINO E … DA TAVOLA … Peronospora (Plasmopara … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … VITE DA VINO E … DA TAVOLA … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … VITE DA VINO E … minimo: 5 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE DA VINO E … 2,0-6,0 … 200-600 … Intervallo … minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02093",
+   "coltura": "Vite da tavola",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Elsinoe ampelina, Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … VITE DA VINO E … DA TAVOLA … Peronospora (Plasmopara … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … VITE DA VINO E … DA TAVOLA … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … VITE DA VINO E … minimo: 5 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE DA VINO E … 2,0-6,0 … 200-600 … Intervallo … minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02094",
+   "coltura": "Vite da tavola",
+   "colture": [
+    "vite da tavola"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … VITE DA VINO E … DA TAVOLA … Peronospora (Plasmopara … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … VITE DA VINO E … DA TAVOLA … 2,0-6,0 … 200-600",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … VITE DA VINO E … minimo: 5 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE DA VINO E … 2,0-6,0 … 200-600 … Intervallo … minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02095",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia spp.)",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02096",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02097",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria spp.)",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02098",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Maculatura bruna (Stemphylium vesicarium)",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02099",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia spp.)",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02100",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02101",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria spp.)",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02102",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Maculatura bruna (Stemphylium vesicarium)",
+   "epoca": "da mazzetti divaricati a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … Ticchiolatura (Venturia … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 50.0,
+     "max": 330.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 1,0-5,0 … 50-330 … Da mazzetti divaricati a raccolta",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "POMACEE* … Da mazzetti divaricati a raccolta … … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02103",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia spp.)",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02104",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02105",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria spp.)",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02106",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "Maculatura bruna (Stemphylium vesicarium)",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02107",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Ticchiolatura (Venturia spp.)",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02108",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02109",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Cancri rameali (Nectria spp.)",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02110",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "Maculatura bruna (Stemphylium vesicarium)",
+   "epoca": "dalla caduta delle foglie alla comparsa dei mazzetti fiorali",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … POMACEE* … 2,5-7,5 … 170-500 … Dall’inizio della caduta delle foglie alla",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02111",
+   "coltura": "Agrumi",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Allupatura (Phytophthora spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … AGRUMI … Allupatura (Phytophthora … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 250.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02112",
+   "coltura": "Agrumi",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Alternaria (Alternaria spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … AGRUMI … Allupatura (Phytophthora … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 250.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02113",
+   "coltura": "Agrumi",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (kg/ha) … AGRUMI … Allupatura (Phytophthora … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 200.0,
+     "max": 250.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Dose … (g/hL) … AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo di … sicurezza … (giorni) … AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "AGRUMI … 4,0-5,0 … 200-250 … Intervallo minimo: 5 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02114",
+   "coltura": "Olivo",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Occhio di pavone (Spilocaea oleaginea)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … OLIVO … Occhio di pavone … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 400.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 14,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02115",
+   "coltura": "Olivo",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Lebbra (Gloeosporium olivarum)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … OLIVO … Occhio di pavone … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 400.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 14,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02116",
+   "coltura": "Olivo",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi (Pseudomonas savastanoi)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … OLIVO … Occhio di pavone … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 170.0,
+     "max": 400.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 14,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "OLIVO … 2,5-6,0 … 170-400 … Intervallo minimo: 14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02117",
+   "coltura": "Pomodoro da mensa",
+   "colture": [
+    "pomodoro da mensa"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02118",
+   "coltura": "Pomodoro da mensa",
+   "colture": [
+    "pomodoro da mensa"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria solani)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02119",
+   "coltura": "Pomodoro da mensa",
+   "colture": [
+    "pomodoro da mensa"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02120",
+   "coltura": "Pomodoro da mensa",
+   "colture": [
+    "pomodoro da mensa"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … MENSA (serra e … pieno campo) … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02121",
+   "coltura": "Pomodoro da industria",
+   "colture": [
+    "pomodoro da industria"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02122",
+   "coltura": "Pomodoro da industria",
+   "colture": [
+    "pomodoro da industria"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria solani)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02123",
+   "coltura": "Pomodoro da industria",
+   "colture": [
+    "pomodoro da industria"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02124",
+   "coltura": "Pomodoro da industria",
+   "colture": [
+    "pomodoro da industria"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 250.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 10,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … POMODORO DA … INDUSTRIA … 2,5-5,0 … 250-500 … Intervallo minimo: 5 giorni … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02125",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Phytophthora infestans)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02126",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria solani)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02127",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02128",
+   "coltura": "Patata",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (kg/ha) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Dose … (g/hL) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo di … sicurezza … (giorni) … PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PATATA ED … 3,4-6,0 … 340-600 … Intervallo minimo: 7 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02129",
+   "coltura": "Cipolla",
+   "colture": [
+    "cipolla"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Peronospora destructor)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02130",
+   "coltura": "Cipolla",
+   "colture": [
+    "cipolla"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02131",
+   "coltura": "Cipolla",
+   "colture": [
+    "cipolla"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02132",
+   "coltura": "Cipolla",
+   "colture": [
+    "cipolla"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02133",
+   "coltura": "Cipolla",
+   "colture": [
+    "cipolla"
+   ],
+   "gruppo": null,
+   "avversita": "Stemfiliosi (Stemphyllium)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02134",
+   "coltura": "Aglio",
+   "colture": [
+    "aglio"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Peronospora destructor)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02135",
+   "coltura": "Aglio",
+   "colture": [
+    "aglio"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02136",
+   "coltura": "Aglio",
+   "colture": [
+    "aglio"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02137",
+   "coltura": "Aglio",
+   "colture": [
+    "aglio"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02138",
+   "coltura": "Aglio",
+   "colture": [
+    "aglio"
+   ],
+   "gruppo": null,
+   "avversita": "Stemfiliosi (Stemphyllium)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02139",
+   "coltura": "Scalogno",
+   "colture": [
+    "scalogno"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Peronospora destructor)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02140",
+   "coltura": "Scalogno",
+   "colture": [
+    "scalogno"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02141",
+   "coltura": "Scalogno",
+   "colture": [
+    "scalogno"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02142",
+   "coltura": "Scalogno",
+   "colture": [
+    "scalogno"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02143",
+   "coltura": "Scalogno",
+   "colture": [
+    "scalogno"
+   ],
+   "gruppo": null,
+   "avversita": "Stemfiliosi (Stemphyllium)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02144",
+   "coltura": "Cipollina",
+   "colture": [
+    "cipollina"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Peronospora destructor)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02145",
+   "coltura": "Cipollina",
+   "colture": [
+    "cipollina"
+   ],
+   "gruppo": null,
+   "avversita": "Alternaria (Alternaria spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02146",
+   "coltura": "Cipollina",
+   "colture": [
+    "cipollina"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02147",
+   "coltura": "Cipollina",
+   "colture": [
+    "cipollina"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02148",
+   "coltura": "Cipollina",
+   "colture": [
+    "cipollina"
+   ],
+   "gruppo": null,
+   "avversita": "Stemfiliosi (Stemphyllium)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.4,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 340.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … Cipolla, Aglio, … 3,4-5,0 … 340-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02149",
+   "coltura": "Fragola",
+   "colture": [
+    "fragola"
+   ],
+   "gruppo": null,
+   "avversita": "Vaiolatura rossa (Mycosphaerella spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.75,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 380.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02150",
+   "coltura": "Fragola",
+   "colture": [
+    "fragola"
+   ],
+   "gruppo": null,
+   "avversita": "Antracnosi (Colletotrichum spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.75,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 380.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02151",
+   "coltura": "Fragola",
+   "colture": [
+    "fragola"
+   ],
+   "gruppo": null,
+   "avversita": "Batteriosi (Xanthomonas spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.75,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 380.0,
+     "max": 500.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 3,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … FRAGOLA (pieno … 3,75-5,0 … 380-500 … Intervallo minimo: 5 giorni … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015326-02152",
+   "coltura": "Barbabietola da zucchero",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Cercospora (Cercospora beticola)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 5.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (kg/ha) … BARBABIETOLA … Cercospora (Cercospora … 5,0-6,0 … 500-600 … Intervallo minimo: 5 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 500.0,
+     "max": 600.0,
+     "unita": "g/hl",
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Dose … (g/hL) … BARBABIETOLA … 5,0-6,0 … 500-600 … Intervallo minimo: 5 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 3,
+     "citazione": "Intervallo di … sicurezza … (giorni) … BARBABIETOLA … 5,0-6,0 … 500-600 … Intervallo minimo: 5 giorni … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "UPL HOLDINGS COÃPERATIEF U.A.",
+ "data_etichetta": "30/11/2022",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 15326",
+ "etichetta_id": "39651"
+}

@@ -78,6 +78,7 @@ function renderKpi(rows) {
   setText('kpi-produzione', qli(tot.produzioneQli));
   setText('kpi-resa-effettiva', qli(tot.resaEffettivaQliHa));
   setText('kpi-resa-prevista', qli(tot.resaPrevistaMediaQliHa));
+  setText('kpi-acqua', qli(tot.acquaM3));
   setText('kpi-costo', euro(tot.costoTotale));
   setText('kpi-prodotti', euro(tot.costoProdotti));
   setText('kpi-lavori', euro((Number(tot.costoManodopera) || 0) + (Number(tot.costoMacchine) || 0)));
@@ -101,7 +102,8 @@ function renderTable(rows) {
     costoManodopera: row.costoManodopera,
     costoMacchine: row.costoMacchine,
     costoProdotti: row.costoProdotti,
-    costoTotale: row.costoTotale
+    costoTotale: row.costoTotale,
+    acquaM3: row.acquaM3
   }));
   publishOrticoleTableData({
     pageType: 'statistiche_orticole',
@@ -124,6 +126,7 @@ function renderTable(rows) {
     <td>${qli(row.produzioneQli)}</td>
     <td>${qli(row.resaPrevistaQliHa)}</td>
     <td>${qli(row.resaEffettivaQliHa)}</td>
+    <td>${qli(row.acquaM3)}</td>
     <td>${euro(row.costoManodopera)}</td>
     <td>${euro(row.costoMacchine)}</td>
     <td>${euro(row.costoProdotti)}</td>

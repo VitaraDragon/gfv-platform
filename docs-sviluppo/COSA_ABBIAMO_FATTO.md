@@ -1,6 +1,56 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-16 — modulo Orticole Fase 1 (pieno campo).**
+**Ultimo aggiornamento documentazione: 2026-11-17 — valori d'etichetta v3.**
+
+## 2026-11-17 — valori d'etichetta v3
+
+Su `feat/etichette-valori-v3` (PR verso develop). Nessun merge, nessun deploy.
+
+Sostituiti indice, vocabolario, README e i 58 file in `shared/data/fitofarmaci-etichette/per-registrazione/` con l'export v3. Stessi campi di prima, senza `url_etichetta`. Il pannello non cambia. FOLPAN 80 WDG (8601) su vite da vino, peronospora, mostra la dose 1,25-1,5 kg/ha e 125-150 g/hl come riga da scegliere, carenza 28 giorni, massimo 10 e intervallo 7-10 giorni, tutti da etichetta pag. 1. Su vite da tavola la carenza è 56 giorni e il massimo 4 con clima siccitoso. Sivanto su fagiolino, Thiopron su rosa e «da ricontrollare» restano verdi.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — clic sulle voci di «Leggi scheda».**
+
+## 2026-11-17 — «Leggi scheda»: il clic sulla voce riempie il campo
+
+Su `fix/leggi-scheda-scelta-voce` (PR verso develop). Nessun merge, nessun deploy.
+
+Se carenza o numero massimo hanno più righe, il clic scrive il valore letto da `data-valore-etichetta`, evidenzia il campo e segna la riga scelta. Una voce «non necessaria» lascia il campo vuoto, mostra «non necessaria, da etichetta» e salva `nonNecessario` in `origineValori`, senza scrivere 0. «mostra frase» apre la citazione in un blocco sotto la voce e il pulsante diventa «nascondi frase». GFV non sceglie la riga al posto dell'azienda.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — diciture etichetta e niente link al Ministero.**
+
+## 2026-11-17 — etichette aggiornate, senza link al sito del Ministero
+
+Su `feat/leggi-scheda-valori-etichetta` (PR #424 verso develop). Nessun merge, nessun deploy.
+
+Sostituiti i 58 file `per-registrazione`: `colture_non_estratte` compilato dove mancava, campi fonte, titolare, date ed etichetta id; tolto `url_etichetta`. Indice, vocabolario e README identici allo zip. Nel pannello il riferimento al Ministero è solo testo («Reg. n. X, consultabile su fitosanitari.salute.gov.it»). I valori riempiti portano fonte, titolare, date e l'avviso che l'estrazione può contenere errori; restano evidenziati fino a Conferma. Il CSV `PROD_FTS_6_20261116` non ha una data di variazione o revisione: si salva comunque `dataEtichetta` in `origineValori`. La clausola sui Termini non è stata scritta: l'unica pagina è il segnaposto in landing, e la versione resta `termini-b2b-0000-00-00`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — valori d'etichetta in «Leggi scheda».**
+
+## 2026-11-17 — «Leggi scheda» riempie i campi dall'etichetta
+
+Su `feat/leggi-scheda-valori-etichetta` (PR verso develop). Nessun merge, nessun promote, nessun deploy.
+
+Dopo il numero di registrazione, il form del registro (vigneto, frutteto, seminativo, orticole) carica solo `shared/data/fitofarmaci-etichette/per-registrazione/<numero>.json`. Dose per ha e per hl si scrivono da sole se la voce è una sola e non è un intervallo; carenza, numero massimo e intervallo con più condizioni restano da scegliere. Ogni valore porta pagina e frase. L'azienda conferma. Un prodotto revocato, scaduto o sospeso non si riempie. GFV non consiglia dosi.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-17 — fix Orticole ciclo 1 (Uso Reale).**
+
+## 2026-11-17 — Orticole ciclo 1: trattamenti, categoria Ortive, acqua
+
+Su `cursor/orticole-fix-ciclo1` (PR verso develop). Nessun merge, nessun deploy.
+
+Trattamenti e Concimazioni orticole non partivano: l'import nominava `chiediRiletturaScheda` e `leggiRigheSchedaProdotto`, tolte dal client scheda. Allineato al seminativo (`leggiSchedaRegistroTrattamento`) e, se il caricamento fallisce, `#loading` si nasconde con un messaggio nello stato vuoto. Filtro Categoria dei terreni: `Ortive` da `famigliaColtura` (anche `colturaCategoria`). Statistiche orticole: KPI e colonna Acqua (m³) da `irrigazioniOrticole`, senza sommare i costi irrigui. Test `named-imports-exist` sugli import nominati relativi.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-16 — modulo Orticole Fase 1 (pieno campo).**
 
 ## 2026-11-16 — Modulo Orticole Fase 1 (pieno campo)
 

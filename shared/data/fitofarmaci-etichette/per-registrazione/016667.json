@@ -1,0 +1,671 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "016667",
+ "nome_prodotto": "REVOLUTION",
+ "colture_non_estratte": [
+  "carciofo",
+  "kaki",
+  "olivo",
+  "patata",
+  "pomodoro"
+ ],
+ "righe": [
+  {
+   "id": "016667-02468",
+   "coltura": "Vite",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "VITE … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con circa … 200-400 litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 1.0,
+     "max": 1.0,
+     "unita": "l/ha",
+     "condizione": "infestanti e/o polloni ai primi stadi di sviluppo",
+     "pagina": 2,
+     "citazione": "Nel controllo … delle infestanti e/o polloni ai primi stadi di sviluppo è possibile ridurre la … dose fino a 1 L/ha Sono ammessi al massimo 2 trattamenti all'anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Sospendere i trattamenti: … 14 giorni per vite",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "dose fino a 1 L/ha Sono ammessi al massimo 2 trattamenti all'anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 20,
+     "max": 20,
+     "condizione": "eventuale ripetizione sulle riemissioni dei polloni",
+     "pagina": 2,
+     "citazione": "Ripetere … eventualmente … sulle … riemissioni dei polloni dopo 20 giorni con le stesse modalità",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02469",
+   "coltura": "Melo",
+   "colture": [
+    "melo"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02470",
+   "coltura": "Pero",
+   "colture": [
+    "pero"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02471",
+   "coltura": "Cotogno",
+   "colture": [
+    "cotogno"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02472",
+   "coltura": "Nespolo",
+   "colture": [
+    "nespolo"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02473",
+   "coltura": "Pesco",
+   "colture": [
+    "pesco"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02474",
+   "coltura": "Nettarine",
+   "colture": [
+    "nettarina"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02475",
+   "coltura": "Albicocco",
+   "colture": [
+    "albicocco"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02476",
+   "coltura": "Ciliegio",
+   "colture": [
+    "ciliegio"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02477",
+   "coltura": "Susino",
+   "colture": [
+    "susino"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02478",
+   "coltura": "Nocciolo",
+   "colture": [
+    "nocciolo"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02479",
+   "coltura": "Noce",
+   "colture": [
+    "noce"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02480",
+   "coltura": "Mandorlo",
+   "colture": [
+    "mandorlo"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02481",
+   "coltura": "Kiwi",
+   "colture": [
+    "actinidia"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMACEE (Melo, Pero, Cotogno, Nespole,etc.),DRUPACEE (Pesco, … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 300 … litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno, cachi, kiwi e olivo",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "polloni dopo 20 giorni (15 per kiwi) con le stesse modalità Nel controllo … delle infestanti ai primi stadi di sviluppo è possibile ridurre la dose fino a I … L/ha Sono ammessi al massimo 2 trattamenti all'anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "016667-02482",
+   "coltura": "Melograno",
+   "colture": [
+    "melograno"
+   ],
+   "gruppo": null,
+   "avversita": "polloni e infestanti",
+   "epoca": null,
+   "modalita": "spollonante e diserbante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 2.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "MELOGRANO … Spollonante e diserbante: impiegare 2 L/ha di prodotto distribuiti con 200- … 400 litri di acqua per ettaro",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "7 giorni prima della raccolta per la patata per l'impiego come disseccante, pomacee, drupacee, frutta a guscio, agrumi, melograno",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "MELOGRANO … sviluppo è possibile ridurre la dose fino a 1L/ha Sono ammessi al massimo … 2 trattamenti all'anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "NICHINO EUROPE CO LTD",
+ "data_etichetta": "15/09/2026",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 16667",
+ "etichetta_id": "47268"
+}

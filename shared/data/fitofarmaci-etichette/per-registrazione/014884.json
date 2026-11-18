@@ -1,0 +1,553 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "014884",
+ "nome_prodotto": "CORUM",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "014884-02010",
+   "coltura": "Fagiolo",
+   "colture": [
+    "fagiolo"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": "post-emergenza precoce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.25,
+     "unita": "l/ha",
+     "condizione": "una sola applicazione",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 0.62,
+     "max": 0.62,
+     "unita": "l/ha",
+     "condizione": "due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": "con la dose di 1,25 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": "con la dose di 0,62 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 14,
+     "condizione": "con due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": [
+    {
+     "min": 200.0,
+     "max": 300.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Trattare in post-emergenza precoce, quando la coltura ha raggiunto lo stadio di 2a foglia … Usare volumi d’acqua di … 200-300 L/ha.",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ]
+  },
+  {
+   "id": "014884-02011",
+   "coltura": "Fagiolino",
+   "colture": [
+    "fagiolino"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": "post-emergenza precoce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.25,
+     "unita": "l/ha",
+     "condizione": "una sola applicazione",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 0.62,
+     "max": 0.62,
+     "unita": "l/ha",
+     "condizione": "due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": "con la dose di 1,25 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": "con la dose di 0,62 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 14,
+     "condizione": "con due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": [
+    {
+     "min": 200.0,
+     "max": 300.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Trattare in post-emergenza precoce, quando la coltura ha raggiunto lo stadio di 2a foglia … Usare volumi d’acqua di … 200-300 L/ha.",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ]
+  },
+  {
+   "id": "014884-02012",
+   "coltura": "Fava",
+   "colture": [
+    "fava"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": "post-emergenza precoce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.25,
+     "unita": "l/ha",
+     "condizione": "una sola applicazione",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 0.62,
+     "max": 0.62,
+     "unita": "l/ha",
+     "condizione": "due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": "con la dose di 1,25 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": "con la dose di 0,62 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 14,
+     "condizione": "con due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": [
+    {
+     "min": 200.0,
+     "max": 300.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Trattare in post-emergenza precoce, quando la coltura ha raggiunto lo stadio di 2a foglia … Usare volumi d’acqua di … 200-300 L/ha.",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ]
+  },
+  {
+   "id": "014884-02013",
+   "coltura": "Favino",
+   "colture": [
+    "favino"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": "post-emergenza precoce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.25,
+     "unita": "l/ha",
+     "condizione": "una sola applicazione",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 0.62,
+     "max": 0.62,
+     "unita": "l/ha",
+     "condizione": "due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": "con la dose di 1,25 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": "con la dose di 0,62 l/ha",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 14,
+     "condizione": "con due applicazioni",
+     "pagina": 1,
+     "citazione": "Fagiolo, fagiolino, fava e favino: … (oppure due applicazioni a 0.62 L/ha – intervallo minimo fra le applicazioni: 7- … 14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": [
+    {
+     "min": 200.0,
+     "max": 300.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Trattare in post-emergenza precoce, quando la coltura ha raggiunto lo stadio di 2a foglia … Usare volumi d’acqua di … 200-300 L/ha.",
+     "da_regola_generale": false,
+     "stato": "deciso_dal_terzo"
+    }
+   ]
+  },
+  {
+   "id": "014884-02014",
+   "coltura": "Pisello",
+   "colture": [
+    "pisello"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": "post-emergenza precoce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.25,
+     "unita": "l/ha",
+     "condizione": "una sola applicazione",
+     "pagina": 1,
+     "citazione": "Pisello: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 0.62,
+     "max": 0.62,
+     "unita": "l/ha",
+     "condizione": "due applicazioni",
+     "pagina": 1,
+     "citazione": "Pisello: una sola applicazione alla dose di 1,25 L/ha (oppure due applicazioni … a 0.62 L/ha – intervallo minimo fra le applicazioni: 7-14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": "con la dose di 1,25 l/ha",
+     "pagina": 1,
+     "citazione": "Pisello: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": "con la dose di 0,62 l/ha",
+     "pagina": 1,
+     "citazione": "Pisello: una sola applicazione alla dose di 1,25 L/ha (oppure due applicazioni … a 0.62 L/ha – intervallo minimo fra le applicazioni: 7-14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 14,
+     "condizione": "con due applicazioni",
+     "pagina": 1,
+     "citazione": "Pisello: una sola applicazione alla dose di 1,25 L/ha (oppure due applicazioni … a 0.62 L/ha – intervallo minimo fra le applicazioni: 7-14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014884-02015",
+   "coltura": "Erba medica",
+   "colture": [
+    "erba medica"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": "primavera",
+   "modalita": "dal secondo anno d'impianto",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.25,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Erba medica: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "014884-02016",
+   "coltura": "Soia",
+   "colture": [
+    "soia"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": "post-emergenza precoce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.875,
+     "max": 1.875,
+     "unita": "l/ha",
+     "condizione": "una sola applicazione",
+     "pagina": 1,
+     "citazione": "Soia: una sola applicazione alla dose di 1,875 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 0.95,
+     "max": 0.95,
+     "unita": "l/ha",
+     "condizione": "due applicazioni",
+     "pagina": 1,
+     "citazione": "Soia: una sola applicazione alla dose di 1,875 L/ha (oppure due applicazioni … a 0.95 L/ha – intervallo minimo fra le applicazioni: 7-14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": "con la dose di 1,875 l/ha",
+     "pagina": 1,
+     "citazione": "Soia: una sola applicazione alla dose di 1,875 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "numero": 2,
+     "periodo": null,
+     "condizione": "con la dose di 0,95 l/ha",
+     "pagina": 1,
+     "citazione": "Soia: una sola applicazione alla dose di 1,875 L/ha (oppure due applicazioni … a 0.95 L/ha – intervallo minimo fra le applicazioni: 7-14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 14,
+     "condizione": "con due applicazioni",
+     "pagina": 1,
+     "citazione": "Soia: una sola applicazione alla dose di 1,875 L/ha (oppure due applicazioni … a 0.95 L/ha – intervallo minimo fra le applicazioni: 7-14 giorni)",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "014884-02017",
+   "coltura": "Trifoglio da seme",
+   "colture": [
+    "trifoglio"
+   ],
+   "gruppo": null,
+   "avversita": "(elenco generale dell'etichetta)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.25,
+     "max": 1.25,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Trifoglio da seme: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Trifoglio da seme: una sola applicazione alla dose di 1,25 L/ha",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "BASF AGRICULTURAL SOLUTIONS ITALY S.R.L.",
+ "data_etichetta": "22/06/2026",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 14884",
+ "etichetta_id": "46555"
+}

@@ -11,6 +11,7 @@ import {
   SeminativoTrattamento,
   selezionaRigheTrattamento
 } from '../modules/seminativo/models/SeminativoTrattamento.js';
+import { testoStatoVuotoRegistro } from '../shared/js/registro-trattamenti.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -74,5 +75,15 @@ describe('Seminativo — trattamenti da diario e lavori', () => {
     expect(page).not.toContain('initSeminativoPlaceholderPage');
     const rules = readFileSync(join(root, 'firestore.rules'), 'utf8');
     expect(rules).toContain('trattamentiSeminativo');
+  });
+
+  it('stato vuoto seminativo segue Manodopera', () => {
+    const spento = testoStatoVuotoRegistro({ coltura: 'seminativo', categoria: 'trattamenti', hasManodopera: false });
+    const acceso = testoStatoVuotoRegistro({ coltura: 'seminativo', categoria: 'concimazione', hasManodopera: true });
+    expect(spento).toContain('Completa');
+    expect(spento).toContain('seminativo');
+    expect(spento).not.toContain('Gestione Lavori');
+    expect(acceso).toContain('Nuovo lavoro');
+    expect(acceso).toContain('Concimazione');
   });
 });

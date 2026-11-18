@@ -1,0 +1,95 @@
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "016799",
+ "nome_prodotto": "ALEXIN 75 LS",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "016799-02665",
+   "coltura": "Vite",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Peronospora (Plasmopara viticola)",
+   "epoca": "dalla ripresa vegetativa alla pre-chiusura grappolo",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 4.0,
+     "unita": "l/ha",
+     "condizione": "massimo",
+     "pagina": 1,
+     "citazione": "Vite: contro Peronospora (Plasmopora viticola) in trattamenti … preventivi alla dose di 300-400 ml/hl (max 4 L/ha) ad intervalli di … 10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [
+    {
+     "min": 300.0,
+     "max": 400.0,
+     "unita": "ml/hl",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite: contro Peronospora (Plasmopora viticola) in trattamenti … preventivi alla dose di 300-400 ml/hl (max 4 L/ha) ad intervalli di … 10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "carenza": [
+    {
+     "giorni": 14,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "SOSPENDERE I TRATTAMENTI 14 GIORNI PRIMA DELLA … RACCOLTA",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [
+    {
+     "numero": 5,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "alla pre-chiusura grappolo, e comunque non effettuare più di 5 … trattamenti all’anno.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 10,
+     "max": 10,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Vite: contro Peronospora (Plasmopora viticola) in trattamenti … preventivi alla dose di 300-400 ml/hl (max 4 L/ha) ad intervalli di … 10 giorni.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 12,
+     "max": 14,
+     "condizione": "in programma con fungicidi di contatto, alla dose minima",
+     "pagina": 1,
+     "citazione": "consiglia di impiegare la dose minima con intervallo fra le … applicazioni di 12-14 giorni",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "LUXEMBOURG PAMOL (CYPRUS) LTD",
+ "data_etichetta": "16/07/2022",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-17",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 16799",
+ "etichetta_id": "39431"
+}
