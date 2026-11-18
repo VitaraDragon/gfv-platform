@@ -68,11 +68,13 @@ Gestisci l’intero ciclo di vita dei lavori: pianificazione, assegnazione, avan
 | In corso | Lavoro iniziato | Caposquadra → “Inizia lavoro” |
 | Completato | Attività finite | Caposquadra/Manager → “Completa lavoro” |
 | Approvato | Validato dal Manager | Manager → “Approva lavoro” |
-| Sospeso | Lavoro interrotto (es. condizioni meteo); si può creare una **ripresa** | Caposquadra → sospensione; Manager → **Crea ripresa** |
+| Sospeso | Lavoro fermato per maltempo, guasto o altro motivo; si può creare una **ripresa** | Manager → **Sospendi / Rinvia** (o Modifica con stato Sospeso); Caposquadra → **Sospendi lavoro**; Manager → **Crea ripresa** |
 
 ### ⏸️ Sospensione e ripresa
 
-- Il **caposquadra** può **sospendere** un lavoro **In corso** (con indicazione del motivo). Il lavoro passa allo stato **Sospeso**.
+- Il **Manager**, in **Gestione Lavori**, può sospendere un lavoro **Assegnato** o **In corso** con **Sospendi / Rinvia**: motivo **Maltempo**, **Guasto** o **Altro** (nota obbligatoria solo per Altro) e **data di ripresa** facoltativa. Con la data il lavoro di ripresa viene creato subito; senza data il lavoro resta **Sospeso** e la ripresa si crea dopo con **Crea ripresa**.
+- Il **caposquadra** può **sospendere** un lavoro **Assegnato** o **In corso** con **Sospendi lavoro**, scrivendo il motivo a testo libero. Il lavoro passa allo stato **Sospeso**.
+- La sospensione è diversa dallo **standby per assenza** (manca un operaio della squadra): in quel caso il Manager conferma l’assenza con **Conferma e standby** scegliendo quali lavori del giorno fermare (il lavoro autonomo dell’assente è già spuntato, quelli di squadra no e proseguono senza chi manca) oppure usa **Standby assenza** sul singolo lavoro, e poi assegna un sostituto o ripristina il lavoro, senza creare una ripresa.
 - Il **Manager**, in **Gestione Lavori**, può creare un **nuovo lavoro di ripresa** collegato al lavoro sospeso tramite il pulsante **Crea ripresa**. Si apre una finestra in cui scegliere la **data di inizio** del nuovo lavoro (non è impostata automaticamente sul solo “oggi”): vengono copiati terreno, tipo lavoro e assegnazione; il nuovo lavoro è in stato **Assegnato** e collegato al precedente per tracciabilità.
 - Quando il **lavoro di ripresa** viene **completato e approvato** dal Manager (approvazione **non parziale**), il sistema **chiude automaticamente** anche il lavoro **sospeso** originale, impostandolo a **Completato**. In lista compare il collegamento tramite la ripresa approvata.
 - Ricaricando **Gestione Lavori**, eventuali catene già completate ma non allineate vengono **riparate automaticamente** (allineamento retroattivo).
@@ -82,10 +84,12 @@ Gestisci l’intero ciclo di vita dei lavori: pianificazione, assegnazione, avan
 
 ## 🗺️ Tracciamento zone lavorate
 
-- Caposquadra può disegnare poligoni direttamente nella pagina lavoro
+- Sui lavori di **squadra** le zone le segna il **caposquadra** (si fa dire dagli operai dove hanno lavorato); sui lavori **autonomi** l’operaio assegnato
 - Ogni poligono indica una zona completata
 - I dati vengono mostrati sulla **Mappa Aziendale** per distinguere superfici lavorate/restanti
-- Lo stato di avanzamento (% completamento) si aggiorna in base alla superficie coperta e alle ore segnate
+- La percentuale di avanzamento è la superficie coperta dall’unione delle zone sul terreno: le aree chiuse che si sovrappongono contano una volta sola, i tratti aperti (con la larghezza) si sommano, mai oltre il 100%
+- Le zone segnate in passato dagli operai contano ancora (si leggono tutte); dato che ora l’area lavorata è l’unione delle zone ritagliata sul terreno, il numero può cambiare un poco rispetto a prima
+- Un lavoro completato senza nessuna zona mostra **✅ Completato (nessuna zona tracciata)** al posto della percentuale
 
 ---
 

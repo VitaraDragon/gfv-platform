@@ -1,6 +1,6 @@
 # Guida modulo Frutteto
 
-Questa guida è per chi ha **attivato il modulo Frutteto** sull’azienda. Senza quel modulo non troverete **Frutteto** nel menu **Moduli** né queste pagine.
+Questa guida è per chi ha **attivato il modulo Frutteto** sull’azienda. Senza quel modulo non troverete **Frutteto** nel pulsante moduli (graffetta in alto a sinistra) né queste pagine.
 
 Verificate **Abbonamento** o chiedete all’amministratore se il modulo non compare.
 
@@ -8,7 +8,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Percorso consigliato
 
-1. **Moduli** → **Frutteto** → **Dashboard Frutteto** (numeri, filtri, azioni rapide, raccolte e lavori). **[Impara qui](#da-dove-si-entra)**
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Frutteto** → **Dashboard Frutteto** (numeri, filtri, azioni rapide, raccolte e lavori). **[Impara qui](#da-dove-si-entra)**
 2. **Anagrafica frutteti** come base: terreno, specie, impianto, **stato impianto**. **[Impara qui](#mini-guida-anagrafica-frutteti)**
 3. Registri di campo: **trattamenti**, **concimazioni**, **potatura**, **raccolta frutta** — per i primi tre, le righe in elenco **ci sono solo dopo** un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno con la **categoria** corretta; poi si completano i dettagli nel modulo. **[Impara qui](#mini-guida-registri-di-campo)**
 4. **Statistiche**; **Pianifica nuovo impianto** e **Calcolo materiali** (strumenti condivisi con il modulo Vigneto, già impostati per il frutteto). **[Impara qui](#statistiche-pianificazione-e-calcolo-materiali)**
@@ -38,8 +38,8 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Da dove si entra
 
-1. Dalla **dashboard principale** aprite **Moduli** e toccate **Frutteto**. Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
-2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Frutteto**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie: è normale non vedere il riquadro.
+1. Dalla **dashboard principale** aprite il pulsante moduli (graffetta in alto a sinistra) e toccate **Frutteto**. Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Frutteto**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** nel **pulsante moduli** o nelle scorciatoie: è normale non vedere il riquadro.
 3. Arrivate alla **Dashboard Frutteto**: titolo e colori arancio, **filtri** in alto (frutteto e anno), **Panoramica** con numeri (produzione kg, resa, spese, numero frutteti, raccolte anno), **Azioni rapide** verso tutte le pagine del modulo.
 4. In basso due blocchi: **Raccolte recenti** (tabella) e **Lavori frutteto** (tabella) — significato distinto, vedi **[sotto](#raccolte-recenti-e-lavori-frutteto-in-dashboard)**. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle pagine del modulo **← Dashboard** riporta all’hub Frutteto.
 
@@ -47,7 +47,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Da Terreni: icona mela
 
-Se avete la pagina **Terreni** e il modulo **Frutteto** è attivo, sulla riga del terreno compare spesso il pulsante **mela**: apre l’**Anagrafica frutteti** con quel **terreno già prescelto**, per vedere o creare gli impianti legati al campo. Per la **Dashboard Frutteto** (riepilogo arancio con le statistiche) usate **Moduli** → **Frutteto** oppure il link **Dashboard** / **← Dashboard** dalla sezione modulo.
+Se avete la pagina **Terreni** e il modulo **Frutteto** è attivo, sulla riga del terreno compare spesso il pulsante **mela**: apre l’**Anagrafica frutteti** con quel **terreno già prescelto**, per vedere o creare gli impianti legati al campo. Per la **Dashboard Frutteto** (riepilogo arancio con le statistiche) usate il **pulsante moduli** → **Frutteto** oppure il link **Dashboard** / **← Dashboard** dalla sezione modulo.
 
 L’icona **grappolo** resta legata al modulo **Vigneto** (vedi guida Vigneto).
 
@@ -112,18 +112,40 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 
 1. **Filtri:** **Frutteto** (opzionale) e **Anno** per restringere l’elenco. Con **Mostra archiviati** il filtro include anche i frutteti chiusi.
 2. **Tabella:** per ogni riga vedete data, frutteto, **lavoro / attività**, terreno, prodotti già indicati, superficie, costo, riferimento, eventuali **Avvisi** (es. dosaggi), e **Azioni**. Se il terreno è archiviato, il nome ha **(archiviato)** e la riga resta in sola consultazione.
-3. **Aprire il modulo** da **Azioni**: in testa compaiono i **dati base del lavoro** (data, terreno, riferimento, eventuali **macchine**) in **sola lettura**.
+3. **Aprire il modulo** da **Azioni**: in testa compaiono i **dati base del lavoro** (data, terreno, riferimento, eventuali **macchine**) in **sola lettura**. Sul telefono l’elenco è a schede: **Modifica** e **Completa** sulla scheda aprono lo stesso modulo della tabella. Se il modulo non si apre, compare un avviso con il motivo (per esempio «Non riesco ad aprire il trattamento.»).
 4. **Superficie trattata (ha)** — obbligatoria:
    - inserite il valore a mano; oppure
    - spuntate **Tutto il terreno** per usare la superficie già registrata in **anagrafe Terreni** (se manca in terreno, la pagina lo segnala); oppure
    - **Traccia** per aprire la mappa, disegnare il **poligono** della zona trattata e applicare l’area calcolata (se il poligono è stato definito solo nel lavoro, la mappa può essere in sola lettura: andate in **Gestione lavori** per modificarlo).
 5. **Prodotti:** **Aggiungi prodotto** per ogni riga; compilate **dosaggio per ettaro**, **unità**, **quantità** e **costo**. In basso il **totale costo prodotti**. Se i dosaggi risultano **anomali** rispetto ai controlli dell’app, al **Salva** può comparire un avviso con **conferma** esplicita prima di registrare.
-6. **Operatore:** campo obbligatorio (nome).
+6. **Operatore:** con **Manodopera** attiva il campo è obbligatorio; lo scegliete dall’elenco di operai e caposquadra attivi dell’azienda, oppure **Altro** per scrivere un nome (titolare e manager non sono nell’elenco: scrivete il nome con **Altro**; resta registrato il nome). Senza il modulo **Manodopera** il campo non compare e leggete «Lavoro svolto dal proprietario».
 7. **Costo manodopera** e **Costo macchina:** facoltativi se non già coperti dal lavoro.
-8. **Giorni di carenza:** spesso precompilati col massimo ricavabile dai prodotti; controllate sempre con le **etichette** e la normativa.
+8. **Giorni di carenza** e **Acqua usata:** vedi **Registro privato dei trattamenti** qui sotto; controllate sempre con le **etichette** e la normativa.
 9. **Note**, **Copertura del terreno** (tutto / parziale / non specificato) e, se serve, **Questo intervento prosegue un trattamento non completato** con scelta del **trattamento precedente** nello stesso frutteto (tracciabilità e magazzino).
 10. **Magazzino:** se il modulo è attivo (abbonamento **o** prova) e i prodotti sono collegati all’anagrafica, può comparire la spunta **Registra scarico in magazzino**: lo scarico avviene **solo** con casella spuntata (non automatico). Deselezionatela se non volete movimentare le giacenze; controllate in Movimenti / Tracciabilità.
 11. **Salva** per registrare; **Annulla** chiude senza salvare.
+
+### Registro privato dei trattamenti
+
+In cima alla pagina **Trattamenti** leggete che è un **registro privato di compilazione**: i trattamenti arrivano da lavori o attività di categoria **Trattamenti**, e qui confermate prodotto, dose, avversità e carenza, con l’aiuto degli open data pubblici del Ministero della Salute per riconoscere il prodotto; dose, avversità e carenza le scrive l’azienda oppure, per i prodotti di cui GFV ha i valori d’etichetta, li controllate e li confermate. GFV non invia nulla al SIAN né al fascicolo.
+
+1. **Scheda del prodotto.** Sotto ogni riga prodotto leggete **Scheda non confermata** oppure **Confermato:** con l’avversità scelta. Per confermarla toccate **Leggi scheda**:  
+   - l’app cerca il prodotto negli **open data del Ministero della Salute** («Cerco il prodotto negli open data del Ministero…»). Sopra il risultato leggete sempre «Verifica sempre l’etichetta autorizzata: è quella che fa fede», la fonte (Ministero della Salute, licenza IODL 2.0) e la data di aggiornamento dei dati.  
+   - **Ricerca per numero:** se nel campo prodotto scrivete **solo il numero di registrazione** (anche con zeri davanti: 002513 e 2513 sono lo stesso numero), la ricerca avviene per numero e trova anche i prodotti **revocati**. Con un nome cerca per nome.  
+   - Se trova un solo prodotto lo mostra con numero, titolare, sostanze e stato. Se ne trova più di uno leggete «Ci sono più prodotti. Scegli quello giusto»: toccate **Scegli** sulla riga giusta, l’app non ne sceglie uno da sola (indica «Proposta: ancora in commercio» e, per gli altri, «Revocato», «Scaduto» o «Sospeso» con la data).  
+   - **Prodotto in commercio, con valori d’etichetta in GFV:** per alcuni prodotti (oggi 58) GFV ha i valori letti dall’etichetta; per tutti gli altri leggete «Valori d’etichetta non ancora disponibili in GFV per questo prodotto: vedi etichetta». In quel caso, dopo **Leggi scheda**, i campi **Dose per ha**, **Dose per hl**, **Carenza (giorni)**, **Numero massimo** e **Intervallo (giorni)** si riempiono da soli, evidenziati in giallo, con sotto «da etichetta, pag. N» e il pulsante **mostra frase** che fa leggere la frase dell’etichetta. Sopra leggete «Valori letti dall’etichetta del prodotto. Controllali e premi Conferma: fa fede l’etichetta.», sotto la fonte, il titolare, la data dell’etichetta e «Valore estratto automaticamente dall’etichetta, può contenere errori. Fa fede l’etichetta autorizzata.». Accanto a **Conferma** leggete «Confermando dichiari di aver controllato i valori riempiti dall’etichetta».  
+   - **Avversità e righe diverse:** se l’etichetta ha più avversità, la tendina **Avversità** parte da «Scegli…» e la scegliete voi (con **Altra…** scrivete la vostra). Se per un campo l’etichetta dà più righe (per esempio dosi diverse per condizione o epoca) leggete «Scegli la riga che vale per il tuo caso»: toccando una voce il valore va nel campo e la voce resta in evidenza. Se la carenza è «non necessaria» lo leggete così. Se cambiate la **Coltura**, i valori si rileggono; se correggete un valore a mano diventa vostro, non più «da etichetta».  
+   - **Prodotto in commercio, senza valori d’etichetta:** coltura, avversità, dose per ettaro e per ettolitro, carenza, numero massimo di impieghi e intervallo li **scrivete voi** (non arrivano dal Ministero: lo dice il modulo) e toccate **Conferma**. Potete leggere «Valori d’etichetta non ancora disponibili in GFV per questo prodotto: vedi etichetta», «Indica la coltura per leggere i valori in etichetta.», «In etichetta non trovo questa coltura», «Su questa coltura il valore non è ancora estratto: vedi etichetta» oppure «Etichetta forse aggiornata dopo l’estrazione: da ricontrollare». I valori d’etichetta non sono un consiglio: fa fede l’etichetta. Se il prodotto ha già una conferma per quella coltura la vedete precompilata («Inserita dalla tua azienda il … Non è un dato del Ministero»).  
+   - **Prodotto revocato, scaduto o sospeso:** compare un riquadro rosso con lo stato e la data, e l’app non propone dose, carenza né avversità; il pulsante **Conferma** resta disponibile.  
+   - Se non lo trova leggete «Non trovo «…» negli open data del Ministero» con il collegamento alla banca dati del Ministero; se gli open data non si leggono, ve lo scrive. In ogni caso non inventa numero, titolare, sostanze, avversità né carenza.   Nel riquadro compare anche **Numero di registrazione** con **Cerca per numero**: scrivete il numero (anche con zeri davanti) e riprovate. Se nel campo prodotto c’è il nome di magazzino con un prefisso o una confezione (per esempio «Inse. … da 1 lt.»), la ricerca li toglie da sola.
+   - Dopo la conferma leggete «Conferma dell’azienda registrata … Si può salvare il trattamento.» La conferma resta anche sul prodotto in anagrafica, per la volta dopo.  
+   - La **coltura** si precompila dalla **specie** del frutteto (il kiwi diventa actinidia). Con specie **Altro** non viene precompilata.
+2. **Giorni di carenza:** si compilano dalla riga confermata; se manca, dall’anagrafica del prodotto. Controllate sempre l’etichetta.  
+3. **Acqua usata:** scrivete **Acqua usata (hl/ha)** oppure **Acqua usata (hl totali)**; l’altro valore si calcola dalla superficie trattata.  
+4. **Avvisi al Salva:** dosaggio sopra o sotto il consigliato, prodotto già al numero massimo di impieghi nell’anno su quel frutteto, ultimo passaggio troppo vicino, oppure scheda non confermata (il controllo non si può fare). Sono avvisi, non blocchi: **OK** salva comunque, **Annulla** vi lascia correggere. Un trattamento di ieri non ancora registrato non entra nel controllo.  
+5. **Esporta CSV** / **Esporta XML** in cima alla pagina scaricano il registro dei trattamenti in elenco, con i dati dell’azienda. Il file resta a voi: GFV non lo invia al SIAN.  
+6. **Eliminare** un trattamento: il lavoro o l’attività resta e la riga torna «da completare». Se il trattamento è confermato e non ha ancora tre anni, l’app vi chiede di esportare prima il registro e di confermare di averlo già fatto. I movimenti di magazzino collegati restano.  
+7. **Miscela prevista:** se l’ufficio l’ha indicata sul lavoro in **Gestione lavori**, la squadra la vede in campo prima di uscire; qui registrate quello che è stato usato davvero.
 
 ### Concimazioni: passo per passo
 
@@ -131,7 +153,7 @@ Flusso **identico** alla pagina Trattamenti (stessa struttura di elenco, mappa e
 
 1. Filtri **Frutteto** e **Anno**, poi **Azioni** sulla riga da completare.
 2. Superficie (manuale, **tutto il terreno** da anagrafe, o **Traccia** su mappa) come per i trattamenti.
-3. **Aggiungi prodotto** per ogni concime: dosaggio per ettaro, unità, quantità, costo; **Operatore** obbligatorio; eventuali costi mano/macchina, note, copertura, prosecuzione su intervento precedente.
+3. **Aggiungi prodotto** per ogni concime: dosaggio per ettaro, unità, quantità, costo; **Operatore** obbligatorio con **Manodopera** attiva (senza il modulo il campo non compare); eventuali costi mano/macchina, note, copertura, prosecuzione su intervento precedente.
 4. **Scarico magazzino** se disponibile e coerente con i prodotti.
 5. **Salva** / **Annulla**.
 
@@ -203,7 +225,7 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** sull’abbonamento → niente voce **Frutteto** in **Moduli** (né riquadro in fondo pagina).
+- **Modulo non attivo** sull’abbonamento → niente voce **Frutteto** nel **pulsante moduli** (né riquadro in fondo pagina).
 - **Lista vuota** → create **terreni** e **frutteti** in anagrafica.
 - **Trattamenti / Concimazioni / Potatura: elenco vuoto** → è normale se non avete ancora creato un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno del frutteto con categoria **Trattamenti**, **Concimazione** o **Potatura**; verificate anche **anno** e **frutteto** nei filtri della pagina.
 - **Strumenti pianificazione** non si aprono → verificate che il percorso dal modulo sia quello previsto (a volte passa dalla cartella del modulo Vigneto perché lo strumento è condiviso).
@@ -215,3 +237,9 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 - Guida **Core** (Terreni, Diario).
 - Guida **Vigneto** (stesso schema di impianto e registri, specie diversa).
 - Guida **Magazzino** (stesso schema delle altre guide modulo: percorso, indice, mini-guide).
+
+### Cambio coltura del terreno
+
+Se modificate la coltura di un terreno con frutteto aperto o lavori aperti, prima del salvataggio compare il dialogo **Cambio coltura** (**Continua** / **Annulla**). Il messaggio elenca i lavori aperti che verranno chiusi e, se c’è un frutteto aperto, che verrà chiuso (resta nello storico). **Continua** chiude i lavori (storico sola lettura; libera le macchine) e il frutteto; **Annulla** non salva nulla.
+
+Dopo la conferma, un lavoro chiuso per cambio coltura (o di un terreno archiviato) si apre in sola lettura: campi grigi, pulsanti Salva ed Elimina nascosti, e il banner «Lavoro di un terreno archiviato (o precedente al cambio coltura): solo consultazione».

@@ -18,7 +18,7 @@ Modulo tenant: tipicamente `magazzino` (minuscolo; verificare `tenant.modules`).
 - **`prodotti`** — `prodotti-standalone.html`: `window.currentTableData`, evento `table-data-ready` con `detail.currentTableData`.
 - **`movimenti`** — `movimenti-standalone.html`: stesso canone.
 - **`carburante_hub`** — `carburante-home-standalone.html`: lista scorte per prodotto (gasolio, benzina, AdBlue), con `sottoScorta` per ogni prodotto; evento `table-data-ready`.
-- **`tracciabilita_consumi`** — `tracciabilita-consumi-standalone.html`: items + opz. `consumiAggregates`; filtri **categoria**, **terreno**, **vista**, **reset**; vedi istruzioni **FILTER_TABLE** in `functions/index.js` (Tony avanzato).
+- **`tracciabilita_consumi`** — `tracciabilita-consumi-standalone.html`: items + opz. `consumiAggregates`; filtri **categoria**, **terreno**, **vista**, **reset**, checkbox `#filter-mostra-archiviati` (#349, spenta all’inizio: `terreniPerFiltro` in `shared/js/filtri-storico.js` rimette i terreni archiviati nel filtro; nome con « (archiviato)» da `nomeAppezzamentoConsumo`); vedi istruzioni **FILTER_TABLE** in `functions/index.js` (Tony avanzato).
 
 ## Navigazione intent
 
@@ -30,10 +30,18 @@ Target utili: `magazzino` (home), `carburante` (hub carburante), `prodotti`, `mo
 - **Carburante (movimenti)**: categoria `carburante`, origine `carico_cisterna` (entrata) o `pieno` (uscita + `macchinaId`). Validazione: `modules/magazzino/lib/carburante-movimento.js` (`validateMovimentoCarburante`, `parseCarburanteMovimentoQuery`). Query da hub: `?categoria=carburante&tipo=entrata` (carico) o `?categoria=carburante&tipo=uscita&pieno=1` (pieno); opzionale `&macchinaId=<id>` precompila il mezzo (B7: Diario / quick bar manager).
 - **Pieno manager senza Manodopera (B7)**: non aprire il workspace; quick bar `pienoCarburante` (`magazzino`+`parcoMacchine`, ruoli manager/amministratore), hub Parco Macchine, Diario attività su riga con `macchinaId`. Workspace resta solo profili campo.
 - **Pieno in campo (versione mobile)**: `core/mobile/js/pieno-campo-ui.js` (scheda in field-workspace solo se `lavoroRichiedeRifornimento(lavoro)` — mezzo presente, non solo attrezzo). Cloud Function `registraPienoCampo` (`functions/registra-pieno-campo.js` + core in `functions/lib/registra-pieno-campo-core.js`): tenant, lavoroId, prodotto carburante, quantità, data → crea movimento uscita con origine `pieno` + `macchinaId` dal lavoro.
+- **Pieno dopo carico (Tony, stesso form)**: `core/js/tony-movimento-create-local.js` — se il form movimento è già aperto dopo un carico cisterna, un «pieno» successivo azzera quantità, tipo e prodotto del gesto precedente e usa solo la quantità detta nel messaggio (non riusa i litri della cisterna). Mapping in `core/config/tony-form-mapping.js`.
 
 ## Acquisizione documenti (foto → magazzino)
 
 Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtractDocument`: due passate Gemini sui numeri; XML FatturaPA solo extra se il file è già quello. Save: `document-register.js` (bolla / fattura / scontrino). Originali: Storage + `documentiAcquisiti`. Vedi `GUIDA/TONY/tony/guida-tecnica.md` (stesso flusso, incluso HEIC/HEIF handling foto galleria iPhone).
+
+## Scheda pubblica fitofarmaci (open data, #415/#418)
+
+- `prodotti-standalone.html`: semaforo `htmlSemaforoLetturaScheda` / `testoStatoLetturaScheda` (`shared/js/registro-trattamenti.js`, CSS `core/styles/manodopera-semaforo.css`) prima del nome, solo categoria `fitofarmaci`, calcolato da `classificaStatoAmministrativo(statoAmministrativoScheda)`: `autorizzato` → verde, `revocato` | `scaduto` | `sospeso` → rosso, `non_verificato` → **nessun pallino** (il vecchio giallo/verde/rosso su `letturaSchedaStato` non esiste più). Campi sola lettura `prodotto-numero-registrazione`, `prodotto-principio-attivo`, `prodotto-titolare`, `prodotto-stato-amministrativo`, `prodotto-fonte-scheda`, `prodotto-data-lettura`; `scriviAnagraficaOpenData` aggiunge attribuzione IODL (`htmlAttribuzioneOpenData`) e `AVVISO_ETICHETTA_FA_FEDE` (`shared/js/registro-trattamenti-fonte.js`).
+- `prodotti-service.js`: `CAMPI_SCHEDA_SOLO_SERVER` (`letturaSchedaStato`, `letturaSchedaMotivo`, `numeroRegistrazione`, `principioAttivo`, `titolare`, `fonteScheda`, `dataLetturaScheda`, `statoAmministrativoScheda`, …) tolti da create/update: li scrive la conferma dal registro dei trattamenti (`salvaSuProdotto`), non un salvataggio anagrafica. Modello `Prodotto.js` con i campi scheda, `titolare` e `confermeSpecie`.
+- **Nessuna lettura in coda:** `functions/registro-trattamenti-lettura.js`, il trigger `onProdottoSchedaScritto` e lo schedulato `leggiSchedeRegistroInCoda` sono stati rimossi (#415, niente più lettura SIAN: solo open data CSV). Resta la callable `leggiSchedaRegistroTrattamento` (ricerca per nome o per numero, anche revocati: #418), chiamata da «Leggi scheda» in Trattamenti. Dettagli in `GUIDA/VIGNETO/tony/guida-tecnica.md` (Registro privato trattamenti).
+- **Scarico da Trattamenti/Concimazioni Orticole:** `trattamento-scarico-magazzino-service.js` accetta `modulo: 'orticole'` (collezione `trattamentiOrticole`) oltre a vigneto, frutteto e seminativo; scarico solo con casella `trattamento-registra-scarico-magazzino` (visibile con Magazzino attivo).
 
 ## Riassunto Tony
 

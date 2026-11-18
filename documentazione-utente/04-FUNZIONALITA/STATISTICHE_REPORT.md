@@ -48,9 +48,11 @@ Analizza performance aziendali, squadre e macchine con i report nativi di GFV Pl
 
 ### 4. Superficie
 
-- Ettari totali
-- Ettari lavorati
-- Percentuale completamento (basata su zone tracciate)
+Tre riquadri che mostrano sempre il totale di tutti i lavori (tranne gli annullati): non seguono il periodo scelto nei filtri.
+
+- **Superficie lavorata (somma passaggi)**: somma degli ettari di tutti i passaggi; può superare la superficie dei terreni
+- **Superficie Totale Terreni**
+- **Terreni coperti**: terreni con almeno un lavoro, ciascuno contato una volta con l’intera superficie anche se il lavoro ne ha fatta solo una parte; sotto, quanti sono e che parte della superficie totale rappresentano
 
 ---
 
