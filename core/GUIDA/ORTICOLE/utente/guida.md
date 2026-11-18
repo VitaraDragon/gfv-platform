@@ -90,7 +90,7 @@ Pagina di **consultazione**: mostra arature, erpicature e altre lavorazioni di c
 ## Trattamenti
 
 1. Create un lavoro o un'attività del Diario con categoria **Trattamenti** sul terreno di una campagna, poi **Completa** sulla riga.
-2. Nel modulo: **Superficie trattata (ha)** (o tutto il terreno), **Prodotti** con **Aggiungi prodotto** (prodotto dal Magazzino, dosaggio per ettaro, unità, quantità e costo calcolati), **Operatore** (compare solo con Manodopera attiva, altrimenti leggete «Lavoro svolto dal proprietario»; si sceglie dall’elenco di operai e caposquadra attivi dell’azienda, oppure **Altro** per scrivere un nome — titolare e manager non sono nell’elenco: scrivete il nome con **Altro**; resta registrato il nome), costi, **Giorni di carenza**, **Acqua usata** (hl/ha o hl totali: l'altro valore si calcola), **Condizioni meteo**, **Copertura del terreno**, **Note**. Serve almeno una riga prodotto con nome.
+2. Nel modulo: **Superficie trattata (ha)** (o tutto il terreno), **Prodotti** con **Aggiungi prodotto** (prodotto dal Magazzino, dosaggio per ettaro, unità, quantità e costo calcolati), **Operatore** (con **Manodopera** attiva è obbligatorio; senza il modulo il campo non compare e leggete «Lavoro svolto dal proprietario»; si sceglie dall’elenco di operai e caposquadra attivi dell’azienda, oppure **Altro** per scrivere un nome — titolare e manager non sono nell’elenco: scrivete il nome con **Altro**; resta registrato il nome), costi, **Giorni di carenza**, **Acqua usata** (hl/ha o hl totali: l'altro valore si calcola), **Condizioni meteo**, **Copertura del terreno**, **Note**. Serve almeno una riga prodotto con nome.
    Se la riga viene da un lavoro con una **miscela prevista** e la scheda è ancora vuota, **Completa** propone già prodotti, dosi, quantità e acqua della miscela; con **Manodopera** attiva l’operatore parte dalla persona assegnata al lavoro (caposquadra, altrimenti operaio). Una scheda già compilata non viene toccata.
 3. Con **Magazzino** attivo compare la casella per **registrare lo scarico** dei prodotti dal magazzino.
 4. La colonna **Avvisi** mostra ⚠️ se il dosaggio è fuori dall'intervallo indicato per il prodotto; al **Salva** un avviso chiede «Salvare comunque?» (non blocca).
@@ -105,7 +105,7 @@ Pagina di **consultazione**: mostra arature, erpicature e altre lavorazioni di c
 
 ## Concimazioni
 
-Come **Trattamenti**, ma per la categoria **Concimazione** a pieno campo: **Completa** sulla riga, **Prodotti** (concimi dal Magazzino) con dose, quantità e costo, carenza, meteo, copertura, note, eventuale scarico di magazzino, **Operatore** da elenco (o **Altro**; solo con Manodopera attiva). Non ha l'esportazione del registro né la scheda del prodotto.
+Come **Trattamenti**, ma per la categoria **Concimazione** a pieno campo: **Completa** sulla riga, **Prodotti** (concimi dal Magazzino) con dose, quantità e costo, carenza, meteo, copertura, note, eventuale scarico di magazzino, **Operatore** da elenco (o **Altro**), obbligatorio con **Manodopera** attiva (senza il modulo il campo non compare). Non ha l'esportazione del registro né la scheda del prodotto.
 
 ## Raccolta
 
