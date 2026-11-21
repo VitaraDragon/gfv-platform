@@ -6,9 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  chiediSalvaComunque,
+  htmlBannerConformita,
   htmlPallinoCampo,
   htmlRiepilogoConformita,
   htmlSemaforoConformita,
+  trovaRegistrazionePerNome,
   valutaConformitaEtichetta,
   valutaConformitaTrattamento
 } from '../shared/js/registro-trattamenti-conformita.js';
@@ -295,8 +298,9 @@ describe('conformità etichetta FOLPAN', () => {
       },
       vocabolario
     });
-    expect(ambigua.colore).toBe('grigio');
+    expect(ambigua.colore).toBe('rosso');
     expect(ambigua.motivi.find((m) => m.codice === 'riga_ambigua').testo).toContain("Più righe d'etichetta possibili: scegli l'avversità");
+    expect(ambigua.motivi.some((m) => m.codice === 'dose_fuori' && /Oidio/.test(m.testo))).toBe(true);
   });
 
   it('la miscela prende il colore peggiore', () => {
@@ -309,6 +313,92 @@ describe('conformità etichetta FOLPAN', () => {
     });
     expect(esito.colore).toBe('rosso');
     expect(esito.motivi.some((m) => m.codice === 'dose_fuori')).toBe(true);
+  });
+
+  it('unità «-» prende kg/ha dall\'etichetta: 1,4 è verde, 2 è rosso su ha e hl', () => {
+    const base = {
+      scheda: folpan,
+      vocabolario,
+      rigaEtichetta: undefined,
+      trattamento: trattamento({ acquaEttolitriPerEttaro: 10, specieUsata: 'vite da vino' })
+    };
+    const verde = valutaConformitaEtichetta({
+      ...base,
+      riga: riga({ dosaggio: 1.4, unitaDosaggio: '-' })
+    });
+    expect(verde.colore).toBe('verde');
+    expect(verde.motivi.some((m) => /unit[aà] presa dall'etichetta: kg\/ha/i.test(m.testo))).toBe(true);
+    expect(htmlBannerConformita(verde)).toContain("Conforme all'etichetta");
+    const rosso = valutaConformitaEtichetta({
+      ...base,
+      riga: riga({ dosaggio: 2, unitaDosaggio: '-' })
+    });
+    expect(rosso.colore).toBe('rosso');
+    expect(rosso.motivi.find((m) => m.codice === 'dose_fuori').testo).toContain('1,25–1,5 kg/ha');
+    expect(rosso.motivi.find((m) => m.codice === 'dose_hl_fuori').testo).toContain('200 g/hl');
+    expect(rosso.motivi.find((m) => m.codice === 'dose_hl_fuori').testo).toContain('125–150 g/hl');
+    senzaConsiglio(rosso);
+  });
+
+  it('senza avversità e con dosi diverse controlla ogni avversità', () => {
+    const esito = valutaConformitaEtichetta({
+      trattamento: trattamento({ acquaEttolitriPerEttaro: 10, specieUsata: 'vite da vino' }),
+      riga: riga({ dosaggio: 2, unitaDosaggio: '-', avversita: '' }),
+      scheda: folpan,
+      vocabolario
+    });
+    expect(esito.colore).toBe('rosso');
+    expect(esito.motivi.some((m) => /scegli l'avversit/i.test(m.testo))).toBe(true);
+    expect(esito.motivi.some((m) => /125–150 g\/hl/.test(m.testo))).toBe(true);
+  });
+
+  it('unità kg e l insieme restano grigie, senza indovinare', () => {
+    const esito = valutaConformitaEtichetta({
+      trattamento: trattamento({ acquaEttolitriPerEttaro: 10 }),
+      riga: riga({ dosaggio: 1, unitaDosaggio: '-', avversita: 'Peronospora' }),
+      rigaEtichetta: {
+        avversita: 'Peronospora',
+        dose_ha: [
+          { min: 1, max: 2, unita: 'kg/ha' },
+          { min: 1, max: 2, unita: 'l/ha' }
+        ],
+        dose_hl: [],
+        carenza: [],
+        max_trattamenti: [],
+        intervallo_giorni: []
+      }
+    });
+    expect(esito.colore).toBe('grigio');
+    expect(esito.motivi.some((m) => /unit[aà] mancante/i.test(m.testo))).toBe(true);
+    expect(esito.motivi.some((m) => m.colore === 'rosso' || m.colore === 'verde')).toBe(false);
+  });
+
+  it('il nome folpan 80 wdg ha una sola registrazione', () => {
+    const indice = { prodotti: [
+      { numero_registrazione: '008601', nome_prodotto: 'FOLPAN 80 WDG' },
+      { numero_registrazione: '001583', nome_prodotto: 'MICROTHIOL DISPERSS' },
+      { numero_registrazione: '1', nome_prodotto: 'FOLPAN 80 WDG ALTRO' }
+    ]};
+    expect(trovaRegistrazionePerNome('folpan 80 wdg', indice)).toEqual({ numero: '008601', esito: 'unica' });
+    expect(trovaRegistrazionePerNome('folpan', indice).esito).toBe('assente');
+    const doppio = { prodotti: [
+      { numero_registrazione: '008601', nome_prodotto: 'FOLPAN 80 WDG' },
+      { numero_registrazione: '009999', nome_prodotto: 'Folpan 80 WDG' }
+    ]};
+    expect(trovaRegistrazionePerNome('FOLPAN 80 WDG', doppio).esito).toBe('ambigua');
+  });
+
+  it('salvare comunque elenca rossi e gialli e prosegue solo se si conferma', () => {
+    let visto = '';
+    expect(chiediSalvaComunque(['Dose fuori', 'Autorizzazione in scadenza'], (testo) => {
+      visto = testo;
+      return true;
+    })).toBe(true);
+    expect(visto).toContain('Dose fuori');
+    expect(visto).toContain('Autorizzazione in scadenza');
+    expect(visto).toContain('Salvare comunque?');
+    expect(chiediSalvaComunque(['Dose fuori'], () => false)).toBe(false);
+    expect(chiediSalvaComunque([], () => false)).toBe(true);
   });
 
   it('il pallino ha role e aria-label, il riepilogo la parola del colore', () => {

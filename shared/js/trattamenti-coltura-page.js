@@ -30,20 +30,22 @@ import {
     rangeDoseAvviso
 } from './registro-trattamenti.js';
 import {
-    caricaSchedeRegistrazione,
+    caricaPacchettoPerRighe,
     htmlCellaAvvisi,
-    numeroRegistrazioneRiga,
+    chiediSalvaComunque,
+    legamiScheda,
     primaDataRaccoltaDopo,
-    statoProdottoDaAnagrafica,
-    testiRossi,
+    testiSegnalati,
     valutaConformitaTrattamento
 } from './registro-trattamenti-conformita.js';
 import {
     attaccaLetturaScheda,
     bindAcquaCampi,
+    collegaBannerConformita,
     htmlMetaRegistro,
     leggiAcquaDalForm,
     leggiRegistroRiga,
+    leggiUnitaRigaDom,
     messaggiAvvisoForm,
     notaRegistroTesto,
     scriviAcquaNelForm,
@@ -301,8 +303,8 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
                 <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${isAltro ? (r.prodotto || '').replace(/"/g, '&quot;') : ''}" style="margin-top: 4px; width: 100%; max-width: 180px; display: ${isAltro ? 'block' : 'none'};">
                 ${htmlMetaRegistro(r)}
             </td>
-            <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
-            <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
+            <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.001" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"><span class="registro-pallino-riga" data-idx="${idx}"></span></td>
+            <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span><select class="prodotto-unita-scelta" data-idx="${idx}" hidden aria-label="Unità della dose"><option value="">Unità</option><option value="kg">kg</option><option value="l">L</option><option value="g">g</option><option value="ml">ml</option></select></td>
             <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}"${grezzo !== '' ? ` data-valore="${grezzo}"` : ''}>${formattaQuantita(qta)}</span></td>
             <td style="padding: 6px 8px;"><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" style="width: 100px; min-width: 100px; box-sizing: border-box;" ${r.prodottoId && prezzoUnit ? 'readonly' : ''} title="${r.prodottoId ? 'Calcolato da anagrafica' : 'Inserisci manuale'}"></td>
             <td style="padding: 6px 8px;"><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
@@ -374,6 +376,16 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
     });
     aggiornaTotaleCostoProdotti();
     aggiornaGiorniCarenzaDaProdotti();
+    collegaBannerConformita({
+        anagrafica: (id) => listProdottiAnagrafica.find((p) => p.id === id) || null,
+        specie: specieSchedaCorrente,
+        terrenoId: terrenoIdCorrente,
+        precedenti: () => passaggiDallaLista(document.getElementById('trattamento-id')?.value || null),
+        dataRaccolta: (data) => dataRaccoltaDi(
+            document.getElementById(cfg.hiddenId)?.value || document.getElementById(cfg.selectId)?.value,
+            data
+        )
+    });
 }
 
 function getProdottiRowsFromTable() {
@@ -393,9 +405,9 @@ function getProdottiRowsFromTable() {
         const costo = costoInp?.value !== '' ? parseFloat(costoInp.value) : 0;
         const quantita = (dosaggio != null && superficie > 0) ? dosaggio * superficie : null;
         const prodAnag = listProdottiAnagrafica.find(p => p.id === prodottoId);
-        const unitaDosaggio = prodAnag?.unitaMisura || null;
         const registro = leggiRegistroRiga(tr);
-        rows.push({ prodottoId: prodottoId || null, prodotto, dosaggio, unitaDosaggio, quantita, costo, ...registro });
+        const unitaDosaggio = leggiUnitaRigaDom(tr, prodAnag?.unitaMisura);
+        rows.push({ prodottoId: prodottoId || null, prodotto, dosaggio, unitaDosaggio, quantita, costo, ...registro, unitaDosaggio });
     });
     return rows;
 }
@@ -552,17 +564,14 @@ function anagraficaRiga(riga) {
 }
 
 async function conformitaDelleRighe({ data, terrenoId, specieUsata, acquaEttolitriPerEttaro, id, righe, precedenti, dataRaccolta }) {
-    const numeri = (righe || []).map((riga) => numeroRegistrazioneRiga(riga, anagraficaRiga(riga)));
-    const pacchetto = await caricaSchedeRegistrazione(numeri);
+    const pacchetto = await caricaPacchettoPerRighe(righe || [], anagraficaRiga);
     return valutaConformitaTrattamento({
         trattamento: { id, data, terrenoId, specieUsata, acquaEttolitriPerEttaro },
         righe: righe || [],
-        vocabolario: pacchetto.vocabolario,
         precedenti,
         dataRaccolta,
         oggi: new Date(),
-        schedaPerRiga: (riga) => pacchetto.schede.get(numeroRegistrazioneRiga(riga, anagraficaRiga(riga))) || null,
-        statoPerRiga: (riga) => statoProdottoDaAnagrafica(anagraficaRiga(riga))
+        ...legamiScheda(pacchetto, anagraficaRiga)
     });
 }
 
@@ -1196,17 +1205,14 @@ async function loadTrattamenti() {
     } catch (e) {
         console.warn(cfg.logTag + ' date raccolta', e);
     }
-    const numeriEtichetta = [];
+    const righeEtichetta = [];
     listRows.forEach((row) => {
         const prodotti = row.trattamento && row.trattamento.prodotti;
-        (prodotti || []).forEach((p) => {
-            const n = numeroRegistrazioneRiga(p, anagraficaRiga(p));
-            if (n) numeriEtichetta.push(n);
-        });
+        (prodotti || []).forEach((p) => righeEtichetta.push(p));
     });
-    let pacchettoSchede = { schede: new Map(), vocabolario: null };
+    let pacchettoSchede = { schede: new Map(), vocabolario: null, indice: { prodotti: [] } };
     try {
-        pacchettoSchede = await caricaSchedeRegistrazione(numeriEtichetta);
+        pacchettoSchede = await caricaPacchettoPerRighe(righeEtichetta, anagraficaRiga);
     } catch (e) {
         console.warn(cfg.logTag + ' schede etichetta', e);
     }
@@ -1246,12 +1252,10 @@ async function loadTrattamenti() {
                     acquaEttolitriPerEttaro: t.acquaEttolitriPerEttaro
                 },
                 righe: t.prodotti || [],
-                vocabolario: pacchettoSchede.vocabolario,
                 precedenti: passaggiDallaLista(t.id),
                 dataRaccolta: dataRaccoltaDi(row[cfg.idKey], t.data || row.data),
                 oggi: new Date(),
-                schedaPerRiga: (riga) => pacchettoSchede.schede.get(numeroRegistrazioneRiga(riga, anagraficaRiga(riga))) || null,
-                statoPerRiga: (riga) => statoProdottoDaAnagrafica(anagraficaRiga(riga))
+                ...legamiScheda(pacchettoSchede, anagraficaRiga)
             });
             cellaConformita = htmlCellaAvvisi(esitoConformita, avviso.tooltip);
         }
@@ -1625,8 +1629,8 @@ async function saveTrattamento(e) {
         precedenti: passaggiDallaLista(id),
         dataRaccolta: dataRaccoltaDi(colturaId, document.getElementById('trattamento-data').value)
     });
-    const avvisiUniti = messaggiUnici(avvisiRegistro.concat(testiRossi(conformitaSalva)));
-    if (avvisiUniti.length && !confirm(avvisiUniti.join('\n') + '\n\nSalvare comunque?')) {
+    const avvisiUniti = messaggiUnici(avvisiRegistro.concat(testiSegnalati(conformitaSalva)));
+    if (!chiediSalvaComunque(avvisiUniti, (testo) => confirm(testo))) {
         return;
     }
     const costoProdottoTotale = rowsProdotti.reduce((s, r) => s + (Number(r.costo) || 0), 0);

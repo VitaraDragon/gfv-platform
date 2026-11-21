@@ -182,9 +182,9 @@ describe('ricerca per numero di registrazione', () => {
     expect(esito.proposto.stato).toBe('Revocato');
     expect(esito.proposto.dataDecorrenzaRevoca).toBe('30/07/2004');
     expect(esito.proposto.numeroRegistrazione).toBe('002513');
-    expect(html).toContain('registro-banner-stato');
+    expect(html).not.toContain('registro-banner-stato');
+    expect(html).toContain('Non propongo dose, carenza né avversità.');
     expect(html).toContain('Revocato');
-    expect(html).toContain('30/07/2004');
     expect(html).not.toContain('registro-dose-ha');
     expect(html).not.toContain('registro-carenza');
     expect(html).not.toContain('registro-avversita');
@@ -275,9 +275,9 @@ describe('esito nel form', () => {
       },
       nome: 'Cupravit'
     });
-    expect(html).toContain('registro-banner-stato');
+    expect(html).not.toContain('registro-banner-stato');
+    expect(html).toContain('Non propongo dose, carenza né avversità.');
     expect(html).toContain('Revocato');
-    expect(html).toContain('30/07/2004');
     expect(html).not.toContain('Peronospora');
     expect(html).not.toContain('registro-dose-ha');
     expect(html).toContain('data-conferma-bloccata');
@@ -305,7 +305,8 @@ describe('esito nel form', () => {
       nome: 'Vecchio'
     });
     expect(scaduto).toContain('Scaduto');
-    expect(scaduto).toContain('01/01/2020');
+    expect(scaduto).toContain('Non propongo dose, carenza né avversità.');
+    expect(scaduto).not.toContain('registro-banner-stato');
     expect(scaduto).not.toContain('registro-dose-ha');
     const sospeso = htmlPannelloOpenData({
       esito: scheda.componiRispostaScheda({
@@ -316,7 +317,8 @@ describe('esito nel form', () => {
       nome: 'Fermo'
     });
     expect(sospeso).toContain('Sospeso');
-    expect(sospeso).toContain('02/02/2024');
+    expect(sospeso).toContain('Non propongo dose, carenza né avversità.');
+    expect(sospeso).not.toContain('registro-banner-stato');
   });
 
   it('su un prodotto in commercio fa scrivere i dati all\'azienda e ripropone la conferma già data', () => {

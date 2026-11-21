@@ -9,7 +9,6 @@ import { classificaStatoAmministrativo } from './registro-trattamenti-fonte.js';
 import {
   MSG_ETICHETTA_COLTURA_ASSENTE,
   MSG_ETICHETTA_DA_RICONTROLLARE,
-  MSG_ETICHETTA_MANCANTE,
   MSG_ETICHETTA_NON_ESTRATTA,
   MSG_ETICHETTA_SENZA_COLTURA,
   chiaveAvversita,
@@ -19,7 +18,8 @@ import {
   preparaEtichetta,
   righePerColtura,
   caricaSchedaEtichetta,
-  caricaVocabolarioColture
+  caricaVocabolarioColture,
+  caricaIndiceEtichette
 } from './registro-trattamenti-etichetta.js';
 
 /** Copre una stagione di trattamenti e lascia il tempo di finire le scorte. */
@@ -33,9 +33,11 @@ const CHIAVI_ORIGINE = ['doseHa', 'doseHl', 'carenza', 'massimo', 'intervallo', 
 const PAROLE = {
   rosso: 'Errore',
   giallo: 'Attenzione',
-  verde: 'Conforme',
-  grigio: "Nessun dato d'etichetta"
+  verde: "Conforme all'etichetta",
+  grigio: 'Da completare'
 };
+
+const PAROLA_SENZA_SCHEDA = "Nessun dato d'etichetta";
 
 const CLASSI = {
   rosso: 'red',
@@ -106,6 +108,35 @@ function aggiungiGiorni(data, giorni) {
 
 function motivo(codice, colore, campo, testo) {
   return { codice, colore, campo, testo };
+}
+
+/** Stessa pulizia del nome di magazzino usata da «Leggi scheda». */
+export function nomeProdottoPerRicercaScheda(nome) {
+  let s = String(nome == null ? '' : nome).trim();
+  s = s.replace(/^(inse\.?|insetticida|fung\.?|fungicida|erb\.?|erbicida|diserbante|conc\.?|concime)\s+/i, '');
+  s = s.replace(/\bda\s+\d[\d.,]*\s*(lt|l|kg|g|ml|cl|q\.?li)?\.?\s*$/i, '');
+  s = s.replace(/\b\d[\d.,]*\s*(lt|l|kg|g|ml|cl)\.?\s*$/i, '');
+  return s.replace(/[.,;:]+$/g, '').replace(/\s+/g, ' ').trim();
+}
+
+export function normalizzaNomeProdottoScheda(nome) {
+  return nomeProdottoPerRicercaScheda(nome).toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Cerca il nome nel indice delle etichette. Solo un risultato unico ed esatto.
+ * @returns {{ numero: string, esito: 'unica'|'ambigua'|'assente' }}
+ */
+export function trovaRegistrazionePerNome(nome, indice) {
+  const q = normalizzaNomeProdottoScheda(nome);
+  if (!q) return { numero: '', esito: 'assente' };
+  const prodotti = indice && Array.isArray(indice.prodotti) ? indice.prodotti : [];
+  const hits = prodotti.filter((p) => normalizzaNomeProdottoScheda(p && p.nome_prodotto) === q);
+  if (hits.length === 1) {
+    return { numero: numeroFileEtichetta(hits[0].numero_registrazione), esito: 'unica' };
+  }
+  if (hits.length > 1) return { numero: '', esito: 'ambigua' };
+  return { numero: '', esito: 'assente' };
 }
 
 function specUnita(unita) {
@@ -221,7 +252,7 @@ export function trovaRigaEtichetta(input = {}) {
   if (!scheda || !Array.isArray(scheda.righe)) {
     return {
       riga: null,
-      blocco: motivo('scheda_mancante', 'grigio', null, MSG_ETICHETTA_MANCANTE)
+      blocco: motivo('scheda_mancante', 'grigio', null, PAROLA_SENZA_SCHEDA)
     };
   }
   const id = idRigaOrigine(input.riga && input.riga.origineValori);
@@ -259,6 +290,7 @@ export function trovaRigaEtichetta(input = {}) {
     }
     return {
       riga: null,
+      candidate: righe,
       blocco: motivo('riga_ambigua', 'grigio', null, "Più righe d'etichetta possibili: scegli l'avversità")
     };
   }
@@ -278,10 +310,74 @@ export function trovaRigaEtichetta(input = {}) {
   if (filtrate.length > 1 && new Set(filtrate.map(firmaRiga)).size > 1) {
     return {
       riga: null,
+      candidate: filtrate,
       blocco: motivo('riga_ambigua', 'grigio', null, "Più righe d'etichetta possibili: scegli l'avversità")
     };
   }
   return { riga: filtrate[0], blocco: null };
+}
+
+function firmaDose(riga) {
+  return JSON.stringify(['dose_ha', 'dose_hl'].map((nome) => (riga[nome] || []).map((v) => ({
+    min: v && v.min != null ? v.min : null,
+    max: v && v.max != null ? v.max : null,
+    unita: (v && v.unita) || '',
+    condizione: (v && v.condizione) || ''
+  }))));
+}
+
+function raggruppaDose(righe) {
+  const map = new Map();
+  (righe || []).forEach((riga) => {
+    const chiave = firmaDose(riga);
+    if (!map.has(chiave)) map.set(chiave, []);
+    map.get(chiave).push(riga);
+  });
+  return [...map.values()];
+}
+
+function unitaComuneDelleRighe(righe) {
+  const unita = [];
+  (righe || []).forEach((riga) => {
+    (riga.dose_ha || []).forEach((v) => {
+      if (!v || (v.min == null && v.max == null)) return;
+      const u = String(v.unita || '').trim().toLowerCase();
+      if (u) unita.push(u);
+    });
+  });
+  if (!unita.length) return null;
+  const prima = specUnita(unita[0]);
+  if (!prima) return { ambigua: true };
+  const stessa = unita.every((u) => {
+    const spec = specUnita(u);
+    return spec && spec.fam === prima.fam && spec.fattore === prima.fattore && (spec.per || 'ha') === (prima.per || 'ha');
+  });
+  if (!stessa) return { ambigua: true };
+  return { ambigua: false, breve: unitaBreve(prima), testo: unita[0] };
+}
+
+/** Se la riga non ha unità, usa quella unica dell'etichetta. Mai tra massa e volume. */
+function rigaConUnita(riga, righeEtichetta, motivi) {
+  const base = riga && typeof riga === 'object' ? riga : {};
+  if (specUnita(base.unitaDosaggio)) return base;
+  if (numeroFinito(base.dosaggio) == null) return base;
+  const comune = unitaComuneDelleRighe(righeEtichetta);
+  if (!comune) return base;
+  if (comune.ambigua) {
+    if (!motivi.some((m) => m.codice === 'unita_mancante')) {
+      motivi.push(motivo('unita_mancante', 'grigio', 'doseHa', 'Unità mancante: scegli kg o L'));
+    }
+    return base;
+  }
+  if (!motivi.some((m) => m.codice === 'unita_da_etichetta')) {
+    motivi.push(motivo('unita_da_etichetta', null, 'doseHa', "Unità presa dall'etichetta: " + comune.testo));
+  }
+  return Object.assign({}, base, { unitaDosaggio: comune.breve });
+}
+
+function prefissoAvversita(gruppo) {
+  const nomi = [...new Set((gruppo || []).map((r) => String(r.avversita || '').trim()).filter(Boolean))];
+  return nomi.length ? nomi.join(', ') + ': ' : '';
 }
 
 function controllaDoseHa(riga, rigaEtichetta, motivi) {
@@ -292,8 +388,18 @@ function controllaDoseHa(riga, rigaEtichetta, motivi) {
     motivi.push(motivo('dose_non_indicata', 'grigio', 'doseHa', 'Dose per ettaro non presente in etichetta, non verificabile'));
     return false;
   }
-  if (dose == null || !specDose || (specDose.per && specDose.per !== 'ha')) {
+  if (dose == null) {
     motivi.push(motivo('dose_non_indicata', 'grigio', 'doseHa', 'Dose per ettaro non indicata, non verificabile'));
+    return false;
+  }
+  if (!specDose) {
+    if (!motivi.some((m) => m.codice === 'unita_mancante')) {
+      motivi.push(motivo('unita_mancante', 'grigio', 'doseHa', 'Unità mancante: scegli kg o L'));
+    }
+    return false;
+  }
+  if (specDose.per && specDose.per !== 'ha') {
+    motivi.push(motivo('unita_diverse', 'grigio', 'doseHa', "Unità diverse da quelle dell'etichetta"));
     return false;
   }
   const doseBase = dose * specDose.fattore;
@@ -304,7 +410,7 @@ function controllaDoseHa(riga, rigaEtichetta, motivi) {
     confrontabili.push({ voce, spec, baseMin: voce.min == null ? null : Number(voce.min) * spec.fattore, baseMax: voce.max == null ? null : Number(voce.max) * spec.fattore });
   });
   if (!confrontabili.length) {
-    motivi.push(motivo('unita_diverse', 'grigio', 'doseHa', 'Unità diverse: la dose non si confronta con l\'etichetta'));
+    motivi.push(motivo('unita_diverse', 'grigio', 'doseHa', "Unità diverse da quelle dell'etichetta"));
     return false;
   }
   const interne = confrontabili.filter((c) => dentro(doseBase, c.baseMin, c.baseMax));
@@ -339,8 +445,18 @@ function controllaDoseHl(trattamento, riga, rigaEtichetta, motivi) {
   const hl = numeroFinito(trattamento && trattamento.acquaEttolitriPerEttaro);
   const dose = numeroFinito(riga && riga.dosaggio);
   const specDose = specUnita(riga && riga.unitaDosaggio);
-  if (hl == null || hl <= 0 || dose == null || !specDose) {
-    motivi.push(motivo('dose_hl_non_verificabile', null, 'doseHl', 'Dose per ettolitro: acqua non indicata, non verificabile'));
+  if (dose == null) {
+    motivi.push(motivo('dose_hl_non_verificabile', null, 'doseHl', 'Dose per ettolitro: dose non indicata, non verificabile'));
+    return;
+  }
+  if (!specDose) {
+    if (!motivi.some((m) => m.codice === 'unita_mancante')) {
+      motivi.push(motivo('unita_mancante', 'grigio', 'doseHl', 'Unità mancante: scegli kg o L'));
+    }
+    return;
+  }
+  if (hl == null || hl <= 0) {
+    motivi.push(motivo('dose_hl_non_verificabile', null, 'doseHl', 'Dose per ettolitro: acqua (hl/ha) non indicata, non verificabile'));
     return;
   }
   const perHl = (dose * specDose.fattore) / hl;
@@ -356,7 +472,7 @@ function controllaDoseHl(trattamento, riga, rigaEtichetta, motivi) {
     });
   });
   if (!confrontabili.length) {
-    motivi.push(motivo('unita_diverse', 'grigio', 'doseHl', 'Unità diverse: la dose per ettolitro non si confronta con l\'etichetta'));
+    motivi.push(motivo('unita_diverse', 'grigio', 'doseHl', "Unità diverse da quelle dell'etichetta"));
     return;
   }
   const interne = confrontabili.filter((c) => dentro(perHl, c.baseMin, c.baseMax));
@@ -620,16 +736,49 @@ function controllaStato(input, motivi) {
 }
 
 export function valutaConformitaEtichetta(input = {}) {
+  if (input.riconoscimento === 'non_riconosciuto') {
+    return {
+      colore: 'grigio',
+      motivi: [motivo('prodotto_non_riconosciuto', 'grigio', null, 'Prodotto non riconosciuto: premi Leggi scheda')]
+    };
+  }
+  if (input.riconoscimento === 'vuoto') {
+    return { colore: 'grigio', motivi: [] };
+  }
   const motivi = [];
   const trovato = trovaRigaEtichetta(input);
+  if (trovato.blocco && trovato.blocco.codice === 'scheda_mancante') {
+    trovato.blocco.testo = PAROLA_SENZA_SCHEDA;
+  }
   let doseOk = false;
   if (trovato.blocco) motivi.push(trovato.blocco);
   if (trovato.riga) {
-    doseOk = controllaDoseHa(input.riga || {}, trovato.riga, motivi);
-    controllaDoseHl(input.trattamento || {}, input.riga || {}, trovato.riga, motivi);
+    const rigaDose = rigaConUnita(input.riga || {}, [trovato.riga], motivi);
+    const bloccoUnita = motivi.some((m) => m.codice === 'unita_mancante');
+    if (!bloccoUnita) doseOk = controllaDoseHa(rigaDose, trovato.riga, motivi);
+    controllaDoseHl(input.trattamento || {}, rigaDose, trovato.riga, motivi);
     controllaCarenza(input.trattamento || {}, trovato.riga, input.dataRaccolta, motivi);
     controllaMassimo(input, trovato.riga, motivi);
     controllaIntervallo(input, trovato.riga, motivi);
+  } else if (trovato.candidate && trovato.candidate.length) {
+    const rigaDose = rigaConUnita(input.riga || {}, trovato.candidate, motivi);
+    const bloccoUnita = motivi.some((m) => m.codice === 'unita_mancante');
+    if (!bloccoUnita) {
+      const gruppi = raggruppaDose(trovato.candidate);
+      let tuttiOk = gruppi.length > 0;
+      gruppi.forEach((gruppo) => {
+        const locali = [];
+        const ok = controllaDoseHa(rigaDose, gruppo[0], locali);
+        controllaDoseHl(input.trattamento || {}, rigaDose, gruppo[0], locali);
+        if (!ok || locali.some((m) => m.colore === 'rosso' || m.colore === 'giallo' || m.colore === 'grigio')) tuttiOk = false;
+        const prefisso = prefissoAvversita(gruppo);
+        locali.forEach((m) => {
+          if (prefisso && m.testo) m.testo = prefisso + m.testo;
+          motivi.push(m);
+        });
+      });
+      doseOk = tuttiOk;
+    }
   }
   controllaStato(input, motivi);
   return {
@@ -644,7 +793,7 @@ export function valutaConformitaTrattamento(input = {}) {
   if (!righe.length) {
     return {
       colore: 'grigio',
-      motivi: [motivo('scheda_mancante', 'grigio', null, MSG_ETICHETTA_MANCANTE)]
+      motivi: [motivo('scheda_mancante', 'grigio', null, PAROLA_SENZA_SCHEDA)]
     };
   }
   const esiti = righe.map((riga) => {
@@ -654,6 +803,9 @@ export function valutaConformitaTrattamento(input = {}) {
     const stato = typeof input.statoPerRiga === 'function'
       ? input.statoPerRiga(riga)
       : input.statoProdotto;
+    const riconoscimento = typeof input.riconoscimentoPerRiga === 'function'
+      ? input.riconoscimentoPerRiga(riga)
+      : input.riconoscimento;
     const esito = valutaConformitaEtichetta({
       trattamento,
       riga,
@@ -663,7 +815,8 @@ export function valutaConformitaTrattamento(input = {}) {
       statoProdotto: stato,
       precedenti: input.precedenti,
       dataRaccolta: input.dataRaccolta,
-      oggi: input.oggi
+      oggi: input.oggi,
+      riconoscimento
     });
     if (righe.length < 2) return esito;
     const nome = String(riga.prodotto || riga.nome || '').trim();
@@ -705,10 +858,56 @@ export function statoProdottoDaAnagrafica(prodotto) {
   };
 }
 
-export function numeroRegistrazioneRiga(riga, anagrafica) {
-  const dalRiga = riga && riga.riferimentoRiga && riga.riferimentoRiga.numeroRegistrazione;
+export function numeroRegistrazioneRiga(riga, anagrafica, indice) {
+  const rif = riga && riga.riferimentoRiga;
+  const dalRiga = rif && rif.numeroRegistrazione;
+  const letto = (riga && riga.numeroRegistrazioneLetto) || (rif && rif.numeroRegistrazioneLetto);
   const dalProdotto = anagrafica && anagrafica.numeroRegistrazione;
-  return numeroFileEtichetta(dalRiga || dalProdotto || '');
+  const esplicito = numeroFileEtichetta(dalRiga || letto || dalProdotto || '');
+  if (esplicito) return esplicito;
+  if (!indice) return '';
+  const nome = (riga && (riga.prodotto || riga.nome)) || (rif && rif.nomeProdotto) || '';
+  const trovato = trovaRegistrazionePerNome(nome, indice);
+  return trovato.esito === 'unica' ? trovato.numero : '';
+}
+
+function riconoscimentoRiga(riga, numero, scheda) {
+  if (scheda) return 'scheda';
+  const nome = String((riga && (riga.prodotto || riga.nome)) || '').trim();
+  if (!nome && !numero) return 'vuoto';
+  if (numero) return 'senza_json';
+  return 'non_riconosciuto';
+}
+
+export async function caricaPacchettoPerRighe(righe, anagraficaDi) {
+  const indice = await caricaIndiceEtichette();
+  const anag = typeof anagraficaDi === 'function' ? anagraficaDi : () => null;
+  const numeri = (righe || []).map((riga) => numeroRegistrazioneRiga(riga, anag(riga), indice)).filter(Boolean);
+  const pacchetto = await caricaSchedeRegistrazione(numeri);
+  pacchetto.indice = indice;
+  return pacchetto;
+}
+
+export function legamiScheda(pacchetto, anagraficaDi) {
+  const indice = pacchetto && pacchetto.indice;
+  const anag = typeof anagraficaDi === 'function' ? anagraficaDi : () => null;
+  const schede = pacchetto && pacchetto.schede;
+  return {
+    vocabolario: pacchetto ? pacchetto.vocabolario : null,
+    schedaPerRiga(riga) {
+      const n = numeroRegistrazioneRiga(riga, anag(riga), indice);
+      if (!n || !schede) return null;
+      return schede.get(n) || null;
+    },
+    statoPerRiga(riga) {
+      return statoProdottoDaAnagrafica(anag(riga) || riga);
+    },
+    riconoscimentoPerRiga(riga) {
+      const n = numeroRegistrazioneRiga(riga, anag(riga), indice);
+      const scheda = n && schede ? schede.get(n) : null;
+      return riconoscimentoRiga(riga, n, scheda);
+    }
+  };
 }
 
 export async function caricaSchedeRegistrazione(numeri) {
@@ -734,20 +933,82 @@ export function testiRossi(esito) {
   return (esito && esito.motivi || []).filter((m) => m && m.colore === 'rosso' && m.testo).map((m) => m.testo);
 }
 
+export function testiSegnalati(esito) {
+  return (esito && esito.motivi || [])
+    .filter((m) => m && (m.colore === 'rosso' || m.colore === 'giallo') && m.testo)
+    .map((m) => m.testo);
+}
+
+export function chiediSalvaComunque(messaggi, confirmFn) {
+  const lista = (messaggi || []).map((t) => String(t || '').trim()).filter(Boolean);
+  if (!lista.length) return true;
+  const chiedi = typeof confirmFn === 'function'
+    ? confirmFn
+    : ((testo) => (typeof window !== 'undefined' && window.confirm ? window.confirm(testo) : false));
+  return !!chiedi(lista.join('\n') + '\n\nSalvare comunque?');
+}
+
+export function parolaConformita(esito) {
+  const colore = esito && PAROLE[esito.colore] ? esito.colore : 'grigio';
+  if (colore !== 'grigio') return PAROLE[colore];
+  const motivi = (esito && esito.motivi) || [];
+  const senza = motivi.some((m) => m && (m.codice === 'scheda_mancante' || m.codice === 'prodotto_non_riconosciuto'));
+  return senza ? PAROLA_SENZA_SCHEDA : PAROLE.grigio;
+}
+
+function breveMotivoGrigio(m) {
+  if (!m || !m.testo) return '';
+  const t = String(m.testo);
+  if (m.codice === 'riga_ambigua' || /scegli l'avversit/i.test(t)) return "scegli l'avversità";
+  if (m.codice === 'unita_mancante' || /unit[aà] mancante/i.test(t)) return 'unità della dose';
+  if (m.codice === 'dose_non_indicata' || /dose non indicata/i.test(t)) return 'dose non indicata';
+  if (m.codice === 'prodotto_non_riconosciuto') return 'prodotto non riconosciuto';
+  return t.replace(/^[^:]{0,80}:\s*/, '');
+}
+
+export function titoloBannerConformita(esito) {
+  const parola = parolaConformita(esito);
+  if (!esito || esito.colore !== 'grigio' || parola !== PAROLE.grigio) return parola;
+  const primo = (esito.motivi || []).find((m) => m && m.colore === 'grigio' && m.testo);
+  const breve = breveMotivoGrigio(primo);
+  return breve ? 'Da completare: ' + breve : 'Da completare';
+}
+
 export function htmlSemaforoConformita(esito, opzioni = {}) {
   const colore = esito && CLASSI[esito.colore] ? esito.colore : 'grigio';
   const testi = (esito && esito.motivi || []).map((m) => m && m.testo).filter(Boolean);
-  const label = [PAROLE[colore], ...testi].join('. ');
-  const piccolo = opzioni.piccolo ? ' gfv-semaforo--sm' : '';
-  return '<span class="gfv-semaforo gfv-semaforo--' + CLASSI[colore] + piccolo + '" role="img" aria-label="'
+  const label = [parolaConformita(esito), ...testi].join('. ');
+  let taglia = '';
+  if (opzioni.taglia === 'banner') taglia = ' gfv-semaforo--banner';
+  else if (opzioni.taglia === 'cella') taglia = ' gfv-semaforo--cella';
+  else if (opzioni.taglia === 'riga') taglia = ' gfv-semaforo--riga';
+  else if (opzioni.piccolo) taglia = ' gfv-semaforo--sm';
+  return '<span class="gfv-semaforo gfv-semaforo--' + CLASSI[colore] + taglia + '" role="img" aria-label="'
     + esc(label) + '" title="' + esc(label) + '"></span>';
+}
+
+export function htmlBannerConformita(esito) {
+  const colore = esito && CLASSI[esito.colore] ? esito.colore : 'grigio';
+  const titolo = titoloBannerConformita(esito);
+  const voce = (esito && esito.motivi) || [];
+  const lista = voce.filter((m) => m && m.colore && m.testo);
+  const note = voce.filter((m) => m && !m.colore && m.testo);
+  const ul = lista.map((m) => '<li>' + esc(m.testo) + '</li>').join('');
+  const noteHtml = note.map((m) => '<p class="gfv-semaforo-banner-nota">' + esc(m.testo) + '</p>').join('');
+  return '<div class="gfv-semaforo-banner gfv-semaforo-banner--' + CLASSI[colore] + '" data-colore="' + colore + '" role="status">'
+    + htmlSemaforoConformita(esito, { taglia: 'banner' })
+    + '<div class="gfv-semaforo-banner-testo">'
+    + '<p class="gfv-semaforo-banner-titolo">' + esc(titolo) + '</p>'
+    + (ul ? '<ul class="gfv-semaforo-banner-motivi">' + ul + '</ul>' : '')
+    + noteHtml
+    + '</div></div>';
 }
 
 export function htmlRiepilogoConformita(esito) {
   const colore = esito && PAROLE[esito.colore] ? esito.colore : 'grigio';
   const lista = (esito && esito.motivi || []).map((m) => '<li>' + esc(m.testo) + '</li>').join('');
   return '<div class="registro-conformita" data-colore="' + colore + '">'
-    + '<span class="gfv-semaforo-inline">' + htmlSemaforoConformita(esito) + '<span class="gfv-semaforo-parola">' + esc(PAROLE[colore]) + '</span></span>'
+    + '<span class="gfv-semaforo-inline">' + htmlSemaforoConformita(esito) + '<span class="gfv-semaforo-parola">' + esc(parolaConformita(esito)) + '</span></span>'
     + (lista ? '<ul class="registro-conformita-motivi">' + lista + '</ul>' : '')
     + '</div>';
 }
@@ -766,7 +1027,7 @@ export function htmlPallinoCampo(esito, campo) {
 export function htmlCellaAvvisi(esito, extraTesti) {
   const base = esito && esito.colore ? esito : {
     colore: 'grigio',
-    motivi: [motivo('scheda_mancante', 'grigio', null, "Nessun dato d'etichetta")]
+    motivi: [motivo('scheda_mancante', 'grigio', null, PAROLA_SENZA_SCHEDA)]
   };
   const extra = (Array.isArray(extraTesti) ? extraTesti : String(extraTesti || '').split(';'))
     .map((t) => String(t || '').trim())
@@ -776,7 +1037,7 @@ export function htmlCellaAvvisi(esito, extraTesti) {
     motivi: (base.motivi || []).concat(extra.map((testo) => motivo('avviso_precedente', null, null, testo)))
   };
   return {
-    html: '<span class="gfv-semaforo-inline">' + htmlSemaforoConformita(fuso) + '<span class="gfv-semaforo-parola">' + esc(PAROLE[base.colore] || PAROLE.grigio) + '</span></span>',
+    html: '<span class="gfv-semaforo-inline">' + htmlSemaforoConformita(fuso, { taglia: 'cella' }) + '<span class="gfv-semaforo-parola">' + esc(parolaConformita(base)) + '</span></span>',
     rowClass: base.colore === 'rosso' ? 'gfv-row-alert--red' : ''
   };
 }

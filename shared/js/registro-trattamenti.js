@@ -123,7 +123,10 @@ export function campiConfermaRiga(raw = {}) {
     doseMaxHl: numeroFinito(raw.doseMaxHl),
     unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null,
     carenzaNonNecessaria: raw.carenzaNonNecessaria === true ? true : null,
-    origineValori: normalizzaOrigineValori(raw.origineValori)
+    origineValori: normalizzaOrigineValori(raw.origineValori),
+    numeroRegistrazioneLetto: raw.numeroRegistrazioneLetto != null && String(raw.numeroRegistrazioneLetto).trim()
+      ? String(raw.numeroRegistrazioneLetto).trim()
+      : null
   };
 }
 
