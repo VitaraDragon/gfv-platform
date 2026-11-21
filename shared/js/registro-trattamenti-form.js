@@ -32,6 +32,7 @@ import {
   dataRevisioneOpenData,
   normalizzaNomeColtura,
   preparaEtichetta,
+  limitiDoseDaScheda,
   testoConsultaEtichetta
 } from './registro-trattamenti-etichetta.js';
 import {
@@ -581,6 +582,9 @@ export function registroConfermaManuale(prodotto, campi = {}, meta = {}) {
       dosePerEttolitroScheda: numeroSingoloTesto(campi.doseHl),
       giorniCarenzaConfermata: carenzaNonNecessaria ? null : numeroSingoloTesto(carenzaTesto),
       carenzaNonNecessaria: carenzaNonNecessaria || null,
+      doseMinHa: campi.doseMinHa,
+      doseMaxHa: campi.doseMaxHa,
+      unitaDose: campi.unitaDose,
       origineValori: campi.origineValori || null
     }),
     ...anagraficaRegistro(prodotto, meta)
@@ -800,12 +804,82 @@ let bannerSeq = 0;
 
 const SELETTORI_BANNER = '.prodotto-dosaggio, .prodotto-nome-altro, .prodotto-select, .prodotto-unita-scelta, #trattamento-data, #trattamento-acqua-hl-ha, #trattamento-acqua-hl-tot, #trattamento-superficie, .registro-dose-ha, .registro-dose-hl, .registro-carenza, .registro-massimo, .registro-intervallo, .registro-coltura, .registro-avversita, .registro-avversita-scelta';
 
+/**
+ * Dopo la Conferma, la dose scritta sulla riga (o nel pannello, se è quella usata)
+ * aggiorna dosePerEttaroScheda / dosePerEttolitroScheda. Avversità, numero e confermatoIl restano.
+ */
+export function sincronizzaDoseConfermata(tr, input = {}) {
+  if (!tr || !tr.querySelector) return null;
+  const registro = leggiRegistroRiga(tr);
+  if (!rigaHaConferma(registro)) return registro;
+  const next = {
+    ...registro,
+    origineValori: registro.origineValori ? { ...registro.origineValori } : {}
+  };
+  let changed = false;
+  const applica = (chiaveScheda, chiaveOrig, valore, atteso) => {
+    if (valore == null || valore === '') return;
+    const n = numeroFinito(valore);
+    if (n == null) return;
+    if (numeroFinito(next[chiaveScheda]) === n) return;
+    const origine = next.origineValori[chiaveOrig];
+    const attesoN = numeroFinito(atteso);
+    const restaEtichetta = attesoN != null && n === attesoN && origine && origine.origine === 'etichetta';
+    next[chiaveScheda] = n;
+    if (!restaEtichetta) next.origineValori[chiaveOrig] = { origine: 'azienda' };
+    changed = true;
+  };
+  applica('dosePerEttaroScheda', 'doseHa', input.doseHa, input.valoreEtichettaHa);
+  applica('dosePerEttolitroScheda', 'doseHl', input.doseHl, input.valoreEtichettaHl);
+  if (!changed) return registro;
+  if (!Object.keys(next.origineValori).length) next.origineValori = null;
+  const hidden = tr.querySelector('.registro-json');
+  if (hidden) hidden.value = serializzaRegistroRiga(next);
+  return next;
+}
+
+function sincronizzaDoseDaEvento(el) {
+  if (!el || !el.classList) return;
+  if (el.classList.contains('prodotto-dosaggio')) {
+    const tr = el.closest('tr');
+    if (!tr) return;
+    const box = document.getElementById('registro-scheda-esito');
+    const campo = box && box.querySelector('.registro-dose-ha');
+    sincronizzaDoseConfermata(tr, {
+      doseHa: el.value,
+      valoreEtichettaHa: campo ? campo.getAttribute('data-valore-etichetta') : null
+    });
+    return;
+  }
+  const box = el.closest && el.closest('#registro-scheda-esito');
+  if (!box) return;
+  const idx = box.getAttribute('data-riga-idx');
+  if (idx == null) return;
+  const tr = document.querySelector('#tbody-prodotti-trattamento tr[data-idx="' + idx + '"]');
+  if (!tr) return;
+  const doseRiga = tr.querySelector('.prodotto-dosaggio');
+  const rigaVuota = !doseRiga || String(doseRiga.value) === '';
+  if (el.classList.contains('registro-dose-ha') && rigaVuota) {
+    sincronizzaDoseConfermata(tr, {
+      doseHa: el.value,
+      valoreEtichettaHa: el.getAttribute('data-valore-etichetta')
+    });
+  }
+  if (el.classList.contains('registro-dose-hl')) {
+    sincronizzaDoseConfermata(tr, {
+      doseHl: el.value,
+      valoreEtichettaHl: el.getAttribute('data-valore-etichetta')
+    });
+  }
+}
+
 function assicuraAscoltoConformita() {
   if (ascoltoConformitaPronto || typeof document === 'undefined') return;
   ascoltoConformitaPronto = true;
   const handler = (ev) => {
     const t = ev.target;
     if (!t || !t.matches || !t.matches(SELETTORI_BANNER)) return;
+    sincronizzaDoseDaEvento(t);
     aggiornaBannerConformita();
   };
   document.addEventListener('input', handler);
@@ -904,6 +978,7 @@ function leggiRigheBanner(opts) {
       dosaggio,
       unitaDosaggio: unita || null,
       avversita: registro.avversita || (campi && campi.avversita) || '',
+      confermaMancante: !!(usaPannello && campi && String(campi.avversita || '').trim() && !rigaHaConferma(registro)),
       specieUsata: (campi && campi.coltura) || registro.specieUsata || '',
       riferimentoRiga: registro.riferimentoRiga,
       numeroRegistrazioneLetto: registro.numeroRegistrazioneLetto || null,
@@ -939,6 +1014,40 @@ function applicaUnitaSulDom(tr, esito) {
     span.setAttribute('data-unita-etichetta', scelta.value);
   }
   scelta.hidden = true;
+}
+
+const MOTIVO_CONFERMA_AVVERSITA = "Conferma l'avversità";
+
+function esitoConConfermaAperta(riga, esito) {
+  if (!riga || !riga.confermaMancante) return esito;
+  const base = esito || { colore: 'verde', motivi: [] };
+  const motivi = (base.motivi || []).concat([{
+    codice: 'conferma_avversita',
+    colore: 'giallo',
+    campo: 'avversita',
+    testo: MOTIVO_CONFERMA_AVVERSITA
+  }]);
+  const colore = base.colore === 'verde' || !base.colore ? 'giallo' : base.colore;
+  return { colore, motivi };
+}
+
+function fusoConConfermaAperta(fuso, righe) {
+  const aperti = (righe || []).filter((riga) => riga && riga.confermaMancante);
+  if (!aperti.length) return fuso;
+  const base = fuso || { colore: 'verde', motivi: [] };
+  const motivi = (base.motivi || []).slice();
+  aperti.forEach((riga) => {
+    const nome = String(riga.prodotto || '').trim();
+    const testo = (righe.length > 1 && nome ? nome + ': ' : '') + MOTIVO_CONFERMA_AVVERSITA;
+    motivi.push({
+      codice: 'conferma_avversita',
+      colore: 'giallo',
+      campo: 'avversita',
+      testo
+    });
+  });
+  const colore = base.colore === 'verde' || !base.colore ? 'giallo' : base.colore;
+  return { ...base, colore, motivi };
 }
 
 /**
@@ -993,8 +1102,8 @@ export async function aggiornaBannerConformita(extra) {
       precedenti: opts.precedenti ? opts.precedenti() : [],
       dataRaccolta: opts.dataRaccolta ? opts.dataRaccolta(dataVal) : null,
       oggi: new Date()
-    }));
-    const fuso = valutaConformitaTrattamento({
+    })).map((esito, i) => esitoConConfermaAperta(utili[i], esito));
+    const fusoBase = valutaConformitaTrattamento({
       trattamento,
       righe: utili,
       vocabolario: legami.vocabolario,
@@ -1003,6 +1112,7 @@ export async function aggiornaBannerConformita(extra) {
       oggi: new Date(),
       ...legami
     });
+    const fuso = fusoConConfermaAperta(fusoBase, utili);
     if (seq !== bannerSeq) return null;
     banner.hidden = false;
     banner.innerHTML = htmlBannerConformita(fuso);
@@ -1044,7 +1154,8 @@ export function attaccaLetturaScheda(opts) {
         scriviEsitoScheda('<p>Indica prima il nome del prodotto.</p>');
         return;
       }
-      const conferma = confermaSpecieSalvata(anag, specie);
+      const dallaRiga = leggiRegistroRiga(tr);
+      const conferma = rigaHaConferma(dallaRiga) ? dallaRiga : confermaSpecieSalvata(anag, specie);
       const metaBaseDi = (esito) => ({
         fonte: esito.fonte || FONTE_OPEN_DATA_FITOSANITARI,
         dataLettura: esito.dataLettura || null,
@@ -1167,7 +1278,9 @@ export function attaccaLetturaScheda(opts) {
           manuale.addEventListener('click', () => {
             const prodotto = indiceScelto == null ? prodotti[0] : prodotti[indiceScelto];
             if (!prodotto) return;
-            applica(registroConfermaManuale(prodotto, leggiCampiAzienda(box), metaBase));
+            const campi = leggiCampiAzienda(box);
+            const limiti = limitiDoseDaScheda(scheda, { coltura: campi.coltura, avversita: campi.avversita });
+            applica(registroConfermaManuale(prodotto, { ...campi, ...limiti }, metaBase));
           });
         }
         const riprova = box.querySelector('[data-riprova-numero]');

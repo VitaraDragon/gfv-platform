@@ -102,6 +102,66 @@ export function righePerColtura(scheda, coltura, vocabolario) {
   return filtrate.length ? filtrate : tutte;
 }
 
+function stessaAvversitaScheda(riga, nome) {
+  const a = chiaveAvversita(riga);
+  const b = chiaveAvversita({ avversita: nome });
+  if (!b || b === 'senza') return false;
+  return a === b || a.startsWith(b + ' ') || b.startsWith(a + ' ');
+}
+
+/**
+ * Intervallo dose/ha della riga d'etichetta per coltura e avversità.
+ * Senza avversità risponde solo se resta una riga sola. Unità diverse → null.
+ */
+export function intervalloDoseHa(scheda, { coltura, avversita } = {}) {
+  if (!scheda || !Array.isArray(scheda.righe)) return null;
+  let righe = righePerColtura(scheda, coltura || '', null);
+  if (!righe.length) return null;
+  const nome = String(avversita || '').trim();
+  if (nome) {
+    const filtrate = righe.filter((riga) => stessaAvversitaScheda(riga, nome));
+    if (!filtrate.length) return null;
+    righe = filtrate;
+  } else if (righe.length !== 1) {
+    return null;
+  }
+  let min = null;
+  let max = null;
+  let unita = '';
+  let unitaMista = false;
+  righe.forEach((riga) => {
+    (riga.dose_ha || []).forEach((voce) => {
+      if (!voce || (voce.min == null && voce.max == null)) return;
+      const u = String(voce.unita || '').trim();
+      if (u) {
+        if (!unita) unita = u;
+        else if (unita.toLowerCase() !== u.toLowerCase()) unitaMista = true;
+      }
+      if (voce.min != null && Number.isFinite(Number(voce.min))) {
+        const n = Number(voce.min);
+        min = min == null ? n : Math.min(min, n);
+      }
+      if (voce.max != null && Number.isFinite(Number(voce.max))) {
+        const n = Number(voce.max);
+        max = max == null ? n : Math.max(max, n);
+      }
+    });
+  });
+  if (unitaMista || (min == null && max == null)) return null;
+  return { min, max, unita };
+}
+
+/** Minimo, massimo e unità da scrivere sulla riga prodotto alla Conferma. */
+export function limitiDoseDaScheda(scheda, { coltura, avversita } = {}) {
+  const intervallo = intervalloDoseHa(scheda, { coltura, avversita });
+  if (!intervallo) return {};
+  return {
+    doseMinHa: intervallo.min,
+    doseMaxHa: intervallo.max,
+    unitaDose: intervallo.unita || null
+  };
+}
+
 export function colturaNonEstratta(scheda, coltura, vocabolario) {
   const candidati = candidatiColtura(coltura, vocabolario);
   const lista = scheda && Array.isArray(scheda.colture_non_estratte) ? scheda.colture_non_estratte : [];

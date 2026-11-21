@@ -7,6 +7,7 @@
  */
 
 import { campiConfermaRiga, numeroFinito } from '../../../shared/js/registro-trattamenti.js';
+import { messaggiDoseFuoriProdotti } from '../../../shared/js/registro-trattamenti-conformita.js';
 import { etichettaTerrenoStorico } from '../../../shared/js/terreno-archivio.js';
 import { dataIsoLavorazione, isLavorazioneDiFilare } from './SeminativoLavorazione.js';
 import { intervalloCampagna } from './SeminativoSpese.js';
@@ -227,29 +228,13 @@ export function selezionaRigheTrattamento(input = {}) {
 }
 
 /**
- * Stesso controllo del vigneto: dose fuori dal range in anagrafica prodotto.
+ * Dose fuori intervallo. Con la scheda d'etichetta usa quei valori, anche senza anagrafica.
  * @param {Array} prodotti
  * @param {Array} anagrafica
+ * @param {object} [pacchetto] schede già caricate
  * @returns {{ hasWarning: boolean, tooltip: string }}
  */
-export function avvisoDosaggioProdotti(prodotti, anagrafica) {
-  const catalogo = Array.isArray(anagrafica) ? anagrafica : [];
-  const messaggi = [];
-  (prodotti || []).forEach((row) => {
-    if (!row || !row.prodottoId || row.dosaggio == null || Number.isNaN(Number(row.dosaggio))) return;
-    const prod = catalogo.find((item) => item.id === row.prodottoId);
-    if (!prod) return;
-    const nome = String(row.prodotto || prod.nome || prod.codice || 'Prodotto').trim();
-    const dose = Number(row.dosaggio);
-    const daScheda = (row.confermatoIl || row.avversita) && (row.doseMinHa != null || row.doseMaxHa != null);
-    const max = daScheda ? (row.doseMaxHa != null ? Number(row.doseMaxHa) : null) : (prod.dosaggioMax != null ? Number(prod.dosaggioMax) : null);
-    const min = daScheda ? (row.doseMinHa != null ? Number(row.doseMinHa) : null) : (prod.dosaggioMin != null ? Number(prod.dosaggioMin) : null);
-    if (max != null && !Number.isNaN(max) && dose > max) {
-      messaggi.push('Dosaggio superiore al consigliato per ' + nome);
-    }
-    if (min != null && !Number.isNaN(min) && dose < min) {
-      messaggi.push('Dosaggio inferiore al consigliato per ' + nome);
-    }
-  });
+export function avvisoDosaggioProdotti(prodotti, anagrafica, pacchetto) {
+  const messaggi = messaggiDoseFuoriProdotti(prodotti, anagrafica, pacchetto);
   return { hasWarning: messaggi.length > 0, tooltip: messaggi.join('; ') };
 }

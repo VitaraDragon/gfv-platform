@@ -27,13 +27,15 @@ import {
     valutaCancellazioneRegistro,
     campiConfermaRiga,
     messaggiUnici,
-    rangeDoseAvviso
+    righeProdottiPerForm,
+    rigaHaConferma
 } from './registro-trattamenti.js';
 import {
     caricaPacchettoPerRighe,
     htmlCellaAvvisi,
     chiediSalvaComunque,
     legamiScheda,
+    messaggiDoseFuoriProdotti,
     primaDataRaccoltaDopo,
     testiSegnalati,
     valutaConformitaTrattamento
@@ -44,6 +46,7 @@ import {
     collegaBannerConformita,
     htmlMetaRegistro,
     leggiAcquaDalForm,
+    leggiCampiAzienda,
     leggiRegistroRiga,
     leggiUnitaRigaDom,
     messaggiAvvisoForm,
@@ -133,27 +136,8 @@ async function applicaDatiDaTrattamentoPrecedente(colturaId, precedenteId) {
         const { getTrattamento } = await import(resolvePath(cfg.servicePath));
         const parent = await getTrattamento(colturaId, precedenteId);
         if (!parent) return;
-        let rowsProdotti;
-        if (parent.prodotti && parent.prodotti.length) {
-            rowsProdotti = parent.prodotti.map(r => ({
-                prodottoId: r.prodottoId || null,
-                prodotto: r.prodotto || '',
-                dosaggio: r.dosaggio,
-                unitaDosaggio: r.unitaDosaggio || null,
-                quantita: r.quantita,
-                costo: r.costo
-            }));
-        } else {
-            rowsProdotti = [{
-                prodottoId: null,
-                prodotto: parent.prodotto || '',
-                dosaggio: parent.dosaggio != null && parent.dosaggio !== '' ? parseFloat(parent.dosaggio) : null,
-                unitaDosaggio: null,
-                quantita: null,
-                costo: parent.costoProdotto ?? 0
-            }];
-        }
-        if (!rowsProdotti.length) rowsProdotti = [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }];
+        let rowsProdotti = righeFormDaTrattamento(parent);
+        if (!rowsProdotti.length) rowsProdotti = [rigaProdottoVuota()];
         renderProdottiTrattamento(rowsProdotti);
         if (typeof ricalcolaQuantitaCostoProdotti === 'function') ricalcolaQuantitaCostoProdotti();
         const gc = document.getElementById('trattamento-giorni-carenza');
@@ -412,26 +396,57 @@ function getProdottiRowsFromTable() {
     return rows;
 }
 
+function rigaProdottoVuota() {
+    return { prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 };
+}
+
+/** Righe del form: commerciali + conferma. I trattamenti vecchi a prodotto singolo passano dallo stesso helper. */
+function righeFormDaTrattamento(t) {
+    if (t && Array.isArray(t.prodotti) && t.prodotti.length) return righeProdottiPerForm(t.prodotti);
+    return righeProdottiPerForm([{
+        prodottoId: null,
+        prodotto: (t && t.prodotto) || '',
+        dosaggio: t && t.dosaggio != null && t.dosaggio !== '' ? parseFloat(t.dosaggio) : null,
+        unitaDosaggio: null,
+        quantita: null,
+        costo: t && t.costoProdotto != null ? t.costoProdotto : 0
+    }]);
+}
+
+function conAvversitaPannello(riga, idx) {
+    if (riga && rigaHaConferma(riga) && riga.avversita) return riga;
+    const box = document.getElementById('registro-scheda-esito');
+    if (!box || String(box.getAttribute('data-riga-idx')) !== String(idx)) return riga;
+    const campi = leggiCampiAzienda(box);
+    if (!campi || !String(campi.avversita || '').trim()) return riga;
+    return {
+        ...riga,
+        avversita: campi.avversita,
+        specieUsata: campi.coltura || riga.specieUsata || null,
+        riferimentoRiga: riga.riferimentoRiga || (campi.coltura ? {
+            nomeProdotto: riga.prodotto || '',
+            numeroRegistrazione: riga.numeroRegistrazioneLetto || '',
+            colturaScheda: campi.coltura
+        } : null)
+    };
+}
+
 /**
- * Verifica che i dosaggi inseriti siano nel range consigliato (dosaggioMin/dosaggioMax) in anagrafica.
+ * Dose fuori intervallo. Con la scheda d'etichetta usa quei valori, anche senza prodotto in anagrafica.
  * @param {Array} rowsProdotti - Righe prodotti da getProdottiRowsFromTable()
- * @returns {{ valid: boolean, message?: string }}
+ * @returns {Promise<{ valid: boolean, message?: string }>}
  */
-function validaDosaggiProdotti(rowsProdotti) {
-    for (const r of rowsProdotti) {
-        if (!r.prodottoId || r.dosaggio == null || isNaN(r.dosaggio)) continue;
-        const prod = listProdottiAnagrafica.find(p => p.id === r.prodottoId);
-        if (!prod) continue;
-        const nome = (r.prodotto || prod.nome || prod.codice || '').trim() || 'Prodotto';
-        const range = rangeDoseAvviso(r, prod);
-        if (range.max != null && r.dosaggio > range.max) {
-            return { valid: false, message: 'Dosaggio superiore al consigliato per ' + nome + '.' };
-        }
-        if (range.min != null && r.dosaggio < range.min) {
-            return { valid: false, message: 'Dosaggio inferiore al consigliato per ' + nome + '.' };
-        }
+async function validaDosaggiProdotti(rowsProdotti) {
+    const arricchite = (rowsProdotti || []).map((riga, idx) => conAvversitaPannello(riga, idx));
+    let pacchetto = null;
+    try {
+        pacchetto = await caricaPacchettoPerRighe(arricchite, anagraficaRiga);
+    } catch (e) {
+        pacchetto = null;
     }
-    return { valid: true };
+    const messaggi = messaggiDoseFuoriProdotti(arricchite, listProdottiAnagrafica, pacchetto);
+    if (!messaggi.length) return { valid: true };
+    return { valid: false, message: messaggi.join(' ') };
 }
 
 /**
@@ -575,18 +590,10 @@ async function conformitaDelleRighe({ data, terrenoId, specieUsata, acquaEttolit
     });
 }
 
-function avvisoDosaggioTrattamento(row) {
+function avvisoDosaggioTrattamento(row, pacchetto) {
     const t = row && row.trattamento;
-    if (!t || !t.prodotti || !listProdottiAnagrafica.length) return { hasWarning: false, tooltip: '' };
-    const messaggi = [];
-    for (const p of t.prodotti) {
-        if (!p.prodottoId || p.dosaggio == null || isNaN(p.dosaggio)) continue;
-        const prod = listProdottiAnagrafica.find(pr => pr.id === p.prodottoId);
-        if (!prod) continue;
-        const nome = (p.prodotto || prod.nome || prod.codice || '').trim() || 'Prodotto';
-        if (prod.dosaggioMax != null && p.dosaggio > prod.dosaggioMax) messaggi.push('Dosaggio superiore al consigliato per ' + nome);
-        if (prod.dosaggioMin != null && p.dosaggio < prod.dosaggioMin) messaggi.push('Dosaggio inferiore al consigliato per ' + nome);
-    }
+    if (!t || !t.prodotti) return { hasWarning: false, tooltip: '' };
+    const messaggi = messaggiDoseFuoriProdotti(t.prodotti, listProdottiAnagrafica, pacchetto);
     const registro = messaggiAvvisoForm({
         data: t.data || row.data,
         terrenoId: row.terrenoId,
@@ -1239,7 +1246,7 @@ async function loadTrattamenti() {
         } else if (row.attivitaId) {
             refCell = `<a href="${attivitaUrl}?attivitaId=${encodeURIComponent(row.attivitaId)}" target="_blank" class="link-lavoro">🔗 Vedi Attività</a>`;
         }
-        const avviso = avvisoDosaggioTrattamento(row);
+        const avviso = avvisoDosaggioTrattamento(row, pacchettoSchede);
         const hasTrattamento = !!t;
         let cellaConformita = { html: '-', rowClass: '' };
         if (hasTrattamento) {
@@ -1397,8 +1404,8 @@ async function openModalCompleta(idx) {
         if (lavoroRipresaDa && parentTrattamentoIdRipresa) {
             await applicaDatiDaTrattamentoPrecedente(row[cfg.idKey], parentTrattamentoIdRipresa);
         } else {
-            let rowsProdotti = (t.prodotti && t.prodotti.length) ? t.prodotti.map(r => ({ prodottoId: r.prodottoId || null, prodotto: r.prodotto || '', dosaggio: r.dosaggio, unitaDosaggio: r.unitaDosaggio || null, quantita: r.quantita, costo: r.costo })) : [{ prodottoId: null, prodotto: t.prodotto || '', dosaggio: t.dosaggio != null && t.dosaggio !== '' ? parseFloat(t.dosaggio) : null, unitaDosaggio: null, quantita: null, costo: t.costoProdotto ?? 0 }];
-            if (!rowsProdotti.length) rowsProdotti = [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }];
+            let rowsProdotti = righeFormDaTrattamento(t);
+            if (!rowsProdotti.length) rowsProdotti = [rigaProdottoVuota()];
             renderProdottiTrattamento(rowsProdotti);
         }
         try {
@@ -1496,8 +1503,8 @@ async function apriModificaTrattamento(idx) {
     if (lavoroRipresaDaEd && parentIdEdit && !hasProdotti) {
         await applicaDatiDaTrattamentoPrecedente(colturaId, parentIdEdit);
     } else {
-        let rowsProdotti = (t.prodotti && t.prodotti.length) ? t.prodotti.map(r => ({ prodottoId: r.prodottoId || null, prodotto: r.prodotto || '', dosaggio: r.dosaggio, unitaDosaggio: r.unitaDosaggio || null, quantita: r.quantita, costo: r.costo })) : [{ prodottoId: null, prodotto: t.prodotto || '', dosaggio: t.dosaggio != null && t.dosaggio !== '' ? parseFloat(t.dosaggio) : null, unitaDosaggio: null, quantita: null, costo: t.costoProdotto ?? 0 }];
-        if (!rowsProdotti.length) rowsProdotti = [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }];
+        let rowsProdotti = righeFormDaTrattamento(t);
+        if (!rowsProdotti.length) rowsProdotti = [rigaProdottoVuota()];
         renderProdottiTrattamento(rowsProdotti);
     }
     try {
@@ -1606,7 +1613,7 @@ async function saveTrattamento(e) {
         showAlert('Aggiungi almeno una riga prodotto con nome.', 'error');
         return;
     }
-    const checkDosaggi = validaDosaggiProdotti(rowsProdotti);
+    const checkDosaggi = await validaDosaggiProdotti(rowsProdotti);
     if (!checkDosaggi.valid && !confirm('Attenzione: ' + checkDosaggi.message + ' Salvare comunque?')) {
         return;
     }
