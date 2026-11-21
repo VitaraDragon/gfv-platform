@@ -50,7 +50,8 @@ import {
   messaggiAvvisoForm,
   notaRegistroTesto,
   scriviAcquaNelForm,
-  scriviEsitoScheda
+  scriviEsitoScheda,
+  ripristinaCardProdottoSalvato
 } from '../../../shared/js/registro-trattamenti-form.js';
 import { leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
 import { formatQuantita, valoreQuantitaGrezzo } from '../../../shared/js/formato-quantita.js';
@@ -640,6 +641,7 @@ async function compilaModuloTrattamento(row) {
     acquaEttolitriTotali: scheda.acquaEttolitriTotali
   });
   renderProdottiTrattamento(scheda.prodotti);
+  await ripristinaCardProdottoSalvato(scheda.prodotti);
   const operatoreGia = trattamento && String(trattamento.operatore || '').trim();
   const operatoreValore = operatoreGia || (hasManodopera ? (operatoreDaLavoro(lavoroScheda) || '') : '');
   try {

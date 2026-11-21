@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     deveMostrareBarra,
+    buildPiuNuova,
+    devePromuovereAlCarico,
     puoRicaricare,
     deveRicaricareSuControllerChange,
     chiaveReloadBuild,
@@ -77,6 +79,39 @@ describe('barra nuova versione', () => {
             aggiornaRichiesto: true,
             ricaricando: true,
             giaRicaricatoPerBuild: false
+        })).toBe(false);
+    });
+
+    it('al carico, con worker più nuovo e form pulito, si promuove una volta', () => {
+        expect(buildPiuNuova('t200', 't100')).toBe(true);
+        expect(buildPiuNuova('t100', 't200')).toBe(false);
+        expect(buildPiuNuova('t100', 't100')).toBe(false);
+        expect(buildPiuNuova('e2e-build-nuova', 't100')).toBe(true);
+        expect(devePromuovereAlCarico({
+            waiting: true,
+            buildPiuNuova: true,
+            formSporco: false,
+            salvataggioInCorso: false,
+            giaRicaricatoPerBuild: false
+        })).toBe(true);
+        expect(devePromuovereAlCarico({
+            waiting: true,
+            buildPiuNuova: true,
+            formSporco: true
+        })).toBe(false);
+        expect(devePromuovereAlCarico({
+            waiting: true,
+            buildPiuNuova: true,
+            salvataggioInCorso: true
+        })).toBe(false);
+        expect(devePromuovereAlCarico({
+            waiting: true,
+            buildPiuNuova: false
+        })).toBe(false);
+        expect(devePromuovereAlCarico({
+            waiting: true,
+            buildPiuNuova: true,
+            giaRicaricatoPerBuild: true
         })).toBe(false);
     });
 

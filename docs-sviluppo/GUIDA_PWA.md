@@ -93,7 +93,7 @@ const SW_CACHE_BUILD_ID = 't1739...'; // aggiornato dallo script
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 ```
 
-Il nuovo service worker, in `activate`, **cancella** le cache il cui nome non coincide con `CACHE_NAME`.
+Il nuovo service worker, in `activate`, **cancella** le cache `gfv-platform-*` diverse da `CACHE_NAME`, anche la più recente. Non le usa come copia dell'HTML o dei JavaScript dell'app: con il worker nuovo attivo una navigazione non riceve la shell della build precedente. Le cache di altre app sullo stesso origin restano. Si passa alla build nuova con **Aggiorna**, oppure con una ricarica se non ci sono dati non salvati. Un aggiornamento trovato mentre si sta compilando non ricarica la pagina da solo.
 
 ### Testa l'aggiornamento
 
