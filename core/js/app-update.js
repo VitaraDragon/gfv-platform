@@ -1,10 +1,10 @@
 /**
  * Barra «C'è una nuova versione».
- * Il service worker resta in attesa: la pagina si ricarica solo dal pulsante Aggiorna.
- * Dopo Aggiorna la barra resta con «Aggiornamento in corso…». Se il worker nuovo non si
- * attiva entro ATTESA_ATTIVAZIONE_MS (il browser la rimanda finché il worker vecchio ha una
- * risposta ancora in download), la pagina si ricarica da sola, ma solo senza dati non
- * salvati e senza un salvataggio in corso.
+ * Il service worker resta in attesa finché l'utente preme Aggiorna, oppure finché ricarica
+ * la pagina senza dati non salvati: in entrambi i casi si manda GFV_SKIP_WAITING e si
+ * ricarica una volta, su controllerchange, quando il worker nuovo ha preso il controllo.
+ * Non si ricarica prima: un reload servito dal worker vecchio riapriva il banner in loop.
+ * Un aggiornamento trovato a pagina già aperta non ricarica da solo se l'utente sta compilando.
  * @module core/js/app-update
  */
 
@@ -112,6 +112,39 @@ export function urlServiceWorker(swPath, locationLike) {
  */
 export function deveMostrareBarra({ controllerAlCaricamento, waiting } = {}) {
     return Boolean(controllerAlCaricamento) && Boolean(waiting);
+}
+
+/**
+ * La build in attesa è quella da attivare. I timestamp t… si confrontano;
+ * un id diverso (prove e2e) conta come aggiornamento.
+ * @param {string} inAttesa
+ * @param {string} attiva
+ * @returns {boolean}
+ */
+export function buildPiuNuova(inAttesa, attiva) {
+    const nuova = String(inAttesa || '');
+    const corrente = String(attiva || '');
+    if (!nuova || nuova === corrente) return false;
+    const tn = /^t(\d+)$/.exec(nuova);
+    const tc = /^t(\d+)$/.exec(corrente);
+    if (tn && tc) return Number(tn[1]) > Number(tc[1]);
+    return true;
+}
+
+/**
+ * Al carico della pagina, con worker in attesa e form pulito, si attiva la build nuova.
+ * Non a metà compilazione: l'update trovato dopo non parte da solo.
+ * @param {{ waiting?: unknown, formSporco?: boolean, salvataggioInCorso?: boolean, buildPiuNuova?: boolean, giaRicaricatoPerBuild?: boolean }} stato
+ * @returns {boolean}
+ */
+export function devePromuovereAlCarico({
+    waiting = false,
+    formSporco = false,
+    salvataggioInCorso = false,
+    buildPiuNuova: piuNuova = false,
+    giaRicaricatoPerBuild = false
+} = {}) {
+    return Boolean(waiting) && Boolean(piuNuova) && !formSporco && !salvataggioInCorso && !giaRicaricatoPerBuild;
 }
 
 /**
@@ -253,6 +286,7 @@ async function avvia(swPath) {
     const path = urlServiceWorker(swPath, window.location);
     try {
         const registration = await navigator.serviceWorker.register(path);
+        await promuoviAlCarico(registration);
         collegaBarra(registration);
         chiediAggiornamento(registration);
         document.addEventListener('visibilitychange', () => {
@@ -269,6 +303,23 @@ async function avvia(swPath) {
 function chiediAggiornamento(registration) {
     if (!registration || typeof registration.update !== 'function') return;
     registration.update().catch(() => {});
+}
+
+async function promuoviAlCarico(registration) {
+    const waiting = registration && registration.waiting;
+    if (!waiting) return false;
+    const build = await leggiBuild(waiting);
+    const controller = navigator.serviceWorker && navigator.serviceWorker.controller;
+    const attiva = await leggiBuild(controller);
+    if (!devePromuovereAlCarico({
+        waiting: true,
+        formSporco: formSporcoAdesso(),
+        salvataggioInCorso: salvataggioInCorsoAdesso(),
+        buildPiuNuova: buildPiuNuova(build, attiva),
+        giaRicaricatoPerBuild: giaRicaricatoPerBuild(build)
+    })) return false;
+    await preparaAggiornamento(registration);
+    return true;
 }
 
 function installaControllerChange() {
@@ -546,7 +597,7 @@ async function preparaAggiornamento(registration) {
         const target = (registration && registration.waiting) || waiting;
         if (!target) return;
         try {
-            target.postMessage({ type: 'GFV_SKIP_WAITING' });
+            target.postMessage({ type: 'GFV_SKIP_WAITING', paginaGestisceReload: true });
             window.__gfvSkipInviati = (window.__gfvSkipInviati || 0) + 1;
         } catch (error) {
             window.__gfvSkipErrore = String(error && error.message || error);
@@ -555,12 +606,10 @@ async function preparaAggiornamento(registration) {
     inviaSkip();
     if (timerSkip) window.clearInterval(timerSkip);
     timerSkip = 0;
-    if (tentativoScaduto) {
-        // Il worker è già rimasto bloccato una volta e l'utente ha ripremuto Aggiorna
-        // (con conferma, se aveva dati non salvati): si ricarica subito.
-        ricaricaSenzaControllerChange();
-        return;
-    }
+    // Niente reload immediato se un tentativo è già scaduto: ricaricare ora lo farebbe
+    // il worker vecchio e il banner tornerebbe. Si rimanda skipWaiting e si aspetta
+    // controllerchange.
+    tentativoScaduto = false;
     const ancoraInAttesa = () => {
         if (registration && registration.waiting) return true;
         if (!waiting) return false;
@@ -585,26 +634,43 @@ async function preparaAggiornamento(registration) {
 }
 
 /**
- * Nessun controllerchange entro ATTESA_ATTIVAZIONE_MS: di solito il worker nuovo è
- * ancora in attesa perché il vecchio sta servendo un file lento. Il reload chiude
- * quelle richieste e il browser attiva il worker nuovo.
+ * Nessun controllerchange entro ATTESA_ATTIVAZIONE_MS.
+ * Se il worker nuovo è ancora in attesa non si ricarica: la navigazione resterebbe
+ * sul worker vecchio, riaprirebbe fetch e il banner tornerebbe. skipWaiting è già
+ * stato chiesto e aggiornaRichiesto resta vero, così il reload parte appena il
+ * worker nuovo prende il controllo.
  */
 function attesaScaduta(registration, waiting) {
     const formSporco = formSporcoAdesso();
     const salvataggioInCorso = salvataggioInCorsoAdesso();
-    if (deveRicaricareDopoAttesa({ ricaricando, formSporco, salvataggioInCorso })) {
-        ricaricaSenzaControllerChange();
+    if (ricaricando) return;
+    const ancora = workerAncoraInAttesa(registration, waiting);
+    if (formSporco || salvataggioInCorso) {
+        console.warn('[app-update] Reload rimandato per dati non salvati');
+        aggiornaRichiesto = false;
+        tentativoScaduto = true;
+        ignoraAttesaCorrente = false;
+        statoBarra = 'disponibile';
+        mostraBarra(registration, (registration && registration.waiting) || waiting);
         return;
     }
-    if (ricaricando) return;
-    // Dati non salvati o salvataggio in corso: niente reload. Torna la barra con Aggiorna,
-    // e un controllerchange tardivo non ricarica da solo.
-    console.warn('[app-update] Worker nuovo ancora in attesa: reload rimandato per dati non salvati');
-    aggiornaRichiesto = false;
-    tentativoScaduto = true;
-    ignoraAttesaCorrente = false;
-    statoBarra = 'disponibile';
-    mostraBarra(registration, (registration && registration.waiting) || waiting);
+    if (ancora) {
+        console.warn('[app-update] Worker nuovo ancora in attesa: niente reload sotto la versione vecchia');
+        tentativoScaduto = true;
+        ignoraAttesaCorrente = false;
+        statoBarra = 'disponibile';
+        mostraBarra(registration, (registration && registration.waiting) || waiting);
+        return;
+    }
+    if (deveRicaricareDopoAttesa({ ricaricando, formSporco, salvataggioInCorso })) {
+        ricaricaSenzaControllerChange();
+    }
+}
+
+function workerAncoraInAttesa(registration, waiting) {
+    if (registration && registration.waiting) return true;
+    if (!waiting) return false;
+    return waiting.state === 'installing' || waiting.state === 'installed';
 }
 
 function ricaricaSenzaControllerChange() {
