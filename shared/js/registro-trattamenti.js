@@ -719,6 +719,9 @@ export function unisciConfermaSpecie(prodotto, specie, riga) {
   if (riga && riga.titolare) out.titolare = String(riga.titolare);
   if (riga && riga.statoAmministrativoScheda) out.statoAmministrativoScheda = String(riga.statoAmministrativoScheda);
   if (riga && riga.dataVariazioneScheda) out.dataVariazioneScheda = String(riga.dataVariazioneScheda);
+  if (riga && riga.dataScadenzaAutorizzazioneScheda) {
+    out.dataScadenzaAutorizzazioneScheda = String(riga.dataScadenzaAutorizzazioneScheda);
+  }
   return out;
 }
 

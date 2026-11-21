@@ -25,8 +25,19 @@ import {
     righeExportRegistro,
     unisciConfermaSpecie,
     valutaCancellazioneRegistro,
+    campiConfermaRiga,
+    messaggiUnici,
     rangeDoseAvviso
 } from './registro-trattamenti.js';
+import {
+    caricaSchedeRegistrazione,
+    htmlCellaAvvisi,
+    numeroRegistrazioneRiga,
+    primaDataRaccoltaDopo,
+    statoProdottoDaAnagrafica,
+    testiRossi,
+    valutaConformitaTrattamento
+} from './registro-trattamenti-conformita.js';
 import {
     attaccaLetturaScheda,
     bindAcquaCampi,
@@ -345,6 +356,12 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
             return row && row.prodottoId ? listProdottiAnagrafica.find((p) => p.id === row.prodottoId) : null;
         },
         leggiScheda: leggiSchedaRegistroTrattamento,
+        precedenti: () => passaggiDallaLista(document.getElementById('trattamento-id')?.value || null),
+        terrenoId: terrenoIdCorrente,
+        dataRaccolta: (data) => dataRaccoltaDi(
+            document.getElementById(cfg.hiddenId)?.value || document.getElementById(cfg.selectId)?.value,
+            data
+        ),
         utente: () => utenteRegistroNome,
         salvaSuProdotto: salvaConfermaProdotto,
         onConferma: (idx, registro) => {
@@ -501,6 +518,51 @@ function specieSchedaDaRecord(record) {
         destinazioneUva: record.destinazioneUva,
         specie: record.specie,
         colturaNome: record.colturaNome
+    });
+}
+
+const dateRaccoltaPerImpianto = new Map();
+
+async function caricaDateRaccolta(rows) {
+    const ids = [...new Set((rows || []).map((row) => row[cfg.idKey]).filter(Boolean))];
+    const mancanti = ids.filter((id) => !dateRaccoltaPerImpianto.has(id));
+    await Promise.all(mancanti.map(async (id) => {
+        try {
+            let lista = [];
+            if (cfg.modulo === 'vigneto') {
+                const mod = await import(resolvePath('../../../modules/vigneto/services/vendemmia-service.js'));
+                lista = await mod.getVendemmie(id);
+            } else if (cfg.modulo === 'frutteto') {
+                const mod = await import(resolvePath('../../../modules/frutteto/services/raccolta-frutta-service.js'));
+                lista = await mod.getRaccolte(id);
+            }
+            dateRaccoltaPerImpianto.set(id, (lista || []).map((voce) => voce && voce.data).filter(Boolean));
+        } catch (e) {
+            dateRaccoltaPerImpianto.set(id, []);
+        }
+    }));
+}
+
+function dataRaccoltaDi(impiantoId, dataTrattamento) {
+    return primaDataRaccoltaDopo(dataTrattamento, dateRaccoltaPerImpianto.get(impiantoId) || []);
+}
+
+function anagraficaRiga(riga) {
+    return riga && riga.prodottoId ? listProdottiAnagrafica.find((p) => p.id === riga.prodottoId) : null;
+}
+
+async function conformitaDelleRighe({ data, terrenoId, specieUsata, acquaEttolitriPerEttaro, id, righe, precedenti, dataRaccolta }) {
+    const numeri = (righe || []).map((riga) => numeroRegistrazioneRiga(riga, anagraficaRiga(riga)));
+    const pacchetto = await caricaSchedeRegistrazione(numeri);
+    return valutaConformitaTrattamento({
+        trattamento: { id, data, terrenoId, specieUsata, acquaEttolitriPerEttaro },
+        righe: righe || [],
+        vocabolario: pacchetto.vocabolario,
+        precedenti,
+        dataRaccolta,
+        oggi: new Date(),
+        schedaPerRiga: (riga) => pacchetto.schede.get(numeroRegistrazioneRiga(riga, anagraficaRiga(riga))) || null,
+        statoPerRiga: (riga) => statoProdottoDaAnagrafica(anagraficaRiga(riga))
     });
 }
 
@@ -1129,6 +1191,26 @@ async function loadTrattamenti() {
         listRows = [];
     }
 
+    try {
+        await caricaDateRaccolta(listRows);
+    } catch (e) {
+        console.warn(cfg.logTag + ' date raccolta', e);
+    }
+    const numeriEtichetta = [];
+    listRows.forEach((row) => {
+        const prodotti = row.trattamento && row.trattamento.prodotti;
+        (prodotti || []).forEach((p) => {
+            const n = numeroRegistrazioneRiga(p, anagraficaRiga(p));
+            if (n) numeriEtichetta.push(n);
+        });
+    });
+    let pacchettoSchede = { schede: new Map(), vocabolario: null };
+    try {
+        pacchettoSchede = await caricaSchedeRegistrazione(numeriEtichetta);
+    } catch (e) {
+        console.warn(cfg.logTag + ' schede etichetta', e);
+    }
+
     loading.style.display = 'none';
     if (listRows.length === 0) {
         empty.style.display = 'block';
@@ -1153,10 +1235,27 @@ async function loadTrattamenti() {
         }
         const avviso = avvisoDosaggioTrattamento(row);
         const hasTrattamento = !!t;
-        const avvisiCell = !hasTrattamento ? '-'
-            : avviso.hasWarning
-                ? `<span class="avviso-dosaggio" title="${(avviso.tooltip || '').replace(/"/g, '&quot;')}" aria-label="Avviso dosaggio">⚠️</span>`
-                : `<span class="alert-badge green" title="Dosaggi nel range consigliato" aria-label="Tutto ok"></span>`;
+        let cellaConformita = { html: '-', rowClass: '' };
+        if (hasTrattamento) {
+            const esitoConformita = valutaConformitaTrattamento({
+                trattamento: {
+                    id: t.id,
+                    data: t.data || row.data,
+                    terrenoId: row.terrenoId,
+                    specieUsata: t.specieUsata,
+                    acquaEttolitriPerEttaro: t.acquaEttolitriPerEttaro
+                },
+                righe: t.prodotti || [],
+                vocabolario: pacchettoSchede.vocabolario,
+                precedenti: passaggiDallaLista(t.id),
+                dataRaccolta: dataRaccoltaDi(row[cfg.idKey], t.data || row.data),
+                oggi: new Date(),
+                schedaPerRiga: (riga) => pacchettoSchede.schede.get(numeroRegistrazioneRiga(riga, anagraficaRiga(riga))) || null,
+                statoPerRiga: (riga) => statoProdottoDaAnagrafica(anagraficaRiga(riga))
+            });
+            cellaConformita = htmlCellaAvvisi(esitoConformita, avviso.tooltip);
+        }
+        const avvisiCell = cellaConformita.html;
         const foundColtura = colture.find(v => v.id === row[cfg.idKey]);
         const azioni = htmlAzioniRegistro(
             isRegistroSolaLettura({
@@ -1170,7 +1269,7 @@ async function loadTrattamenti() {
                 : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`
         );
         const colturaLabel = row[cfg.nomeKey] || (foundColtura ? cfg.optionLabel(foundColtura) : '') || row[cfg.idKey] || '-';
-        return `<tr>
+        return `<tr class="${cellaConformita.rowClass}">
             <td>${formatDate(row.data)}</td>
             <td>${colturaLabel}</td>
             <td>${(row.lavoroLabel || '').substring(0, 40)}${(row.lavoroLabel && row.lavoroLabel.length > 40) ? '…' : ''}</td>
@@ -1516,7 +1615,18 @@ async function saveTrattamento(e) {
         precedenti: passaggiDallaLista(id),
         escludiId: id
     });
-    if (avvisiRegistro.length && !confirm(avvisiRegistro.join('\n') + '\n\nSalvare comunque?')) {
+    const conformitaSalva = await conformitaDelleRighe({
+        data: document.getElementById('trattamento-data').value,
+        terrenoId: terrenoIdCorrente(),
+        specieUsata: specieSchedaCorrente(),
+        acquaEttolitriPerEttaro: acquaUsata.ettolitriPerEttaro,
+        id,
+        righe: rowsProdotti,
+        precedenti: passaggiDallaLista(id),
+        dataRaccolta: dataRaccoltaDi(colturaId, document.getElementById('trattamento-data').value)
+    });
+    const avvisiUniti = messaggiUnici(avvisiRegistro.concat(testiRossi(conformitaSalva)));
+    if (avvisiUniti.length && !confirm(avvisiUniti.join('\n') + '\n\nSalvare comunque?')) {
         return;
     }
     const costoProdottoTotale = rowsProdotti.reduce((s, r) => s + (Number(r.costo) || 0), 0);
@@ -1576,16 +1686,8 @@ async function saveTrattamento(e) {
             principioAttivo: r.principioAttivo || null,
             fonteScheda: r.fonteScheda || null,
             dataLetturaScheda: r.dataLetturaScheda || null,
-            avversita: r.avversita || null,
-            specieUsata: r.specieUsata || specieSchedaCorrente(),
-            riferimentoRiga: r.riferimentoRiga || null,
-            confermatoDa: r.confermatoDa || null,
-            confermatoIl: r.confermatoIl || null,
-            impieghiMassimiAnno: r.impieghiMassimiAnno,
-            giorniMinimiTraPassaggi: r.giorniMinimiTraPassaggi,
-            dosePerEttaroScheda: r.dosePerEttaroScheda,
-            dosePerEttolitroScheda: r.dosePerEttolitroScheda,
-            giorniCarenzaConfermata: r.giorniCarenzaConfermata
+            ...campiConfermaRiga(r),
+            specieUsata: r.specieUsata || specieSchedaCorrente()
         })),
         costoProdotto: costoProdottoTotale,
         tipoTrattamento: tipoTrattamentoResolved,

@@ -34,6 +34,12 @@ import {
   preparaEtichetta,
   testoConsultaEtichetta
 } from './registro-trattamenti-etichetta.js';
+import {
+  htmlPallinoCampo,
+  htmlRiepilogoConformita,
+  statoProdottoDaAnagrafica,
+  valutaConformitaEtichetta
+} from './registro-trattamenti-conformita.js';
 
 function esc(value) {
   return String(value == null ? '' : value)
@@ -110,6 +116,9 @@ function pacchettoRegistro(registro) {
     ? String(registro.statoAmministrativoScheda)
     : null;
   base.dataVariazioneScheda = registro && registro.dataVariazioneScheda ? String(registro.dataVariazioneScheda) : null;
+  base.dataScadenzaAutorizzazioneScheda = registro && registro.dataScadenzaAutorizzazioneScheda
+    ? String(registro.dataScadenzaAutorizzazioneScheda)
+    : null;
   base.fonteScheda = registro && registro.fonteScheda ? String(registro.fonteScheda) : null;
   base.dataLetturaScheda = registro && registro.dataLetturaScheda ? registro.dataLetturaScheda : null;
   return base;
@@ -247,6 +256,10 @@ function rigaAnagrafica(prodotto) {
   return '<p>' + esc(parti.filter(Boolean).join(' — ')) + '</p>';
 }
 
+function segnapostoConformita(campo) {
+  return '<span class="registro-conformita-campo" data-campo="' + campo + '"></span>';
+}
+
 function campiManuali(conferma, specie) {
   const c = conferma || {};
   const coltura = (c.riferimentoRiga && c.riferimentoRiga.colturaScheda) || c.specieUsata || specie || '';
@@ -254,11 +267,11 @@ function campiManuali(conferma, specie) {
     + '<p>Coltura, avversità, dose e carenza le inserisce l\'azienda. Non arrivano dal Ministero.</p>'
     + '<label>Coltura <input class="registro-coltura" type="text" value="' + valoreCampo(coltura) + '"></label> '
     + '<label>Avversità <input class="registro-avversita" type="text" value="' + valoreCampo(c.avversita) + '"></label> '
-    + '<label>Dose per ha <input class="registro-dose-ha" type="text" inputmode="decimal" value="' + valoreCampo(c.dosePerEttaroScheda) + '"></label> '
-    + '<label>Dose per hl <input class="registro-dose-hl" type="text" inputmode="decimal" value="' + valoreCampo(c.dosePerEttolitroScheda) + '"></label> '
-    + '<label>Carenza (giorni) <input class="registro-carenza" type="text" inputmode="numeric" value="' + valoreCampo(testoCarenzaSalvata(c)) + '"></label> '
-    + '<label>Numero massimo <input class="registro-massimo" type="text" inputmode="numeric" value="' + valoreCampo(c.impieghiMassimiAnno) + '"></label> '
-    + '<label>Intervallo (giorni) <input class="registro-intervallo" type="text" inputmode="numeric" value="' + valoreCampo(c.giorniMinimiTraPassaggi) + '"></label>'
+    + '<label>Dose per ha ' + segnapostoConformita('doseHa') + '<input class="registro-dose-ha" type="text" inputmode="decimal" value="' + valoreCampo(c.dosePerEttaroScheda) + '"></label> '
+    + '<label>Dose per hl ' + segnapostoConformita('doseHl') + '<input class="registro-dose-hl" type="text" inputmode="decimal" value="' + valoreCampo(c.dosePerEttolitroScheda) + '"></label> '
+    + '<label>Carenza (giorni) ' + segnapostoConformita('carenza') + '<input class="registro-carenza" type="text" inputmode="numeric" value="' + valoreCampo(testoCarenzaSalvata(c)) + '"></label> '
+    + '<label>Numero massimo ' + segnapostoConformita('massimo') + '<input class="registro-massimo" type="text" inputmode="numeric" value="' + valoreCampo(c.impieghiMassimiAnno) + '"></label> '
+    + '<label>Intervallo (giorni) ' + segnapostoConformita('intervallo') + '<input class="registro-intervallo" type="text" inputmode="numeric" value="' + valoreCampo(c.giorniMinimiTraPassaggi) + '"></label>'
     + '</div>';
 }
 
@@ -437,21 +450,21 @@ function campiConEtichetta(conferma, specie, etichetta, colturaBozza, prodotto) 
     + intro
     + '<label>Coltura <input class="registro-coltura" type="text" value="' + valoreCampo(coltura) + '"></label> '
     + htmlAvversitaEtichetta(etichetta, c)
-    + '<label>Dose per ha ' + htmlInputValore('registro-dose-ha', doseHa.valore, 'decimal', voceSeNuova(doseHa, 'doseHa'))
+    + '<label>Dose per ha ' + segnapostoConformita('doseHa') + htmlInputValore('registro-dose-ha', doseHa.valore, 'decimal', voceSeNuova(doseHa, 'doseHa'))
     + htmlUnita(campi.doseHa, doseHa.voce) + '</label>'
     + htmlFonteEtichetta(doseHa.voce)
     + htmlVociEtichetta(campi.doseHa)
-    + '<label>Dose per hl ' + htmlInputValore('registro-dose-hl', doseHl.valore, 'decimal', voceSeNuova(doseHl, 'doseHl'))
+    + '<label>Dose per hl ' + segnapostoConformita('doseHl') + htmlInputValore('registro-dose-hl', doseHl.valore, 'decimal', voceSeNuova(doseHl, 'doseHl'))
     + htmlUnita(campi.doseHl, doseHl.voce) + '</label>'
     + htmlFonteEtichetta(doseHl.voce)
     + htmlVociEtichetta(campi.doseHl)
-    + '<label>Carenza (giorni) ' + htmlInputValore('registro-carenza', carenza.valore, 'text', voceSeNuova(carenza, 'carenza')) + '</label>'
+    + '<label>Carenza (giorni) ' + segnapostoConformita('carenza') + htmlInputValore('registro-carenza', carenza.valore, 'text', voceSeNuova(carenza, 'carenza')) + '</label>'
     + htmlFonteEtichetta(carenza.voce)
     + htmlVociEtichetta(campi.carenza)
-    + '<label>Numero massimo ' + htmlInputValore('registro-massimo', massimo.valore, 'text', voceSeNuova(massimo, 'massimo')) + '</label>'
+    + '<label>Numero massimo ' + segnapostoConformita('massimo') + htmlInputValore('registro-massimo', massimo.valore, 'text', voceSeNuova(massimo, 'massimo')) + '</label>'
     + htmlFonteEtichetta(massimo.voce)
     + htmlVociEtichetta(campi.massimo)
-    + '<label>Intervallo (giorni) ' + htmlInputValore('registro-intervallo', intervallo.valore, 'text', voceSeNuova(intervallo, 'intervallo')) + '</label>'
+    + '<label>Intervallo (giorni) ' + segnapostoConformita('intervallo') + htmlInputValore('registro-intervallo', intervallo.valore, 'text', voceSeNuova(intervallo, 'intervallo')) + '</label>'
     + htmlFonteEtichetta(intervallo.voce)
     + htmlVociEtichetta(campi.intervallo)
     + (riempiti ? htmlDicituraEtichetta(etichetta) : '')
@@ -466,7 +479,10 @@ export function htmlPannelloOpenData(input = {}) {
   const esito = input.esito || {};
   const prodotti = Array.isArray(esito.prodotti) ? esito.prodotti : [];
   const dataLettura = esito.dataLettura || null;
-  const parti = ['<p class="registro-avviso-etichetta">' + esc(AVVISO_ETICHETTA_FA_FEDE) + '</p>'];
+  const parti = [
+    '<p class="registro-avviso-etichetta">' + esc(AVVISO_ETICHETTA_FA_FEDE) + '</p>',
+    '<div data-conformita-slot="1"></div>'
+  ];
   if (!prodotti.length) {
     parti.push('<p>Non trovo «' + esc(input.nome || 'questo prodotto') + '» negli open data del Ministero. Non invento numero, titolare, sostanze o stato.</p>');
     parti.push('<p><a href="' + URL_BANCA_FITOSANITARI + '" target="_blank" rel="noopener noreferrer">Apri la banca dati fitosanitari del Ministero</a></p>');
@@ -526,6 +542,7 @@ function anagraficaRegistro(prodotto, meta) {
     principioAttivo: prodotto && prodotto.principioAttivo ? String(prodotto.principioAttivo) : null,
     titolare: prodotto && prodotto.titolare ? String(prodotto.titolare) : null,
     statoAmministrativoScheda: prodotto && prodotto.stato ? String(prodotto.stato) : null,
+    dataScadenzaAutorizzazioneScheda: dataUtile(prodotto && prodotto.dataScadenzaAutorizzazione) || null,
     dataVariazioneScheda: dataUtile(prodotto && prodotto.dataDecorrenzaRevoca)
       || dataUtile(prodotto && prodotto.dataDecretoRevoca)
       || dataUtile(prodotto && prodotto.dataScadenzaAutorizzazione)
@@ -787,6 +804,71 @@ export function attaccaScelteEtichetta(box, etichetta) {
   });
 }
 
+let rinfrescaConformitaCorrente = null;
+let ascoltoConformitaPronto = false;
+
+function assicuraAscoltoConformita() {
+  if (ascoltoConformitaPronto || typeof document === 'undefined') return;
+  ascoltoConformitaPronto = true;
+  const handler = (ev) => {
+    const t = ev.target;
+    if (!t || !t.matches) return;
+    if (!t.matches('.prodotto-dosaggio, #trattamento-data, #trattamento-acqua-hl-ha, #trattamento-acqua-hl-tot, .registro-dose-ha, .registro-dose-hl, .registro-carenza, .registro-massimo, .registro-intervallo, .registro-coltura, .registro-avversita')) return;
+    if (typeof rinfrescaConformitaCorrente === 'function') rinfrescaConformitaCorrente();
+  };
+  document.addEventListener('input', handler);
+  document.addEventListener('change', handler);
+}
+
+function unitaDaEtichetta(unita) {
+  const u = String(unita || '').toLowerCase();
+  if (u.startsWith('kg')) return 'kg';
+  if (u.startsWith('ml')) return 'ml';
+  if (u.startsWith('g')) return 'g';
+  if (u.startsWith('l')) return 'l';
+  return '';
+}
+
+function dipingiConformita(box, esito) {
+  if (!box || !esito) return;
+  const slot = box.querySelector('[data-conformita-slot]');
+  if (slot) slot.innerHTML = htmlRiepilogoConformita(esito);
+  box.querySelectorAll('.registro-conformita-campo').forEach((el) => {
+    el.innerHTML = htmlPallinoCampo(esito, el.getAttribute('data-campo'));
+  });
+}
+
+function leggiRigaConformita(box, tr, prodotto) {
+  const campi = leggiCampiAzienda(box);
+  const doseInp = tr && tr.querySelector('.prodotto-dosaggio');
+  const unitaSpan = tr && tr.querySelector('.prodotto-unita');
+  let unita = unitaSpan ? String(unitaSpan.textContent || '').trim() : '';
+  if (!unita || unita === '-') unita = '';
+  let dosaggio = doseInp && doseInp.value !== '' ? numeroFinito(doseInp.value) : null;
+  if (dosaggio == null) {
+    dosaggio = numeroSingoloTesto(campi.doseHa);
+    if (!unita) {
+      const campo = box.querySelector('.registro-dose-ha');
+      unita = unitaDaEtichetta(campo && campo.getAttribute('data-unita'));
+    }
+  }
+  const sel = tr && tr.querySelector('.prodotto-select');
+  return {
+    prodottoId: (sel && sel.value) || (prodotto && prodotto.id) || null,
+    prodotto: (prodotto && (prodotto.denominazione || prodotto.nome)) || '',
+    dosaggio,
+    unitaDosaggio: unita || null,
+    avversita: campi.avversita,
+    specieUsata: campi.coltura,
+    riferimentoRiga: {
+      colturaScheda: campi.coltura,
+      numeroRegistrazione: (prodotto && prodotto.numeroRegistrazione) || '',
+      nomeProdotto: (prodotto && (prodotto.denominazione || prodotto.nome)) || ''
+    },
+    origineValori: campi.origineValori
+  };
+}
+
 export function attaccaLetturaScheda(opts) {
   const tbody = opts && opts.tbody;
   if (!tbody) return;
@@ -835,6 +917,8 @@ export function attaccaLetturaScheda(opts) {
       const disegna = async (indiceScelto, extra) => {
         const prodottoScelto = indiceScelto == null ? (prodotti.length === 1 ? prodotti[0] : null) : prodotti[indiceScelto];
         let etichetta = null;
+        let scheda = null;
+        let vocabolario = null;
         if (prodottoScelto && !prodottoBloccato(prodottoScelto)) {
           const colturaRichiesta = extra && extra.coltura != null
             ? extra.coltura
@@ -842,8 +926,6 @@ export function attaccaLetturaScheda(opts) {
               || (conferma && conferma.specieUsata)
               || specie
               || '');
-          let scheda = null;
-          let vocabolario = null;
           try {
             scheda = await caricaSchedaEtichetta(prodottoScelto.numeroRegistrazione);
             if (scheda) vocabolario = await caricaVocabolarioColture();
@@ -938,6 +1020,35 @@ export function attaccaLetturaScheda(opts) {
             });
           });
         }
+        assicuraAscoltoConformita();
+        rinfrescaConformitaCorrente = () => {
+          try {
+            const vivo = document.getElementById('registro-scheda-esito');
+            if (!vivo || !vivo.querySelector('[data-conformita-slot]')) return;
+            const acqua = leggiAcquaDalForm();
+            const dataVal = document.getElementById('trattamento-data') && document.getElementById('trattamento-data').value;
+            const idTrattamento = document.getElementById('trattamento-id') && document.getElementById('trattamento-id').value;
+            const esitoConf = valutaConformitaEtichetta({
+              trattamento: {
+                id: idTrattamento || null,
+                data: dataVal || null,
+                terrenoId: opts.terrenoId ? opts.terrenoId() : null,
+                specieUsata: (vivo.querySelector('.registro-coltura') && vivo.querySelector('.registro-coltura').value) || specie || '',
+                acquaEttolitriPerEttaro: acqua.ettolitriPerEttaro
+              },
+              riga: leggiRigaConformita(vivo, tr, prodottoScelto),
+              scheda,
+              vocabolario,
+              dataRevisione: prodottoScelto ? dataRevisioneOpenData(prodottoScelto) : '',
+              statoProdotto: statoProdottoDaAnagrafica(prodottoScelto),
+              precedenti: opts.precedenti ? opts.precedenti() : [],
+              dataRaccolta: opts.dataRaccolta ? opts.dataRaccolta(dataVal) : null,
+              oggi: new Date()
+            });
+            dipingiConformita(vivo, esitoConf);
+          } catch (e) { /* il pannello resta utilizzabile */ }
+        };
+        rinfrescaConformitaCorrente();
       };
       disegna(prodotti.length === 1 ? 0 : null);
       };
