@@ -11,6 +11,8 @@ import {
   htmlMetaRegistro,
   htmlPannelloOpenData,
   leggiRegistroRiga,
+  ripristinaCardProdottoSalvato,
+  scriviEsitoScheda,
   serializzaRegistroRiga
 } from '../shared/js/registro-trattamenti-form.js';
 import { messaggioDoseFuoriRiga, righeProdottiPerForm } from '../shared/js/registro-trattamenti.js';
@@ -332,6 +334,46 @@ describe('salvataggio e rilettura Folpan scritto a mano', () => {
     const dalJson = leggiRegistroRiga(document.body);
     expect(dalJson.avversita).toContain('Peronospora');
     expect(numeroRegistrazioneRiga({ ...riletta, ...dalJson }, null, indice)).toBe('008601');
+  });
+
+  it('in riapertura la card mostra FOLPAN 80 WDG e 008601 senza Leggi scheda', async () => {
+    const salvata = {
+      ...payload,
+      titolare: 'ADAMA',
+      principioAttivo: 'folpet',
+      statoAmministrativoScheda: 'Autorizzato',
+      dataScadenzaAutorizzazioneScheda: '31/10/2040'
+    };
+    const riletta = righeProdottiPerForm([salvata])[0];
+    expect(riletta.titolare).toBe('ADAMA');
+    expect(riletta.principioAttivo).toBe('folpet');
+    expect(riletta.dataScadenzaAutorizzazioneScheda).toBe('31/10/2040');
+    expect(riletta.numeroRegistrazioneLetto).toBe('008601');
+    expect(riletta.prodotto).toBe('Folpan');
+
+    document.body.innerHTML = '<div id="registro-scheda-esito"></div><input class="prodotto-nome-altro" value="Folpan">';
+    scriviEsitoScheda('');
+    const vuoto = document.getElementById('registro-scheda-esito').textContent;
+    expect(vuoto).not.toContain('FOLPAN 80 WDG');
+    expect(vuoto).not.toContain('008601');
+
+    await ripristinaCardProdottoSalvato([riletta], { caricaScheda: async (numero) => (numero === '008601' ? folpan : null) });
+    const testo = document.getElementById('registro-scheda-esito').textContent;
+    expect(testo).toContain('FOLPAN 80 WDG');
+    expect(testo).toContain('008601');
+    expect(testo).toContain('ADAMA');
+    expect(testo).toContain('folpet');
+    expect(testo).not.toContain('1,4');
+    expect(testo).not.toMatch(/consigliat/i);
+
+    const pagine = [
+      'shared/js/trattamenti-coltura-page.js',
+      'modules/seminativo/js/trattamenti-page.js',
+      'modules/orticole/js/trattamenti-page.js'
+    ];
+    pagine.forEach((file) => {
+      expect(readFileSync(path.join(root, file), 'utf8')).toContain('ripristinaCardProdottoSalvato(');
+    });
   });
 
   it('la pagina non rimette il mapping stretto in Modifica, Completa e precedente', () => {

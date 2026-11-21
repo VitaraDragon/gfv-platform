@@ -114,4 +114,16 @@ test.describe('barra nuova versione', () => {
         await expect(page.locator(BARRA)).toHaveCount(0);
         expect(navigazioni).toBe(1);
     });
+
+    test('una ricarica a form pulito passa alla build nuova e la barra non torna', async ({ page }) => {
+        await apriEControlla(page);
+        const build = BUILD_NUOVA + '-reload';
+        serviBuild(build);
+        await chiediUpdate(page);
+        await expect(page.locator(BARRA)).toBeVisible();
+        await page.reload();
+        await page.locator('#login-form').waitFor({ timeout: 20_000 });
+        await expect.poll(() => leggiBuildAttiva(page), { timeout: 20_000 }).toBe(build);
+        await expect(page.locator(BARRA)).toHaveCount(0);
+    });
 });
