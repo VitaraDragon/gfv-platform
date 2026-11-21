@@ -26,8 +26,18 @@ import {
   unisciConfermaSpecie,
   prodottiSchedaDaMiscelaLavoro,
   testoStatoVuotoRegistro,
+  messaggiUnici,
   valutaCancellazioneRegistro
 } from '../../../shared/js/registro-trattamenti.js';
+import {
+  caricaSchedeRegistrazione,
+  htmlCellaAvvisi,
+  numeroRegistrazioneRiga,
+  primaDataRaccoltaDopo,
+  statoProdottoDaAnagrafica,
+  testiRossi,
+  valutaConformitaTrattamento
+} from '../../../shared/js/registro-trattamenti-conformita.js';
 import { leggiOperatoreDalForm, mostraOperatoreNelForm, operatoreDaLavoro } from '../../../shared/js/registro-operatore.js';
 import {
   attaccaLetturaScheda,
@@ -167,7 +177,8 @@ function applyFilters() {
   renderTable();
 }
 
-function renderTable() {
+async function renderTable() {
+  const seq = ++renderSeq;
   const tbody = document.getElementById('trattamenti-table-body');
   const emptyState = document.getElementById('empty-state');
   const loadingDiv = document.getElementById('loading');
@@ -183,6 +194,24 @@ function renderTable() {
   }
   if (emptyState) emptyState.style.display = 'none';
   if (table) table.style.display = 'table';
+  let pacchetto = null;
+  if (registro.categoria === 'trattamenti') {
+    const numeri = [];
+    visible.forEach((row) => {
+      const prodotti = row.trattamento && row.trattamento.prodotti;
+      (prodotti || []).forEach((p) => {
+        const n = numeroRegistrazioneRiga(p, anagraficaDi(p));
+        if (n) numeri.push(n);
+      });
+    });
+    try {
+      await dateRaccolte();
+      pacchetto = await caricaSchedeRegistrazione(numeri);
+    } catch (e) {
+      pacchetto = { schede: new Map(), vocabolario: null };
+    }
+  }
+  if (seq !== renderSeq) return;
   tbody.innerHTML = visible.map((row, index) => {
     const trattamento = row.trattamento;
     const ref = row.source === 'lavoro'
@@ -198,7 +227,8 @@ function renderTable() {
          <button type="button" class="btn btn-sm btn-danger" data-delete-row="${index}">Elimina</button>`
         : `<button type="button" class="btn btn-sm btn-success" data-completa-row="${index}">Completa</button>`
     );
-    return `<tr>
+    const cella = avvisoHtml(row, pacchetto);
+    return `<tr class="${cella.rowClass}">
       <td>${escapeHtml(row.data || '—')}</td>
       <td>${escapeHtml(campagnaLabel(row) || '—')}</td>
       <td><strong>${escapeHtml(row.tipoLavoro || '—')}</strong></td>
@@ -207,7 +237,7 @@ function renderTable() {
       <td>${trattamento && trattamento.superficieTrattata != null ? escapeHtml(trattamento.superficieTrattata) : '—'}</td>
       <td>${trattamento ? euro(trattamento.costoTotale) : '—'}</td>
       <td>${ref}</td>
-      <td>${avvisoHtml(trattamento)}</td>
+      <td>${cella.html}</td>
       <td class="actions-cell">${azioni}</td>
     </tr>`;
   }).join('');
@@ -241,11 +271,59 @@ function populateFilters() {
   applyDiarioVsLavoroCta(document, hasManodopera);
 }
 
-function avvisoHtml(trattamento) {
-  if (!trattamento) return '—';
+let renderSeq = 0;
+let raccolteCache = null;
+
+function anagraficaDi(riga) {
+  return riga && riga.prodottoId ? listProdottiAnagrafica.find((p) => p.id === riga.prodottoId) : null;
+}
+
+async function dateRaccolte() {
+  if (raccolteCache) return raccolteCache;
+  try {
+    const mod = await import(resolvePath('../services/raccolta-service.js'));
+    raccolteCache = await mod.getAllRaccolteOrticole();
+  } catch (e) {
+    raccolteCache = [];
+  }
+  return raccolteCache;
+}
+
+function dataRaccoltaRiga(row, raccolte, dataForzata) {
+  const data = dataForzata || (row.trattamento && row.trattamento.data) || row.data;
+  const candidati = (raccolte || []).filter((voce) => {
+    if (row.campagnaId && voce.campagnaId && String(voce.campagnaId) === String(row.campagnaId)) return true;
+    if (row.terrenoId && voce.terrenoId && String(voce.terrenoId) === String(row.terrenoId)) return true;
+    return false;
+  }).map((voce) => voce.data);
+  return primaDataRaccoltaDopo(data, candidati);
+}
+
+function avvisoHtml(row, pacchetto) {
+  const trattamento = row && row.trattamento;
+  if (!trattamento) return { html: '—', rowClass: '' };
   const avviso = avvisoDosaggioProdotti(trattamento.prodotti, listProdottiAnagrafica);
-  if (!avviso.hasWarning) return '—';
-  return `<span title="${escapeHtml(avviso.tooltip)}">⚠️</span>`;
+  if (!pacchetto) {
+    if (!avviso.hasWarning) return { html: '—', rowClass: '' };
+    return { html: `<span title="${escapeHtml(avviso.tooltip)}">⚠️</span>`, rowClass: '' };
+  }
+  const esito = valutaConformitaTrattamento({
+    trattamento: {
+      id: trattamento.id,
+      data: trattamento.data || row.data,
+      terrenoId: row.terrenoId,
+      specieUsata: trattamento.specieUsata,
+      acquaEttolitriPerEttaro: trattamento.acquaEttolitriPerEttaro
+    },
+    righe: trattamento.prodotti || [],
+    vocabolario: pacchetto.vocabolario,
+    precedenti: passaggiOrticole(trattamento.id),
+    dataRaccolta: dataRaccoltaRiga(row, raccolteCache),
+    oggi: new Date(),
+    schedaPerRiga: (riga) => pacchetto.schede.get(numeroRegistrazioneRiga(riga, anagraficaDi(riga))) || null,
+    statoPerRiga: (riga) => statoProdottoDaAnagrafica(anagraficaDi(riga))
+  });
+  return htmlCellaAvvisi(esito, avviso.hasWarning ? avviso.tooltip : '');
 }
 
 function superficieDefault(row) {
@@ -340,6 +418,9 @@ function renderProdottiTrattamento(rows) {
         return row && row.prodottoId ? listProdottiAnagrafica.find((item) => item.id === row.prodottoId) : null;
       },
       leggiScheda: leggiSchedaRegistroTrattamento,
+      precedenti: () => passaggiOrticole(document.getElementById('trattamento-id')?.value || null),
+      terrenoId: () => (editingRow && editingRow.terrenoId) || null,
+      dataRaccolta: (data) => dataRaccoltaRiga(editingRow || {}, raccolteCache, data),
       utente: () => utenteRegistroNome,
       salvaSuProdotto: salvaConfermaProdottoOrticole,
       onConferma: (idx, pacchetto) => {
@@ -618,7 +699,27 @@ async function onSubmit(event) {
       precedenti: passaggiOrticole(editingRow.trattamento && editingRow.trattamento.id),
       escludiId: editingRow.trattamento && editingRow.trattamento.id
     });
-    if (avvisiRegistro.length && !window.confirm(avvisiRegistro.join('\n') + '\n\nSalvare comunque?')) return;
+    const numeriSalva = rowsProdotti.map((riga) => numeroRegistrazioneRiga(riga, anagraficaDi(riga)));
+    const pacchettoSalva = await caricaSchedeRegistrazione(numeriSalva);
+    await dateRaccolte();
+    const conformitaSalva = valutaConformitaTrattamento({
+      trattamento: {
+        id: editingRow.trattamento && editingRow.trattamento.id,
+        data: editingRow.data,
+        terrenoId: editingRow.terrenoId,
+        specieUsata: specieSchedaCorrente(),
+        acquaEttolitriPerEttaro: acquaUsata.ettolitriPerEttaro
+      },
+      righe: rowsProdotti,
+      vocabolario: pacchettoSalva.vocabolario,
+      precedenti: passaggiOrticole(editingRow.trattamento && editingRow.trattamento.id),
+      dataRaccolta: dataRaccoltaRiga(editingRow, raccolteCache, editingRow.data),
+      oggi: new Date(),
+      schedaPerRiga: (riga) => pacchettoSalva.schede.get(numeroRegistrazioneRiga(riga, anagraficaDi(riga))) || null,
+      statoPerRiga: (riga) => statoProdottoDaAnagrafica(anagraficaDi(riga))
+    });
+    const avvisiUniti = messaggiUnici(avvisiRegistro.concat(testiRossi(conformitaSalva)));
+    if (avvisiUniti.length && !window.confirm(avvisiUniti.join('\n') + '\n\nSalvare comunque?')) return;
   }
   const anagrafe = document.getElementById('trattamento-superficie-anagrafe');
   const usaAnagrafe = !!(anagrafe && anagrafe.checked);
