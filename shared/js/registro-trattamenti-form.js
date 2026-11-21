@@ -35,11 +35,17 @@ import {
   testoConsultaEtichetta
 } from './registro-trattamenti-etichetta.js';
 import {
+  htmlBannerConformita,
   htmlPallinoCampo,
-  htmlRiepilogoConformita,
-  statoProdottoDaAnagrafica,
-  valutaConformitaEtichetta
+  htmlSemaforoConformita,
+  legamiScheda,
+  nomeProdottoPerRicercaScheda,
+  caricaPacchettoPerRighe,
+  valutaConformitaEtichetta,
+  valutaConformitaTrattamento
 } from './registro-trattamenti-conformita.js';
+
+export { nomeProdottoPerRicercaScheda };
 
 function esc(value) {
   return String(value == null ? '' : value)
@@ -59,18 +65,6 @@ export function valoreInputNumerico(value) {
 function numeroDalCampoProdotto(value) {
   const t = String(value == null ? '' : value).replace(/\s+/g, '');
   return /^\d+$/.test(t) ? t : '';
-}
-
-/**
- * Toglie prefissi di categoria e confezioni dal nome di magazzino,
- * così «Inse. SIVANTO PRIME da 1 lt.» diventa una query che la ricerca per nome già risolve.
- */
-export function nomeProdottoPerRicercaScheda(nome) {
-  let s = String(nome == null ? '' : nome).trim();
-  s = s.replace(/^(inse\.?|insetticida|fung\.?|fungicida|erb\.?|erbicida|diserbante|conc\.?|concime)\s+/i, '');
-  s = s.replace(/\bda\s+\d[\d.,]*\s*(lt|l|kg|g|ml|cl|q\.?li)?\.?\s*$/i, '');
-  s = s.replace(/\b\d[\d.,]*\s*(lt|l|kg|g|ml|cl)\.?\s*$/i, '');
-  return s.replace(/[.,;:]+$/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -513,11 +507,7 @@ export function htmlPannelloOpenData(input = {}) {
   }
   parti.push(rigaAnagrafica(scelto));
   if (prodottoBloccato(scelto)) {
-    const cls = classificaStatoAmministrativo(scelto.stato);
-    const quando = dataRevocaOScadenza(scelto);
-    parti.push('<p class="registro-banner-stato" style="background:#f8d7da;color:#842029;padding:8px;border-radius:6px;">'
-      + esc(etichettaStato(cls) + (quando ? ' — ' + quando : '') + '. ' + (scelto.stato || ''))
-      + ' Non propongo dose, carenza né avversità.</p>');
+    parti.push('<p>Non propongo dose, carenza né avversità.</p>');
     parti.push('<p><button type="button" class="btn btn-sm btn-primary" data-conferma-bloccata="1">Conferma</button></p>');
     return parti.join('');
   }
@@ -804,17 +794,19 @@ export function attaccaScelteEtichetta(box, etichetta) {
   });
 }
 
-let rinfrescaConformitaCorrente = null;
+let contestoBanner = null;
 let ascoltoConformitaPronto = false;
+let bannerSeq = 0;
+
+const SELETTORI_BANNER = '.prodotto-dosaggio, .prodotto-nome-altro, .prodotto-select, .prodotto-unita-scelta, #trattamento-data, #trattamento-acqua-hl-ha, #trattamento-acqua-hl-tot, #trattamento-superficie, .registro-dose-ha, .registro-dose-hl, .registro-carenza, .registro-massimo, .registro-intervallo, .registro-coltura, .registro-avversita, .registro-avversita-scelta';
 
 function assicuraAscoltoConformita() {
   if (ascoltoConformitaPronto || typeof document === 'undefined') return;
   ascoltoConformitaPronto = true;
   const handler = (ev) => {
     const t = ev.target;
-    if (!t || !t.matches) return;
-    if (!t.matches('.prodotto-dosaggio, #trattamento-data, #trattamento-acqua-hl-ha, #trattamento-acqua-hl-tot, .registro-dose-ha, .registro-dose-hl, .registro-carenza, .registro-massimo, .registro-intervallo, .registro-coltura, .registro-avversita')) return;
-    if (typeof rinfrescaConformitaCorrente === 'function') rinfrescaConformitaCorrente();
+    if (!t || !t.matches || !t.matches(SELETTORI_BANNER)) return;
+    aggiornaBannerConformita();
   };
   document.addEventListener('input', handler);
   document.addEventListener('change', handler);
@@ -829,44 +821,213 @@ function unitaDaEtichetta(unita) {
   return '';
 }
 
-function dipingiConformita(box, esito) {
+function dipingiCampiConformita(box, esito) {
   if (!box || !esito) return;
-  const slot = box.querySelector('[data-conformita-slot]');
-  if (slot) slot.innerHTML = htmlRiepilogoConformita(esito);
   box.querySelectorAll('.registro-conformita-campo').forEach((el) => {
     el.innerHTML = htmlPallinoCampo(esito, el.getAttribute('data-campo'));
   });
 }
 
-function leggiRigaConformita(box, tr, prodotto) {
-  const campi = leggiCampiAzienda(box);
-  const doseInp = tr && tr.querySelector('.prodotto-dosaggio');
-  const unitaSpan = tr && tr.querySelector('.prodotto-unita');
-  let unita = unitaSpan ? String(unitaSpan.textContent || '').trim() : '';
-  if (!unita || unita === '-') unita = '';
-  let dosaggio = doseInp && doseInp.value !== '' ? numeroFinito(doseInp.value) : null;
-  if (dosaggio == null) {
-    dosaggio = numeroSingoloTesto(campi.doseHa);
-    if (!unita) {
-      const campo = box.querySelector('.registro-dose-ha');
-      unita = unitaDaEtichetta(campo && campo.getAttribute('data-unita'));
+export function leggiUnitaRigaDom(tr, unitaAnagrafica) {
+  const scelta = tr && tr.querySelector ? tr.querySelector('.prodotto-unita-scelta') : null;
+  if (scelta && !scelta.hidden && scelta.value) return String(scelta.value).trim();
+  const daAnag = String(unitaAnagrafica || '').trim();
+  if (daAnag && daAnag !== '-' && daAnag !== '—' && daAnag !== '–') return daAnag;
+  const span = tr && tr.querySelector ? tr.querySelector('.prodotto-unita') : null;
+  const testo = span ? String(span.textContent || '').trim() : '';
+  if (testo && testo !== '-' && testo !== '—' && testo !== '–') return testo;
+  const segnata = span && span.getAttribute('data-unita-etichetta');
+  return segnata ? String(segnata).trim() : null;
+}
+
+function unitaBreveDaNota(testo) {
+  const m = String(testo || '').match(/:\s*(kg|g|ml|l)\b/i);
+  return m ? m[1].toLowerCase() : '';
+}
+
+function segnaNumeroLetto(tr, prodotto) {
+  if (!tr || !prodotto) return;
+  const registro = leggiRegistroRiga(tr);
+  const numero = prodotto.numeroRegistrazione ? String(prodotto.numeroRegistrazione).trim() : '';
+  if (numero) {
+    registro.numeroRegistrazioneLetto = numero;
+    const rif = registro.riferimentoRiga || {};
+    if (!rif.numeroRegistrazione) {
+      registro.riferimentoRiga = {
+        nomeProdotto: rif.nomeProdotto || prodotto.denominazione || '',
+        numeroRegistrazione: numero,
+        colturaScheda: rif.colturaScheda || ''
+      };
     }
   }
-  const sel = tr && tr.querySelector('.prodotto-select');
-  return {
-    prodottoId: (sel && sel.value) || (prodotto && prodotto.id) || null,
-    prodotto: (prodotto && (prodotto.denominazione || prodotto.nome)) || '',
-    dosaggio,
-    unitaDosaggio: unita || null,
-    avversita: campi.avversita,
-    specieUsata: campi.coltura,
-    riferimentoRiga: {
-      colturaScheda: campi.coltura,
-      numeroRegistrazione: (prodotto && prodotto.numeroRegistrazione) || '',
-      nomeProdotto: (prodotto && (prodotto.denominazione || prodotto.nome)) || ''
-    },
-    origineValori: campi.origineValori
-  };
+  if (prodotto.stato && !registro.statoAmministrativoScheda) {
+    registro.statoAmministrativoScheda = String(prodotto.stato);
+  }
+  const quando = dataUtile(prodotto.dataDecorrenzaRevoca)
+    || dataUtile(prodotto.dataDecretoRevoca)
+    || dataUtile(prodotto.dataScadenzaAutorizzazione);
+  if (quando && !registro.dataVariazioneScheda) registro.dataVariazioneScheda = quando;
+  const input = tr.querySelector('.registro-json');
+  if (input) input.value = serializzaRegistroRiga(registro);
+}
+
+function leggiRigheBanner(opts) {
+  const tbody = document.getElementById('tbody-prodotti-trattamento');
+  if (!tbody) return [];
+  const box = document.getElementById('registro-scheda-esito');
+  const attivo = box ? box.getAttribute('data-riga-idx') : null;
+  return Array.from(tbody.querySelectorAll('tr[data-idx]')).map((tr) => {
+    const idx = tr.getAttribute('data-idx');
+    const sel = tr.querySelector('.prodotto-select');
+    const prodottoId = sel && sel.value ? sel.value : null;
+    const anag = opts.anagrafica && prodottoId ? opts.anagrafica(prodottoId) : null;
+    const nomeAltro = tr.querySelector('.prodotto-nome-altro');
+    const registro = leggiRegistroRiga(tr);
+    const prodotto = prodottoId
+      ? ((anag && (anag.nome || anag.codice)) || (registro.riferimentoRiga && registro.riferimentoRiga.nomeProdotto) || '')
+      : ((nomeAltro && nomeAltro.value.trim()) || (registro.riferimentoRiga && registro.riferimentoRiga.nomeProdotto) || '');
+    const doseInp = tr.querySelector('.prodotto-dosaggio');
+    let dosaggio = doseInp && doseInp.value !== '' ? numeroFinito(doseInp.value) : null;
+    let unita = leggiUnitaRigaDom(tr, anag && anag.unitaMisura);
+    const usaPannello = box && attivo != null && String(attivo) === String(idx);
+    const campi = usaPannello ? leggiCampiAzienda(box) : null;
+    if (dosaggio == null && campi) dosaggio = numeroSingoloTesto(campi.doseHa);
+    if (!unita && campi) {
+      const campo = box.querySelector('.registro-dose-ha');
+      unita = unitaDaEtichetta(campo && campo.getAttribute('data-unita')) || null;
+    }
+    return {
+      tr,
+      idx,
+      prodottoId: prodottoId || null,
+      prodotto,
+      dosaggio,
+      unitaDosaggio: unita || null,
+      avversita: registro.avversita || (campi && campi.avversita) || '',
+      specieUsata: (campi && campi.coltura) || registro.specieUsata || '',
+      riferimentoRiga: registro.riferimentoRiga,
+      numeroRegistrazioneLetto: registro.numeroRegistrazioneLetto || null,
+      statoAmministrativoScheda: registro.statoAmministrativoScheda || (anag && anag.stato) || null,
+      dataVariazioneScheda: registro.dataVariazioneScheda || null,
+      dataScadenzaAutorizzazioneScheda: registro.dataScadenzaAutorizzazioneScheda || (anag && anag.dataScadenzaAutorizzazione) || null,
+      dataDecorrenzaRevoca: (anag && anag.dataDecorrenzaRevoca) || null,
+      origineValori: (campi && campi.origineValori) || registro.origineValori || null
+    };
+  });
+}
+
+function applicaUnitaSulDom(tr, esito) {
+  if (!tr || !esito) return;
+  const span = tr.querySelector('.prodotto-unita');
+  const scelta = tr.querySelector('.prodotto-unita-scelta');
+  const nota = (esito.motivi || []).find((m) => m && m.codice === 'unita_da_etichetta');
+  if (nota && span) {
+    const breve = unitaBreveDaNota(nota.testo);
+    if (breve) {
+      span.textContent = breve;
+      span.setAttribute('data-unita-etichetta', breve);
+    }
+  }
+  const manca = (esito.motivi || []).some((m) => m && m.codice === 'unita_mancante');
+  if (!scelta) return;
+  if (manca) {
+    scelta.hidden = false;
+    return;
+  }
+  if (scelta.value && span && (!span.textContent || span.textContent.trim() === '-' || span.textContent.trim() === '—')) {
+    span.textContent = scelta.value;
+    span.setAttribute('data-unita-etichetta', scelta.value);
+  }
+  scelta.hidden = true;
+}
+
+/**
+ * Banner sopra i prodotti. Dose e unità dalla riga, acqua dal form.
+ * Le pagine lo chiamano all'apertura e a ogni modifica.
+ */
+export async function aggiornaBannerConformita(extra) {
+  const opts = Object.assign({}, contestoBanner || {}, extra || {});
+  const banner = typeof document !== 'undefined' ? document.getElementById('registro-semaforo-banner') : null;
+  if (!banner) return null;
+  const seq = ++bannerSeq;
+  try {
+    const lette = leggiRigheBanner(opts);
+    const utili = lette.filter((riga) => String(riga.prodotto || '').trim() || riga.dosaggio != null);
+    if (!utili.length) {
+      banner.hidden = true;
+      banner.innerHTML = '';
+      lette.forEach((riga) => {
+        const pallino = riga.tr.querySelector('.registro-pallino-riga');
+        if (pallino) pallino.innerHTML = '';
+      });
+      return null;
+    }
+    const anagraficaDi = (riga) => {
+      if (opts.anagrafica && riga.prodottoId) {
+        const anag = opts.anagrafica(riga.prodottoId);
+        if (anag) return anag;
+      }
+      return riga;
+    };
+    const pacchetto = await caricaPacchettoPerRighe(utili, anagraficaDi);
+    if (seq !== bannerSeq) return null;
+    const acqua = leggiAcquaDalForm();
+    const dataVal = document.getElementById('trattamento-data') && document.getElementById('trattamento-data').value;
+    const idTrattamento = document.getElementById('trattamento-id') && document.getElementById('trattamento-id').value;
+    const specie = opts.specie ? opts.specie() : '';
+    const trattamento = {
+      id: idTrattamento || null,
+      data: dataVal || null,
+      terrenoId: opts.terrenoId ? opts.terrenoId() : null,
+      specieUsata: specie || '',
+      acquaEttolitriPerEttaro: acqua.ettolitriPerEttaro
+    };
+    const legami = legamiScheda(pacchetto, anagraficaDi);
+    const perRiga = utili.map((riga) => valutaConformitaEtichetta({
+      trattamento,
+      riga,
+      scheda: legami.schedaPerRiga(riga),
+      vocabolario: legami.vocabolario,
+      statoProdotto: legami.statoPerRiga(riga),
+      riconoscimento: legami.riconoscimentoPerRiga(riga),
+      precedenti: opts.precedenti ? opts.precedenti() : [],
+      dataRaccolta: opts.dataRaccolta ? opts.dataRaccolta(dataVal) : null,
+      oggi: new Date()
+    }));
+    const fuso = valutaConformitaTrattamento({
+      trattamento,
+      righe: utili,
+      vocabolario: legami.vocabolario,
+      precedenti: opts.precedenti ? opts.precedenti() : [],
+      dataRaccolta: opts.dataRaccolta ? opts.dataRaccolta(dataVal) : null,
+      oggi: new Date(),
+      ...legami
+    });
+    if (seq !== bannerSeq) return null;
+    banner.hidden = false;
+    banner.innerHTML = htmlBannerConformita(fuso);
+    utili.forEach((riga, i) => {
+      const esito = perRiga[i];
+      const pallino = riga.tr.querySelector('.registro-pallino-riga');
+      if (pallino) pallino.innerHTML = htmlSemaforoConformita(esito, { taglia: 'riga' });
+      applicaUnitaSulDom(riga.tr, esito);
+    });
+    const box = document.getElementById('registro-scheda-esito');
+    const attivo = box && box.getAttribute('data-riga-idx');
+    if (box && attivo != null) {
+      const trovato = utili.findIndex((riga) => String(riga.idx) === String(attivo));
+      if (trovato >= 0) dipingiCampiConformita(box, perRiga[trovato]);
+    }
+    return fuso;
+  } catch (e) {
+    return null;
+  }
+}
+
+export function collegaBannerConformita(ctx) {
+  contestoBanner = ctx || {};
+  assicuraAscoltoConformita();
+  return aggiornaBannerConformita();
 }
 
 export function attaccaLetturaScheda(opts) {
@@ -913,6 +1074,7 @@ export function attaccaLetturaScheda(opts) {
           + '. Si può salvare il trattamento.</p>'
           + '<p class="registro-avviso-etichetta">' + esc(AVVISO_ETICHETTA_FA_FEDE) + '</p>'
           + (quando ? '<p class="registro-attribuzione">' + htmlAttribuzioneOpenData(esito.dataLettura) + '</p>' : ''));
+        aggiornaBannerConformita();
       };
       const disegna = async (indiceScelto, extra) => {
         const prodottoScelto = indiceScelto == null ? (prodotti.length === 1 ? prodotti[0] : null) : prodotti[indiceScelto];
@@ -969,6 +1131,8 @@ export function attaccaLetturaScheda(opts) {
         }));
         const box = document.getElementById('registro-scheda-esito');
         if (!box) return;
+        if (idx != null) box.setAttribute('data-riga-idx', String(idx));
+        if (prodottoScelto && tr) segnaNumeroLetto(tr, prodottoScelto);
         box.querySelectorAll('[data-scegli-prodotto]').forEach((b) => {
           b.addEventListener('click', () => disegna(Number(b.getAttribute('data-scegli-prodotto'))));
         });
@@ -1021,34 +1185,7 @@ export function attaccaLetturaScheda(opts) {
           });
         }
         assicuraAscoltoConformita();
-        rinfrescaConformitaCorrente = () => {
-          try {
-            const vivo = document.getElementById('registro-scheda-esito');
-            if (!vivo || !vivo.querySelector('[data-conformita-slot]')) return;
-            const acqua = leggiAcquaDalForm();
-            const dataVal = document.getElementById('trattamento-data') && document.getElementById('trattamento-data').value;
-            const idTrattamento = document.getElementById('trattamento-id') && document.getElementById('trattamento-id').value;
-            const esitoConf = valutaConformitaEtichetta({
-              trattamento: {
-                id: idTrattamento || null,
-                data: dataVal || null,
-                terrenoId: opts.terrenoId ? opts.terrenoId() : null,
-                specieUsata: (vivo.querySelector('.registro-coltura') && vivo.querySelector('.registro-coltura').value) || specie || '',
-                acquaEttolitriPerEttaro: acqua.ettolitriPerEttaro
-              },
-              riga: leggiRigaConformita(vivo, tr, prodottoScelto),
-              scheda,
-              vocabolario,
-              dataRevisione: prodottoScelto ? dataRevisioneOpenData(prodottoScelto) : '',
-              statoProdotto: statoProdottoDaAnagrafica(prodottoScelto),
-              precedenti: opts.precedenti ? opts.precedenti() : [],
-              dataRaccolta: opts.dataRaccolta ? opts.dataRaccolta(dataVal) : null,
-              oggi: new Date()
-            });
-            dipingiConformita(vivo, esitoConf);
-          } catch (e) { /* il pannello resta utilizzabile */ }
-        };
-        rinfrescaConformitaCorrente();
+        aggiornaBannerConformita();
       };
       disegna(prodotti.length === 1 ? 0 : null);
       };

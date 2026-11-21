@@ -18,6 +18,7 @@ export const FRASE_CONFERMA_CONTROLLATA = "Confermando dichiari di aver controll
 
 const cacheSchede = new Map();
 let cacheVocabolario = null;
+let cacheIndice = null;
 
 export function normalizzaNomeColtura(value) {
   return String(value == null ? '' : value)
@@ -450,6 +451,10 @@ export function percorsoVocabolarioColture(base) {
   return basePulita(base) + '/shared/data/fitofarmaci-etichette/colture-vocabolario.json';
 }
 
+export function percorsoIndiceEtichette(base) {
+  return basePulita(base) + '/shared/data/fitofarmaci-etichette/indice.json';
+}
+
 function baseDalBrowser() {
   if (typeof window === 'undefined') return '';
   return getBasePath();
@@ -498,5 +503,24 @@ export async function caricaVocabolarioColture(opzioni = {}) {
     return json;
   } catch (e) {
     return null;
+  }
+}
+
+export async function caricaIndiceEtichette(opzioni = {}) {
+  const usaCache = !opzioni.fetch;
+  if (usaCache && cacheIndice) return cacheIndice;
+  const fetchFn = opzioni.fetch || globalThis.fetch;
+  const base = opzioni.basePath != null ? opzioni.basePath : baseDalBrowser();
+  const url = percorsoIndiceEtichette(base);
+  if (typeof fetchFn !== 'function') return { prodotti: [] };
+  try {
+    const res = await fetchFn(url);
+    if (!res || !res.ok) return { prodotti: [] };
+    const json = await res.json();
+    const indice = json && Array.isArray(json.prodotti) ? json : { prodotti: [] };
+    if (usaCache) cacheIndice = indice;
+    return indice;
+  } catch (e) {
+    return { prodotti: [] };
   }
 }
