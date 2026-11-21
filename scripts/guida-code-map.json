@@ -210,6 +210,15 @@
       "label": "Helper comune trattamenti vigneto/frutteto (page mechanics)"
     },
     {
+      "prefix": "shared/js/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO"
+      ],
+      "label": "Registro trattamenti condiviso (etichetta e semaforo)"
+    },
+    {
       "prefix": "modules/conto-terzi/",
       "modules": [
         "CONTO_TERZI"
