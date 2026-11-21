@@ -22,7 +22,7 @@ La superficie del terreno, se cambia, si copia su `superficieEttari` delle campa
 
 - `tenants/{tenantId}/seminativi` — anagrafica campagne (terreno + coltura + varietà + anno)
 - `tenants/{tenantId}/semineSeminativo` — eventi di semina
-- `tenants/{tenantId}/trattamentiSeminativo` — dati prodotto su lavoro o diario (trattamenti)
+- `tenants/{tenantId}/trattamentiSeminativo` — dati prodotto su lavoro o diario (trattamenti). In riapertura, `ripristinaCardProdottoSalvato` mostra in `#registro-scheda-esito` nome e numero del prodotto già agganciato, senza un nuovo Leggi scheda (stesso helper delle orticole).
 - `tenants/{tenantId}/raccolteSeminativo` — quintali su lavoro o diario (raccolte/mietitura)
 
 ## pageType / liste Tony

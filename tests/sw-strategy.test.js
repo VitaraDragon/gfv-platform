@@ -78,25 +78,56 @@ describe('classificaRichiesta', () => {
 describe('pulizia cache in activate', () => {
     const CORRENTE = 'gfv-platform-t300';
 
-    it('tiene la corrente e la precedente più recente, cancella le altre GFV', () => {
+    it('cancella ogni cache GFV precedente, anche la più recente', () => {
         const nomi = ['gfv-platform-t100', CORRENTE, 'gfv-platform-t200', 'gfv-platform-t150'];
-        expect(S.cacheDaEliminare(nomi, CORRENTE).sort()).toEqual(['gfv-platform-t100', 'gfv-platform-t150']);
+        expect(S.cacheDaEliminare(nomi, CORRENTE).sort()).toEqual([
+            'gfv-platform-t100',
+            'gfv-platform-t150',
+            'gfv-platform-t200'
+        ]);
         expect(S.cachePrecedenti(nomi, CORRENTE)[0]).toBe('gfv-platform-t200');
     });
 
-    it('al primo update non cancella nulla', () => {
-        expect(S.cacheDaEliminare(['gfv-platform-t100', CORRENTE], CORRENTE)).toEqual([]);
+    it('al primo update cancella la cache della build uscente', () => {
+        expect(S.cacheDaEliminare(['gfv-platform-t100', CORRENTE], CORRENTE)).toEqual(['gfv-platform-t100']);
         expect(S.cacheDaEliminare([CORRENTE], CORRENTE)).toEqual([]);
     });
 
     it('non tocca cache di altre app sullo stesso origin', () => {
         const nomi = ['altra-app-v1', 'workbox-precache', CORRENTE, 'gfv-platform-t200', 'gfv-platform-t100'];
-        expect(S.cacheDaEliminare(nomi, CORRENTE)).toEqual(['gfv-platform-t100']);
+        expect(S.cacheDaEliminare(nomi, CORRENTE).sort()).toEqual(['gfv-platform-t100', 'gfv-platform-t200']);
     });
 
-    it('nomi senza timestamp (build di prova) sono i più vecchi', () => {
+    it('nomi senza timestamp (build di prova) si cancellano con le altre GFV', () => {
         const nomi = ['gfv-platform-e2e-build', CORRENTE, 'gfv-platform-t200'];
-        expect(S.cacheDaEliminare(nomi, CORRENTE)).toEqual(['gfv-platform-e2e-build']);
+        expect(S.cacheDaEliminare(nomi, CORRENTE).sort()).toEqual(['gfv-platform-e2e-build', 'gfv-platform-t200']);
+    });
+});
+
+describe('shell non esce dalla cache precedente', () => {
+    const CORRENTE = 'gfv-platform-t300';
+    const htmlVecchio = { nome: 'html-vecchio' };
+    const trovate = [
+        { cache: CORRENTE, risposta: null },
+        { cache: 'gfv-platform-t200', risposta: htmlVecchio }
+    ];
+
+    it('una navigazione HTML non è soddisfatta dalla build precedente', () => {
+        expect(S.scegliDaCache(trovate, CORRENTE, 'html')).toBeNull();
+        expect(S.puoUsareCachePrecedente('html')).toBe(false);
+    });
+
+    it('JS e CSS dell\'app non escono dalla build precedente', () => {
+        expect(S.scegliDaCache(trovate, CORRENTE, 'versionato')).toBeNull();
+        expect(S.scegliDaCache(trovate, CORRENTE, 'rete')).toBeNull();
+        expect(S.puoUsareCachePrecedente('versionato')).toBe(false);
+    });
+
+    it('la shell della build attiva si usa; gli statici possono usare la precedente', () => {
+        const fresco = { nome: 'html-nuovo' };
+        expect(S.scegliDaCache([{ cache: CORRENTE, risposta: fresco }], CORRENTE, 'html')).toBe(fresco);
+        expect(S.scegliDaCache(trovate, CORRENTE, 'statico')).toBe(htmlVecchio);
+        expect(S.puoUsareCachePrecedente('statico')).toBe(true);
     });
 });
 
@@ -124,6 +155,21 @@ describe('reteConTimeout (HTML e file senza versione)', () => {
         expect(fatto).toBe(false);
         await vi.advanceTimersByTimeAsync(1);
         expect((await p).nome).toBe('cache');
+    });
+
+    it('rete lenta con copia in cache: annulla la richiesta di rete rimasta aperta', async () => {
+        vi.useFakeTimers();
+        const annullaRete = vi.fn();
+        const rete = () => new Promise(() => {});
+        const p = S.reteConTimeout({
+            rete,
+            daCache: async () => risposta('cache'),
+            annullaRete,
+            timeoutMs: 3000
+        });
+        await vi.advanceTimersByTimeAsync(3000);
+        expect((await p).nome).toBe('cache');
+        expect(annullaRete).toHaveBeenCalledTimes(1);
     });
 
     it('rete lenta senza copia: aspetta la rete oltre il timeout', async () => {
@@ -179,14 +225,17 @@ describe('service-worker.js usa le strategie', () => {
     });
 
     it('versionati e statici cache prima, il resto rete prima con timeout', () => {
-        expect(sw).toMatch(/tipo === 'versionato' \|\| tipo === 'statico'\) \{\s*event\.respondWith\(rispostaCachePrima\(request\)\)/);
+        expect(sw).toMatch(/tipo === 'versionato' \|\| tipo === 'statico'\) \{\s*event\.respondWith\(rispostaCachePrima\(request, tipo\)\)/);
         expect(sw).toContain('event.respondWith(rispostaReteConTimeout(request));');
         expect(sw).not.toContain('setTimeout(() => controllo.abort(), 8000)');
     });
 
-    it('activate non cancella tutte le cache diverse dalla corrente', () => {
+    it('activate cancella le cache GFV precedenti e non legge la shell da lì', () => {
         expect(sw).not.toMatch(/cacheName !== CACHE_NAME/);
         expect(sw).toContain('STRATEGIA.cacheDaEliminare(cacheNames, CACHE_NAME)');
+        expect(sw).toContain('daCache: () => daCachePerTipo(request, \'html\')');
+        expect(sw).not.toContain('cercaOvunque');
+        expect(sw).toContain('paginaGestisceReload');
     });
 
     it('skipWaiting e clients.claim invariati', () => {

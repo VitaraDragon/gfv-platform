@@ -251,6 +251,68 @@ function rigaAnagrafica(prodotto) {
   return '<p>' + esc(parti.filter(Boolean).join(' — ')) + '</p>';
 }
 
+function numeroAgganciato(riga) {
+  const letto = riga && riga.numeroRegistrazioneLetto != null ? String(riga.numeroRegistrazioneLetto).trim() : '';
+  if (letto) return letto;
+  const rif = riga && riga.riferimentoRiga && riga.riferimentoRiga.numeroRegistrazione;
+  return rif != null ? String(rif).trim() : '';
+}
+
+/**
+ * Card di identità del prodotto già agganciato. Non è il form di Leggi scheda
+ * e non riporta dosi. Il nome è quello della scheda o di riferimentoRiga, non il testo libero.
+ * @param {object} riga
+ * @param {object|null} scheda
+ * @returns {string}
+ */
+export function htmlCardProdottoAgganciato(riga, scheda) {
+  const numero = numeroAgganciato(riga);
+  if (!numero) return '';
+  const nomeScheda = scheda && (scheda.nome_prodotto || scheda.nomeProdotto);
+  const nomeRif = riga && riga.riferimentoRiga && riga.riferimentoRiga.nomeProdotto;
+  const nome = String(nomeScheda || nomeRif || '').trim();
+  return '<div class="registro-card-prodotto">' + rigaAnagrafica({
+    denominazione: nome,
+    numeroRegistrazione: numero,
+    titolare: riga && riga.titolare,
+    principioAttivo: riga && riga.principioAttivo,
+    stato: riga && riga.statoAmministrativoScheda,
+    dataScadenzaAutorizzazione: riga && riga.dataScadenzaAutorizzazioneScheda
+  }) + '</div>';
+}
+
+/**
+ * In riapertura ridisegna la card dal numero già salvato e dalla scheda locale.
+ * Non chiama il Ministero. Senza numero svuota il pannello.
+ * @param {Array<object>} righe
+ * @param {{ caricaScheda?: (numero: string) => Promise<object|null> }} [opzioni]
+ * @returns {Promise<string>}
+ */
+export async function ripristinaCardProdottoSalvato(righe, opzioni = {}) {
+  const lista = Array.isArray(righe) ? righe : [];
+  const utili = lista.filter((riga) => numeroAgganciato(riga));
+  if (!utili.length) {
+    scriviEsitoScheda('');
+    return '';
+  }
+  const carica = typeof opzioni.caricaScheda === 'function' ? opzioni.caricaScheda : caricaSchedaEtichetta;
+  const pezzi = [];
+  for (let i = 0; i < utili.length; i += 1) {
+    const riga = utili[i];
+    let scheda = null;
+    try {
+      scheda = await carica(numeroAgganciato(riga));
+    } catch (e) {
+      scheda = null;
+    }
+    const html = htmlCardProdottoAgganciato(riga, scheda);
+    if (html) pezzi.push(html);
+  }
+  const html = pezzi.join('');
+  scriviEsitoScheda(html);
+  return html;
+}
+
 function segnapostoConformita(campo) {
   return '<span class="registro-conformita-campo" data-campo="' + campo + '"></span>';
 }

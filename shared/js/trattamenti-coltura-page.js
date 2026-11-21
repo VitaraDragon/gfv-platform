@@ -53,6 +53,7 @@ import {
     notaRegistroTesto,
     scriviAcquaNelForm,
     scriviEsitoScheda,
+    ripristinaCardProdottoSalvato,
     valoreInputNumerico
 } from './registro-trattamenti-form.js';
 import { leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
@@ -1408,6 +1409,7 @@ async function openModalCompleta(idx) {
             if (!rowsProdotti.length) rowsProdotti = [rigaProdottoVuota()];
             renderProdottiTrattamento(rowsProdotti);
         }
+        await ripristinaCardProdottoSalvato(getProdottiRowsFromTable());
         try {
             const { getDatiPrecompilazioneTrattamento } = await import(resolvePath(cfg.servicePath));
             const prefill = await getDatiPrecompilazioneTrattamento(row[cfg.idKey], found.trattamento);
@@ -1507,6 +1509,7 @@ async function apriModificaTrattamento(idx) {
         if (!rowsProdotti.length) rowsProdotti = [rigaProdottoVuota()];
         renderProdottiTrattamento(rowsProdotti);
     }
+    await ripristinaCardProdottoSalvato(getProdottiRowsFromTable());
     try {
         const { getDatiPrecompilazioneTrattamento } = await import(resolvePath(cfg.servicePath));
         const prefill = await getDatiPrecompilazioneTrattamento(colturaId, t);

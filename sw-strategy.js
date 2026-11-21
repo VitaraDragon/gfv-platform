@@ -72,12 +72,40 @@
   }
 
   /**
-   * In activate si tiene la cache corrente e la più recente delle precedenti
-   * (quella del worker uscente): alla prima visita dopo l'update fa da riserva
-   * se la rete fallisce o tarda. Le altre GFV si cancellano: al massimo 2 cache.
+   * In activate si cancellano tutte le cache gfv-platform-* precedenti.
+   * Tenerne una serviva la shell vecchia (HTML e JS) quando la rete tardava
+   * o la cache nuova era ancora vuota. Le cache di altre app non si toccano.
    */
   function cacheDaEliminare(nomi, corrente) {
-    return cachePrecedenti(nomi, corrente).slice(1);
+    return cachePrecedenti(nomi, corrente);
+  }
+
+  /**
+   * Solo immagini, font e icone possono uscire da una cache di build precedente.
+   * HTML, JS e CSS dell'app no: è la shell della versione vecchia.
+   * @param {'html'|'rete'|'versionato'|'statico'} tipo
+   * @returns {boolean}
+   */
+  function puoUsareCachePrecedente(tipo) {
+    return tipo === 'statico';
+  }
+
+  /**
+   * Sceglie una copia in cache. La shell (html, rete, versionato) vale solo se
+   * sta nella cache della build attiva: una risposta della build precedente è scartata.
+   * @param {Array<{ cache?: string, risposta?: unknown }>} trovate corrente per prima
+   * @param {string} corrente
+   * @param {'html'|'rete'|'versionato'|'statico'} tipo
+   */
+  function scegliDaCache(trovate, corrente, tipo) {
+    const lista = Array.isArray(trovate) ? trovate : [];
+    for (let i = 0; i < lista.length; i += 1) {
+      const voce = lista[i];
+      if (!voce || !voce.risposta) continue;
+      if (voce.cache === corrente || tipo === 'statico') return voce.risposta;
+      return null;
+    }
+    return null;
   }
 
   /**
@@ -100,7 +128,15 @@
       const timer = setTimer(() => {
         Promise.resolve()
           .then(() => deps.daCache())
-          .then((copia) => { if (copia) chiudi(resolve, copia); })
+          .then((copia) => {
+            if (!copia) return;
+            // La rete resta aperta anche dopo la risposta dalla cache: un fetch()
+            // ancora in corso nel worker attivo impedisce l'attivazione del nuovo.
+            if (typeof deps.annullaRete === 'function') {
+              try { deps.annullaRete(); } catch (e) { /* ignore */ }
+            }
+            chiudi(resolve, copia);
+          })
           .catch(() => {});
       }, deps.timeoutMs == null ? TIMEOUT_RETE_MS : deps.timeoutMs);
       Promise.resolve()
@@ -152,6 +188,8 @@
     classificaRichiesta,
     cachePrecedenti,
     cacheDaEliminare,
+    puoUsareCachePrecedente,
+    scegliDaCache,
     reteConTimeout,
     cachePrima
   };

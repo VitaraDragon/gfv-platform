@@ -127,6 +127,16 @@ export function campiConfermaRiga(raw = {}) {
     origineValori: normalizzaOrigineValori(raw.origineValori),
     numeroRegistrazioneLetto: raw.numeroRegistrazioneLetto != null && String(raw.numeroRegistrazioneLetto).trim()
       ? String(raw.numeroRegistrazioneLetto).trim()
+      : null,
+    titolare: raw.titolare != null && String(raw.titolare).trim() ? String(raw.titolare).trim() : null,
+    statoAmministrativoScheda: raw.statoAmministrativoScheda != null && String(raw.statoAmministrativoScheda).trim()
+      ? String(raw.statoAmministrativoScheda).trim()
+      : null,
+    dataVariazioneScheda: raw.dataVariazioneScheda != null && String(raw.dataVariazioneScheda).trim()
+      ? String(raw.dataVariazioneScheda).trim()
+      : null,
+    dataScadenzaAutorizzazioneScheda: raw.dataScadenzaAutorizzazioneScheda != null && String(raw.dataScadenzaAutorizzazioneScheda).trim()
+      ? String(raw.dataScadenzaAutorizzazioneScheda).trim()
       : null
   };
 }

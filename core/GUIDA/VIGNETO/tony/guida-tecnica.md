@@ -38,7 +38,7 @@ Logica pagina e wiring Tony (`currentTableData` / form) vivono in `modules/vigne
 
 Le view in `modules/vigneto/views/` restano struttura HTML (dove serve, Google Maps resta nell'HTML) e caricano il JS con `<script type="module" src="../js/<pagina>-page.js">`.
 
-Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`. In riapertura (Modifica, Completa, trattamento precedente) le righe passano da `righeProdottiPerForm`: restano avversità, numero di registrazione e conferma, anche sul nome scritto a mano. Il banner è giallo «Conferma l'avversità» finché la riga non ha la Conferma.
+Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`. In riapertura (Modifica, Completa, trattamento precedente) le righe passano da `righeProdottiPerForm`: restano avversità, numero di registrazione e conferma, anche sul nome scritto a mano. `#registro-scheda-esito` mostra la card (nome e numero) da `ripristinaCardProdottoSalvato`, senza un nuovo Leggi scheda. Il banner è giallo «Conferma l'avversità» finché la riga non ha la Conferma.
 
 ## pageType / Tony liste
 
