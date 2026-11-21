@@ -1,1 +1,821 @@
-{"schema":"GFV valori etichetta 1.1","avviso":"GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.","numero_registrazione":"015401","nome_prodotto":"TAIFUN MK CL","colture_non_estratte":["cardo","mirtillo","rafano","riso"],"righe":[{"id":"015401-02153","coltura":"ARBOREE (AGRUMI, DRUPACEE, OLIVO DA OLIO E DA TAVOLA, MELO, PERO, VITE DA VINO E DA TAVOLA, NOCE, NOCCIOLO, MANDORLO)","colture":["arancio","arancio amaro","limone","mandarino","clementino","pompelmo","bergamotto","cedro","chinotto","limetta","tangerino","tangelo","mapo","pomelo","pesco","nettarina","albicocco","ciliegio","susino","olivo da olio","olivo da tavola","melo","pero","vite da vino","vite da tavola","noce","nocciolo","mandorlo"],"gruppo":"arboree, agrumi, drupacee","avversita":"Infestanti annuali e biennali","epoca":null,"modalita":"in bande lungo la fila","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":3,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 3 applicazioni l'anno in bande lungo la fila, evitando il contatto con foglie e parti del fusto non lignificate, senza eccedere la dose massima di … 10 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02154","coltura":"ARBOREE (AGRUMI, DRUPACEE, OLIVO DA OLIO E DA TAVOLA, MELO, PERO, VITE DA VINO E DA TAVOLA, NOCE, NOCCIOLO, MANDORLO)","colture":["arancio","arancio amaro","limone","mandarino","clementino","pompelmo","bergamotto","cedro","chinotto","limetta","tangerino","tangelo","mapo","pomelo","pesco","nettarina","albicocco","ciliegio","susino","olivo da olio","olivo da tavola","melo","pero","vite da vino","vite da tavola","noce","nocciolo","mandorlo"],"gruppo":"arboree, agrumi, drupacee","avversita":"Infestanti vivaci e perenni","epoca":null,"modalita":"in bande lungo la fila","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":3,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 3 applicazioni l'anno in bande lungo la fila, evitando il contatto con foglie e parti del fusto non lignificate, senza eccedere la dose massima di … 10 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02155","coltura":"ARBOREE (AGRUMI, DRUPACEE, OLIVO DA OLIO E DA TAVOLA, MELO, PERO, VITE DA VINO E DA TAVOLA, NOCE, NOCCIOLO, MANDORLO)","colture":["arancio","arancio amaro","limone","mandarino","clementino","pompelmo","bergamotto","cedro","chinotto","limetta","tangerino","tangelo","mapo","pomelo","pesco","nettarina","albicocco","ciliegio","susino","olivo da olio","olivo da tavola","melo","pero","vite da vino","vite da tavola","noce","nocciolo","mandorlo"],"gruppo":"arboree, agrumi, drupacee","avversita":"Infestanti arboree ed arbustive","epoca":null,"modalita":"in bande lungo la fila","ambiente":[],"esclusioni":[],"dose_ha":[{"min":4.0,"max":6.0,"unita":"l/ha","condizione":"Acer sp., Fraxinus sp., Genista sp., Salix sp., Sambucus sp., Vaccinum sp.","pagina":2,"citazione":"Infestanti arboree ed arbustive … 4 – 6 l/ha … 10 l/ha …","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":10.0,"max":10.0,"unita":"l/ha","condizione":"Calluna sp., Cistus sp., Erica sp., Lonicera sp.","pagina":2,"citazione":"Infestanti arboree ed arbustive … 4 – 6 l/ha … 10 l/ha …","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":3,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 3 applicazioni l'anno in bande lungo la fila, evitando il contatto con foglie e parti del fusto non lignificate, senza eccedere la dose massima di … 10 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02156","coltura":"OLIVO DA OLIO","colture":["olivo da olio"],"gruppo":null,"avversita":"Infestanti annuali e biennali","epoca":null,"modalita":"in bande lungo la fila","ambiente":[],"esclusioni":[],"dose_ha":[{"min":1.0,"max":3.0,"unita":"l/ha","condizione":null,"pagina":2,"citazione":"Infestanti annuali e biennali … 1 - 3 l/ha … Alopecurus sp. …","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[{"giorni":7,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"Nei trattamenti per il diserbo dell'olivo (olive da olio) sospendere i trattamenti … 7 giorni prima della raccolta.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"max_trattamenti":[],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02157","coltura":"OLIVO DA OLIO","colture":["olivo da olio"],"gruppo":null,"avversita":"Infestanti vivaci e perenni","epoca":null,"modalita":"in bande lungo la fila","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":7,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"Nei trattamenti per il diserbo dell'olivo (olive da olio) sospendere i trattamenti … 7 giorni prima della raccolta.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"max_trattamenti":[],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02158","coltura":"OLIVO DA OLIO","colture":["olivo da olio"],"gruppo":null,"avversita":"Infestanti arboree ed arbustive","epoca":null,"modalita":"in bande lungo la fila","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[{"giorni":7,"non_necessario":false,"condizione":null,"pagina":2,"citazione":"Nei trattamenti per il diserbo dell'olivo (olive da olio) sospendere i trattamenti … 7 giorni prima della raccolta.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"max_trattamenti":[],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02159","coltura":"ORTICOLE (CARCIOFO, CAROTA, FAGIOLINO, FAVA, PISELLO, MELANZANA, POMODORO, PATATA)","colture":["carciofo","carota","fagiolino","fava","pisello","melanzana","pomodoro","patata"],"gruppo":"orticole","avversita":"Infestanti annuali e biennali","epoca":null,"modalita":"in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02160","coltura":"ORTICOLE (CARCIOFO, CAROTA, FAGIOLINO, FAVA, PISELLO, MELANZANA, POMODORO, PATATA)","colture":["carciofo","carota","fagiolino","fava","pisello","melanzana","pomodoro","patata"],"gruppo":"orticole","avversita":"Infestanti vivaci e perenni","epoca":null,"modalita":"in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02161","coltura":"ORTICOLE (CARCIOFO, CAROTA, FAGIOLINO, FAVA, PISELLO, MELANZANA, POMODORO, PATATA)","colture":["carciofo","carota","fagiolino","fava","pisello","melanzana","pomodoro","patata"],"gruppo":"orticole","avversita":"Infestanti arboree ed arbustive","epoca":null,"modalita":"in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02162","coltura":"BARBABIETOLA DA ZUCCHERO, MAIS, SOIA","colture":["barbabietola da zucchero","mais","soia"],"gruppo":null,"avversita":"Infestanti annuali e biennali","epoca":null,"modalita":"in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02163","coltura":"BARBABIETOLA DA ZUCCHERO, MAIS, SOIA","colture":["barbabietola da zucchero","mais","soia"],"gruppo":null,"avversita":"Infestanti vivaci e perenni","epoca":null,"modalita":"in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02164","coltura":"BARBABIETOLA DA ZUCCHERO, MAIS, SOIA","colture":["barbabietola da zucchero","mais","soia"],"gruppo":null,"avversita":"Infestanti arboree ed arbustive","epoca":null,"modalita":"in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02165","coltura":"TERRENI AGRARI IN ASSENZA DI COLTURA (BARBABIETOLA DA ZUCCHERO, FRUMENTO, ORZO, SEGALE, AVENA, FRAGOLA, MAIS, ORTICOLE, SOIA)","colture":["barbabietola da zucchero","frumento","orzo","segale","avena","fragola","mais","orticole","soia"],"gruppo":"terreni senza coltura","avversita":"Infestanti annuali e biennali","epoca":"prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto), ovvero in seguito alla raccolta della coltura in precessione","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":null,"condizione":null,"pagina":1,"citazione":"è possibile effettuare un trattamento con TAIFUN® MK CL senza eccedere la dose massima di … 6 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02166","coltura":"TERRENI AGRARI IN ASSENZA DI COLTURA (BARBABIETOLA DA ZUCCHERO, FRUMENTO, ORZO, SEGALE, AVENA, FRAGOLA, MAIS, ORTICOLE, SOIA)","colture":["barbabietola da zucchero","frumento","orzo","segale","avena","fragola","mais","orticole","soia"],"gruppo":"terreni senza coltura","avversita":"Infestanti vivaci e perenni","epoca":"prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto), ovvero in seguito alla raccolta della coltura in precessione","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":null,"condizione":null,"pagina":1,"citazione":"è possibile effettuare un trattamento con TAIFUN® MK CL senza eccedere la dose massima di … 6 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02167","coltura":"TERRENI AGRARI IN ASSENZA DI COLTURA (BARBABIETOLA DA ZUCCHERO, FRUMENTO, ORZO, SEGALE, AVENA, FRAGOLA, MAIS, ORTICOLE, SOIA)","colture":["barbabietola da zucchero","frumento","orzo","segale","avena","fragola","mais","orticole","soia"],"gruppo":"terreni senza coltura","avversita":"Infestanti arboree ed arbustive","epoca":"prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto), ovvero in seguito alla raccolta della coltura in precessione","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":1,"periodo":null,"condizione":null,"pagina":1,"citazione":"è possibile effettuare un trattamento con TAIFUN® MK CL senza eccedere la dose massima di … 6 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02168","coltura":"ROSE, VIVAI DI FLOREALI, ORNAMENTALI, FORESTALI, PIOPPI","colture":["rosa","vivai","ornamentali","forestali","pioppo"],"gruppo":"vivai, ornamentali, forestali","avversita":"Infestanti annuali e biennali","epoca":"sull'intera superficie dell'appezzamento prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto) delle piante, ovvero in seguito alla raccolta delle piante in precessione","modalita":"in modo localizzato impiegando esclusivamente apposite attrezzature selettive o schermanti per evitare il contatto con le piante","ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02169","coltura":"ROSE, VIVAI DI FLOREALI, ORNAMENTALI, FORESTALI, PIOPPI","colture":["rosa","vivai","ornamentali","forestali","pioppo"],"gruppo":"vivai, ornamentali, forestali","avversita":"Infestanti vivaci e perenni","epoca":"sull'intera superficie dell'appezzamento prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto) delle piante, ovvero in seguito alla raccolta delle piante in precessione","modalita":"in modo localizzato impiegando esclusivamente apposite attrezzature selettive o schermanti per evitare il contatto con le piante","ambiente":[],"esclusioni":[],"dose_ha":[{"min":10.0,"max":10.0,"unita":"l/ha","condizione":"Aristolochia sp., Clematis sp., Convolvolus sp., Rubia peregrina","pagina":2,"citazione":"Infestanti vivaci e perenni … 3,5 - 4,5 l/ha … 5 - 6 l/ha … 7 - 9 l/ha … 10 l/ha …","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02170","coltura":"ROSE, VIVAI DI FLOREALI, ORNAMENTALI, FORESTALI, PIOPPI","colture":["rosa","vivai","ornamentali","forestali","pioppo"],"gruppo":"vivai, ornamentali, forestali","avversita":"Infestanti arboree ed arbustive","epoca":"sull'intera superficie dell'appezzamento prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto) delle piante, ovvero in seguito alla raccolta delle piante in precessione","modalita":"in modo localizzato impiegando esclusivamente apposite attrezzature selettive o schermanti per evitare il contatto con le piante","ambiente":[],"esclusioni":[],"dose_ha":[{"min":10.0,"max":10.0,"unita":"l/ha","condizione":"Calluna sp., Cistus sp., Erica sp., Lonicera sp.","pagina":2,"citazione":"Infestanti arboree ed arbustive … 4 – 6 l/ha … 10 l/ha …","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02171","coltura":"AREE NON DESTINATE ALLE COLTURE AGRARIE","colture":[],"gruppo":"aree non agricole","avversita":"Infestanti annuali e biennali","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02172","coltura":"AREE NON DESTINATE ALLE COLTURE AGRARIE","colture":[],"gruppo":"aree non agricole","avversita":"Infestanti vivaci e perenni","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[],"intervallo_giorni":[],"volume_acqua":[]},{"id":"015401-02173","coltura":"AREE NON DESTINATE ALLE COLTURE AGRARIE","colture":[],"gruppo":"aree non agricole","avversita":"Infestanti arboree ed arbustive","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[],"intervallo_giorni":[],"volume_acqua":[]}],"titolare":"ADAMA DEUTSCHLAND GMBH","data_etichetta":"30/07/2024","data_estrazione":"2026-11-17","data_download":"2026-11-16","fonte":"Etichetta autorizzata, Ministero della Salute, reg. n. 15401","etichetta_id":"42904"}
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "015401",
+ "nome_prodotto": "TAIFUN MK CL",
+ "colture_non_estratte": [
+  "cardo",
+  "mirtillo",
+  "rafano",
+  "riso"
+ ],
+ "righe": [
+  {
+   "id": "015401-02153",
+   "coltura": "ARBOREE (AGRUMI, DRUPACEE, OLIVO DA OLIO E DA TAVOLA, MELO, PERO, VITE DA VINO E DA TAVOLA, NOCE, NOCCIOLO, MANDORLO)",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo",
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino",
+    "olivo da olio",
+    "olivo da tavola",
+    "melo",
+    "pero",
+    "vite da vino",
+    "vite da tavola",
+    "noce",
+    "nocciolo",
+    "mandorlo"
+   ],
+   "gruppo": "arboree, agrumi, drupacee",
+   "avversita": "Infestanti annuali e biennali",
+   "epoca": null,
+   "modalita": "in bande lungo la fila",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 3 applicazioni l'anno in bande lungo la fila, evitando il contatto con foglie e parti del fusto non lignificate, senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02154",
+   "coltura": "ARBOREE (AGRUMI, DRUPACEE, OLIVO DA OLIO E DA TAVOLA, MELO, PERO, VITE DA VINO E DA TAVOLA, NOCE, NOCCIOLO, MANDORLO)",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo",
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino",
+    "olivo da olio",
+    "olivo da tavola",
+    "melo",
+    "pero",
+    "vite da vino",
+    "vite da tavola",
+    "noce",
+    "nocciolo",
+    "mandorlo"
+   ],
+   "gruppo": "arboree, agrumi, drupacee",
+   "avversita": "Infestanti vivaci e perenni",
+   "epoca": null,
+   "modalita": "in bande lungo la fila",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 3 applicazioni l'anno in bande lungo la fila, evitando il contatto con foglie e parti del fusto non lignificate, senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02155",
+   "coltura": "ARBOREE (AGRUMI, DRUPACEE, OLIVO DA OLIO E DA TAVOLA, MELO, PERO, VITE DA VINO E DA TAVOLA, NOCE, NOCCIOLO, MANDORLO)",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo",
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino",
+    "olivo da olio",
+    "olivo da tavola",
+    "melo",
+    "pero",
+    "vite da vino",
+    "vite da tavola",
+    "noce",
+    "nocciolo",
+    "mandorlo"
+   ],
+   "gruppo": "arboree, agrumi, drupacee",
+   "avversita": "Infestanti arboree ed arbustive",
+   "epoca": null,
+   "modalita": "in bande lungo la fila",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 6.0,
+     "unita": "l/ha",
+     "condizione": "Acer sp., Fraxinus sp., Genista sp., Salix sp., Sambucus sp., Vaccinum sp.",
+     "pagina": 2,
+     "citazione": "Infestanti arboree ed arbustive … 4 – 6 l/ha … 10 l/ha …",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 10.0,
+     "max": 10.0,
+     "unita": "l/ha",
+     "condizione": "Calluna sp., Cistus sp., Erica sp., Lonicera sp.",
+     "pagina": 2,
+     "citazione": "Infestanti arboree ed arbustive … 4 – 6 l/ha … 10 l/ha …",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 3 applicazioni l'anno in bande lungo la fila, evitando il contatto con foglie e parti del fusto non lignificate, senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02156",
+   "coltura": "OLIVO DA OLIO",
+   "colture": [
+    "olivo da olio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali e biennali",
+   "epoca": null,
+   "modalita": "in bande lungo la fila",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 3.0,
+     "unita": "l/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Infestanti annuali e biennali … 1 - 3 l/ha … Alopecurus sp. …",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Nei trattamenti per il diserbo dell'olivo (olive da olio) sospendere i trattamenti … 7 giorni prima della raccolta.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02157",
+   "coltura": "OLIVO DA OLIO",
+   "colture": [
+    "olivo da olio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti vivaci e perenni",
+   "epoca": null,
+   "modalita": "in bande lungo la fila",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Nei trattamenti per il diserbo dell'olivo (olive da olio) sospendere i trattamenti … 7 giorni prima della raccolta.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02158",
+   "coltura": "OLIVO DA OLIO",
+   "colture": [
+    "olivo da olio"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti arboree ed arbustive",
+   "epoca": null,
+   "modalita": "in bande lungo la fila",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [
+    {
+     "giorni": 7,
+     "non_necessario": false,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Nei trattamenti per il diserbo dell'olivo (olive da olio) sospendere i trattamenti … 7 giorni prima della raccolta.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "max_trattamenti": [],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02159",
+   "coltura": "ORTICOLE (CARCIOFO, CAROTA, FAGIOLINO, FAVA, PISELLO, MELANZANA, POMODORO, PATATA)",
+   "colture": [
+    "carciofo",
+    "carota",
+    "fagiolino",
+    "fava",
+    "pisello",
+    "melanzana",
+    "pomodoro",
+    "patata"
+   ],
+   "gruppo": "orticole",
+   "avversita": "Infestanti annuali e biennali",
+   "epoca": null,
+   "modalita": "in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02160",
+   "coltura": "ORTICOLE (CARCIOFO, CAROTA, FAGIOLINO, FAVA, PISELLO, MELANZANA, POMODORO, PATATA)",
+   "colture": [
+    "carciofo",
+    "carota",
+    "fagiolino",
+    "fava",
+    "pisello",
+    "melanzana",
+    "pomodoro",
+    "patata"
+   ],
+   "gruppo": "orticole",
+   "avversita": "Infestanti vivaci e perenni",
+   "epoca": null,
+   "modalita": "in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02161",
+   "coltura": "ORTICOLE (CARCIOFO, CAROTA, FAGIOLINO, FAVA, PISELLO, MELANZANA, POMODORO, PATATA)",
+   "colture": [
+    "carciofo",
+    "carota",
+    "fagiolino",
+    "fava",
+    "pisello",
+    "melanzana",
+    "pomodoro",
+    "patata"
+   ],
+   "gruppo": "orticole",
+   "avversita": "Infestanti arboree ed arbustive",
+   "epoca": null,
+   "modalita": "in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02162",
+   "coltura": "BARBABIETOLA DA ZUCCHERO, MAIS, SOIA",
+   "colture": [
+    "barbabietola da zucchero",
+    "mais",
+    "soia"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti annuali e biennali",
+   "epoca": null,
+   "modalita": "in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02163",
+   "coltura": "BARBABIETOLA DA ZUCCHERO, MAIS, SOIA",
+   "colture": [
+    "barbabietola da zucchero",
+    "mais",
+    "soia"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti vivaci e perenni",
+   "epoca": null,
+   "modalita": "in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02164",
+   "coltura": "BARBABIETOLA DA ZUCCHERO, MAIS, SOIA",
+   "colture": [
+    "barbabietola da zucchero",
+    "mais",
+    "soia"
+   ],
+   "gruppo": null,
+   "avversita": "Infestanti arboree ed arbustive",
+   "epoca": null,
+   "modalita": "in banda tra le file della coltura già insediata; solo con attrezzature selettive o schermanti",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha per applicazioni in banda tra le file della coltura già insediata",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02165",
+   "coltura": "TERRENI AGRARI IN ASSENZA DI COLTURA (BARBABIETOLA DA ZUCCHERO, FRUMENTO, ORZO, SEGALE, AVENA, FRAGOLA, MAIS, ORTICOLE, SOIA)",
+   "colture": [
+    "barbabietola da zucchero",
+    "frumento",
+    "orzo",
+    "segale",
+    "avena",
+    "fragola",
+    "mais",
+    "orticole",
+    "soia"
+   ],
+   "gruppo": "terreni senza coltura",
+   "avversita": "Infestanti annuali e biennali",
+   "epoca": "prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto), ovvero in seguito alla raccolta della coltura in precessione",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "è possibile effettuare un trattamento con TAIFUN® MK CL senza eccedere la dose massima di … 6 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02166",
+   "coltura": "TERRENI AGRARI IN ASSENZA DI COLTURA (BARBABIETOLA DA ZUCCHERO, FRUMENTO, ORZO, SEGALE, AVENA, FRAGOLA, MAIS, ORTICOLE, SOIA)",
+   "colture": [
+    "barbabietola da zucchero",
+    "frumento",
+    "orzo",
+    "segale",
+    "avena",
+    "fragola",
+    "mais",
+    "orticole",
+    "soia"
+   ],
+   "gruppo": "terreni senza coltura",
+   "avversita": "Infestanti vivaci e perenni",
+   "epoca": "prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto), ovvero in seguito alla raccolta della coltura in precessione",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "è possibile effettuare un trattamento con TAIFUN® MK CL senza eccedere la dose massima di … 6 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02167",
+   "coltura": "TERRENI AGRARI IN ASSENZA DI COLTURA (BARBABIETOLA DA ZUCCHERO, FRUMENTO, ORZO, SEGALE, AVENA, FRAGOLA, MAIS, ORTICOLE, SOIA)",
+   "colture": [
+    "barbabietola da zucchero",
+    "frumento",
+    "orzo",
+    "segale",
+    "avena",
+    "fragola",
+    "mais",
+    "orticole",
+    "soia"
+   ],
+   "gruppo": "terreni senza coltura",
+   "avversita": "Infestanti arboree ed arbustive",
+   "epoca": "prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto), ovvero in seguito alla raccolta della coltura in precessione",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 1,
+     "periodo": null,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "è possibile effettuare un trattamento con TAIFUN® MK CL senza eccedere la dose massima di … 6 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02168",
+   "coltura": "ROSE, VIVAI DI FLOREALI, ORNAMENTALI, FORESTALI, PIOPPI",
+   "colture": [
+    "rosa",
+    "vivai",
+    "ornamentali",
+    "forestali",
+    "pioppo"
+   ],
+   "gruppo": "vivai, ornamentali, forestali",
+   "avversita": "Infestanti annuali e biennali",
+   "epoca": "sull'intera superficie dell'appezzamento prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto) delle piante, ovvero in seguito alla raccolta delle piante in precessione",
+   "modalita": "in modo localizzato impiegando esclusivamente apposite attrezzature selettive o schermanti per evitare il contatto con le piante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02169",
+   "coltura": "ROSE, VIVAI DI FLOREALI, ORNAMENTALI, FORESTALI, PIOPPI",
+   "colture": [
+    "rosa",
+    "vivai",
+    "ornamentali",
+    "forestali",
+    "pioppo"
+   ],
+   "gruppo": "vivai, ornamentali, forestali",
+   "avversita": "Infestanti vivaci e perenni",
+   "epoca": "sull'intera superficie dell'appezzamento prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto) delle piante, ovvero in seguito alla raccolta delle piante in precessione",
+   "modalita": "in modo localizzato impiegando esclusivamente apposite attrezzature selettive o schermanti per evitare il contatto con le piante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 10.0,
+     "max": 10.0,
+     "unita": "l/ha",
+     "condizione": "Aristolochia sp., Clematis sp., Convolvolus sp., Rubia peregrina",
+     "pagina": 2,
+     "citazione": "Infestanti vivaci e perenni … 3,5 - 4,5 l/ha … 5 - 6 l/ha … 7 - 9 l/ha … 10 l/ha …",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02170",
+   "coltura": "ROSE, VIVAI DI FLOREALI, ORNAMENTALI, FORESTALI, PIOPPI",
+   "colture": [
+    "rosa",
+    "vivai",
+    "ornamentali",
+    "forestali",
+    "pioppo"
+   ],
+   "gruppo": "vivai, ornamentali, forestali",
+   "avversita": "Infestanti arboree ed arbustive",
+   "epoca": "sull'intera superficie dell'appezzamento prima della lavorazione del terreno o della messa a dimora (pre-semina, pre-trapianto) delle piante, ovvero in seguito alla raccolta delle piante in precessione",
+   "modalita": "in modo localizzato impiegando esclusivamente apposite attrezzature selettive o schermanti per evitare il contatto con le piante",
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 10.0,
+     "max": 10.0,
+     "unita": "l/ha",
+     "condizione": "Calluna sp., Cistus sp., Erica sp., Lonicera sp.",
+     "pagina": 2,
+     "citazione": "Infestanti arboree ed arbustive … 4 – 6 l/ha … 10 l/ha …",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Effettuare un massimo di … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02171",
+   "coltura": "AREE NON DESTINATE ALLE COLTURE AGRARIE",
+   "colture": [],
+   "gruppo": "aree non agricole",
+   "avversita": "Infestanti annuali e biennali",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "in asciutta. Effettuare al massimo … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02172",
+   "coltura": "AREE NON DESTINATE ALLE COLTURE AGRARIE",
+   "colture": [],
+   "gruppo": "aree non agricole",
+   "avversita": "Infestanti vivaci e perenni",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "in asciutta. Effettuare al massimo … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  },
+  {
+   "id": "015401-02173",
+   "coltura": "AREE NON DESTINATE ALLE COLTURE AGRARIE",
+   "colture": [],
+   "gruppo": "aree non agricole",
+   "avversita": "Infestanti arboree ed arbustive",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "in asciutta. Effettuare al massimo … 2 applicazioni l'anno senza eccedere la dose massima di … 10 l/ha.",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "ADAMA DEUTSCHLAND GMBH",
+ "data_etichetta": "30/07/2024",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-16",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 15401",
+ "etichetta_id": "42904"
+}

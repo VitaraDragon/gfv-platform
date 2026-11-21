@@ -1,1 +1,2337 @@
-{"schema":"GFV valori etichetta 1.1","avviso":"GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.","numero_registrazione":"011070","nome_prodotto":"TIOGOLD DISPERSS","colture_non_estratte":[],"righe":[{"id":"011070-01389","coltura":"VITE","colture":["vite"],"gruppo":null,"avversita":"Oidio (Erysiphe necator)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":2.0,"max":4.0,"unita":"kg/ha","condizione":"In caso di bassa pressione della malattia","pagina":1,"citazione":"VITE … Oidio (Erysiphe necator) … Dose Kg/ha … 2 - 4 … 4 - 8 … 8 – 12,5","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":4.0,"max":8.0,"unita":"kg/ha","condizione":"In situazioni mediamente gravi","pagina":1,"citazione":"VITE … Oidio (Erysiphe necator) … Dose Kg/ha … 2 - 4 … 4 - 8 … 8 – 12,5","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":8.0,"max":12.5,"unita":"kg/ha","condizione":"In situazioni gravi o per trattamenti “eradicanti”","pagina":1,"citazione":"VITE … Oidio (Erysiphe necator) … Dose Kg/ha … 2 - 4 … 4 - 8 … 8 – 12,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01390","coltura":"VITE","colture":["vite"],"gruppo":null,"avversita":"Escoriosi (Phomopsis viticola)","epoca":"Da gemma cotonosa a prime 3 foglie","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":4.0,"max":6.25,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"VITE … Escoriosi (Phomopsis viticola) … Dose Kg/ha … 4 – 6,25","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 2","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01391","coltura":"VITE","colture":["vite"],"gruppo":null,"avversita":"Eriofidi (Calipetrimerus vitis, Eriophyes vitis)","epoca":"Da gemma cotonosa a prime 3 foglie","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":12.5,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"VITE … Eriofidi (Calipetrimerus vitis, Eriophyes vitis) … Dose Kg/ha … 6 – 12,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01392","coltura":"POMACEE","colture":["melo","pero","cotogno","nespolo"],"gruppo":"pomacee","avversita":"Ticchiolatura (Venturia inaequalis, Venturia pyrina)","epoca":"prefioritura e da fine fioritura a frutto noce","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":5.0,"unita":"kg/ha","condizione":"Con bassa pressione della malattia o in miscela con altri agrofarmaci","pagina":1,"citazione":"POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 – 5 … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":5.0,"max":7.5,"unita":"kg/ha","condizione":"Con alta pressione della malattia","pagina":1,"citazione":"POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 – 5 … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01393","coltura":"POMACEE","colture":["melo","pero","cotogno","nespolo"],"gruppo":"pomacee","avversita":"Oidio (Podosphaera leucotricha)","epoca":"prefioritura e da fine fioritura a frutto noce","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":5.0,"unita":"kg/ha","condizione":"Con bassa pressione della malattia o in miscela con altri agrofarmaci","pagina":1,"citazione":"POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 – 5 … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":5.0,"max":7.5,"unita":"kg/ha","condizione":"Con alta pressione della malattia","pagina":1,"citazione":"POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 – 5 … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01394","coltura":"POMACEE","colture":["melo","pero","cotogno","nespolo"],"gruppo":"pomacee","avversita":"Eriofidi","epoca":"prefioritura e da fine fioritura a frutto noce","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":5.0,"unita":"kg/ha","condizione":"Con bassa pressione della malattia o in miscela con altri agrofarmaci","pagina":1,"citazione":"POMACEE … Eriofidi … Dose Kg/ha … 3 – 5 … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":5.0,"max":7.5,"unita":"kg/ha","condizione":"Con alta pressione della malattia","pagina":1,"citazione":"POMACEE … Eriofidi … Dose Kg/ha … 3 – 5 … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01395","coltura":"POMACEE","colture":["melo","pero","cotogno","nespolo"],"gruppo":"pomacee","avversita":"Ticchiolatura (Venturia inaequalis, Venturia pyrina)","epoca":"da frutto noce a pre raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":3.0,"unita":"kg/ha","condizione":"Con bassa pressione della malattia o in miscela con altri agrofarmaci","pagina":1,"citazione":"POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 … 4 - 6","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":4.0,"max":6.0,"unita":"kg/ha","condizione":"Con alta pressione della malattia o per trattamenti eradicanti","pagina":1,"citazione":"POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 … 4 - 6","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01396","coltura":"POMACEE","colture":["melo","pero","cotogno","nespolo"],"gruppo":"pomacee","avversita":"Oidio (Podosphaera leucotricha)","epoca":"da frutto noce a pre raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":3.0,"unita":"kg/ha","condizione":"Con bassa pressione della malattia o in miscela con altri agrofarmaci","pagina":1,"citazione":"POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 … 4 - 6","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":4.0,"max":6.0,"unita":"kg/ha","condizione":"Con alta pressione della malattia o per trattamenti eradicanti","pagina":1,"citazione":"POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 … 4 - 6","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01397","coltura":"POMACEE","colture":["melo","pero","cotogno","nespolo"],"gruppo":"pomacee","avversita":"Eriofidi","epoca":"da frutto noce a pre raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":3.0,"unita":"kg/ha","condizione":"Con bassa pressione della malattia o in miscela con altri agrofarmaci","pagina":1,"citazione":"POMACEE … Eriofidi … Dose Kg/ha … 3 … 4 - 6","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":4.0,"max":6.0,"unita":"kg/ha","condizione":"Con alta pressione della malattia o per trattamenti eradicanti","pagina":1,"citazione":"POMACEE … Eriofidi … Dose Kg/ha … 3 … 4 - 6","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01398","coltura":"NOCCIOLO","colture":["nocciolo"],"gruppo":null,"avversita":"Oidio","epoca":"A partire dallo sviluppo del germoglio","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":5.0,"max":5.0,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"NOCCIOLO … Oidio … Dose Kg/ha … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01399","coltura":"NOCCIOLO","colture":["nocciolo"],"gruppo":null,"avversita":"Eriofidi","epoca":"A partire da rottura gemme","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":7.5,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"NOCCIOLO … Eriofidi … Dose Kg/ha … 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":14,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01400","coltura":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)","colture":["pesco","nettarina","albicocco","ciliegio","susino"],"gruppo":"drupacee","avversita":"Oidio (Sphaerotheca pannosa)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":6.0,"unita":"kg/ha","condizione":"Trattamenti preventivi","pagina":1,"citazione":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Oidio (Sphaerotheca pannosa) … Dose Kg/ha … 3 - 6 … 6 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"},{"min":6.0,"max":7.5,"unita":"kg/ha","condizione":"Trattamenti estintivi post raccolta","pagina":1,"citazione":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Oidio (Sphaerotheca pannosa) … Dose Kg/ha … 3 - 6 … 6 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01401","coltura":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)","colture":["pesco","nettarina","albicocco","ciliegio","susino"],"gruppo":"drupacee","avversita":"Bolla (Taphrina deformans)","epoca":"Trattamenti da inizio caduta foglie a sviluppo del frutto","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.25,"max":6.25,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Bolla (Taphrina deformans) … Dose Kg/ha … 6,25","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01402","coltura":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)","colture":["pesco","nettarina","albicocco","ciliegio","susino"],"gruppo":"drupacee","avversita":"Monilia (Monilia spp.)","epoca":null,"modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":5.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Monilia (Monilia spp.) … Dose Kg/ha … 5 - 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01403","coltura":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)","colture":["pesco","nettarina","albicocco","ciliegio","susino"],"gruppo":"drupacee","avversita":"Cladosporiosi (Cladosporium carpophilum)","epoca":"A partire dalla fase di scamiciatura frutti","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":6.25,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Cladosporiosi (Cladosporium carpophilum) … Dose Kg/ha … 3 – 6,25","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01404","coltura":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)","colture":["pesco","nettarina","albicocco","ciliegio","susino"],"gruppo":"drupacee","avversita":"Maculatura rossa dell'albicocco (Apiognomonia erythrostoma)","epoca":"A partire dalla fase di scamiciatura frutti","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":2.5,"max":5.0,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Maculatura rossa dell'albicocco (Apiognomonia erythrostoma) … Dose Kg/ha … 2,5 - 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01405","coltura":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)","colture":["pesco","nettarina","albicocco","ciliegio","susino"],"gruppo":"drupacee","avversita":"Acari (Eriophyes spp.)","epoca":"A partire da punte verdi","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":10.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":1,"citazione":"DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Acari (Eriophyes spp.) … Dose Kg/ha … 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":16,"periodo":"anno","condizione":null,"pagina":1,"citazione":"N° max di applicazioni all'anno … 16","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":1,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01406","coltura":"MANDORLO","colture":["mandorlo"],"gruppo":null,"avversita":"Oidio","epoca":"A partire dallo sviluppo del germoglio","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":1.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"MANDORLO … Oidio … Dose Kg/ha … 1 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":5,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01407","coltura":"AGRUMI","colture":["arancio","arancio amaro","limone","mandarino","clementino","pompelmo","bergamotto","cedro","chinotto","limetta","tangerino","tangelo","mapo","pomelo"],"gruppo":"agrumi","avversita":"Oidio (Oidium spp.)","epoca":"Da formazione infiorescenza a raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"AGRUMI … Oidio (Oidium spp.) … Dose Kg/ha … 6 - 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":6,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 6","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01408","coltura":"AGRUMI","colture":["arancio","arancio amaro","limone","mandarino","clementino","pompelmo","bergamotto","cedro","chinotto","limetta","tangerino","tangelo","mapo","pomelo"],"gruppo":"agrumi","avversita":"Acari (Eriophyes spp.)","epoca":"Da formazione infiorescenza a raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"AGRUMI … Acari (Eriophyes spp.) … Dose Kg/ha … 6 - 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":6,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 6","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01409","coltura":"AGRUMI","colture":["arancio","arancio amaro","limone","mandarino","clementino","pompelmo","bergamotto","cedro","chinotto","limetta","tangerino","tangelo","mapo","pomelo"],"gruppo":"agrumi","avversita":"Septoria (Septoria spp.)","epoca":"Da formazione infiorescenza a raccolta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"AGRUMI … Septoria (Septoria spp.) … Dose Kg/ha … 6 - 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":6,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 6","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":5,"max":5,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01410","coltura":"OLIVO","colture":["olivo"],"gruppo":null,"avversita":"Oidio (Oidium spp.)","epoca":"A partire da inizio sviluppo frutti","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"OLIVO … Oidio (Oidium spp.) … Dose Kg/ha … 6 - 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":4,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 4","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01411","coltura":"OLIVO","colture":["olivo"],"gruppo":null,"avversita":"Lebbra (Colletotrichum spp.)","epoca":"A partire da inizio sviluppo frutti","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"OLIVO … Lebbra (Colletotrichum spp.) … Dose Kg/ha … 6 - 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":4,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 4","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01412","coltura":"OLIVO","colture":["olivo"],"gruppo":null,"avversita":"Occhio di pavone (Cycloconium oleaginum)","epoca":"A partire da inizio sviluppo frutti","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":10.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"OLIVO … Occhio di pavone (Cycloconium oleaginum) … Dose Kg/ha … 6 - 10","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":4,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 4","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01413","coltura":"POMODORO*, PEPERONE*, MELANZANA*","colture":["pomodoro","peperone","melanzana"],"gruppo":null,"avversita":"Oidio (Leveillula spp.)","epoca":"A partire dalla terza foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"POMODORO*, PEPERONE*, MELANZANA* … Oidio (Leveillula spp.) … Dose Kg/ha … 3 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01414","coltura":"POMODORO*, PEPERONE*, MELANZANA*","colture":["pomodoro","peperone","melanzana"],"gruppo":null,"avversita":"Acari","epoca":"A partire dalla terza foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"POMODORO*, PEPERONE*, MELANZANA* … Acari … Dose Kg/ha … 3 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01415","coltura":"PATATA","colture":["patata"],"gruppo":null,"avversita":"Oidio (Leveillula spp.)","epoca":"A partire dalla nona foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":6.3,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"PATATA … Oidio (Leveillula spp.) … Dose Kg/ha … 3 – 6,3","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":6,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 6","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01416","coltura":"ORTAGGI A STELO, A RADICE, A FOGLIA*","colture":["carciofo","cardo","sedano","finocchio","asparago","porro","carota","ravanello","rapa","barbabietola rossa","sedano rapa","pastinaca","rafano","salsefrica","lattuga","scarola","indivia","cicoria","radicchio","rucola","dolcetta","crescione","spinacio","bietola da foglia"],"gruppo":"ortaggi a stelo, ortaggi a radice, ortaggi a foglia","avversita":"Oidio (Leveillula spp., Erysiphe spp.)","epoca":"A partire dalla terza foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01417","coltura":"ORTAGGI A BULBO, LEGUMI, CAVOLI","colture":["aglio","cipolla","scalogno","cipollina","fagiolo","fagiolino","pisello","fava","cece","lenticchia","cavolfiore","cavolo broccolo","cavolo cappuccio","cavolo verza","cavoletti di bruxelles"],"gruppo":"ortaggi a bulbo, legumi, cavoli","avversita":"Oidio (Leveillula spp., Erysiphe spp.)","epoca":"A partire dalla terza foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"ORTAGGI A BULBO, LEGUMI, CAVOLI … Oidio (Leveillula spp., Erysiphe spp.) … Dose Kg/ha … 3 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01418","coltura":"CUCURBITACEE*","colture":["cetriolo","cetriolino","zucchino","melone","cocomero","zucca"],"gruppo":"cucurbitacee","avversita":"Oidio (Leveillula spp., Erysiphe spp.)","epoca":"A partire dalla terza foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"CUCURBITACEE* … Oidio (Leveillula spp., Erysiphe spp.) … Dose Kg/ha … 3 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01419","coltura":"FRAGOLA*","colture":["fragola"],"gruppo":null,"avversita":"Oidio (Sphaeroteca spp.)","epoca":"A partire dallo sviluppo della giovane pianta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"FRAGOLA* … Oidio (Sphaeroteca spp.) … Dose Kg/ha … 3 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01420","coltura":"FRAGOLA*","colture":["fragola"],"gruppo":null,"avversita":"Acari","epoca":"A partire dallo sviluppo della giovane pianta","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"FRAGOLA* … Acari … Dose Kg/ha … 3 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01421","coltura":"CEREALI","colture":["frumento tenero","frumento duro","orzo","avena","segale","triticale","farro"],"gruppo":"cereali","avversita":"Oidio (Erysiphe = Blumeria graminis)","epoca":"Da inizio accestimento","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":5.0,"max":8.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"CEREALI … Oidio (Erysiphe = Blumeria graminis) … Dose Kg/ha … 5 - 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":3,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 3","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":14,"max":14,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 14","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01422","coltura":"BARBABIETOLA DA ZUCCHERO","colture":["barbabietola da zucchero"],"gruppo":null,"avversita":"Oidio (Erysiphe betae)","epoca":"A partire dall'ottava foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":5.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"BARBABIETOLA DA ZUCCHERO … Oidio (Erysiphe betae) … Dose Kg/ha … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":5,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01423","coltura":"BARBABIETOLA DA ZUCCHERO","colture":["barbabietola da zucchero"],"gruppo":null,"avversita":"Cercospora (Cercospora beticola)","epoca":"A partire dall'ottava foglia sviluppata","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":5.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"BARBABIETOLA DA ZUCCHERO … Cercospora (Cercospora beticola) … Dose Kg/ha … 5 – 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":5,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01424","coltura":"SOIA","colture":["soia"],"gruppo":null,"avversita":"Oidio (Erysiphe spp.)","epoca":"Da primo germoglio laterale visibile","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":4.0,"max":4.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"SOIA … Oidio (Erysiphe spp.) … Dose Kg/ha … 4","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01425","coltura":"GIRASOLE","colture":["girasole"],"gruppo":null,"avversita":"Oidio (Erysiphe spp.)","epoca":"A partire da allungamento dello stelo","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":4.0,"max":4.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"GIRASOLE … Oidio (Erysiphe spp.) … Dose Kg/ha … 4","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":2,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 2","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01426","coltura":"LUPPOLO","colture":["luppolo"],"gruppo":null,"avversita":"Oidio (Podosphaera macularis)","epoca":"A partire dalla terza foglia distesa","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":6.0,"max":12.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"LUPPOLO … Oidio (Podosphaera macularis) … Dose Kg/ha … 6-12","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01427","coltura":"FORESTALI, ORNAMENTALI E FLOREALI","colture":["forestali","ornamentali","floreali"],"gruppo":"forestali, ornamentali, floreali","avversita":"Oidio (Erysiphe spp.)","epoca":"A partire dalla sesta foglia distesa","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":3.75,"max":5.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"FORESTALI, ORNAMENTALI E FLOREALI … Oidio (Erysiphe spp.) … Dose Kg/ha … 3,75 – 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":12,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 12","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01428","coltura":"TABACCO","colture":["tabacco"],"gruppo":null,"avversita":"Oidio (Erysiphe spp.)","epoca":"A partire dalla sesta foglia distesa","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":4.0,"max":4.0,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"TABACCO … Oidio (Erysiphe spp.) … Dose Kg/ha … 4","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":8,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 8","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01429","coltura":"PICCOLI FRUTTI*","colture":["lampone","mora di rovo","ribes","mirtillo","uva spina"],"gruppo":"piccoli frutti","avversita":"Oidio (Sphaerotheca mors-uvea)","epoca":"Prima comparsa fiori","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":5.0,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"PICCOLI FRUTTI* … Oidio (Sphaerotheca mors-uvea) … Dose Kg/ha … 5-7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":5,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]},{"id":"011070-01430","coltura":"PICCOLI FRUTTI*","colture":["lampone","mora di rovo","ribes","mirtillo","uva spina"],"gruppo":"piccoli frutti","avversita":"Acari (Cecidophyopsis ribis)","epoca":"Prima comparsa fiori","modalita":null,"ambiente":[],"esclusioni":[],"dose_ha":[{"min":7.5,"max":7.5,"unita":"kg/ha","condizione":null,"pagina":2,"citazione":"PICCOLI FRUTTI* … Acari (Cecidophyopsis ribis) … Dose Kg/ha … 7,5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"dose_hl":[],"carenza":[],"max_trattamenti":[{"numero":5,"periodo":"anno","condizione":null,"pagina":2,"citazione":"N° max di applicazioni all'anno … 5","da_regola_generale":false,"stato":"confermato_2_su_2"}],"intervallo_giorni":[{"min":7,"max":7,"condizione":null,"pagina":2,"citazione":"Intervallo minimo tra i trattamenti (giorni) … 7","da_regola_generale":false,"stato":"confermato_2_su_2"}],"volume_acqua":[]}],"titolare":"UPL HOLDINGS COÃPERATIEF U.A.","data_etichetta":"05/07/2024","data_estrazione":"2026-11-17","data_download":"2026-11-16","fonte":"Etichetta autorizzata, Ministero della Salute, reg. n. 11070","etichetta_id":"42841"}
+{
+ "schema": "GFV valori etichetta 1.1",
+ "avviso": "GFV mostra solo quanto riportato in etichetta, non consiglia dosi. Fa fede l'etichetta autorizzata dal Ministero della Salute.",
+ "numero_registrazione": "011070",
+ "nome_prodotto": "TIOGOLD DISPERSS",
+ "colture_non_estratte": [],
+ "righe": [
+  {
+   "id": "011070-01389",
+   "coltura": "VITE",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysiphe necator)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.0,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": "In caso di bassa pressione della malattia",
+     "pagina": 1,
+     "citazione": "VITE … Oidio (Erysiphe necator) … Dose Kg/ha … 2 - 4 … 4 - 8 … 8 – 12,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 4.0,
+     "max": 8.0,
+     "unita": "kg/ha",
+     "condizione": "In situazioni mediamente gravi",
+     "pagina": 1,
+     "citazione": "VITE … Oidio (Erysiphe necator) … Dose Kg/ha … 2 - 4 … 4 - 8 … 8 – 12,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 8.0,
+     "max": 12.5,
+     "unita": "kg/ha",
+     "condizione": "In situazioni gravi o per trattamenti “eradicanti”",
+     "pagina": 1,
+     "citazione": "VITE … Oidio (Erysiphe necator) … Dose Kg/ha … 2 - 4 … 4 - 8 … 8 – 12,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01390",
+   "coltura": "VITE",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Escoriosi (Phomopsis viticola)",
+   "epoca": "Da gemma cotonosa a prime 3 foglie",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 6.25,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE … Escoriosi (Phomopsis viticola) … Dose Kg/ha … 4 – 6,25",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 2",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01391",
+   "coltura": "VITE",
+   "colture": [
+    "vite"
+   ],
+   "gruppo": null,
+   "avversita": "Eriofidi (Calipetrimerus vitis, Eriophyes vitis)",
+   "epoca": "Da gemma cotonosa a prime 3 foglie",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 12.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "VITE … Eriofidi (Calipetrimerus vitis, Eriophyes vitis) … Dose Kg/ha … 6 – 12,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01392",
+   "coltura": "POMACEE",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Ticchiolatura (Venturia inaequalis, Venturia pyrina)",
+   "epoca": "prefioritura e da fine fioritura a frutto noce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "Con bassa pressione della malattia o in miscela con altri agrofarmaci",
+     "pagina": 1,
+     "citazione": "POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 – 5 … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 5.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": "Con alta pressione della malattia",
+     "pagina": 1,
+     "citazione": "POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 – 5 … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01393",
+   "coltura": "POMACEE",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Oidio (Podosphaera leucotricha)",
+   "epoca": "prefioritura e da fine fioritura a frutto noce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "Con bassa pressione della malattia o in miscela con altri agrofarmaci",
+     "pagina": 1,
+     "citazione": "POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 – 5 … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 5.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": "Con alta pressione della malattia",
+     "pagina": 1,
+     "citazione": "POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 – 5 … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01394",
+   "coltura": "POMACEE",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Eriofidi",
+   "epoca": "prefioritura e da fine fioritura a frutto noce",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": "Con bassa pressione della malattia o in miscela con altri agrofarmaci",
+     "pagina": 1,
+     "citazione": "POMACEE … Eriofidi … Dose Kg/ha … 3 – 5 … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 5.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": "Con alta pressione della malattia",
+     "pagina": 1,
+     "citazione": "POMACEE … Eriofidi … Dose Kg/ha … 3 – 5 … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01395",
+   "coltura": "POMACEE",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Ticchiolatura (Venturia inaequalis, Venturia pyrina)",
+   "epoca": "da frutto noce a pre raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 3.0,
+     "unita": "kg/ha",
+     "condizione": "Con bassa pressione della malattia o in miscela con altri agrofarmaci",
+     "pagina": 1,
+     "citazione": "POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 … 4 - 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 4.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": "Con alta pressione della malattia o per trattamenti eradicanti",
+     "pagina": 1,
+     "citazione": "POMACEE … Ticchiolatura (Venturia inaequalis, Venturia pyrina) … Dose Kg/ha … 3 … 4 - 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01396",
+   "coltura": "POMACEE",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Oidio (Podosphaera leucotricha)",
+   "epoca": "da frutto noce a pre raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 3.0,
+     "unita": "kg/ha",
+     "condizione": "Con bassa pressione della malattia o in miscela con altri agrofarmaci",
+     "pagina": 1,
+     "citazione": "POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 … 4 - 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 4.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": "Con alta pressione della malattia o per trattamenti eradicanti",
+     "pagina": 1,
+     "citazione": "POMACEE … Oidio (Podosphaera leucotricha) … Dose Kg/ha … 3 … 4 - 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01397",
+   "coltura": "POMACEE",
+   "colture": [
+    "melo",
+    "pero",
+    "cotogno",
+    "nespolo"
+   ],
+   "gruppo": "pomacee",
+   "avversita": "Eriofidi",
+   "epoca": "da frutto noce a pre raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 3.0,
+     "unita": "kg/ha",
+     "condizione": "Con bassa pressione della malattia o in miscela con altri agrofarmaci",
+     "pagina": 1,
+     "citazione": "POMACEE … Eriofidi … Dose Kg/ha … 3 … 4 - 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 4.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": "Con alta pressione della malattia o per trattamenti eradicanti",
+     "pagina": 1,
+     "citazione": "POMACEE … Eriofidi … Dose Kg/ha … 3 … 4 - 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01398",
+   "coltura": "NOCCIOLO",
+   "colture": [
+    "nocciolo"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio",
+   "epoca": "A partire dallo sviluppo del germoglio",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 5.0,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "NOCCIOLO … Oidio … Dose Kg/ha … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01399",
+   "coltura": "NOCCIOLO",
+   "colture": [
+    "nocciolo"
+   ],
+   "gruppo": null,
+   "avversita": "Eriofidi",
+   "epoca": "A partire da rottura gemme",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 7.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "NOCCIOLO … Eriofidi … Dose Kg/ha … 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 14,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01400",
+   "coltura": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Oidio (Sphaerotheca pannosa)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 6.0,
+     "unita": "kg/ha",
+     "condizione": "Trattamenti preventivi",
+     "pagina": 1,
+     "citazione": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Oidio (Sphaerotheca pannosa) … Dose Kg/ha … 3 - 6 … 6 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    },
+    {
+     "min": 6.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": "Trattamenti estintivi post raccolta",
+     "pagina": 1,
+     "citazione": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Oidio (Sphaerotheca pannosa) … Dose Kg/ha … 3 - 6 … 6 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01401",
+   "coltura": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Bolla (Taphrina deformans)",
+   "epoca": "Trattamenti da inizio caduta foglie a sviluppo del frutto",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.25,
+     "max": 6.25,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Bolla (Taphrina deformans) … Dose Kg/ha … 6,25",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01402",
+   "coltura": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Monilia (Monilia spp.)",
+   "epoca": null,
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 5.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Monilia (Monilia spp.) … Dose Kg/ha … 5 - 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01403",
+   "coltura": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Cladosporiosi (Cladosporium carpophilum)",
+   "epoca": "A partire dalla fase di scamiciatura frutti",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 6.25,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Cladosporiosi (Cladosporium carpophilum) … Dose Kg/ha … 3 – 6,25",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01404",
+   "coltura": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Maculatura rossa dell'albicocco (Apiognomonia erythrostoma)",
+   "epoca": "A partire dalla fase di scamiciatura frutti",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 2.5,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Maculatura rossa dell'albicocco (Apiognomonia erythrostoma) … Dose Kg/ha … 2,5 - 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01405",
+   "coltura": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino)",
+   "colture": [
+    "pesco",
+    "nettarina",
+    "albicocco",
+    "ciliegio",
+    "susino"
+   ],
+   "gruppo": "drupacee",
+   "avversita": "Acari (Eriophyes spp.)",
+   "epoca": "A partire da punte verdi",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 10.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "DRUPACEE (pesco, nettarino, albicocco, ciliegio, susino) … Acari (Eriophyes spp.) … Dose Kg/ha … 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 16,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "N° max di applicazioni all'anno … 16",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 1,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01406",
+   "coltura": "MANDORLO",
+   "colture": [
+    "mandorlo"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio",
+   "epoca": "A partire dallo sviluppo del germoglio",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 1.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "MANDORLO … Oidio … Dose Kg/ha … 1 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 5,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01407",
+   "coltura": "AGRUMI",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Oidio (Oidium spp.)",
+   "epoca": "Da formazione infiorescenza a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "AGRUMI … Oidio (Oidium spp.) … Dose Kg/ha … 6 - 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01408",
+   "coltura": "AGRUMI",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Acari (Eriophyes spp.)",
+   "epoca": "Da formazione infiorescenza a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "AGRUMI … Acari (Eriophyes spp.) … Dose Kg/ha … 6 - 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01409",
+   "coltura": "AGRUMI",
+   "colture": [
+    "arancio",
+    "arancio amaro",
+    "limone",
+    "mandarino",
+    "clementino",
+    "pompelmo",
+    "bergamotto",
+    "cedro",
+    "chinotto",
+    "limetta",
+    "tangerino",
+    "tangelo",
+    "mapo",
+    "pomelo"
+   ],
+   "gruppo": "agrumi",
+   "avversita": "Septoria (Septoria spp.)",
+   "epoca": "Da formazione infiorescenza a raccolta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "AGRUMI … Septoria (Septoria spp.) … Dose Kg/ha … 6 - 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 5,
+     "max": 5,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01410",
+   "coltura": "OLIVO",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Oidium spp.)",
+   "epoca": "A partire da inizio sviluppo frutti",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "OLIVO … Oidio (Oidium spp.) … Dose Kg/ha … 6 - 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 4",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01411",
+   "coltura": "OLIVO",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Lebbra (Colletotrichum spp.)",
+   "epoca": "A partire da inizio sviluppo frutti",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "OLIVO … Lebbra (Colletotrichum spp.) … Dose Kg/ha … 6 - 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 4",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01412",
+   "coltura": "OLIVO",
+   "colture": [
+    "olivo"
+   ],
+   "gruppo": null,
+   "avversita": "Occhio di pavone (Cycloconium oleaginum)",
+   "epoca": "A partire da inizio sviluppo frutti",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 10.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "OLIVO … Occhio di pavone (Cycloconium oleaginum) … Dose Kg/ha … 6 - 10",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 4,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 4",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01413",
+   "coltura": "POMODORO*, PEPERONE*, MELANZANA*",
+   "colture": [
+    "pomodoro",
+    "peperone",
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Leveillula spp.)",
+   "epoca": "A partire dalla terza foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO*, PEPERONE*, MELANZANA* … Oidio (Leveillula spp.) … Dose Kg/ha … 3 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01414",
+   "coltura": "POMODORO*, PEPERONE*, MELANZANA*",
+   "colture": [
+    "pomodoro",
+    "peperone",
+    "melanzana"
+   ],
+   "gruppo": null,
+   "avversita": "Acari",
+   "epoca": "A partire dalla terza foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "POMODORO*, PEPERONE*, MELANZANA* … Acari … Dose Kg/ha … 3 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01415",
+   "coltura": "PATATA",
+   "colture": [
+    "patata"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Leveillula spp.)",
+   "epoca": "A partire dalla nona foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 6.3,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PATATA … Oidio (Leveillula spp.) … Dose Kg/ha … 3 – 6,3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 6,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 6",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01416",
+   "coltura": "ORTAGGI A STELO, A RADICE, A FOGLIA*",
+   "colture": [
+    "carciofo",
+    "cardo",
+    "sedano",
+    "finocchio",
+    "asparago",
+    "porro",
+    "carota",
+    "ravanello",
+    "rapa",
+    "barbabietola rossa",
+    "sedano rapa",
+    "pastinaca",
+    "rafano",
+    "salsefrica",
+    "lattuga",
+    "scarola",
+    "indivia",
+    "cicoria",
+    "radicchio",
+    "rucola",
+    "dolcetta",
+    "crescione",
+    "spinacio",
+    "bietola da foglia"
+   ],
+   "gruppo": "ortaggi a stelo, ortaggi a radice, ortaggi a foglia",
+   "avversita": "Oidio (Leveillula spp., Erysiphe spp.)",
+   "epoca": "A partire dalla terza foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01417",
+   "coltura": "ORTAGGI A BULBO, LEGUMI, CAVOLI",
+   "colture": [
+    "aglio",
+    "cipolla",
+    "scalogno",
+    "cipollina",
+    "fagiolo",
+    "fagiolino",
+    "pisello",
+    "fava",
+    "cece",
+    "lenticchia",
+    "cavolfiore",
+    "cavolo broccolo",
+    "cavolo cappuccio",
+    "cavolo verza",
+    "cavoletti di bruxelles"
+   ],
+   "gruppo": "ortaggi a bulbo, legumi, cavoli",
+   "avversita": "Oidio (Leveillula spp., Erysiphe spp.)",
+   "epoca": "A partire dalla terza foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "ORTAGGI A BULBO, LEGUMI, CAVOLI … Oidio (Leveillula spp., Erysiphe spp.) … Dose Kg/ha … 3 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01418",
+   "coltura": "CUCURBITACEE*",
+   "colture": [
+    "cetriolo",
+    "cetriolino",
+    "zucchino",
+    "melone",
+    "cocomero",
+    "zucca"
+   ],
+   "gruppo": "cucurbitacee",
+   "avversita": "Oidio (Leveillula spp., Erysiphe spp.)",
+   "epoca": "A partire dalla terza foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "CUCURBITACEE* … Oidio (Leveillula spp., Erysiphe spp.) … Dose Kg/ha … 3 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01419",
+   "coltura": "FRAGOLA*",
+   "colture": [
+    "fragola"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Sphaeroteca spp.)",
+   "epoca": "A partire dallo sviluppo della giovane pianta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "FRAGOLA* … Oidio (Sphaeroteca spp.) … Dose Kg/ha … 3 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01420",
+   "coltura": "FRAGOLA*",
+   "colture": [
+    "fragola"
+   ],
+   "gruppo": null,
+   "avversita": "Acari",
+   "epoca": "A partire dallo sviluppo della giovane pianta",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "FRAGOLA* … Acari … Dose Kg/ha … 3 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01421",
+   "coltura": "CEREALI",
+   "colture": [
+    "frumento tenero",
+    "frumento duro",
+    "orzo",
+    "avena",
+    "segale",
+    "triticale",
+    "farro"
+   ],
+   "gruppo": "cereali",
+   "avversita": "Oidio (Erysiphe = Blumeria graminis)",
+   "epoca": "Da inizio accestimento",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 5.0,
+     "max": 8.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "CEREALI … Oidio (Erysiphe = Blumeria graminis) … Dose Kg/ha … 5 - 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 3,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 3",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 14,
+     "max": 14,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 14",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01422",
+   "coltura": "BARBABIETOLA DA ZUCCHERO",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysiphe betae)",
+   "epoca": "A partire dall'ottava foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 5.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "BARBABIETOLA DA ZUCCHERO … Oidio (Erysiphe betae) … Dose Kg/ha … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 5,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01423",
+   "coltura": "BARBABIETOLA DA ZUCCHERO",
+   "colture": [
+    "barbabietola da zucchero"
+   ],
+   "gruppo": null,
+   "avversita": "Cercospora (Cercospora beticola)",
+   "epoca": "A partire dall'ottava foglia sviluppata",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 5.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "BARBABIETOLA DA ZUCCHERO … Cercospora (Cercospora beticola) … Dose Kg/ha … 5 – 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 5,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01424",
+   "coltura": "SOIA",
+   "colture": [
+    "soia"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysiphe spp.)",
+   "epoca": "Da primo germoglio laterale visibile",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "SOIA … Oidio (Erysiphe spp.) … Dose Kg/ha … 4",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01425",
+   "coltura": "GIRASOLE",
+   "colture": [
+    "girasole"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysiphe spp.)",
+   "epoca": "A partire da allungamento dello stelo",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "GIRASOLE … Oidio (Erysiphe spp.) … Dose Kg/ha … 4",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 2,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 2",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01426",
+   "coltura": "LUPPOLO",
+   "colture": [
+    "luppolo"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Podosphaera macularis)",
+   "epoca": "A partire dalla terza foglia distesa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 6.0,
+     "max": 12.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "LUPPOLO … Oidio (Podosphaera macularis) … Dose Kg/ha … 6-12",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01427",
+   "coltura": "FORESTALI, ORNAMENTALI E FLOREALI",
+   "colture": [
+    "forestali",
+    "ornamentali",
+    "floreali"
+   ],
+   "gruppo": "forestali, ornamentali, floreali",
+   "avversita": "Oidio (Erysiphe spp.)",
+   "epoca": "A partire dalla sesta foglia distesa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 3.75,
+     "max": 5.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "FORESTALI, ORNAMENTALI E FLOREALI … Oidio (Erysiphe spp.) … Dose Kg/ha … 3,75 – 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 12,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 12",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01428",
+   "coltura": "TABACCO",
+   "colture": [
+    "tabacco"
+   ],
+   "gruppo": null,
+   "avversita": "Oidio (Erysiphe spp.)",
+   "epoca": "A partire dalla sesta foglia distesa",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 4.0,
+     "max": 4.0,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "TABACCO … Oidio (Erysiphe spp.) … Dose Kg/ha … 4",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 8,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 8",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01429",
+   "coltura": "PICCOLI FRUTTI*",
+   "colture": [
+    "lampone",
+    "mora di rovo",
+    "ribes",
+    "mirtillo",
+    "uva spina"
+   ],
+   "gruppo": "piccoli frutti",
+   "avversita": "Oidio (Sphaerotheca mors-uvea)",
+   "epoca": "Prima comparsa fiori",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 5.0,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PICCOLI FRUTTI* … Oidio (Sphaerotheca mors-uvea) … Dose Kg/ha … 5-7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 5,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  },
+  {
+   "id": "011070-01430",
+   "coltura": "PICCOLI FRUTTI*",
+   "colture": [
+    "lampone",
+    "mora di rovo",
+    "ribes",
+    "mirtillo",
+    "uva spina"
+   ],
+   "gruppo": "piccoli frutti",
+   "avversita": "Acari (Cecidophyopsis ribis)",
+   "epoca": "Prima comparsa fiori",
+   "modalita": null,
+   "ambiente": [],
+   "esclusioni": [],
+   "dose_ha": [
+    {
+     "min": 7.5,
+     "max": 7.5,
+     "unita": "kg/ha",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "PICCOLI FRUTTI* … Acari (Cecidophyopsis ribis) … Dose Kg/ha … 7,5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "dose_hl": [],
+   "carenza": [],
+   "max_trattamenti": [
+    {
+     "numero": 5,
+     "periodo": "anno",
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "N° max di applicazioni all'anno … 5",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "intervallo_giorni": [
+    {
+     "min": 7,
+     "max": 7,
+     "condizione": null,
+     "pagina": 2,
+     "citazione": "Intervallo minimo tra i trattamenti (giorni) … 7",
+     "da_regola_generale": false,
+     "stato": "confermato_2_su_2"
+    }
+   ],
+   "volume_acqua": []
+  }
+ ],
+ "titolare": "UPL HOLDINGS COÃPERATIEF U.A.",
+ "data_etichetta": "05/07/2024",
+ "data_estrazione": "2026-11-17",
+ "data_download": "2026-11-16",
+ "fonte": "Etichetta autorizzata, Ministero della Salute, reg. n. 11070",
+ "etichetta_id": "42841"
+}
