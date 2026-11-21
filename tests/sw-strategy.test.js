@@ -157,6 +157,21 @@ describe('reteConTimeout (HTML e file senza versione)', () => {
         expect((await p).nome).toBe('cache');
     });
 
+    it('rete lenta con copia in cache: annulla la richiesta di rete rimasta aperta', async () => {
+        vi.useFakeTimers();
+        const annullaRete = vi.fn();
+        const rete = () => new Promise(() => {});
+        const p = S.reteConTimeout({
+            rete,
+            daCache: async () => risposta('cache'),
+            annullaRete,
+            timeoutMs: 3000
+        });
+        await vi.advanceTimersByTimeAsync(3000);
+        expect((await p).nome).toBe('cache');
+        expect(annullaRete).toHaveBeenCalledTimes(1);
+    });
+
     it('rete lenta senza copia: aspetta la rete oltre il timeout', async () => {
         vi.useFakeTimers();
         let consegna;

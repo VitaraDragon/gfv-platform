@@ -60,6 +60,9 @@ const controllerAlCaricamentoPagina = (() => {
 })();
 
 let avvio = null;
+/** update() partito mentre questa pagina è già aperta: non è il worker del carico. */
+let aggiornamentoTrovatoInPagina = false;
+const registrazioniAscoltate = new WeakSet();
 let ascoltoPronto = false;
 let controllerChangePronto = false;
 let aggiornaRichiesto = false;
@@ -132,9 +135,9 @@ export function buildPiuNuova(inAttesa, attiva) {
 }
 
 /**
- * Al carico della pagina, con worker in attesa e form pulito, si attiva la build nuova.
- * Non a metà compilazione: l'update trovato dopo non parte da solo.
- * @param {{ waiting?: unknown, formSporco?: boolean, salvataggioInCorso?: boolean, buildPiuNuova?: boolean, giaRicaricatoPerBuild?: boolean }} stato
+ * Al carico della pagina, con worker già in attesa e form pulito, si attiva la build nuova.
+ * Un update trovato mentre la pagina è aperta resta in attesa: si mostra la barra.
+ * @param {{ waiting?: unknown, formSporco?: boolean, salvataggioInCorso?: boolean, buildPiuNuova?: boolean, giaRicaricatoPerBuild?: boolean, updateTrovatoInPagina?: boolean }} stato
  * @returns {boolean}
  */
 export function devePromuovereAlCarico({
@@ -142,8 +145,10 @@ export function devePromuovereAlCarico({
     formSporco = false,
     salvataggioInCorso = false,
     buildPiuNuova: piuNuova = false,
-    giaRicaricatoPerBuild = false
+    giaRicaricatoPerBuild = false,
+    updateTrovatoInPagina = false
 } = {}) {
+    if (updateTrovatoInPagina) return false;
     return Boolean(waiting) && Boolean(piuNuova) && !formSporco && !salvataggioInCorso && !giaRicaricatoPerBuild;
 }
 
@@ -284,8 +289,14 @@ async function avvia(swPath) {
     if (!registrazioneConsentita(window.location)) return null;
     installaControllerChange();
     const path = urlServiceWorker(swPath, window.location);
+    const primaOcchiata = navigator.serviceWorker.getRegistration().then((reg) => {
+        notaRegistrazione(reg);
+    });
     try {
         const registration = await navigator.serviceWorker.register(path);
+        await primaOcchiata;
+        notaRegistrazione(registration);
+        await pubblicaBuildAttiva();
         await promuoviAlCarico(registration);
         collegaBarra(registration);
         chiediAggiornamento(registration);
@@ -311,13 +322,15 @@ async function promuoviAlCarico(registration) {
     const build = await leggiBuild(waiting);
     const controller = navigator.serviceWorker && navigator.serviceWorker.controller;
     const attiva = await leggiBuild(controller);
-    if (!devePromuovereAlCarico({
+    const promuovi = devePromuovereAlCarico({
         waiting: true,
         formSporco: formSporcoAdesso(),
         salvataggioInCorso: salvataggioInCorsoAdesso(),
         buildPiuNuova: buildPiuNuova(build, attiva),
-        giaRicaricatoPerBuild: giaRicaricatoPerBuild(build)
-    })) return false;
+        giaRicaricatoPerBuild: giaRicaricatoPerBuild(build),
+        updateTrovatoInPagina: aggiornamentoTrovatoInPagina
+    });
+    if (!promuovi) return false;
     await preparaAggiornamento(registration);
     return true;
 }
@@ -369,6 +382,14 @@ function workerInAttesa(registration, candidato) {
     return candidato.state === 'installed' ? candidato : null;
 }
 
+function notaRegistrazione(registration) {
+    if (!registration || registrazioniAscoltate.has(registration)) return;
+    registrazioniAscoltate.add(registration);
+    registration.addEventListener('updatefound', () => {
+        aggiornamentoTrovatoInPagina = true;
+    });
+}
+
 function collegaBarra(registration) {
     const controllerAlCaricamento = controllerAlCaricamentoPagina;
     const valuta = (candidato) => {
@@ -378,6 +399,12 @@ function collegaBarra(registration) {
         else nascondiBarra();
     };
     valuta(null);
+    const inCorso = registration.installing;
+    if (inCorso) {
+        inCorso.addEventListener('statechange', () => {
+            if (inCorso.state === 'installed') valuta(inCorso);
+        });
+    }
     registration.addEventListener('updatefound', () => {
         ignoraAttesaCorrente = false;
         const worker = registration.installing;
@@ -593,15 +620,22 @@ async function preparaAggiornamento(registration) {
     buildInAttesa = build;
     // La barra resta: «Aggiornamento in corso…» fino al reload.
     mostraAggiornamentoInCorso(registration, waiting);
+    // Chrome esegue ActivateWaitingVersionWhenReady solo sul primo skipWaiting
+    // ancora in sospeso, e azzera l'idle del worker attivo solo se il thread è
+    // già in esecuzione. L'ack di libera prova che lo è. Un solo skip.
+    let skipInviato = false;
     const inviaSkip = () => {
+        if (skipInviato) return;
         const target = (registration && registration.waiting) || waiting;
         if (!target) return;
-        try {
-            target.postMessage({ type: 'GFV_SKIP_WAITING', paginaGestisceReload: true });
-            window.__gfvSkipInviati = (window.__gfvSkipInviati || 0) + 1;
-        } catch (error) {
-            window.__gfvSkipErrore = String(error && error.message || error);
-        }
+        skipInviato = true;
+        attendiLiberaFetch(registration, target).then(() => {
+            try {
+                target.postMessage({ type: 'GFV_SKIP_WAITING', paginaGestisceReload: true });
+            } catch (error) {
+                /* worker già sostituito */
+            }
+        });
     };
     inviaSkip();
     if (timerSkip) window.clearInterval(timerSkip);
@@ -640,6 +674,41 @@ async function preparaAggiornamento(registration) {
  * stato chiesto e aggiornaRichiesto resta vero, così il reload parte appena il
  * worker nuovo prende il controllo.
  */
+function pubblicaBuildAttiva() {
+    const controller = navigator.serviceWorker && navigator.serviceWorker.controller;
+    return leggiBuild(controller).then((id) => {
+        if (document.documentElement) {
+            document.documentElement.setAttribute('data-gfv-sw-build', id || '');
+        }
+    });
+}
+
+function attendiLiberaFetch(registration, target) {
+    const attivo = registration && registration.active;
+    if (!attivo || attivo === target || !navigator.serviceWorker) return Promise.resolve();
+    return new Promise((resolve) => {
+        let chiuso = false;
+        const fine = () => {
+            if (chiuso) return;
+            chiuso = true;
+            try { navigator.serviceWorker.removeEventListener('message', suMessaggio); } catch (error) { /* ignore */ }
+            window.clearTimeout(timer);
+            resolve();
+        };
+        const suMessaggio = (event) => {
+            const data = event.data || {};
+            if (data.type === 'GFV_LIBERA_OK') fine();
+        };
+        const timer = window.setTimeout(fine, INTERVALLO_SKIP_MS);
+        navigator.serviceWorker.addEventListener('message', suMessaggio);
+        try {
+            attivo.postMessage({ type: 'GFV_LIBERA_FETCH' });
+        } catch (error) {
+            fine();
+        }
+    });
+}
+
 function attesaScaduta(registration, waiting) {
     const formSporco = formSporcoAdesso();
     const salvataggioInCorso = salvataggioInCorsoAdesso();
