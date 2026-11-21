@@ -4,7 +4,7 @@
  * @module shared/js/registro-trattamenti-conformita
  */
 
-import { numeroFinito, stessoProdotto, dataRegistro } from './registro-trattamenti.js';
+import { numeroFinito, stessoProdotto, dataRegistro, messaggioDoseFuoriRiga } from './registro-trattamenti.js';
 import { classificaStatoAmministrativo } from './registro-trattamenti-fonte.js';
 import {
   MSG_ETICHETTA_COLTURA_ASSENTE,
@@ -856,6 +856,25 @@ export function statoProdottoDaAnagrafica(prodotto) {
     deroga: prodotto.deroga || null,
     smaltimentoScorteFino: prodotto.smaltimentoScorteFino || null
   };
+}
+
+export function messaggiDoseFuoriProdotti(prodotti, anagrafica, pacchetto) {
+  const catalogo = Array.isArray(anagrafica) ? anagrafica : [];
+  const schede = pacchetto && pacchetto.schede;
+  const indice = pacchetto && pacchetto.indice;
+  const messaggi = [];
+  (prodotti || []).forEach((row) => {
+    if (!row) return;
+    const prod = row.prodottoId ? catalogo.find((item) => item && item.id === row.prodottoId) : null;
+    let scheda = null;
+    if (schede && typeof schede.get === 'function') {
+      const n = numeroRegistrazioneRiga(row, prod, indice);
+      scheda = n ? schede.get(n) || null : null;
+    }
+    const msg = messaggioDoseFuoriRiga(row, prod, scheda);
+    if (msg) messaggi.push(msg);
+  });
+  return messaggi;
 }
 
 export function numeroRegistrazioneRiga(riga, anagrafica, indice) {
