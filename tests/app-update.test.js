@@ -113,6 +113,11 @@ describe('barra nuova versione', () => {
             buildPiuNuova: true,
             giaRicaricatoPerBuild: true
         })).toBe(false);
+        expect(devePromuovereAlCarico({
+            waiting: true,
+            buildPiuNuova: true,
+            updateTrovatoInPagina: true
+        })).toBe(false);
     });
 
     it('su localhost registra il service worker solo con ?swTest=1', () => {

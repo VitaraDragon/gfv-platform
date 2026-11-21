@@ -4,7 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia; in activate() si cancellano le cache gfv-platform-* precedenti.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1795276989382';
+const SW_CACHE_BUILD_ID = 't1795285894800';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 // Scelta della strategia e pulizia cache: funzioni pure in sw-strategy.js (test vitest).
@@ -29,9 +29,28 @@ self.addEventListener('install', () => {});
 // dopo l'attivazione si naviga una volta, così non restano sulla shell del worker precedente.
 let skipRichiesto = false;
 let paginaGestisceReload = false;
+// fetch() ancora aperte nel worker attivo. skipWaiting del worker in attesa non parte
+// finché queste non si chiudono, anche se la pagina ha già avuto la risposta dalla cache.
+const retiAperte = new Set();
+
+function annullaRetiAperte() {
+  retiAperte.forEach((controllo) => {
+    try { controllo.abort(); } catch (e) { /* ignore */ }
+  });
+}
 
 self.addEventListener('message', (event) => {
   const data = event.data || {};
+  if (data.type === 'GFV_LIBERA_FETCH') {
+    annullaRetiAperte();
+    const fonte = event.source;
+    // Il thread è in esecuzione: la pagina manda skipWaiting solo dopo l'ack,
+    // così Chrome azzera l'idle (altrimenti resta 30 s e un poll lo tiene sveglio).
+    setTimeout(() => {
+      if (fonte && fonte.postMessage) fonte.postMessage({ type: 'GFV_LIBERA_OK' });
+    }, 0);
+    return;
+  }
   if (data.type === 'GFV_SKIP_WAITING') {
     skipRichiesto = true;
     if (data.paginaGestisceReload === true) paginaGestisceReload = true;
@@ -142,32 +161,84 @@ function paginaDiRiserva(request) {
     .then((r) => r || daCachePerTipo('index.html', 'html'));
 }
 
+function rilasciaControllo(controllo) {
+  if (controllo) retiAperte.delete(controllo);
+}
+
+// Il fetch() si risolve alle intestazioni, ma Chrome tiene il worker «con lavoro»
+// finché il corpo non è letto. Senza questo, skipWaiting aspetta fino a 5 minuti.
+function osservaCorpo(response, controllo) {
+  if (!controllo) return;
+  let corpo = null;
+  try {
+    corpo = response && response.clone ? response.clone().body : null;
+  } catch (e) {
+    rilasciaControllo(controllo);
+    return;
+  }
+  if (!corpo || typeof corpo.getReader !== 'function') {
+    rilasciaControllo(controllo);
+    return;
+  }
+  const reader = corpo.getReader();
+  const leggi = () => {
+    reader.read().then((passo) => {
+      if (passo.done) {
+        rilasciaControllo(controllo);
+        return;
+      }
+      leggi();
+    }).catch(() => {
+      try { reader.cancel(); } catch (e) { /* ignore */ }
+      rilasciaControllo(controllo);
+    });
+  };
+  leggi();
+}
+
 // Rete. Annullata dopo ABORT_RETE_MS se le intestazioni non arrivano: un evento fetch
 // aperto nel worker attivo rimanda l'attivazione del worker nuovo.
-// Le navigazioni non si annullano: senza copia in cache l'annullo dava solo la pagina
-// di errore del browser (FetchEvent con risposta di errore di rete), mai una pagina.
+// Le navigazioni non hanno il timer: senza copia in cache l'annullo dava solo la pagina
+// di errore del browser. Il controller resta finché il corpo non finisce, così
+// GFV_LIBERA_FETCH può chiudere un corpo rimasto aperto.
 function daRete(request, modoCache, senzaAnnullo) {
-  const controllo = !senzaAnnullo && typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timer = controllo ? setTimeout(() => controllo.abort(), STRATEGIA.ABORT_RETE_MS) : 0;
+  const controllo = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controllo && !senzaAnnullo ? setTimeout(() => controllo.abort(), STRATEGIA.ABORT_RETE_MS) : 0;
+  if (controllo) retiAperte.add(controllo);
   const opzioni = {};
   if (modoCache) opzioni.cache = modoCache;
   if (controllo) opzioni.signal = controllo.signal;
-  return fetch(request, opzioni)
-    .finally(() => { if (timer) clearTimeout(timer); })
-    .then((response) => {
-      salvaInCache(request, response);
-      return response;
-    });
+  const risposta = fetch(request, opzioni).then((response) => {
+    if (timer) clearTimeout(timer);
+    salvaInCache(request, response);
+    osservaCorpo(response, controllo);
+    return response;
+  }, (errore) => {
+    if (timer) clearTimeout(timer);
+    rilasciaControllo(controllo);
+    throw errore;
+  });
+  risposta.annulla = () => {
+    if (controllo) controllo.abort();
+  };
+  return risposta;
 }
 
 // cache:'no-cache' rivalida (304 se invariato) e non riusa la copia HTTP max-age=600
 // di GitHub Pages sui file senza ?v=.
 function rispostaReteConTimeout(request) {
+  let richiesta = null;
   return STRATEGIA.reteConTimeout({
-    rete: () => daRete(request, 'no-cache', request.mode === 'navigate'),
+    rete: () => {
+      richiesta = daRete(request, 'no-cache', request.mode === 'navigate');
+      return richiesta;
+    },
     daCache: () => daCachePerTipo(request, 'html'),
     fallback: () => paginaDiRiserva(request),
-    timeoutMs: STRATEGIA.TIMEOUT_RETE_MS
+    timeoutMs: STRATEGIA.TIMEOUT_RETE_MS,
+    annullaRete: () => {
+      if (richiesta && typeof richiesta.annulla === 'function') richiesta.annulla();
+    }
   });
 }
 
@@ -205,6 +276,18 @@ self.addEventListener('fetch', (event) => {
   if (tipo === 'ignora') return;
   if (tipo === 'versionato' || tipo === 'statico') {
     event.respondWith(rispostaCachePrima(request, tipo));
+    return;
+  }
+  // Con un worker già in attesa, la navigazione del reload non deve aprire una
+  // rete senza fine: Chrome non attiva il worker nuovo finché questo ha lavoro,
+  // e il timer di idle è 30 s (il lame duck arriva a 5 minuti). La shell in cache
+  // è quella del worker attivo; lo skipWaiting della pagina pulita fa il resto.
+  if (self.registration && self.registration.waiting) {
+    const tipoCache = tipo === 'html' ? 'html' : 'rete';
+    event.respondWith(daCachePerTipo(request, tipoCache).then((copia) => {
+      if (copia) return copia;
+      return rispostaReteConTimeout(request);
+    }));
     return;
   }
   event.respondWith(rispostaReteConTimeout(request));

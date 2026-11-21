@@ -128,7 +128,15 @@
       const timer = setTimer(() => {
         Promise.resolve()
           .then(() => deps.daCache())
-          .then((copia) => { if (copia) chiudi(resolve, copia); })
+          .then((copia) => {
+            if (!copia) return;
+            // La rete resta aperta anche dopo la risposta dalla cache: un fetch()
+            // ancora in corso nel worker attivo impedisce l'attivazione del nuovo.
+            if (typeof deps.annullaRete === 'function') {
+              try { deps.annullaRete(); } catch (e) { /* ignore */ }
+            }
+            chiudi(resolve, copia);
+          })
           .catch(() => {});
       }, deps.timeoutMs == null ? TIMEOUT_RETE_MS : deps.timeoutMs);
       Promise.resolve()

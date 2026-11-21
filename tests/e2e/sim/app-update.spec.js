@@ -62,20 +62,17 @@ test.afterEach(() => {
 });
 
 async function leggiBuildAttiva(page) {
-    return page.evaluate(() => new Promise((resolve) => {
-        const controller = navigator.serviceWorker.controller;
-        if (!controller) {
-            resolve('');
-            return;
-        }
-        const channel = new MessageChannel();
-        const timer = window.setTimeout(() => resolve(''), 3000);
-        channel.port1.onmessage = (event) => {
-            window.clearTimeout(timer);
-            resolve((event.data && event.data.buildId) || '');
-        };
-        controller.postMessage({ type: 'GFV_GET_BUILD' }, [channel.port2]);
-    }));
+    // Attributo scritto dalla pagina, non un postMessage al worker: un poll
+    // verso il worker attivo gli impedisce di andare in idle e Chrome non
+    // attiva la build nuova (l'idle di default è 30 s). Il reload di
+    // controllerchange può arrivare nel mezzo della lettura.
+    try {
+        return await page.evaluate(() => document.documentElement.getAttribute('data-gfv-sw-build') || '');
+    } catch (error) {
+        const msg = String((error && error.message) || error);
+        if (msg.indexOf('Execution context was destroyed') !== -1 || msg.indexOf('navigation') !== -1) return '';
+        throw error;
+    }
 }
 
 test.describe('barra nuova versione', () => {
