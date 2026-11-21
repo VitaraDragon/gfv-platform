@@ -15,6 +15,7 @@ import {
   testoAttribuzioneOpenData,
   htmlAttribuzioneOpenData
 } from './registro-trattamenti-fonte.js';
+import { intervalloDoseHa } from './registro-trattamenti-etichetta.js';
 
 export {
   FONTE_OPEN_DATA_FITOSANITARI,
@@ -130,6 +131,28 @@ export function campiConfermaRiga(raw = {}) {
   };
 }
 
+/**
+ * Riga prodotto per il form. Tiene i campi commerciali e tutta la conferma
+ * (avversità, numero, etichetta). Il mapping stretto li perdeva in riapertura.
+ */
+export function righeProdottiPerForm(prodotti) {
+  return (Array.isArray(prodotti) ? prodotti : []).map((raw) => {
+    const row = raw || {};
+    return {
+      prodottoId: row.prodottoId || null,
+      prodotto: row.prodotto || '',
+      dosaggio: row.dosaggio,
+      unitaDosaggio: row.unitaDosaggio || null,
+      quantita: row.quantita,
+      costo: row.costo,
+      principioAttivo: row.principioAttivo || null,
+      fonteScheda: row.fonteScheda || null,
+      dataLetturaScheda: row.dataLetturaScheda || null,
+      ...campiConfermaRiga(row)
+    };
+  });
+}
+
 function slugConferma(value) {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, '_');
 }
@@ -209,6 +232,74 @@ export function rangeDoseAvviso(row, anagrafica) {
     min: numeroFinito(anagrafica && anagrafica.dosaggioMin),
     max: numeroFinito(anagrafica && anagrafica.dosaggioMax)
   };
+}
+
+function fmtDoseIt(value) {
+  const n = numeroFinito(value);
+  if (n == null) return '';
+  return String(n).replace('.', ',');
+}
+
+function testoIntervalloDose(min, max, unita) {
+  const a = min != null ? fmtDoseIt(min) : '';
+  const b = max != null ? fmtDoseIt(max) : '';
+  const u = unita ? ' ' + unita : '';
+  if (a && b) return a + '–' + b + u;
+  if (a) return 'da ' + a + u;
+  if (b) return 'fino a ' + b + u;
+  return '';
+}
+
+/**
+ * Avviso sul Salva. Con la scheda (o con min/max già sulla riga) usa l'intervallo
+ * d'etichetta, anche senza prodotto in anagrafica. Altrimenti resta il range anagrafica.
+ * @returns {string|null}
+ */
+export function messaggioDoseFuoriRiga(riga, anagrafica, scheda) {
+  if (!riga || riga.dosaggio == null || Number.isNaN(Number(riga.dosaggio))) return null;
+  const dose = Number(riga.dosaggio);
+  const nome = String(
+    riga.prodotto || (anagrafica && (anagrafica.nome || anagrafica.codice)) || 'Prodotto'
+  ).trim() || 'Prodotto';
+  const minSalv = numeroFinito(riga.doseMinHa);
+  const maxSalv = numeroFinito(riga.doseMaxHa);
+  let fonte = null;
+  let min = null;
+  let max = null;
+  let unita = '';
+  if (rigaHaConferma(riga) && (minSalv != null || maxSalv != null)) {
+    fonte = 'etichetta';
+    min = minSalv;
+    max = maxSalv;
+    unita = String(riga.unitaDose || '').trim();
+  } else if (scheda) {
+    const coltura = (riga.riferimentoRiga && riga.riferimentoRiga.colturaScheda)
+      || riga.specieUsata
+      || riga.colturaScheda
+      || '';
+    const intervallo = intervalloDoseHa(scheda, { coltura, avversita: riga.avversita });
+    if (intervallo) {
+      fonte = 'etichetta';
+      min = intervallo.min;
+      max = intervallo.max;
+      unita = intervallo.unita || '';
+    }
+  }
+  if (fonte === 'etichetta') {
+    const fuoriAlto = max != null && dose > max;
+    const fuoriBasso = min != null && dose < min;
+    if (!fuoriAlto && !fuoriBasso) return null;
+    const unitaTesto = unita || String(riga.unitaDosaggio || '').trim();
+    const doseTesto = fmtDoseIt(dose) + (unitaTesto ? ' ' + unitaTesto : '');
+    const intervallo = testoIntervalloDose(min, max, unitaTesto);
+    return nome + ': dose ' + doseTesto + " fuori dall'intervallo d'etichetta (" + intervallo + ').';
+  }
+  if (!riga.prodottoId || !anagrafica) return null;
+  min = numeroFinito(anagrafica.dosaggioMin);
+  max = numeroFinito(anagrafica.dosaggioMax);
+  if (max != null && dose > max) return 'Dosaggio superiore al consigliato per ' + nome + '.';
+  if (min != null && dose < min) return 'Dosaggio inferiore al consigliato per ' + nome + '.';
+  return null;
 }
 
 export function rigaHaConferma(riga) {

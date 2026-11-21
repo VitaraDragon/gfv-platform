@@ -301,7 +301,7 @@ function dataRaccoltaRiga(row, raccolte, dataForzata) {
 function avvisoHtml(row, pacchetto) {
   const trattamento = row && row.trattamento;
   if (!trattamento) return { html: '-', rowClass: '' };
-  const avviso = avvisoDosaggioProdotti(trattamento.prodotti, listProdottiAnagrafica);
+  const avviso = avvisoDosaggioProdotti(trattamento.prodotti, listProdottiAnagrafica, pacchetto);
   if (!pacchetto) {
     if (!avviso.hasWarning) return { html: '—', rowClass: '' };
     return { html: `<span title="${escapeHtml(avviso.tooltip)}">⚠️</span>`, rowClass: '' };
@@ -576,8 +576,8 @@ async function esportaRegistroOrticole(formato) {
   alert('Export del registro privato scaricato. GFV non lo invia al SIAN.');
 }
 
-function validaDosaggiProdotti(rows) {
-  const avviso = avvisoDosaggioProdotti(rows, listProdottiAnagrafica);
+function validaDosaggiProdotti(rows, pacchetto) {
+  const avviso = avvisoDosaggioProdotti(rows, listProdottiAnagrafica, pacchetto);
   return avviso.hasWarning ? { valid: false, message: avviso.tooltip } : { valid: true };
 }
 
@@ -693,7 +693,15 @@ async function onSubmit(event) {
     alert('Aggiungi almeno una riga prodotto con nome.');
     return;
   }
-  const checkDose = validaDosaggiProdotti(rowsProdotti);
+  let pacchettoSalva = null;
+  if (registro.categoria === 'trattamenti') {
+    try {
+      pacchettoSalva = await caricaPacchettoPerRighe(rowsProdotti, anagraficaDi);
+    } catch (e) {
+      pacchettoSalva = null;
+    }
+  }
+  const checkDose = validaDosaggiProdotti(rowsProdotti, pacchettoSalva);
   if (!checkDose.valid && !window.confirm('Attenzione: ' + checkDose.message + ' Salvare comunque?')) return;
   const acquaUsata = registro.categoria === 'trattamenti' ? leggiAcquaDalForm() : { ettolitriPerEttaro: null, ettolitriTotali: null };
   if (registro.categoria === 'trattamenti') {
@@ -705,7 +713,6 @@ async function onSubmit(event) {
       precedenti: passaggiOrticole(editingRow.trattamento && editingRow.trattamento.id),
       escludiId: editingRow.trattamento && editingRow.trattamento.id
     });
-    const pacchettoSalva = await caricaPacchettoPerRighe(rowsProdotti, anagraficaDi);
     await dateRaccolte();
     const conformitaSalva = valutaConformitaTrattamento({
       trattamento: {

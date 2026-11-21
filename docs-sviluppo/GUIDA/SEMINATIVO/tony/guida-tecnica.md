@@ -61,7 +61,7 @@ Target utili: `seminativo`, `seminativi`, `anagrafica appezzamenti`, `piano colt
 
 - **Campagna annuale**: ogni record anagrafica = terreno + coltura + varietà + anno (no impianto permanente pluriennale).
 - **Rotazione**: piano colturale propone la coltura successiva per lo stesso terreno nell'anno futuro.
-- **Registri**: stessa logica di trattamenti/concimazioni (lavoro → completamento nel modulo), ma riferiti a campagna annuale, non a impianto permanente.
+- **Registri**: stessa logica di trattamenti/concimazioni (lavoro → completamento nel modulo), ma riferiti a campagna annuale, non a impianto permanente. In riapertura la riga prodotto tiene avversità, numero e conferma. Il banner è giallo «Conferma l'avversità» finché manca la Conferma. La dose al Salva, se c'è la scheda, si confronta con l'intervallo d'etichetta.
 - **Resa**: resa prevista in anagrafica (qli/ha stimati); resa effettiva calcolata dalle raccolte registrate (statistiche).
 
 ## Permessi

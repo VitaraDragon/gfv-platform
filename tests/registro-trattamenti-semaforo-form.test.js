@@ -5,7 +5,16 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { aggiornaBannerConformita, htmlPannelloOpenData, serializzaRegistroRiga } from '../shared/js/registro-trattamenti-form.js';
+import {
+  aggiornaBannerConformita,
+  collegaBannerConformita,
+  htmlMetaRegistro,
+  htmlPannelloOpenData,
+  leggiRegistroRiga,
+  serializzaRegistroRiga
+} from '../shared/js/registro-trattamenti-form.js';
+import { messaggioDoseFuoriRiga, righeProdottiPerForm } from '../shared/js/registro-trattamenti.js';
+import { numeroRegistrazioneRiga } from '../shared/js/registro-trattamenti-conformita.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dati = path.join(root, 'shared/data/fitofarmaci-etichette');
@@ -229,5 +238,130 @@ describe('banner semaforo sul form', () => {
     expect(colore()).not.toBe('verde');
     const scelta = document.querySelector('.prodotto-unita-scelta');
     expect(scelta.hidden).toBe(false);
+  });
+
+  it('senza Conferma, avversità scelta e dose in intervallo: banner giallo', async () => {
+    monta(rigaProdotto({ dose: '1.4', json: '' }));
+    const box = document.getElementById('registro-scheda-esito');
+    box.setAttribute('data-riga-idx', '0');
+    box.innerHTML = `<select class="registro-avversita-scelta">
+      <option value="peronospora" selected>Peronospora (Plasmopara viticola)</option>
+    </select>
+    <input class="registro-avversita" value="">`;
+    await aggiornaBannerConformita(opts);
+    expect(colore()).toBe('giallo');
+    expect(banner().textContent).toContain("Conferma l'avversità");
+    expect(colore()).not.toBe('verde');
+    const pallino = document.querySelector('.registro-pallino-riga .gfv-semaforo');
+    expect(pallino.className).toContain('gfv-semaforo--yellow');
+  });
+
+  it('dopo Conferma, correggere la dose aggiorna il JSON e tiene avversità e numero', async () => {
+    monta(rigaProdotto({
+      dose: '1.4',
+      nome: 'Folpan',
+      json: registro({
+        confermatoIl: '2026-11-21T10:00:00.000Z',
+        numeroRegistrazioneLetto: '008601',
+        dosePerEttaroScheda: 1.4,
+        origineValori: { doseHa: { origine: 'etichetta', idRiga: '008601-00137' } }
+      })
+    }));
+    await collegaBannerConformita(opts);
+    const dose = document.querySelector('.prodotto-dosaggio');
+    dose.value = '1.3';
+    dose.dispatchEvent(new Event('input', { bubbles: true }));
+    const json = leggiRegistroRiga(document.querySelector('tr'));
+    expect(json.dosePerEttaroScheda).toBe(1.3);
+    expect(json.avversita).toContain('Peronospora');
+    expect(json.numeroRegistrazioneLetto).toBe('008601');
+    expect(json.confermatoIl).toBe('2026-11-21T10:00:00.000Z');
+    expect(json.origineValori.doseHa.origine).toBe('azienda');
+    expect(json.origineValori.doseHa.idRiga).toBeUndefined();
+  });
+});
+
+describe('salvataggio e rilettura Folpan scritto a mano', () => {
+  const payload = {
+    prodottoId: null,
+    prodotto: 'Folpan',
+    dosaggio: 1.4,
+    unitaDosaggio: 'kg',
+    quantita: 1.4,
+    costo: 0,
+    avversita: 'Peronospora (Plasmopara viticola)',
+    confermatoIl: '2026-11-21T10:00:00.000Z',
+    confermatoDa: 'Azienda',
+    numeroRegistrazioneLetto: '008601',
+    specieUsata: 'vite da vino',
+    riferimentoRiga: {
+      nomeProdotto: 'FOLPAN 80 WDG',
+      numeroRegistrazione: '008601',
+      colturaScheda: 'vite da vino'
+    },
+    dosePerEttaroScheda: 1.4,
+    doseMinHa: 1.25,
+    doseMaxHa: 1.5,
+    unitaDose: 'kg/ha'
+  };
+
+  it('il payload di salvataggio tiene avversità, conferma e numero', () => {
+    expect(payload.avversita).toContain('Peronospora');
+    expect(payload.confermatoIl).toBeTruthy();
+    expect(payload.numeroRegistrazioneLetto).toBe('008601');
+    expect(payload.riferimentoRiga.numeroRegistrazione).toBe('008601');
+  });
+
+  it('righeProdottiPerForm rilegge la conferma; il mapping stretto la perde', () => {
+    const stretto = {
+      prodottoId: payload.prodottoId || null,
+      prodotto: payload.prodotto || '',
+      dosaggio: payload.dosaggio,
+      unitaDosaggio: payload.unitaDosaggio || null,
+      quantita: payload.quantita,
+      costo: payload.costo
+    };
+    expect(stretto.avversita).toBeUndefined();
+    expect(stretto.confermatoIl).toBeUndefined();
+    expect(stretto.numeroRegistrazioneLetto).toBeUndefined();
+    expect(numeroRegistrazioneRiga(stretto, null, indice)).toBe('');
+
+    const riletta = righeProdottiPerForm([payload])[0];
+    document.body.innerHTML = htmlMetaRegistro(riletta);
+    expect(document.body.textContent).toContain('Confermato: Peronospora');
+    const dalJson = leggiRegistroRiga(document.body);
+    expect(dalJson.avversita).toContain('Peronospora');
+    expect(numeroRegistrazioneRiga({ ...riletta, ...dalJson }, null, indice)).toBe('008601');
+  });
+
+  it('la pagina non rimette il mapping stretto in Modifica, Completa e precedente', () => {
+    const src = readFileSync(path.join(root, 'shared/js/trattamenti-coltura-page.js'), 'utf8');
+    expect(src).toContain('function righeFormDaTrattamento');
+    expect((src.match(/righeFormDaTrattamento\(/g) || []).length).toBeGreaterThanOrEqual(4);
+    expect(src).not.toContain('prodottoId: r.prodottoId || null, prodotto: r.prodotto || \'\'');
+  });
+
+  it('Folpan 2 kg/ha su Peronospora usa 1,25–1,5 anche senza prodottoId', () => {
+    const msg = messaggioDoseFuoriRiga({
+      prodottoId: null,
+      prodotto: 'Folpan',
+      dosaggio: 2,
+      avversita: 'Peronospora',
+      specieUsata: 'vite da vino',
+      riferimentoRiga: {
+        nomeProdotto: 'FOLPAN 80 WDG',
+        numeroRegistrazione: '008601',
+        colturaScheda: 'vite da vino'
+      }
+    }, null, folpan);
+    expect(msg).toContain('1,25–1,5 kg/ha');
+    expect(msg).not.toMatch(/\b(usa|riduci|aumenta|consigliat)/i);
+    expect(messaggioDoseFuoriRiga({
+      prodottoId: null,
+      prodotto: 'Folpan',
+      dosaggio: 1.4,
+      avversita: 'Peronospora',
+      riferimentoRiga: { colturaScheda: 'vite da vino', numeroRegistrazione: '008601', nomeProdotto: 'FOLPAN 80 WDG' }
+    }, null, folpan)).toBeNull();
   });
 });
