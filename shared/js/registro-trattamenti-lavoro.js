@@ -536,7 +536,11 @@ export function attaccaLeggiSchedaLavoro() {
     const btn = nodo.closest('.btn-leggi-scheda');
     if (!btn || !section.contains(btn)) return;
     const tr = btn.closest('tr[data-extra]');
-    if (tr && String(tr.getAttribute('data-prodotto-id') || '').trim()) {
+    const giaAgganciata = tr && (
+      String(tr.getAttribute('data-numero-registrazione') || '').trim()
+      || String(tr.getAttribute('data-nome-scheda') || '').trim()
+    );
+    if (tr && String(tr.getAttribute('data-prodotto-id') || '').trim() && !giaAgganciata) {
       scriviEsitoLavoro('<p>Questo prodotto arriva dal magazzino: il numero già in anagrafica non si sostituisce.</p>');
       return;
     }
