@@ -16,18 +16,23 @@ import {
   tipoLavoroETrattamento
 } from './registro-trattamenti-lavoro.js';
 import { testoDoseDaEtichetta, valutaTrattamentoPianificato } from './semaforo-etichetta-pianificazione.js';
+import { NOTA_PASSAGGIO_NON_REGISTRATO } from './registro-trattamenti.js';
 
 let bannerSeq = 0;
+let letturaSeq = 0;
 let leggiContestoRegistrato = null;
 let timerSemaforo = null;
 let cacheSemaforo = null;
 let attesaSemaforoMs = 400;
 const CAMPI_CHE_NON_RICALCOLANO = new Set(['lavoro-nome', 'lavoro-note']);
 
+function dataCampoSemaforo() {
+  return document.getElementById('lavoro-data-inizio')?.value || '';
+}
+
 function chiaveCacheSemaforo() {
   const terreno = document.getElementById('lavoro-terreno')?.value || '';
-  const data = document.getElementById('lavoro-data-inizio')?.value || '';
-  return terreno + '|' + String(data).slice(0, 4);
+  return terreno + '|' + dataCampoSemaforo();
 }
 
 function esc(value) {
@@ -44,8 +49,21 @@ function nomeTipoLavoro() {
   return sel.options[sel.selectedIndex].text || sel.value || '';
 }
 
+function scriviNotaPassaggio(visibile) {
+  const nota = document.getElementById('lavoro-nota-passaggio');
+  if (!nota) return;
+  if (!visibile) {
+    nota.hidden = true;
+    nota.textContent = '';
+    return;
+  }
+  nota.hidden = false;
+  nota.textContent = NOTA_PASSAGGIO_NON_REGISTRATO;
+}
+
 function nascondiBanner() {
   const banner = document.getElementById('lavoro-semaforo-banner');
+  scriviNotaPassaggio(false);
   if (!banner) return;
   banner.hidden = true;
   banner.innerHTML = '';
@@ -59,26 +77,43 @@ function nascondiBanner() {
   });
 }
 
+function scriviSuggerimentoAvversita(select, lista) {
+  if (!select) return;
+  const dopo = select.nextElementSibling;
+  const nota = dopo && dopo.classList && dopo.classList.contains('lavoro-avversita-suggerita') ? dopo : null;
+  const pianificata = String(select.getAttribute('data-avversita') || '').trim();
+  const mostra = !String(select.value || '').trim() && pianificata && lista.length > 1;
+  if (!mostra) {
+    if (nota) nota.remove();
+    return;
+  }
+  const el = nota || document.createElement('p');
+  el.className = 'lavoro-avversita-suggerita';
+  el.textContent = 'In pianificazione: ' + pianificata;
+  if (!nota) select.insertAdjacentElement('afterend', el);
+}
+
 function riempiTendinaAvversita(select, scheda, coltura, vocabolario) {
   if (!select) return;
   const vista = preparaEtichetta({
     scheda,
     coltura: coltura || '',
-    vocabolario,
-    avversitaScelta: ''
+    vocabolario
   });
   const lista = (vista && vista.avversita) || [];
   const chiave = (coltura || '') + '|' + lista.map((voce) => voce.chiave).join('|');
-  const scelta = select.value || select.getAttribute('data-avversita') || '';
-  if (select.dataset.chiave === chiave) {
-    if (scelta && !select.value) select.value = scelta;
-    return;
+  if (select.dataset.chiave !== chiave) {
+    const gia = String(select.value || '').trim();
+    select.innerHTML = '<option value="">— da scegliere —</option>' + lista.map((voce) => (
+      '<option value="' + esc(voce.testo) + '">' + esc(voce.testo) + '</option>'
+    )).join('');
+    select.dataset.chiave = chiave;
+    const corrisponde = lista.find((voce) => voce.testo === gia || voce.chiave === gia);
+    if (corrisponde) select.value = corrisponde.testo;
+    else if (lista.length === 1) select.value = lista[0].testo;
+    else select.value = '';
   }
-  select.innerHTML = '<option value="">— da scegliere —</option>' + lista.map((voce) => (
-    '<option value="' + esc(voce.testo) + '">' + esc(voce.testo) + '</option>'
-  )).join('');
-  select.dataset.chiave = chiave;
-  if (scelta) select.value = scelta;
+  scriviSuggerimentoAvversita(select, lista);
 }
 
 function scriviDose(el, scheda, coltura, avversita) {
@@ -110,8 +145,31 @@ export async function aggiornaSemaforoPianificazione(ctx = {}) {
   }
   if (seq !== bannerSeq) return null;
   const legami = legamiScheda(pacchetto, anagraficaDi);
+  const coltura = ctx.specie || '';
+  const nomeLibero = document.getElementById('lavoro-miscela-nome')?.value?.trim() || '';
+  const idProdotto = document.getElementById('lavoro-miscela-prodotto')?.value || '';
+  const haPrincipale = !!(nomeLibero || idProdotto);
+  const prodottiBozza = miscela.prodotti || [];
+  const selectPrincipale = document.getElementById('lavoro-miscela-avversita');
+  riempiTendinaAvversita(
+    selectPrincipale,
+    haPrincipale ? legami.schedaPerRiga(prodottiBozza[0]) : null,
+    coltura,
+    legami.vocabolario
+  );
+  const extra = Array.from(document.querySelectorAll('#tbody-miscela-lavoro tr[data-extra]'));
+  extra.forEach((tr, index) => {
+    const riga = prodottiBozza[haPrincipale ? index + 1 : index];
+    riempiTendinaAvversita(
+      tr.querySelector('.miscela-avversita-extra'),
+      riga ? legami.schedaPerRiga(riga) : null,
+      coltura,
+      legami.vocabolario
+    );
+  });
+  const miscelaValutata = componiMiscelaDalForm(Number.isFinite(ettari) ? ettari : null, ctx.attrezzo || null);
   const esito = valutaTrattamentoPianificato({
-    miscela,
+    miscela: miscelaValutata,
     data: document.getElementById('lavoro-data-inizio')?.value || ctx.data,
     terrenoId: document.getElementById('lavoro-terreno')?.value || ctx.terrenoId || null,
     specie: ctx.specie || '',
@@ -126,14 +184,9 @@ export async function aggiornaSemaforoPianificazione(ctx = {}) {
     banner.hidden = false;
     banner.innerHTML = htmlBannerConformita(esito);
   }
-  const coltura = ctx.specie || '';
-  const nomeLibero = document.getElementById('lavoro-miscela-nome')?.value?.trim() || '';
-  const idProdotto = document.getElementById('lavoro-miscela-prodotto')?.value || '';
-  const haPrincipale = !!(nomeLibero || idProdotto);
-  const principale = haPrincipale ? (miscela.prodotti && miscela.prodotti[0]) : null;
-  const selectPrincipale = document.getElementById('lavoro-miscela-avversita');
+  scriviNotaPassaggio(true);
+  const principale = haPrincipale ? ((miscelaValutata.prodotti && miscelaValutata.prodotti[0]) || null) : null;
   const schedaPrincipale = principale ? legami.schedaPerRiga(principale) : null;
-  riempiTendinaAvversita(selectPrincipale, schedaPrincipale, coltura, legami.vocabolario);
   scriviDose(
     document.getElementById('lavoro-dose-etichetta'),
     schedaPrincipale,
@@ -146,12 +199,10 @@ export async function aggiornaSemaforoPianificazione(ctx = {}) {
       ? htmlSemaforoConformita(esito.perRiga[0].esito, { taglia: 'riga' })
       : '';
   }
-  const extra = Array.from(document.querySelectorAll('#tbody-miscela-lavoro tr[data-extra]'));
   extra.forEach((tr, index) => {
     const voce = esito.perRiga[haPrincipale ? index + 1 : index];
     const select = tr.querySelector('.miscela-avversita-extra');
     const scheda = voce ? legami.schedaPerRiga(voce.riga) : null;
-    riempiTendinaAvversita(select, scheda, coltura, legami.vocabolario);
     scriviDose(tr.querySelector('.lavoro-dose-etichetta-extra'), scheda, coltura, select ? select.value : '');
     const punto = tr.querySelector('.lavoro-semaforo-pallino');
     if (punto) punto.innerHTML = voce ? htmlSemaforoConformita(voce.esito, { taglia: 'riga' }) : '';
@@ -168,6 +219,7 @@ export function chiudiSemaforoPianificazione() {
   timerSemaforo = null;
   cacheSemaforo = null;
   bannerSeq += 1;
+  letturaSeq += 1;
   nascondiBanner();
 }
 
@@ -176,14 +228,21 @@ function eseguiLetturaSemaforo() {
     nascondiBanner();
     return Promise.resolve(null);
   }
+  const seq = ++letturaSeq;
+  const dataAttesa = dataCampoSemaforo();
+  const ancoraValida = () => seq === letturaSeq && dataCampoSemaforo() === dataAttesa;
+  const applica = (ctx) => {
+    if (!ancoraValida()) return null;
+    return aggiornaSemaforoPianificazione(ctx || {});
+  };
   const chiave = chiaveCacheSemaforo();
-  const applica = (ctx) => aggiornaSemaforoPianificazione(ctx || {});
   if (cacheSemaforo && cacheSemaforo.chiave === chiave) {
     return Promise.resolve(applica(cacheSemaforo.valore));
   }
   const lettura = typeof leggiContestoRegistrato === 'function' ? leggiContestoRegistrato() : {};
   const atteso = lettura && typeof lettura.then === 'function' ? lettura : Promise.resolve(lettura);
   return atteso.then((ctx) => {
+    if (!ancoraValida()) return null;
     if (!tipoLavoroETrattamento(nomeTipoLavoro())) return null;
     cacheSemaforo = { chiave, valore: ctx || {} };
     return applica(ctx);

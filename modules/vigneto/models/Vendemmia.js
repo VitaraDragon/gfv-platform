@@ -7,6 +7,7 @@
 
 import { Base } from '../../../core/models/Base.js';
 import { normalizzaDestinazioneVendemmia } from '../../../shared/js/destinazione-vendemmia.js';
+import { chiaveTipoPaloValida, normalizzaTipoPalo } from '../config/tipi-palo.js';
 
 export class Vendemmia extends Base {
   /**
@@ -51,7 +52,7 @@ export class Vendemmia extends Base {
     this.resaQliHa = data.resaQliHa !== undefined ? parseFloat(data.resaQliHa) : null;
     
     // Tipo palo (ereditato da vigneto, può essere sovrascritto)
-    this.tipoPalo = data.tipoPalo || null;
+    this.tipoPalo = normalizzaTipoPalo(data.tipoPalo) || null;
     
     // Qualità uva (opzionale)
     this.gradazione = data.gradazione !== undefined ? parseFloat(data.gradazione) : null;
@@ -141,9 +142,9 @@ export class Vendemmia extends Base {
     
     // Validazione tipo palo (se presente)
     if (this.tipoPalo) {
-      const tipiValidi = ['cemento', 'ferro', 'legno', 'plastica', 'fibra_vetro'];
-      if (!tipiValidi.includes(this.tipoPalo)) {
-        errors.push(`Tipo palo deve essere uno tra: ${tipiValidi.join(', ')}`);
+      this.tipoPalo = normalizzaTipoPalo(this.tipoPalo);
+      if (!chiaveTipoPaloValida(this.tipoPalo)) {
+        errors.push('Tipo palo non riconosciuto');
       }
     }
     

@@ -5,7 +5,7 @@
  * @module shared/js/semaforo-etichetta-pianificazione
  */
 
-import { numeroFinito, righeTrattamentoDaMiscela } from './registro-trattamenti.js';
+import { NOTA_PASSAGGIO_NON_REGISTRATO, numeroFinito, righeTrattamentoDaMiscela } from './registro-trattamenti.js';
 import { intervalloDoseHa } from './registro-trattamenti-etichetta.js';
 import {
   dataGiorno,
@@ -337,7 +337,7 @@ export function messaggiConfermaPianificazione(avvisi, esito) {
   }
   (avvisi || []).concat(segnalati).forEach((testo) => {
     const pulito = String(testo || '').trim();
-    if (!pulito || visti.has(pulito)) return;
+    if (!pulito || visti.has(pulito) || pulito === NOTA_PASSAGGIO_NON_REGISTRATO) return;
     visti.add(pulito);
     messaggi.push(pulito);
   });

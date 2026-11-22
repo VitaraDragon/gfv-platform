@@ -1161,12 +1161,9 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="vigneto-tipo-palo">Tipo Palo *</label>
-                                <div style="display: flex; gap: 5px;">
-                                    <select id="vigneto-tipo-palo" required style="flex: 1;">
-                                        <option value="">Seleziona tipo palo</option>
-                                    </select>
-                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddTipoPaloModal()" style="white-space: nowrap;">➕</button>
-                                </div>
+                                <select id="vigneto-tipo-palo" required>
+                                    <option value="">Seleziona tipo palo</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label for="vigneto-destinazione-uva">Destinazione Uva *</label>
@@ -1382,6 +1379,7 @@
                         </div>
                     </div>
                     <div id="lavoro-semaforo-banner" hidden></div>
+                    <p id="lavoro-nota-passaggio" hidden></p>
                     <div class="form-row">
                         <div class="form-group" id="lavoro-miscela-prodotto-group">
                             <label for="lavoro-miscela-prodotto">Prodotto</label>
@@ -1606,24 +1604,6 @@
         </div>
     </div>
 
-    <div id="add-tipo-palo-modal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2>Aggiungi Nuovo Tipo Palo</h2>
-                <button class="close-btn" onclick="closeAddModal('add-tipo-palo-modal')">&times;</button>
-            </div>
-            <form onsubmit="addNewTipoPalo(event)" novalidate>
-                <div class="form-group">
-                    <label for="new-tipo-palo">Nome Tipo Palo *</label>
-                    <input type="text" id="new-tipo-palo" required placeholder="es. Cemento">
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-tipo-palo-modal')">Annulla</button>
-                    <button type="submit" class="btn btn-success">Aggiungi</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Modali per form frutteto (specie, varietà, forma allevamento) -->
     <div id="add-frutteto-specie-modal" class="modal">
@@ -1831,6 +1811,7 @@
         } from './js/gestione-lavori-assenze-ui.js';
 
         import { elencoAttivitaSolaLettura } from '../services/manodopera-migrazione-service.js';
+        import { riempiSelectTipoPalo } from '../../modules/vigneto/config/tipi-palo.js';
 
         import {
             initGestioneLavoriSostitutiUi,
@@ -2562,20 +2543,12 @@
             'Selvatico', 'Franco di piede', 'Rupestris du Lot', 'Berlandieri x Riparia'
         ];
 
-        const TIPI_PALO_PREDEFINITI = [
-            'Cemento', 'Cemento armato', 'Ferro', 'Acciaio', 'Acciaio zincato',
-            'Ferro zincato a caldo', 'Ferro zincato a freddo',
-            'Legno', 'Legno trattato', 'Plastica', 'Fibra di vetro', 'PVC',
-            'Bambù', 'Alluminio', 'Misto cemento-ferro'
-        ];
-
         // Carica valori personalizzati da localStorage
         function loadCustomValues() {
             return {
                 varieta: JSON.parse(localStorage.getItem('vigneto_varieta_custom') || '[]'),
                 portainnesto: JSON.parse(localStorage.getItem('vigneto_portainnesto_custom') || '[]'),
-                formaAllevamento: JSON.parse(localStorage.getItem('vigneto_forma_allevamento_custom') || '[]'),
-                tipoPalo: JSON.parse(localStorage.getItem('vigneto_tipo_palo_custom') || '[]')
+                formaAllevamento: JSON.parse(localStorage.getItem('vigneto_forma_allevamento_custom') || '[]')
             };
         }
 
@@ -2695,7 +2668,7 @@
             // Popola dropdown con liste predefinite (con supporto localStorage)
             popolaDropdownVigneto('vigneto-varieta', VARIETA_PREDEFINITE, 'varieta');
             popolaDropdownVigneto('vigneto-portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
-            popolaDropdownVigneto('vigneto-tipo-palo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+            riempiSelectTipoPalo(document.getElementById('vigneto-tipo-palo'));
             
             // Pre-compila forma allevamento
             if (getFormeAllevamentoListModule && getNomeVisualizzatoModule) {
@@ -2837,11 +2810,6 @@
             setTimeout(() => document.getElementById('new-forma-allevamento').focus(), 100);
         };
 
-        window.openAddTipoPaloModal = function() {
-            document.getElementById('add-tipo-palo-modal').classList.add('active');
-            setTimeout(() => document.getElementById('new-tipo-palo').focus(), 100);
-        };
-
         window.closeAddModal = function(modalId) {
             document.getElementById(modalId).classList.remove('active');
         };
@@ -2889,21 +2857,6 @@
                     select.value = value;
                 }
                 closeAddModal('add-forma-allevamento-modal');
-            }
-        };
-
-        window.addNewTipoPalo = function(e) {
-            e.preventDefault();
-            const value = document.getElementById('new-tipo-palo').value.trim();
-            if (value) {
-                saveCustomValue('tipoPalo', value);
-                popolaDropdownVigneto('vigneto-tipo-palo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
-                const select = document.getElementById('vigneto-tipo-palo');
-                if (select) {
-                    select.value = value;
-                }
-                document.getElementById('new-tipo-palo').value = '';
-                closeAddModal('add-tipo-palo-modal');
             }
         };
 

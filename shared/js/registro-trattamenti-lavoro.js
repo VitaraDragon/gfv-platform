@@ -8,7 +8,6 @@ import {
   calcolaMiscela,
   avvisoImpieghiEIntervallo,
   NOTA_REGISTRO_PRIVATO,
-  NOTA_PASSAGGIO_NON_REGISTRATO,
   confermaSpecieSalvata,
   stessoProdotto,
   messaggiUnici
@@ -138,12 +137,24 @@ function avversitaDalCampo(select, nodoFallback) {
   const valore = select && select.value ? String(select.value).trim() : '';
   if (valore) return valore;
   const nodo = nodoFallback || select;
-  return nodo && nodo.getAttribute ? String(nodo.getAttribute('data-avversita') || '').trim() : '';
+  const salvata = nodo && nodo.getAttribute ? String(nodo.getAttribute('data-avversita') || '').trim() : '';
+  if (!select) return salvata;
+  const opzioni = Array.from(select.options || []).filter((opt) => String(opt.value || '').trim());
+  if (!opzioni.length) return salvata;
+  return '';
 }
 
 function testoAvversitaProdotto(prodotto) {
   if (!prodotto) return '';
   return String(prodotto.avversitaPianificata || prodotto.avversita || '').trim();
+}
+
+/** In magazzino resta il nome di magazzino. Sul libero si mostra il nome della scheda. */
+function nomeVisibileProdotto(p) {
+  if (!p) return '';
+  if (p.prodottoId) return String(p.nome || '').trim();
+  const scheda = p.riferimentoRiga && String(p.riferimentoRiga.nomeProdotto || '').trim();
+  return scheda || String(p.nome || '').trim();
 }
 
 function testoAttributo(nodo, nome) {
@@ -302,13 +313,14 @@ export function scriviMiscelaNelForm(miscela) {
   const nome = document.getElementById('lavoro-miscela-nome');
   const dose = document.getElementById('lavoro-miscela-dose-ha');
   if (sel && primo && primo.prodottoId) sel.value = primo.prodottoId;
-  if (nome) nome.value = primo && !primo.prodottoId ? (primo.nome || '') : '';
+  if (nome) nome.value = primo && !primo.prodottoId ? nomeVisibileProdotto(primo) : '';
   if (dose) dose.value = primo && primo.dosePerEttaro != null ? primo.dosePerEttaro : '';
   const avversita = document.getElementById('lavoro-miscela-avversita');
   if (avversita) {
     const testo = testoAvversitaProdotto(primo);
-    avversita.setAttribute('data-avversita', testo);
-    avversita.value = testo;
+    if (testo) avversita.setAttribute('data-avversita', testo);
+    else avversita.removeAttribute('data-avversita');
+    avversita.value = '';
   }
   scriviLegameSulNodo(nome, primo && !primo.prodottoId ? primo : null);
   const tbody = document.getElementById('tbody-miscela-lavoro');
@@ -326,7 +338,8 @@ function attributiLegameHtml(p) {
 
 function celleExtraMiscela(p) {
   const avversita = testoAvversitaProdotto(p);
-  return '<td>' + esc(p.nome || '') + ' <span class="lavoro-semaforo-pallino"></span></td>'
+  const nome = nomeVisibileProdotto(p);
+  return '<td>' + esc(nome) + ' <span class="lavoro-semaforo-pallino"></span></td>'
     + '<td><select class="miscela-avversita-extra" data-avversita="' + esc(avversita) + '"><option value="">— da scegliere —</option></select></td>'
     + '<td><input type="number" class="miscela-dose-extra" min="0" step="0.001" value="' + esc(p.dosePerEttaro != null ? p.dosePerEttaro : '') + '"></td>'
     + '<td><span class="lavoro-dose-etichetta-extra"></span></td>'
@@ -336,7 +349,8 @@ function celleExtraMiscela(p) {
 
 function rigaExtraMiscela(p) {
   const avversita = testoAvversitaProdotto(p);
-  return '<tr data-extra="1" data-prodotto-id="' + esc(p.prodottoId || '') + '" data-nome="' + esc(p.nome || '') + '" data-unita="' + esc(p.unita || '') + '" data-dose-hl="' + esc(p.dosePerEttolitro != null ? p.dosePerEttolitro : '') + '" data-avversita="' + esc(avversita) + '"' + attributiLegameHtml(p) + '>'
+  const nome = nomeVisibileProdotto(p);
+  return '<tr data-extra="1" data-prodotto-id="' + esc(p.prodottoId || '') + '" data-nome="' + esc(nome) + '" data-unita="' + esc(p.unita || '') + '" data-dose-hl="' + esc(p.dosePerEttolitro != null ? p.dosePerEttolitro : '') + '" data-avversita="' + esc(avversita) + '"' + attributiLegameHtml(p) + '>'
     + celleExtraMiscela(p) + '</tr>';
 }
 
@@ -379,9 +393,7 @@ export function avvisiMiscelaLavoro({ miscela, terrenoId, data, precedenti, prod
     });
     messaggi.push(...esito.avvisi);
   });
-  const unici = messaggiUnici(messaggi);
-  if (unici.length) unici.push(NOTA_PASSAGGIO_NON_REGISTRATO);
-  return unici;
+  return messaggiUnici(messaggi);
 }
 
 /** Dopo «Aggiungi» i campi di inserimento tornano vuoti: la riga è passata in tabella. */
@@ -443,11 +455,29 @@ async function cercaEDisegna(nome) {
   disegnaSceltaIndice(richiesto);
 }
 
+function scriviNomeScelto(nodo, nomeScheda) {
+  const nome = String(nomeScheda || '').trim();
+  if (!nodo || !nome) return;
+  if (nodo.tagName === 'INPUT') {
+    nodo.value = nome;
+    return;
+  }
+  if (nodo.getAttribute && nodo.getAttribute('data-extra') != null) {
+    nodo.setAttribute('data-nome', nome);
+    const cella = nodo.querySelector('td');
+    if (!cella) return;
+    const pallino = cella.querySelector('.lavoro-semaforo-pallino');
+    cella.textContent = nome + ' ';
+    if (pallino) cella.appendChild(pallino);
+  }
+}
+
 async function applicaProdottoScelto(prodotto) {
   if (!prodotto) return;
   const numero = numeroFileEtichetta(prodotto.numeroRegistrazione);
   const nomeScheda = String(prodotto.denominazione || '').trim();
   const nodo = rigaLeggiScheda || document.getElementById('lavoro-miscela-nome');
+  scriviNomeScelto(nodo, nomeScheda);
   scriviLegameSulNodo(nodo, {
     numeroRegistrazioneLetto: numero || null,
     riferimentoRiga: {

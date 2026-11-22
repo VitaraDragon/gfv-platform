@@ -296,6 +296,16 @@ export async function ripristinaCardProdottoSalvato(righe, opzioni = {}) {
     return '';
   }
   const carica = typeof opzioni.caricaScheda === 'function' ? opzioni.caricaScheda : caricaSchedaEtichetta;
+  const colturaPagina = String(opzioni.coltura || '').trim();
+  const caricaVoc = typeof opzioni.caricaVocabolario === 'function' ? opzioni.caricaVocabolario : caricaVocabolarioColture;
+  let vocabolario = null;
+  if (utili.some((riga) => !rigaHaConferma(riga))) {
+    try {
+      vocabolario = await caricaVoc();
+    } catch (e) {
+      vocabolario = null;
+    }
+  }
   const pezzi = [];
   for (let i = 0; i < utili.length; i += 1) {
     const riga = utili[i];
@@ -306,10 +316,41 @@ export async function ripristinaCardProdottoSalvato(righe, opzioni = {}) {
       scheda = null;
     }
     const html = htmlCardProdottoAgganciato(riga, scheda);
-    if (html) pezzi.push(html);
+    const tendina = !rigaHaConferma(riga)
+      ? htmlTendinaAvversitaScheda(scheda, colturaDellaRiga(riga, colturaPagina), vocabolario, riga.avversitaPianificata)
+      : '';
+    if (html || tendina) pezzi.push(html + tendina);
   }
   const html = pezzi.join('');
   scriviEsitoScheda(html);
+  return html;
+}
+
+function colturaDellaRiga(riga, colturaPagina) {
+  const rif = riga && riga.riferimentoRiga && riga.riferimentoRiga.colturaScheda;
+  return String(colturaPagina || (riga && riga.specieUsata) || rif || '').trim();
+}
+
+/**
+ * Tendina delle sole avversità in etichetta per la coltura. Una sola voce si preseleziona.
+ * Con più voci la scelta resta vuota: l'avversità di pianificazione è solo un testo.
+ */
+function htmlTendinaAvversitaScheda(scheda, coltura, vocabolario, avversitaPianificata) {
+  if (!scheda || !String(coltura || '').trim()) return '';
+  const vista = preparaEtichetta({ scheda, coltura, vocabolario });
+  const lista = (vista && vista.avversita) || [];
+  if (!lista.length) return '';
+  const scelta = vista.avversitaScelta;
+  let html = '<label>Avversità <select class="registro-avversita-scelta registro-avversita-pianificata">';
+  if (lista.length > 1) html += '<option value="">Scegli…</option>';
+  lista.forEach((a) => {
+    html += '<option value="' + esc(a.chiave) + '"' + (scelta === a.chiave ? ' selected' : '') + '>' + esc(a.testo) + '</option>';
+  });
+  html += '</select></label>';
+  const pianificata = String(avversitaPianificata || '').trim();
+  if (pianificata && lista.length !== 1 && !scelta) {
+    html += '<p class="registro-avversita-suggerita">In pianificazione: ' + esc(pianificata) + '</p>';
+  }
   return html;
 }
 
@@ -589,6 +630,9 @@ export function htmlPannelloOpenData(input = {}) {
   parti.push(input.etichetta
     ? campiConEtichetta(input.conferma, input.specie, input.etichetta, input.colturaBozza, scelto)
     : campiManuali(input.conferma, input.specie));
+  if (input.avversitaSuggerita) {
+    parti.push('<p class="registro-avversita-suggerita">In pianificazione: ' + esc(input.avversitaSuggerita) + '</p>');
+  }
   const dichiarazione = input.etichetta && valoriRiempitiDaEtichetta(input.etichetta, input.conferma)
     ? ' <span class="registro-dichiarazione-conferma">' + esc(FRASE_CONFERMA_CONTROLLATA) + '</span>'
     : '';
@@ -1263,6 +1307,7 @@ export function attaccaLetturaScheda(opts) {
         let etichetta = null;
         let scheda = null;
         let vocabolario = null;
+        let avversitaSuggerita = '';
         if (prodottoScelto && !prodottoBloccato(prodottoScelto)) {
           const colturaRichiesta = extra && extra.coltura != null
             ? extra.coltura
@@ -1293,18 +1338,24 @@ export function attaccaLetturaScheda(opts) {
           const suggeritaPiano = !rigaHaConferma(dallaRiga)
             ? String(dallaRiga.avversitaPianificata || '').trim()
             : '';
-          const testoSuggerito = (conferma && conferma.avversita) || suggeritaPiano;
-          if (!forzaScelta && !ignoraConferma && testoSuggerito && etichetta.stato === 'pronto') {
-            const salvata = normalizzaNomeColtura(testoSuggerito);
+          const confermata = (!forzaScelta && !ignoraConferma && conferma && String(conferma.avversita || '').trim()) || '';
+          if (confermata && etichetta && etichetta.stato === 'pronto') {
+            const salvata = normalizzaNomeColtura(confermata);
             const trovata = (etichetta.avversita || []).find((a) => normalizzaNomeColtura(a.testo) === salvata);
-            etichetta = preparaEtichetta({
-              scheda,
-              coltura: colturaRichiesta,
-              vocabolario,
-              avversitaScelta: trovata ? trovata.chiave : 'altra',
-              dataRevisione
-            });
+            if (trovata && etichetta.avversitaScelta !== trovata.chiave) {
+              etichetta = preparaEtichetta({
+                scheda,
+                coltura: colturaRichiesta,
+                vocabolario,
+                avversitaScelta: trovata.chiave,
+                dataRevisione
+              });
+            }
           }
+          const unaSola = !!(etichetta && etichetta.avversita && etichetta.avversita.length === 1);
+          avversitaSuggerita = suggeritaPiano && !confermata && !unaSola && !(etichetta && etichetta.avversitaScelta)
+            ? suggeritaPiano
+            : '';
         }
         scriviEsitoScheda(htmlPannelloOpenData({
           esito,
@@ -1313,7 +1364,8 @@ export function attaccaLetturaScheda(opts) {
           conferma: extra && extra.ignoraValoriConferma ? null : conferma,
           indiceScelto,
           etichetta,
-          colturaBozza: extra && extra.coltura != null ? extra.coltura : undefined
+          colturaBozza: extra && extra.coltura != null ? extra.coltura : undefined,
+          avversitaSuggerita
         }));
         const box = document.getElementById('registro-scheda-esito');
         if (!box) return;
