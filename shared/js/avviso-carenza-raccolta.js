@@ -189,6 +189,7 @@ export function installaAvvisoCarenzaVendemmia({ vigneti } = {}) {
   if (!form || form.dataset.avvisoCarenza === '1') return;
   form.dataset.avvisoCarenza = '1';
   const aggiorna = async () => {
+    try {
     const vignetoId = document.getElementById('vignetoId')?.value || '';
     const data = document.getElementById('data')?.value || '';
     const elenco = typeof vigneti === 'function' ? vigneti() : [];
@@ -206,6 +207,9 @@ export function installaAvvisoCarenzaVendemmia({ vigneti } = {}) {
       trattamenti,
       terrenoId: vigneto && vigneto.terrenoId
     });
+    } catch (err) {
+      console.error('[VENDEMMIA] avviso carenza', err);
+    }
   };
   aggiornaVendemmia = aggiorna;
   form.addEventListener('change', (evento) => {
@@ -219,6 +223,7 @@ export function installaAvvisoCarenzaFrutteto({ frutteti } = {}) {
   if (!form || form.dataset.avvisoCarenza === '1') return;
   form.dataset.avvisoCarenza = '1';
   const aggiorna = async () => {
+    try {
     const fruttetoId = document.getElementById('fruttetoId')?.value || '';
     const data = document.getElementById('data')?.value || '';
     const elenco = typeof frutteti === 'function' ? frutteti() : [];
@@ -238,6 +243,9 @@ export function installaAvvisoCarenzaFrutteto({ frutteti } = {}) {
       trattamenti,
       terrenoId: frutteto && frutteto.terrenoId
     });
+    } catch (err) {
+      console.error('[FRUTTETO] avviso carenza', err);
+    }
   };
   aggiornaFrutteto = aggiorna;
   form.addEventListener('change', (evento) => {
@@ -318,6 +326,7 @@ export function installaAvvisoCarenzaAttivita({ contoTerzi } = {}) {
   form.dataset.avvisoCarenza = '1';
   const aggiorna = async () => {
     const seq = ++seqAttivita;
+    try {
     const box = document.getElementById('avviso-carenza-attivita');
     if (!box) return;
     if (typeof contoTerzi === 'function' && contoTerzi()) {
@@ -358,6 +367,9 @@ export function installaAvvisoCarenzaAttivita({ contoTerzi } = {}) {
       trattamenti,
       terrenoId
     });
+    } catch (err) {
+      console.error('[DIARIO] avviso carenza', err);
+    }
   };
   aggiornaAttivita = aggiorna;
   form.addEventListener('change', (evento) => {

@@ -43,6 +43,21 @@ const MODULI = [
   'modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js',
   'modules/vendemmia-meccanica/services/piano-stagione-service.js',
   'modules/vendemmia-meccanica/services/zone-escluse-service.js',
+  'core/js/attivita-events.js',
+  'core/admin/js/gestione-lavori-events.js',
+  'core/models/Lavoro.js',
+  'modules/frutteto/js/raccolta-page.js',
+  'modules/orticole/js/raccolta-page.js',
+  'modules/seminativo/js/raccolta-page.js',
+  'modules/vigneto/js/vendemmia-page.js',
+  'shared/js/avviso-carenza-raccolta.js',
+  'shared/js/registro-trattamenti-conformita.js',
+  'shared/js/registro-trattamenti-form.js',
+  'shared/js/registro-trattamenti-lavoro-semaforo.js',
+  'shared/js/registro-trattamenti-lavoro.js',
+  'shared/js/registro-trattamenti-passaggi.js',
+  'shared/js/registro-trattamenti.js',
+  'shared/js/semaforo-etichetta-pianificazione.js',
 ];
 
 const PAGINE = [
@@ -54,6 +69,10 @@ const PAGINE = [
   'core/dashboard-standalone.html',
   'core/mobile/field-workspace-standalone.html',
   'modules/vendemmia-meccanica/views/piano-stagione-standalone.html',
+  'modules/frutteto/views/raccolta-frutta-standalone.html',
+  'modules/orticole/views/raccolta-standalone.html',
+  'modules/seminativo/views/raccolta-standalone.html',
+  'modules/vigneto/views/vendemmia-standalone.html',
 ];
 
 /**
@@ -67,6 +86,9 @@ const PREESISTENTI = {
   'core/dashboard-standalone.html': new Set(['deleteDoc']),
   // tipi-lavoro-service: createTipoLavoro legge `sottocategoria` mai dichiarata nel messaggio duplicato (follow-up).
   'core/services/tipi-lavoro-service.js': new Set(['sottocategoria']),
+  // salvaAttivitaRapida usa params.db / params.app / params.auth: params non è un parametro.
+  // Presente dal primo commit del file (2026-01-12), fuori da questa PR.
+  'core/js/attivita-events.js': new Set(['params']),
 };
 
 const GLOBALI = new Set([
@@ -116,6 +138,23 @@ function estraiScript(html) {
     script.push({ modulo, src });
   }
   return script;
+}
+
+function nomiAssegnatiSuWindow(radice) {
+  const nomi = new Set();
+  const stack = [radice];
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node || typeof node.type !== 'string') continue;
+    const daWindow = nomeAssegnatoSuWindow(node);
+    if (daWindow) nomi.add(daWindow);
+    for (const key of Object.keys(node)) {
+      const child = node[key];
+      if (Array.isArray(child)) child.forEach((c) => { if (c && c.type) stack.push(c); });
+      else if (child && child.type) stack.push(child);
+    }
+  }
+  return nomi;
 }
 
 function nomeAssegnatoSuWindow(node) {
@@ -187,6 +226,7 @@ function identificatoriLiberi(sorgente, extraGlobali) {
     if (stmt.type !== 'ImportDeclaration') return;
     stmt.specifiers.forEach((s) => scopeStack[0].add(s.local.name));
   });
+  nomiAssegnatiSuWindow(ast).forEach((nome) => scopeStack[0].add(nome));
   bindingDelBlocco(ast.body).forEach((nome) => scopeStack[0].add(nome));
 
   const skipKeys = new Set(['type', 'start', 'end', 'loc', 'range', 'sourceType']);

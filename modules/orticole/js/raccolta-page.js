@@ -274,7 +274,9 @@ function openModal(row) {
       coltura,
       verbo: 'raccogliere'
     });
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error('[ORTICOLE] avviso carenza', err);
+  });
 }
 
 async function prefillCosti(row, raccolta) {

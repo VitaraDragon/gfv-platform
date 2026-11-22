@@ -23,6 +23,7 @@ import {
     aggiornaAvvisoCarenzaAttivitaOra,
     azzeraAvvisoCarenzaAttivita
 } from '../../shared/js/avviso-carenza-raccolta.js';
+import { risolviColturaDaTerreno, isAttivitaSolaLettura, MESSAGGIO_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
 import {
     confermaSalvataggioMezzoInUso,
     mezzoGiaDellEntitaInModifica,

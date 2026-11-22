@@ -87,14 +87,33 @@ function azzeraAvvisiAperturaLavoro() {
     }
 }
 
-async function avvisiLavoroAllApertura() {
-    chiediSemaforoPianificazione({ subito: true });
-    await aggiornaAvvisoCarenzaLavoro(null);
+async function avvisiLavoroAllApertura(sessione) {
+    if (sessione != null && sessione !== lavoroModalSessione) return;
+    await chiediSemaforoPianificazione({ subito: true });
+    if (sessione != null && sessione !== lavoroModalSessione) return;
+    await aggiornaAvvisoCarenzaLavoro(null, sessione);
 }
 
-async function preparaMiscelaNelForm(miscela) {
+/** Miscela, semaforo e carenza partono a modale già aperto. Un errore non lo chiude. */
+function avviaCalcoliAperturaLavoro(miscela, sessione) {
+    Promise.resolve()
+        .then(() => {
+            if (sessione !== lavoroModalSessione) return null;
+            return preparaMiscelaNelForm(miscela, sessione);
+        })
+        .then(() => {
+            if (sessione !== lavoroModalSessione) return null;
+            return avvisiLavoroAllApertura(sessione);
+        })
+        .catch((err) => {
+            console.error('[GESTIONE-LAVORI] apertura modale', err);
+        });
+}
+
+async function preparaMiscelaNelForm(miscela, sessione) {
     installaMiscelaLavoro();
     await caricaProdottiMiscela();
+    if (sessione != null && sessione !== lavoroModalSessione) return;
     scriviMiscelaNelForm(miscela);
     const anteprima = document.getElementById('lavoro-miscela-anteprima');
     if (anteprima) anteprima.textContent = testoAnteprimaMiscela(miscela);
@@ -158,9 +177,10 @@ async function contestoSemaforoLavoro(state) {
     };
 }
 
-async function aggiornaAvvisoCarenzaLavoro(state) {
+async function aggiornaAvvisoCarenzaLavoro(state, sessione) {
     const box = document.getElementById('lavoro-avviso-carenza');
     if (!box) return;
+    if (sessione != null && sessione !== lavoroModalSessione) return;
     const sorgente = state || (typeof window !== 'undefined' ? window.lavoriState : null) || {};
     const { tipoLavoroRaccolta } = await import('../../../shared/js/semaforo-etichetta-pianificazione.js');
     const sel = document.getElementById('lavoro-tipo-lavoro');
@@ -183,6 +203,7 @@ async function aggiornaAvvisoCarenzaLavoro(state) {
         specie = '';
     }
     const trattamenti = await caricaTrattamentiPerCarenza({ terrenoId });
+    if (sessione != null && sessione !== lavoroModalSessione) return;
     await aggiornaAvvisoCarenzaRaccolta({
         box,
         dataRaccolta: data,
@@ -1091,8 +1112,6 @@ export async function openCreaModal(
     
     clearSospensioneForm();
     azzeraAvvisiAperturaLavoro();
-    await preparaMiscelaNelForm(null);
-    await avvisiLavoroAllApertura();
 
     // Prima si mostra il modale, poi si sincronizzano i required.
     // campoLavoroVisibile risale gli antenati: con .modal { display:none } un sync
@@ -1103,6 +1122,7 @@ export async function openCreaModal(
     if (sessioneApertura === lavoroModalSessione) {
         syncRequiredConVisibilita(lavoroForm);
     }
+    avviaCalcoliAperturaLavoro(null, sessioneApertura);
 }
 
 /**
@@ -1383,9 +1403,6 @@ export async function openModificaModal(
     // Aggiorna visibilità dropdown
     if (setupTipoAssegnazioneHandlersCallback) setupTipoAssegnazioneHandlersCallback();
     azzeraAvvisiAperturaLavoro();
-    await preparaMiscelaNelForm(lavoro && lavoro.miscelaPrevista);
-    await avvisiLavoroAllApertura();
-
     applyLavoroFormContoTerziDaPianificareLock(lavoro);
 
     // Stesso ordine di Crea: il modale è visibile prima del sync dei required.
@@ -1394,6 +1411,7 @@ export async function openModificaModal(
     if (sessioneApertura === lavoroModalSessione) {
         syncRequiredConVisibilita(document.getElementById('lavoro-form'));
     }
+    avviaCalcoliAperturaLavoro(lavoro && lavoro.miscelaPrevista, sessioneApertura);
     const terreniLista = (state && state.terreniList) || (typeof window !== 'undefined' && window.lavoriState && window.lavoriState.terreniList) || [];
     const terrenoLavoro = trovaTerrenoPerId(terreniLista, lavoro.terrenoId);
     applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), {
