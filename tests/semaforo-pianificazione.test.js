@@ -232,18 +232,21 @@ describe('lavori pianificati, annullati e spostati', () => {
     expect(esito.motivi.some((m) => m.codice === 'intervallo_corto')).toBe(true);
   });
 
-  it('allinea le schede senza riscriverle: annullato escluso, data nuova sul pianificato', () => {
+  it('allinea le schede senza riscriverle: annullato e pianificato esclusi dalla carenza', () => {
     const schede = [
       { id: 's1', lavoroId: 'ann', data: giorno('2026-08-01'), prodotti: [{ prodotto: 'FOLPAN 80 WDG' }] },
-      { id: 's2', lavoroId: 'vivo', data: giorno('2025-01-01'), prodotti: [{ prodotto: 'FOLPAN 80 WDG' }] }
+      { id: 's2', lavoroId: 'vivo', data: giorno('2025-01-01'), prodotti: [{ prodotto: 'FOLPAN 80 WDG' }] },
+      { id: 's3', lavoroId: 'fatto', data: giorno('2026-08-15'), prodotti: [{ prodotto: 'FOLPAN 80 WDG' }] }
     ];
     const out = allineaTrattamentiAiLavori(schede, [
       { id: 'ann', stato: 'annullato', dataInizio: giorno('2026-08-01') },
-      { id: 'vivo', stato: 'assegnato', dataInizio: giorno('2026-07-01') }
+      { id: 'vivo', stato: 'assegnato', dataInizio: giorno('2026-07-01') },
+      { id: 'fatto', stato: 'completato', dataInizio: giorno('2026-08-15') }
     ]);
-    expect(out.map((t) => t.id)).toEqual(['s2']);
-    expect(out[0].data).toEqual(giorno('2026-07-01'));
+    expect(out.map((t) => t.id)).toEqual(['s3']);
+    expect(out[0].data).toEqual(giorno('2026-08-15'));
     expect(schede[1].data).toEqual(giorno('2025-01-01'));
+    expect(schede[2].data).toEqual(giorno('2026-08-15'));
   });
 });
 
@@ -446,6 +449,93 @@ describe('avvisoCarenzaRaccolta', () => {
     expect(esito.testo).toContain('24/09/2026');
     expect(esito.testo).toContain('40 giorni da etichetta');
     expect(esito.testo).toContain('valore più lungo');
+  });
+
+  it('un pianificato non genera carenza, un completato sì, e il conteggio annuo conta entrambi', () => {
+    const prodotto = {
+      prodotto: 'FOLPAN 80 WDG',
+      avversita: 'Peronospora (Plasmopara viticola)',
+      dosaggio: 1.4
+    };
+    const schede = [
+      { id: 's-piano', lavoroId: 'piano', data: giorno('2026-11-22'), prodotti: [prodotto] },
+      { id: 's-corso', lavoroId: 'corso', data: giorno('2026-11-20'), stato: 'in_corso', prodotti: [prodotto] },
+      { id: 's-err-piano', lavoroId: 'err-piano', data: giorno('2026-11-18'), stato: 'errore', prodotti: [prodotto] },
+      { id: 's-bozza', lavoroId: 'bozza', data: giorno('2026-11-18'), stato: 'da_completare', prodotti: [prodotto] },
+      { id: 's-sint', data: giorno('2026-11-22'), pianificato: true, stato: 'assegnato', prodotti: [prodotto] },
+      { id: 's-ann', lavoroId: 'ann', data: giorno('2026-11-01'), prodotti: [prodotto] },
+      { id: 's-elim', lavoroId: 'elim', data: giorno('2026-11-01'), eliminato: true, prodotti: [prodotto] },
+      { id: 's-fatto', lavoroId: 'fatto', data: giorno('2026-11-22'), stato: 'errore', prodotti: [prodotto] },
+      { id: 's-attesa', lavoroId: 'attesa', data: giorno('2026-11-01'), stato: 'da_completare', prodotti: [prodotto] },
+      { id: 's-attivita', attivitaId: 'att1', data: giorno('2026-10-01'), prodotti: [prodotto] }
+    ];
+    const lavori = [
+      { id: 'piano', stato: 'assegnato', dataInizio: giorno('2026-11-22') },
+      { id: 'corso', stato: 'in_corso', dataInizio: giorno('2026-11-20') },
+      { id: 'err-piano', stato: 'assegnato', dataInizio: giorno('2026-11-18') },
+      { id: 'bozza', stato: 'da_pianificare', dataInizio: giorno('2026-11-18') },
+      { id: 'ann', stato: 'annullato', dataInizio: giorno('2026-11-01') },
+      { id: 'elim', stato: 'eliminato', dataInizio: giorno('2026-11-01') },
+      { id: 'fatto', stato: 'completato', dataInizio: giorno('2026-11-22') },
+      { id: 'attesa', stato: 'completato_da_approvare', dataInizio: giorno('2026-11-01') }
+    ];
+    const perCarenza = allineaTrattamentiAiLavori(schede, lavori);
+    expect(perCarenza.map((t) => t.id)).toEqual(['s-fatto', 's-attesa', 's-attivita']);
+    expect(schede.find((t) => t.id === 's-fatto').stato).toBe('errore');
+
+    const soloPiano = avvisoCarenzaRaccolta({
+      dataRaccolta: giorno('2026-11-22'),
+      coltura: 'vite da vino',
+      verbo: 'vendemmiare',
+      trattamenti: [schede.find((t) => t.id === 's-sint')],
+      ...legami(folpan)
+    });
+    expect(soloPiano.testo).toBe('');
+    expect(soloPiano.voci).toEqual([]);
+
+    const fatto = avvisoCarenzaRaccolta({
+      dataRaccolta: giorno('2026-11-22'),
+      coltura: 'vite da vino',
+      verbo: 'vendemmiare',
+      trattamenti: perCarenza.filter((t) => t.id === 's-fatto'),
+      ...legami(folpan)
+    });
+    expect(fatto.testo).toContain('Non si può vendemmiare prima del 20/12/2026');
+    expect(fatto.testo).toContain('FOLPAN 80 WDG, trattamento del 22/11/2026');
+
+    const passaggi = [{
+      id: 's-fatto',
+      lavoroId: 'fatto',
+      data: giorno('2026-07-01'),
+      terrenoId: 't1',
+      nome: 'FOLPAN 80 WDG',
+      stato: 'completato'
+    }];
+    const uniti = unisciPassaggiLavoriPianificati(passaggi, [
+      {
+        id: 'piano',
+        terrenoId: 't1',
+        stato: 'assegnato',
+        tipoLavoro: 'Trattamento',
+        dataInizio: giorno('2026-06-01'),
+        miscelaPrevista: { prodotti: [{ nome: 'FOLPAN 80 WDG' }] }
+      },
+      {
+        id: 'fatto',
+        terrenoId: 't1',
+        stato: 'completato',
+        tipoLavoro: 'Trattamento',
+        dataInizio: giorno('2026-07-01')
+      }
+    ], { terrenoId: 't1', includiLavoriSenzaScheda: true });
+    expect(uniti.filter((p) => p.lavoroId === 'piano' && p.pianificato === true)).toHaveLength(1);
+    expect(uniti.some((p) => p.lavoroId === 'fatto' && p.pianificato !== true)).toBe(true);
+    const conto = pianifica({
+      data: '2026-08-01',
+      precedenti: uniti,
+      avversita: 'Peronospora (Plasmopara viticola)'
+    });
+    expect(conto.motivi.some((m) => /sarebbe il 3°/.test(m.testo || ''))).toBe(true);
   });
 
   it('senza data di raccolta mostra comunque la data minima', () => {
