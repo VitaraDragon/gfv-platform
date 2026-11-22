@@ -1124,8 +1124,8 @@ export function closeLavoroModal(state, updateState) {
     }
     aggiornaPulsanteBozzaLavoro();
     if (lavoroModal) lavoroModal.classList.remove('active');
-    azzeraAvvisiAperturaLavoro();
     fermaFlussoCreazioneLavoroTony();
+    azzeraAvvisiAperturaLavoro();
     applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), { solaLettura: false });
     try {
         resetLavoroFormContoTerziLock();
