@@ -577,11 +577,32 @@ function passaggiStessoProdotto(input, dataLimite) {
   });
 }
 
-function controllaMassimo(input, rigaEtichetta, motivi) {
+function firmaMassimo(riga) {
+  return JSON.stringify((riga && riga.max_trattamenti || []).map((v) => ({
+    numero: v && v.numero != null ? v.numero : null,
+    periodo: (v && v.periodo) || '',
+    condizione: (v && v.condizione) || ''
+  })));
+}
+
+/** Vero se ogni riga candidata ha lo stesso max_trattamenti, e quel massimo c'è. */
+function stessoMassimo(righe) {
+  if (!righe || !righe.length) return false;
+  const firme = righe.map(firmaMassimo);
+  if (new Set(firme).size !== 1) return false;
+  return (righe[0].max_trattamenti || []).some((v) => v && numeroFinito(v.numero) != null);
+}
+
+/**
+ * Quanti passaggi dello stesso prodotto contano già, e quanti ne restano dopo questo.
+ * `restanti` non scende sotto 0. Lista vuota se in etichetta il massimo non c'è.
+ * @returns {Array<{ ordinale: number, massimo: number, restanti: number, periodo: string, nota: string, condizione: string, oltre: boolean }>}
+ */
+export function conteggioTrattamentiEtichetta(input = {}, rigaEtichetta = {}) {
   const voci = (rigaEtichetta.max_trattamenti || []).filter((v) => v && numeroFinito(v.numero) != null);
-  if (!voci.length) return;
+  if (!voci.length) return [];
   const data = dataGiorno(input.trattamento && input.trattamento.data) || dataGiorno(input.oggi) || dataGiorno(new Date());
-  const valutate = voci.map((voce) => {
+  return voci.map((voce) => {
     const finestra = finestraPeriodo(voce.periodo, data);
     const passaggi = passaggiStessoProdotto(input, data).filter((p) => {
       const d = dataGiorno(p.data);
@@ -592,23 +613,50 @@ function controllaMassimo(input, rigaEtichetta, motivi) {
     });
     const ordinale = passaggi.length + 1;
     const massimo = Number(voce.numero);
-    return { voce, ordinale, massimo, oltre: ordinale > massimo, nota: notaPeriodo(voce.periodo) };
+    return {
+      ordinale,
+      massimo,
+      restanti: Math.max(0, massimo - ordinale),
+      periodo: voce.periodo || '',
+      nota: notaPeriodo(voce.periodo),
+      condizione: String(voce.condizione || '').trim(),
+      oltre: ordinale > massimo
+    };
   });
-  const oltreTutte = valutate.length > 0 && valutate.every((v) => v.oltre);
+}
+
+function testoRestanti(nome, voce) {
+  const periodo = etichettaPeriodoMassimo(voce.periodo);
+  const chi = nome ? nome + ': ' : '';
+  return chi + 'sarebbe il ' + voce.ordinale + '° trattamento nell\'anno su questo terreno; in etichetta al massimo '
+    + formattaNumeroIt(voce.massimo) + (periodo ? ' ' + periodo : '') + ', ne restano ' + voce.restanti + ' dopo questo';
+}
+
+function controllaMassimo(input, rigaEtichetta, motivi) {
+  const valutate = conteggioTrattamentiEtichetta(input, rigaEtichetta);
+  if (!valutate.length) return;
+  const oltreTutte = valutate.every((v) => v.oltre);
   if (oltreTutte) {
     const prima = valutate[0];
-    const periodoTesto = prima.nota ? '' : etichettaPeriodoMassimo(prima.voce.periodo);
+    const periodoTesto = prima.nota ? '' : etichettaPeriodoMassimo(prima.periodo);
     const pezzi = [
       prima.ordinale + '° trattamento nell\'anno: in etichetta al massimo ' + formattaNumeroIt(prima.massimo) + (periodoTesto ? ' ' + periodoTesto : '')
     ];
     if (prima.nota) pezzi.push(prima.nota);
-    if (prima.voce.condizione) pezzi.push('condizione: ' + String(prima.voce.condizione).trim());
+    if (prima.condizione) pezzi.push('condizione: ' + prima.condizione);
     motivi.push(motivo('troppi_trattamenti', 'rosso', 'massimo', pezzi.join('; ')));
     return;
   }
   const note = [...new Set(valutate.map((v) => v.nota).filter(Boolean))];
   if (note.length) {
     motivi.push(motivo('periodo_conteggio', null, 'massimo', note.join('; ')));
+  }
+  if (input.mostraRestanti === true) {
+    const nome = String((input.riga && (input.riga.prodotto || input.riga.nome)) || '').trim();
+    valutate.forEach((voce) => {
+      if (voce.oltre) return;
+      motivi.push(motivo('trattamenti_restanti', null, 'massimo', testoRestanti(nome, voce)));
+    });
   }
 }
 
@@ -757,7 +805,9 @@ export function valutaConformitaEtichetta(input = {}) {
     const bloccoUnita = motivi.some((m) => m.codice === 'unita_mancante');
     if (!bloccoUnita) doseOk = controllaDoseHa(rigaDose, trovato.riga, motivi);
     controllaDoseHl(input.trattamento || {}, rigaDose, trovato.riga, motivi);
-    controllaCarenza(input.trattamento || {}, trovato.riga, input.dataRaccolta, motivi);
+    if (!(input.controlli && input.controlli.carenza === false)) {
+      controllaCarenza(input.trattamento || {}, trovato.riga, input.dataRaccolta, motivi);
+    }
     controllaMassimo(input, trovato.riga, motivi);
     controllaIntervallo(input, trovato.riga, motivi);
   } else if (trovato.candidate && trovato.candidate.length) {
@@ -778,6 +828,9 @@ export function valutaConformitaEtichetta(input = {}) {
         });
       });
       doseOk = tuttiOk;
+    }
+    if (input.mostraRestanti === true && stessoMassimo(trovato.candidate)) {
+      controllaMassimo(input, trovato.candidate[0], motivi);
     }
   }
   controllaStato(input, motivi);
@@ -816,13 +869,18 @@ export function valutaConformitaTrattamento(input = {}) {
       precedenti: input.precedenti,
       dataRaccolta: input.dataRaccolta,
       oggi: input.oggi,
-      riconoscimento
+      riconoscimento,
+      controlli: input.controlli,
+      mostraRestanti: input.mostraRestanti
     });
     if (righe.length < 2) return esito;
     const nome = String(riga.prodotto || riga.nome || '').trim();
     return {
       colore: esito.colore,
-      motivi: esito.motivi.map((m) => (nome ? { ...m, testo: nome + ': ' + m.testo } : m))
+      motivi: esito.motivi.map((m) => {
+        if (!nome || !m || !m.testo || m.testo.startsWith(nome + ':')) return m;
+        return { ...m, testo: nome + ': ' + m.testo };
+      })
     };
   });
   const motivi = esiti.reduce((acc, esito) => acc.concat(esito.motivi || []), []);

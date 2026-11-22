@@ -15,7 +15,7 @@ import {
   scriviEsitoScheda,
   serializzaRegistroRiga
 } from '../shared/js/registro-trattamenti-form.js';
-import { messaggioDoseFuoriRiga, righeProdottiPerForm } from '../shared/js/registro-trattamenti.js';
+import { messaggioDoseFuoriRiga, rigaHaConferma, righeProdottiPerForm, valutaCancellazioneRegistro } from '../shared/js/registro-trattamenti.js';
 import { numeroRegistrazioneRiga } from '../shared/js/registro-trattamenti-conformita.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -256,6 +256,28 @@ describe('banner semaforo sul form', () => {
     expect(colore()).not.toBe('verde');
     const pallino = document.querySelector('.registro-pallino-riga .gfv-semaforo');
     expect(pallino.className).toContain('gfv-semaforo--yellow');
+  });
+
+  it('avversità pianificata: giallo, riga non confermata, cancellazione libera', async () => {
+    const json = serializzaRegistroRiga({
+      avversitaPianificata: 'Peronospora (Plasmopara viticola)',
+      specieUsata: 'vite da vino',
+      riferimentoRiga: {
+        nomeProdotto: 'FOLPAN 80 WDG',
+        numeroRegistrazione: '008601',
+        colturaScheda: 'vite da vino'
+      }
+    });
+    monta(rigaProdotto({ dose: '1.4', json }));
+    await aggiornaBannerConformita(opts);
+    expect(colore()).toBe('giallo');
+    expect(banner().textContent).toContain("Conferma l'avversità");
+    const riga = leggiRegistroRiga(document.querySelector('tr'));
+    expect(rigaHaConferma(riga)).toBe(false);
+    expect(valutaCancellazioneRegistro({
+      data: '2026-08-01',
+      prodotti: [riga]
+    }, { ora: new Date('2026-11-22') }).consentita).toBe(true);
   });
 
   it('dopo Conferma, correggere la dose aggiorna il JSON e tiene avversità e numero', async () => {

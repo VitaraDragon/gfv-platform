@@ -845,6 +845,7 @@
                     <div class="form-group">
                         <label for="attivita-data">Data *</label>
                         <input type="date" id="attivita-data" required max="">
+                        <div id="avviso-carenza-attivita" hidden></div>
                     </div>
 
                     <div class="form-group">
@@ -1376,6 +1377,9 @@
         let hasContoTerziModule = false;
         let availableModules = [];
         let isContoTerziMode = false; // Modalità Conto Terzi (filtro su lavori conto terzi)
+        import('../shared/js/avviso-carenza-raccolta.js').then((mod) => {
+            mod.installaAvvisoCarenzaAttivita({ contoTerzi: () => isContoTerziMode });
+        }).catch(() => {});
         let lavoriList = []; // Lista lavori per filtrare in modalità Conto Terzi
         let clientiList = []; // Lista clienti per dropdown
         

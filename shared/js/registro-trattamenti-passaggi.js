@@ -5,6 +5,94 @@
  */
 
 import { colturaSchedaRegistro } from '../../core/config/registro-trattamenti-specie.js';
+import { tipoLavoroETrattamento } from './registro-trattamenti-lavoro.js';
+
+export function lavoroAnnullato(lavoro) {
+  return String(lavoro && lavoro.stato || '').toLowerCase() === 'annullato';
+}
+
+/** Ancora da fare: non completato e non annullato. La data che conta è quella del lavoro. */
+export function lavoroPianificatoNonEseguito(lavoro) {
+  const stato = String(lavoro && lavoro.stato || '').toLowerCase();
+  return stato !== 'annullato' && stato !== 'completato' && stato !== 'completato_da_approvare';
+}
+
+/**
+ * Allinea i passaggi ai lavori attuali e, se richiesto, aggiunge i trattamenti
+ * pianificati che non hanno ancora una scheda (seminativo e orticole).
+ * Il registro non usa questa unione: il suo conteggio resta sui soli passaggi.
+ * Non scrive nulla: una scheda già compilata resta com'è in archivio.
+ */
+export function unisciPassaggiLavoriPianificati(passaggi, lavori, opzioni = {}) {
+  const terrenoId = String(opzioni.terrenoId || '');
+  const escluso = opzioni.lavoroIdEscluso ? String(opzioni.lavoroIdEscluso) : '';
+  const includiSenzaScheda = opzioni.includiLavoriSenzaScheda === true;
+  const lista = (lavori || []).filter((lavoro) => {
+    if (!lavoro) return false;
+    if (terrenoId && String(lavoro.terrenoId || '') !== terrenoId) return false;
+    return true;
+  });
+  const perId = new Map(lista.map((lavoro) => [String(lavoro.id), lavoro]));
+  const out = [];
+  const giaInRegistro = new Set();
+  (passaggi || []).forEach((passaggio) => {
+    if (!passaggio) return;
+    const lavoroId = passaggio.lavoroId ? String(passaggio.lavoroId) : '';
+    if (lavoroId && escluso && lavoroId === escluso) return;
+    const lavoro = lavoroId ? perId.get(lavoroId) : null;
+    if (lavoro && lavoroAnnullato(lavoro)) return;
+    const copia = { ...passaggio };
+    if (lavoro && lavoroPianificatoNonEseguito(lavoro) && lavoro.dataInizio) {
+      copia.data = lavoro.dataInizio;
+    }
+    out.push(copia);
+    if (lavoroId) giaInRegistro.add(lavoroId);
+  });
+  if (!includiSenzaScheda) return out;
+  lista.forEach((lavoro) => {
+    const id = String(lavoro.id || '');
+    if (!id || (escluso && id === escluso) || lavoroAnnullato(lavoro)) return;
+    if (!tipoLavoroETrattamento(lavoro.tipoLavoro)) return;
+    const prodotti = lavoro.miscelaPrevista && Array.isArray(lavoro.miscelaPrevista.prodotti)
+      ? lavoro.miscelaPrevista.prodotti
+      : [];
+    if (!prodotti.length || giaInRegistro.has(id)) return;
+    prodotti.forEach((prodotto) => {
+      if (!prodotto || (!prodotto.prodottoId && !prodotto.nome && !prodotto.prodotto)) return;
+      out.push({
+        id: 'lavoro:' + id,
+        lavoroId: id,
+        data: lavoro.dataInizio,
+        terrenoId: lavoro.terrenoId || terrenoId || null,
+        prodottoId: prodotto.prodottoId || null,
+        nome: prodotto.nome || prodotto.prodotto || '',
+        pianificato: true
+      });
+    });
+  });
+  return out;
+}
+
+/**
+ * Stessa regola dei passaggi, sulle schede intere usate per la carenza.
+ * Un lavoro annullato esce dal conto. Uno ancora da fare vale con la data attuale.
+ */
+export function allineaTrattamentiAiLavori(trattamenti, lavori) {
+  const perId = new Map((lavori || []).filter((lavoro) => lavoro && lavoro.id).map((lavoro) => [String(lavoro.id), lavoro]));
+  const out = [];
+  (trattamenti || []).forEach((trattamento) => {
+    if (!trattamento) return;
+    const lavoroId = trattamento.lavoroId ? String(trattamento.lavoroId) : '';
+    const lavoro = lavoroId ? perId.get(lavoroId) : null;
+    if (lavoro && lavoroAnnullato(lavoro)) return;
+    if (lavoro && lavoroPianificatoNonEseguito(lavoro) && lavoro.dataInizio) {
+      out.push({ ...trattamento, data: lavoro.dataInizio });
+      return;
+    }
+    out.push(trattamento);
+  });
+  return out;
+}
 
 function daTrattamenti(lista, terrenoId) {
   const out = [];
@@ -14,6 +102,7 @@ function daTrattamenti(lista, terrenoId) {
       if (!p || (!p.prodottoId && !p.prodotto)) return;
       out.push({
         id: t.id,
+        lavoroId: t.lavoroId || null,
         data: t.data,
         terrenoId,
         prodottoId: p.prodottoId || null,
