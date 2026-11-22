@@ -414,6 +414,24 @@ describe('righeTrattamentoDaMiscela', () => {
     expect(riga.avversitaPianificata).toBe('Peronospora (Plasmopara viticola)');
     expect(riga.avversita).toBeUndefined();
     expect(rigaHaConferma(riga)).toBe(false);
+    const agganciata = righeTrattamentoDaMiscela({
+      prodotti: [{
+        nome: 'Folpan',
+        dosePerEttaro: 1.4,
+        avversitaPianificata: 'Peronospora (Plasmopara viticola)',
+        numeroRegistrazioneLetto: '008601',
+        riferimentoRiga: {
+          nomeProdotto: 'FOLPAN 80 WDG',
+          numeroRegistrazione: '008601',
+          colturaScheda: ''
+        }
+      }]
+    }, 1).prodotti[0];
+    expect(agganciata.numeroRegistrazioneLetto).toBe('008601');
+    expect(agganciata.riferimentoRiga.nomeProdotto).toBe('FOLPAN 80 WDG');
+    expect(agganciata.avversita).toBeUndefined();
+    expect(agganciata.confermatoIl).toBeUndefined();
+    expect(rigaHaConferma(agganciata)).toBe(false);
     const trattamento = { data: '2026-08-01', prodotti: [riga] };
     expect(valutaCancellazioneRegistro(trattamento, { ora: new Date('2026-11-22') }).consentita).toBe(true);
     const confermata = registroConfermaManuale(

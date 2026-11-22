@@ -139,6 +139,28 @@ export function trovaRegistrazionePerNome(nome, indice) {
   return { numero: '', esito: 'assente' };
 }
 
+/**
+ * Prodotti dell'indice etichette per «Leggi scheda».
+ * Il numero, se è solo cifre, vince. Altrimenti il nome esatto, poi il nome che contiene la ricerca.
+ * Una ricerca più corta di 3 caratteri non apre l'elenco parziale.
+ * @returns {Array<{ nome_prodotto: string, numero_registrazione: string }>}
+ */
+export function cercaProdottiEtichetta(query, indice) {
+  const grezzo = String(query == null ? '' : query).trim();
+  const q = normalizzaNomeProdottoScheda(grezzo);
+  const prodotti = indice && Array.isArray(indice.prodotti) ? indice.prodotti : [];
+  if (!q) return [];
+  const cifre = grezzo.replace(/\s+/g, '');
+  if (/^\d+$/.test(cifre)) {
+    const id = numeroFileEtichetta(cifre);
+    return prodotti.filter((p) => numeroFileEtichetta(p && p.numero_registrazione) === id);
+  }
+  const esatti = prodotti.filter((p) => normalizzaNomeProdottoScheda(p && p.nome_prodotto) === q);
+  if (esatti.length) return esatti;
+  if (q.length < 3) return [];
+  return prodotti.filter((p) => normalizzaNomeProdottoScheda(p && p.nome_prodotto).includes(q));
+}
+
 function specUnita(unita) {
   const u = String(unita || '').trim().toLowerCase().replace(/\s+/g, '');
   const m = u.match(/^(kg|g|ml|l|lt|litri)(?:\/(ha|hl))?$/);

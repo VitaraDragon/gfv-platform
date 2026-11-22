@@ -530,12 +530,13 @@ function campiConEtichetta(conferma, specie, etichetta, colturaBozza, prodotto) 
 
 /**
  * HTML dell'esito di «Leggi scheda». Le righe di impiego, se arrivano, si ignorano.
- * @param {{ esito?: object, nome?: string, specie?: string, conferma?: object, indiceScelto?: number|null }} input
+ * @param {{ esito?: object, nome?: string, specie?: string, conferma?: object, indiceScelto?: number|null, soloScelta?: boolean }} input
  */
 export function htmlPannelloOpenData(input = {}) {
   const esito = input.esito || {};
   const prodotti = Array.isArray(esito.prodotti) ? esito.prodotti : [];
   const dataLettura = esito.dataLettura || null;
+  const soloScelta = input.soloScelta === true;
   const parti = [
     '<p class="registro-avviso-etichetta">' + esc(AVVISO_ETICHETTA_FA_FEDE) + '</p>',
     '<div data-conformita-slot="1"></div>'
@@ -548,10 +549,15 @@ export function htmlPannelloOpenData(input = {}) {
     return parti.join('');
   }
   parti.push('<p class="registro-attribuzione">' + htmlAttribuzioneOpenData(dataLettura) + '</p>');
-  const scelto = input.indiceScelto == null ? (prodotti.length === 1 ? prodotti[0] : null) : prodotti[input.indiceScelto];
+  const scelto = soloScelta
+    ? null
+    : (input.indiceScelto == null ? (prodotti.length === 1 ? prodotti[0] : null) : prodotti[input.indiceScelto]);
   if (!scelto) {
     const proposto = esito.proposto && esito.proposto.numeroRegistrazione;
-    parti.push('<p>Ci sono più prodotti. Scegli quello giusto: non ne scelgo uno da solo.</p><ul style="list-style:none;padding:0;">');
+    const introScelta = soloScelta
+      ? 'Scegli il prodotto in etichetta. La conferma dell\'azienda resta nel registro.'
+      : 'Ci sono più prodotti. Scegli quello giusto: non ne scelgo uno da solo.';
+    parti.push('<p>' + esc(introScelta) + '</p><ul style="list-style:none;padding:0;">');
     prodotti.forEach((prodotto, i) => {
       const cls = classificaStatoAmministrativo(prodotto.stato);
       const nota = [];
