@@ -210,14 +210,23 @@ function aggiornaResa() {
   if (box) box.style.display = resa == null ? 'none' : 'block';
 }
 
+function svuotaBoxCarenza() {
+  const box = document.getElementById('avviso-carenza-raccolta');
+  if (!box) return;
+  box.hidden = true;
+  box.textContent = '';
+}
+
 function closeModal() {
   const modal = document.getElementById('modal-raccolta');
   if (modal) modal.style.display = 'none';
+  svuotaBoxCarenza();
   editingRow = null;
 }
 
 function openModal(row) {
   if (!row) return;
+  svuotaBoxCarenza();
   editingRow = row;
   const raccolta = row.raccolta;
   document.getElementById('raccolta-id').value = raccolta ? raccolta.id || '' : '';
@@ -254,6 +263,20 @@ function openModal(row) {
   const modal = document.getElementById('modal-raccolta');
   if (modal) modal.style.display = 'flex';
   prefillCosti(row, raccolta);
+  import('../../../shared/js/avviso-carenza-raccolta.js').then(async (mod) => {
+    const { colturaSchedaRegistro } = await import('../../../core/config/registro-trattamenti-specie.js');
+    const coltura = colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: row.colturaNome }) || row.colturaNome || '';
+    return mod.aggiornaAvvisoCarenzaDaRiga({
+      box: document.getElementById('avviso-carenza-raccolta'),
+      dataRaccolta: row.data,
+      terrenoId: row.terrenoId,
+      campagnaId: row.campagnaId,
+      coltura,
+      verbo: 'raccogliere'
+    });
+  }).catch((err) => {
+    console.error('[SEMINATIVO] avviso carenza', err);
+  });
 }
 
 async function prefillCosti(row, raccolta) {

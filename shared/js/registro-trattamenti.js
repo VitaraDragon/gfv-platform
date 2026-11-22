@@ -137,6 +137,9 @@ export function campiConfermaRiga(raw = {}) {
       : null,
     dataScadenzaAutorizzazioneScheda: raw.dataScadenzaAutorizzazioneScheda != null && String(raw.dataScadenzaAutorizzazioneScheda).trim()
       ? String(raw.dataScadenzaAutorizzazioneScheda).trim()
+      : null,
+    avversitaPianificata: raw.avversitaPianificata != null && String(raw.avversitaPianificata).trim()
+      ? String(raw.avversitaPianificata).trim()
       : null
   };
 }
@@ -362,7 +365,7 @@ export function calcolaMiscela(input = {}) {
     const quantita = dosePerEttaro != null && ettari != null && ettari > 0
       ? arrotonda(dosePerEttaro * ettari, 4)
       : numeroFinito(row.quantita);
-    return {
+    const prodotto = {
       prodottoId: row.prodottoId || null,
       nome: row.nome || row.prodotto || '',
       unita: row.unita || row.unitaDosaggio || null,
@@ -371,6 +374,9 @@ export function calcolaMiscela(input = {}) {
       dosePerEttolitro,
       doseBottePiena: haBotte ? doseBottePiena(dosePerEttolitro, quintali) : null
     };
+    const pianificata = String(row.avversitaPianificata || '').trim();
+    if (pianificata) prodotto.avversitaPianificata = pianificata;
+    return prodotto;
   });
 
   let bottiPiene = null;
@@ -448,6 +454,8 @@ export function righeTrattamentoDaMiscela(miscela, superficieHa) {
       quantita: dosaggio != null && haSuperficie ? arrotonda(dosaggio * sup, 4) : null,
       dosePerEttolitroScheda: numeroFinito(p.dosePerEttolitro != null ? p.dosePerEttolitro : p.dosePerEttolitroScheda)
     };
+    const pianificata = String(p.avversitaPianificata || p.avversita || '').trim();
+    if (pianificata) riga.avversitaPianificata = pianificata;
     if (prodotti.some((r) => stessoProdotto(r, riga))) return;
     prodotti.push(riga);
   });

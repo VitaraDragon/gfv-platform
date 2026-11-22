@@ -1039,8 +1039,11 @@ function leggiRigheBanner(opts) {
       prodotto,
       dosaggio,
       unitaDosaggio: unita || null,
-      avversita: registro.avversita || (campi && campi.avversita) || '',
-      confermaMancante: !!(usaPannello && campi && String(campi.avversita || '').trim() && !rigaHaConferma(registro)),
+      avversita: registro.avversita || (campi && campi.avversita) || registro.avversitaPianificata || '',
+      confermaMancante: !rigaHaConferma(registro) && !!(
+        (usaPannello && campi && String(campi.avversita || '').trim())
+        || String(registro.avversitaPianificata || '').trim()
+      ),
       specieUsata: (campi && campi.coltura) || registro.specieUsata || '',
       riferimentoRiga: registro.riferimentoRiga,
       numeroRegistrazioneLetto: registro.numeroRegistrazioneLetto || null,
@@ -1281,8 +1284,12 @@ export function attaccaLetturaScheda(opts) {
           });
           const forzaScelta = extra && Object.prototype.hasOwnProperty.call(extra, 'avversitaScelta');
           const ignoraConferma = extra && extra.ignoraValoriConferma;
-          if (!forzaScelta && !ignoraConferma && conferma && conferma.avversita && etichetta.stato === 'pronto') {
-            const salvata = normalizzaNomeColtura(conferma.avversita);
+          const suggeritaPiano = !rigaHaConferma(dallaRiga)
+            ? String(dallaRiga.avversitaPianificata || '').trim()
+            : '';
+          const testoSuggerito = (conferma && conferma.avversita) || suggeritaPiano;
+          if (!forzaScelta && !ignoraConferma && testoSuggerito && etichetta.stato === 'pronto') {
+            const salvata = normalizzaNomeColtura(testoSuggerito);
             const trovata = (etichetta.avversita || []).find((a) => normalizzaNomeColtura(a.testo) === salvata);
             etichetta = preparaEtichetta({
               scheda,

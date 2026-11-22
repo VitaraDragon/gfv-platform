@@ -19,6 +19,10 @@ import {
 } from './geo-capture.js';
 import { listedSelectValue } from './lavoro-cascade-filters.js';
 import { pickTipoLavoroByNome } from './attivita-tipo-lavoro-pick.js';
+import {
+    aggiornaAvvisoCarenzaAttivitaOra,
+    azzeraAvvisoCarenzaAttivita
+} from '../../shared/js/avviso-carenza-raccolta.js';
 import { risolviColturaDaTerreno, isAttivitaSolaLettura, MESSAGGIO_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
 import {
     confermaSalvataggioMezzoInUso,
@@ -287,6 +291,7 @@ export function closeAttivitaModal() {
     if (modal) {
         modal.classList.remove('active');
     }
+    azzeraAvvisoCarenzaAttivita();
 }
 
 /**
@@ -933,6 +938,7 @@ export async function openAttivitaModal(params) {
     }
     
     modal.classList.add('active');
+    aggiornaAvvisoCarenzaAttivitaOra();
 }
 
 // ============================================

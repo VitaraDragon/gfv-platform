@@ -125,6 +125,18 @@ export async function caricaProdottiMiscelaNelForm({ getProdotti, specie } = {})
   }
 }
 
+function avversitaDalCampo(select, nodoFallback) {
+  const valore = select && select.value ? String(select.value).trim() : '';
+  if (valore) return valore;
+  const nodo = nodoFallback || select;
+  return nodo && nodo.getAttribute ? String(nodo.getAttribute('data-avversita') || '').trim() : '';
+}
+
+function testoAvversitaProdotto(prodotto) {
+  if (!prodotto) return '';
+  return String(prodotto.avversitaPianificata || prodotto.avversita || '').trim();
+}
+
 function leggiProdottiMiscelaDalForm() {
   const rows = [];
   const aggiungi = (riga) => {
@@ -137,27 +149,35 @@ function leggiProdottiMiscelaDalForm() {
   const nomeLibero = document.getElementById('lavoro-miscela-nome')?.value?.trim() || '';
   const dose = document.getElementById('lavoro-miscela-dose-ha')?.value;
   const nome = id ? nomeOpt : nomeLibero;
+  const selectAvversita = document.getElementById('lavoro-miscela-avversita');
+  const avversitaPrincipale = avversitaDalCampo(selectAvversita);
   if (nome && nome !== '— Nessun prodotto —') {
-    aggiungi({
+    const riga = {
       prodottoId: id || null,
       nome,
       dosePerEttaro: dose,
       unita: nomeSel?.selectedOptions?.[0]?.getAttribute('data-unita') || null,
       dosePerEttolitro: nomeSel?.selectedOptions?.[0]?.getAttribute('data-dose-hl') || null
-    });
+    };
+    if (avversitaPrincipale) riga.avversitaPianificata = avversitaPrincipale;
+    aggiungi(riga);
   }
   document.querySelectorAll('#tbody-miscela-lavoro tr[data-extra]').forEach((tr) => {
     const extraId = tr.getAttribute('data-prodotto-id') || null;
     const extraNome = tr.getAttribute('data-nome') || '';
     const extraDose = tr.querySelector('.miscela-dose-extra')?.value;
+    const extraSelect = tr.querySelector('.miscela-avversita-extra');
+    const extraAvversita = avversitaDalCampo(extraSelect, tr);
     if (!extraNome) return;
-    aggiungi({
+    const riga = {
       prodottoId: extraId,
       nome: extraNome,
       dosePerEttaro: extraDose,
       unita: tr.getAttribute('data-unita') || null,
       dosePerEttolitro: tr.getAttribute('data-dose-hl') || null
-    });
+    };
+    if (extraAvversita) riga.avversitaPianificata = extraAvversita;
+    aggiungi(riga);
   });
   return rows;
 }
@@ -188,14 +208,30 @@ export function scriviMiscelaNelForm(miscela) {
   if (sel && primo && primo.prodottoId) sel.value = primo.prodottoId;
   if (nome) nome.value = primo && !primo.prodottoId ? (primo.nome || '') : '';
   if (dose) dose.value = primo && primo.dosePerEttaro != null ? primo.dosePerEttaro : '';
+  const avversita = document.getElementById('lavoro-miscela-avversita');
+  if (avversita) {
+    const testo = testoAvversitaProdotto(primo);
+    avversita.setAttribute('data-avversita', testo);
+    avversita.value = testo;
+  }
   const tbody = document.getElementById('tbody-miscela-lavoro');
   if (!tbody) return;
-  tbody.innerHTML = prodotti.slice(1).map((p) =>
-    '<tr data-extra="1" data-prodotto-id="' + esc(p.prodottoId || '') + '" data-nome="' + esc(p.nome || '') + '" data-unita="' + esc(p.unita || '') + '" data-dose-hl="' + esc(p.dosePerEttolitro != null ? p.dosePerEttolitro : '') + '">'
-    + '<td>' + esc(p.nome || '') + '</td>'
+  tbody.innerHTML = prodotti.slice(1).map((p) => rigaExtraMiscela(p)).join('');
+}
+
+function celleExtraMiscela(p) {
+  const avversita = testoAvversitaProdotto(p);
+  return '<td>' + esc(p.nome || '') + ' <span class="lavoro-semaforo-pallino"></span></td>'
+    + '<td><select class="miscela-avversita-extra" data-avversita="' + esc(avversita) + '"><option value="">— da scegliere —</option></select></td>'
     + '<td><input type="number" class="miscela-dose-extra" min="0" step="0.001" value="' + esc(p.dosePerEttaro != null ? p.dosePerEttaro : '') + '"></td>'
-    + '<td><button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td></tr>'
-  ).join('');
+    + '<td><span class="lavoro-dose-etichetta-extra"></span></td>'
+    + '<td><button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td>';
+}
+
+function rigaExtraMiscela(p) {
+  const avversita = testoAvversitaProdotto(p);
+  return '<tr data-extra="1" data-prodotto-id="' + esc(p.prodottoId || '') + '" data-nome="' + esc(p.nome || '') + '" data-unita="' + esc(p.unita || '') + '" data-dose-hl="' + esc(p.dosePerEttolitro != null ? p.dosePerEttolitro : '') + '" data-avversita="' + esc(avversita) + '">'
+    + celleExtraMiscela(p) + '</tr>';
 }
 
 export function testoAnteprimaMiscela(miscela) {
@@ -247,9 +283,14 @@ function puliscaCampiMiscela() {
   const sel = document.getElementById('lavoro-miscela-prodotto');
   const nome = document.getElementById('lavoro-miscela-nome');
   const dose = document.getElementById('lavoro-miscela-dose-ha');
+  const avversita = document.getElementById('lavoro-miscela-avversita');
   if (sel) sel.value = '';
   if (nome) nome.value = '';
   if (dose) dose.value = '';
+  if (avversita) {
+    avversita.value = '';
+    avversita.removeAttribute('data-avversita');
+  }
 }
 
 export function installaMiscelaLavoro(opts = {}) {
@@ -260,6 +301,12 @@ export function installaMiscelaLavoro(opts = {}) {
   if (nota) nota.textContent = NOTA_REGISTRO_PRIVATO;
   form.addEventListener('change', (e) => {
     const id = e.target && e.target.id;
+    const target = e.target;
+    if (target && (target.id === 'lavoro-miscela-avversita' || (target.classList && target.classList.contains('miscela-avversita-extra')))) {
+      target.setAttribute('data-avversita', target.value || '');
+      const tr = target.closest ? target.closest('tr') : null;
+      if (tr) tr.setAttribute('data-avversita', target.value || '');
+    }
     if (id === 'lavoro-tipo-lavoro' || id === 'lavoro-categoria-principale' || id === 'lavoro-sottocategoria') {
       const esito = aggiornaSezioneMiscelaLavoro();
       if (esito.visibile && typeof onCaricaProdottiMiscela === 'function') onCaricaProdottiMiscela();
@@ -271,6 +318,7 @@ export function installaMiscelaLavoro(opts = {}) {
       const sel = document.getElementById('lavoro-miscela-prodotto');
       const nomeLibero = document.getElementById('lavoro-miscela-nome')?.value?.trim() || '';
       const dose = document.getElementById('lavoro-miscela-dose-ha')?.value || '';
+      const avversitaScelta = document.getElementById('lavoro-miscela-avversita')?.value?.trim() || '';
       const id = sel?.value || '';
       const nome = id && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : nomeLibero;
       if (!nome) return;
@@ -293,7 +341,8 @@ export function installaMiscelaLavoro(opts = {}) {
       tr.setAttribute('data-nome', nome);
       tr.setAttribute('data-unita', (sel?.selectedOptions?.[0]?.getAttribute('data-unita')) || '');
       tr.setAttribute('data-dose-hl', (sel?.selectedOptions?.[0]?.getAttribute('data-dose-hl')) || '');
-      tr.innerHTML = '<td>' + esc(nome) + '</td><td><input type="number" class="miscela-dose-extra" min="0" step="0.001" value="' + esc(dose) + '"></td><td><button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td>';
+      tr.setAttribute('data-avversita', avversitaScelta);
+      tr.innerHTML = celleExtraMiscela({ nome, dosePerEttaro: dose, avversita: avversitaScelta });
       tbody.appendChild(tr);
       puliscaCampiMiscela();
     });

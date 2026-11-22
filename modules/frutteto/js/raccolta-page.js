@@ -12,6 +12,7 @@ import { getCurrentPositionGeo, geolocationErrorMessage } from '../../../core/js
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
+import { aggiornaAvvisoCarenzaFruttetoOra, azzeraAvvisoCarenzaRaccolta, installaAvvisoCarenzaFrutteto } from '../../../shared/js/avviso-carenza-raccolta.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -577,6 +578,7 @@ function setupEventListeners() {
     document.getElementById('close-raccolta-modal').addEventListener('click', closeRaccoltaModal);
     document.getElementById('cancel-raccolta-btn').addEventListener('click', closeRaccoltaModal);
     document.getElementById('raccolta-form').addEventListener('submit', onRaccoltaSubmit);
+    installaAvvisoCarenzaFrutteto({ frutteti: () => frutteti });
 
     document.getElementById('filter-frutteto').addEventListener('change', loadRaccolte);
     document.getElementById('filter-anno').addEventListener('change', loadRaccolte);
@@ -675,6 +677,7 @@ function openNewRaccolta() {
     if (fruttetoId) document.getElementById('fruttetoId').value = fruttetoId;
     window.onFruttetoChange();
     modal.classList.add('active');
+    aggiornaAvvisoCarenzaFruttetoOra();
     modal.style.display = 'flex';
 }
 
@@ -774,6 +777,7 @@ async function openEditRaccolta(fruttetoId, raccoltaId) {
         window.calcolaResa();
         const modal = document.getElementById('raccolta-modal');
         if (modal) { modal.classList.add('active'); modal.style.display = 'flex'; }
+        aggiornaAvvisoCarenzaFruttetoOra();
     } catch (error) {
         console.error('[RACCOLTA-FRUTTA] Errore apertura modifica:', error);
         alert('Errore nel caricamento della raccolta: ' + error.message);
@@ -797,6 +801,7 @@ function closeRaccoltaModal() {
         modal.classList.remove('active');
         modal.style.display = 'none';
     }
+    azzeraAvvisoCarenzaRaccolta();
     currentEditing = { fruttetoId: null, raccoltaId: null };
 }
 
