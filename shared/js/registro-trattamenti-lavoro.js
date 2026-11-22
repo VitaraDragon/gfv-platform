@@ -180,6 +180,43 @@ function scriviLegameSulNodo(nodo, prodotto) {
   else nodo.removeAttribute('data-numero-registrazione');
   if (nomeScheda) nodo.setAttribute('data-nome-scheda', nomeScheda);
   else nodo.removeAttribute('data-nome-scheda');
+  if ((numero || nomeScheda) && nodo.tagName === 'INPUT') {
+    const legato = String(nodo.value || '').trim();
+    if (legato) nodo.setAttribute('data-nome-legato', legato);
+    else nodo.removeAttribute('data-nome-legato');
+  } else {
+    nodo.removeAttribute('data-nome-legato');
+  }
+}
+
+/** Spazi e maiuscole non distinguono il nome con cui è stato fatto il legame. */
+function nomeLegameConfronto(value) {
+  return String(value || '').toLowerCase().replace(/\s+/g, '');
+}
+
+function legameNomeAncoraValido(nodo) {
+  const legato = testoAttributo(nodo, 'data-nome-legato');
+  if (!legato) return false;
+  return nomeLegameConfronto(nodo.value) === nomeLegameConfronto(legato);
+}
+
+function nodoHaLegameScheda(nodo) {
+  return !!(
+    testoAttributo(nodo, 'data-numero-registrazione')
+    || testoAttributo(nodo, 'data-nome-scheda')
+    || testoAttributo(nodo, 'data-nome-legato')
+  );
+}
+
+/** Il nome libero non è più quello della scheda: il legame non deve valutare l'etichetta vecchia. */
+function staccaLegameSeNomeDiverso(nodo) {
+  if (!nodo || !nodoHaLegameScheda(nodo) || legameNomeAncoraValido(nodo)) return;
+  scriviLegameSulNodo(nodo, null);
+  scriviEsitoLavoro('');
+  const daEtichetta = document.getElementById('lavoro-dose-etichetta');
+  if (daEtichetta) daEtichetta.textContent = '';
+  const dose = document.getElementById('lavoro-miscela-dose-ha');
+  if (dose) dose.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function copiaLegameTraNodi(da, a) {
@@ -411,10 +448,14 @@ async function applicaProdottoScelto(prodotto) {
   const numero = numeroFileEtichetta(prodotto.numeroRegistrazione);
   const nomeScheda = String(prodotto.denominazione || '').trim();
   const nodo = rigaLeggiScheda || document.getElementById('lavoro-miscela-nome');
-  if (nodo) {
-    if (numero) nodo.setAttribute('data-numero-registrazione', numero);
-    if (nomeScheda) nodo.setAttribute('data-nome-scheda', nomeScheda);
-  }
+  scriviLegameSulNodo(nodo, {
+    numeroRegistrazioneLetto: numero || null,
+    riferimentoRiga: {
+      nomeProdotto: nomeScheda,
+      numeroRegistrazione: numero,
+      colturaScheda: ''
+    }
+  });
   let scheda = null;
   try {
     scheda = numero ? await caricaSchedaEtichetta(numero) : null;
@@ -442,6 +483,10 @@ export function attaccaLeggiSchedaLavoro() {
   const section = document.getElementById('lavoro-miscela-section');
   if (!section || section.dataset.leggiScheda === '1') return;
   section.dataset.leggiScheda = '1';
+  const nomeCampo = document.getElementById('lavoro-miscela-nome');
+  if (nomeCampo) {
+    nomeCampo.addEventListener('input', () => staccaLegameSeNomeDiverso(nomeCampo));
+  }
   section.addEventListener('click', (evento) => {
     const nodo = evento.target && evento.target.closest ? evento.target : null;
     if (!nodo || !nodo.closest) return;
@@ -488,6 +533,9 @@ export function installaMiscelaLavoro(opts = {}) {
       const tr = target.closest ? target.closest('tr') : null;
       if (tr) tr.setAttribute('data-avversita', target.value || '');
     }
+    if (id === 'lavoro-miscela-prodotto' && String(target && target.value || '').trim()) {
+      scriviLegameSulNodo(document.getElementById('lavoro-miscela-nome'), null);
+    }
     if (id === 'lavoro-tipo-lavoro' || id === 'lavoro-categoria-principale' || id === 'lavoro-sottocategoria') {
       const esito = aggiornaSezioneMiscelaLavoro();
       if (esito.visibile && typeof onCaricaProdottiMiscela === 'function') onCaricaProdottiMiscela();
@@ -523,7 +571,9 @@ export function installaMiscelaLavoro(opts = {}) {
       tr.setAttribute('data-unita', (sel?.selectedOptions?.[0]?.getAttribute('data-unita')) || '');
       tr.setAttribute('data-dose-hl', (sel?.selectedOptions?.[0]?.getAttribute('data-dose-hl')) || '');
       tr.setAttribute('data-avversita', avversitaScelta);
-      if (!id) copiaLegameTraNodi(document.getElementById('lavoro-miscela-nome'), tr);
+      const nomeNodo = document.getElementById('lavoro-miscela-nome');
+      if (id) scriviLegameSulNodo(nomeNodo, null);
+      else copiaLegameTraNodi(nomeNodo, tr);
       tr.innerHTML = celleExtraMiscela({ nome, dosePerEttaro: dose, avversita: avversitaScelta });
       tbody.appendChild(tr);
       puliscaCampiMiscela();
