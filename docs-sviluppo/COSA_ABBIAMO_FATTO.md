@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-22 — carenza solo sui trattamenti fatti.**
+**Ultimo aggiornamento documentazione: 2026-11-22 — carenza sulla raccolta del seminativo.**
+
+## 2026-11-22 — carenza sulla raccolta del seminativo
+
+Su `fix/carenza-raccolta-seminativo` (PR verso develop). Nessun merge, nessun deploy.
+
+Nel modale Completa raccolta del seminativo e delle orticole, e nel modale lavoro quando il tipo è Raccolta, l'avviso di carenza vede anche un trattamento eseguito che sta solo sul lavoro, senza scheda in `trattamentiSeminativo` o `trattamentiOrticole`. I pianificati restano fuori. La data è quella del lavoro; se il lavoro è già chiuso e ha `completatoIl` o `approvatoIl`, vale quella. Il salvataggio non si blocca. Il conteggio annuo e l'intervallo minimo non cambiano.
+
+---
 
 ## 2026-11-22 — carenza solo sui trattamenti fatti
 

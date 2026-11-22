@@ -4,8 +4,8 @@
  * @module shared/js/avviso-carenza-raccolta
  */
 
-import { caricaPacchettoPerRighe, legamiScheda } from './registro-trattamenti-conformita.js';
-import { allineaTrattamentiAiLavori } from './registro-trattamenti-passaggi.js';
+import { caricaPacchettoPerRighe, dataGiorno, legamiScheda } from './registro-trattamenti-conformita.js';
+import { allineaTrattamentiAiLavori, lavoroEseguitoPerCarenza } from './registro-trattamenti-passaggi.js';
 import {
   avvisoCarenzaRaccolta,
   htmlAvvisoCarenza,
@@ -87,6 +87,62 @@ function stessoContesto(trattamento, filtro) {
 }
 
 /**
+ * Data contro cui misurare la carenza.
+ * Vale la data del lavoro. Se il lavoro è già eseguito e ha una data di chiusura, vale quella.
+ * Senza chiusura non si indovina un giorno.
+ */
+export function dataRaccoltaPerCarenza(lavoro, dataInizio) {
+  if (lavoroEseguitoPerCarenza(lavoro)) {
+    if (dataGiorno(lavoro.completatoIl)) return lavoro.completatoIl;
+    if (dataGiorno(lavoro.approvatoIl)) return lavoro.approvatoIl;
+  }
+  if (dataGiorno(dataInizio)) return dataInizio;
+  if (lavoro && dataGiorno(lavoro.dataInizio)) return lavoro.dataInizio;
+  if (lavoro && dataGiorno(lavoro.data)) return lavoro.data;
+  return dataInizio || '';
+}
+
+/**
+ * Un trattamento eseguito da Gestione lavori può non avere ancora la scheda
+ * in trattamentiSeminativo o trattamentiOrticole. I prodotti stanno sulla miscela del lavoro.
+ * I pianificati non entrano: la carenza conta solo i passaggi eseguiti.
+ */
+async function integraTrattamentiEseguitiDaLavori(out, filtro) {
+  const terrenoId = filtro.terrenoId ? String(filtro.terrenoId) : '';
+  if (!terrenoId) return;
+  let lavori = [];
+  try {
+    const { getLavoriByTerreno } = await import('../../core/services/lavori-service.js');
+    lavori = await getLavoriByTerreno(terrenoId) || [];
+  } catch (e) {
+    return;
+  }
+  const { tipoLavoroETrattamento } = await import('./registro-trattamenti-lavoro.js');
+  const { righeTrattamentoDaMiscela } = await import('./registro-trattamenti.js');
+  const gia = new Set((out || []).map((voce) => (voce && voce.lavoroId ? String(voce.lavoroId) : '')).filter(Boolean));
+  lavori.forEach((lavoro) => {
+    if (!lavoro || !lavoroEseguitoPerCarenza(lavoro)) return;
+    if (!tipoLavoroETrattamento(lavoro.tipoLavoro)) return;
+    if (String(lavoro.terrenoId || '') !== terrenoId) return;
+    const id = String(lavoro.id || '');
+    if (!id || gia.has(id)) return;
+    const da = righeTrattamentoDaMiscela(lavoro.miscelaPrevista, null);
+    if (!da.prodotti.length) return;
+    const voce = normalizzaTrattamento({
+      id: 'lavoro:' + id,
+      lavoroId: id,
+      data: lavoro.dataInizio || lavoro.data,
+      stato: lavoro.stato,
+      terrenoId: lavoro.terrenoId,
+      prodotti: da.prodotti
+    }, { terrenoId });
+    if (!voce) return;
+    out.push(voce);
+    gia.add(id);
+  });
+}
+
+/**
  * Schede del terreno, con le righe prodotto. Stessi moduli di contestoRegistroTerreno.
  */
 export async function caricaTrattamentiPerCarenza(filtro = {}) {
@@ -141,6 +197,7 @@ export async function caricaTrattamentiPerCarenza(filtro = {}) {
     const { getAllTrattamentiOrticole } = await import('../../modules/orticole/services/trattamenti-service.js');
     spingi(await getAllTrattamentiOrticole(), {});
   } catch (e) { /* modulo assente */ }
+  await integraTrattamentiEseguitiDaLavori(out, filtro);
   return out;
 }
 

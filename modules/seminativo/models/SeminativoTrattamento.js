@@ -192,6 +192,9 @@ export function selezionaRigheTrattamento(input = {}) {
         campagna: campagna.campagna,
         colturaNome: campagna.colturaNome || '',
         superficieEttari: campagna.superficieEttari != null ? campagna.superficieEttari : null,
+        stato: lavoro.stato || '',
+        completatoIl: lavoro.completatoIl || null,
+        approvatoIl: lavoro.approvatoIl || null,
         trattamento: byLavoro.get(String(lavoro.id)) || null
       });
     });
