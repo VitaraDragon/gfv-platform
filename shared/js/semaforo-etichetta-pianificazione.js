@@ -120,19 +120,45 @@ function voceCarenzaProdotto({ riga, trattamento, coltura, vocabolario, scheda }
   };
 }
 
+function dettaglioCarenza(voce) {
+  let testo = voce.prodotto + ', trattamento del ' + formattaDataIt(voce.dataTrattamento)
+    + ', carenza ' + voce.giorni + ' giorni da etichetta, fine carenza ' + formattaDataIt(voce.dal);
+  if (voce.ambigua) {
+    testo += ' (valore più lungo tra le avversità in etichetta: scegli l\'avversità nel registro)';
+  }
+  if (voce.condizione) {
+    testo += ' (in etichetta: solo con la condizione «' + voce.condizione + '»)';
+  }
+  return testo;
+}
+
 function fraseCarenza(verbo, dataMinima, voci) {
-  const dettagli = voci.map((voce) => {
-    let testo = voce.prodotto + ', trattamento del ' + formattaDataIt(voce.dataTrattamento)
-      + ', carenza ' + voce.giorni + ' giorni da etichetta';
-    if (voce.ambigua) {
-      testo += ' (valore più lungo tra le avversità in etichetta: scegli l\'avversità nel registro)';
-    }
-    if (voce.condizione) {
-      testo += ' (in etichetta: solo con la condizione «' + voce.condizione + '»)';
-    }
-    return testo;
-  }).join('. ');
-  return 'Non si può ' + verbo + ' prima del ' + formattaDataIt(dataMinima) + ': ' + dettagli;
+  const prima = voci[0];
+  let testo = 'Non si può ' + verbo + ' prima del ' + formattaDataIt(dataMinima) + ': ' + dettaglioCarenza(prima);
+  const altri = voci.length - 1;
+  if (altri === 1) testo += ', e un altro trattamento ancora in carenza';
+  else if (altri > 1) testo += ', e altri ' + altri + ' trattamenti ancora in carenza';
+  return testo;
+}
+
+function escCarenza(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Frase compatta. Se i trattamenti sono più di uno, l'elenco sta in un details chiuso. */
+export function htmlAvvisoCarenza(esito) {
+  const testo = esito && esito.testo ? String(esito.testo) : '';
+  if (!testo) return '';
+  const voci = Array.isArray(esito.voci) ? esito.voci : [];
+  if (voci.length <= 1) return escCarenza(testo);
+  const lista = voci.map((voce) => '<li>' + escCarenza(dettaglioCarenza(voce)) + '</li>').join('');
+  return '<p style="margin:0 0 6px;">' + escCarenza(testo) + '</p>'
+    + '<details><summary>Elenco dei trattamenti in carenza</summary>'
+    + '<ul style="margin:6px 0 0;padding-left:1.2rem;">' + lista + '</ul></details>';
 }
 
 /**

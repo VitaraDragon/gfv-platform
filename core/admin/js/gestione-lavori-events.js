@@ -1485,9 +1485,15 @@ export async function openEliminaModal(
             return;
         }
 
-        if (!confirm(formatLavoroDeleteConfirmMessage(lavoro.nome, counts))) {
-            return;
-        }
+        const { showConfirmDialog } = await import('../../../shared/js/confirm-dialog.js');
+        const confermato = await showConfirmDialog({
+            title: 'Elimina lavoro',
+            message: formatLavoroDeleteConfirmMessage(lavoro.nome, counts),
+            confirmLabel: 'Elimina',
+            cancelLabel: 'Annulla',
+            icon: '🗑️'
+        });
+        if (!confermato) return;
 
         await deleteLavoroCascade(lavoroId, {
             tenantId: currentTenantId,

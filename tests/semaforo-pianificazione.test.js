@@ -6,7 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { conteggioTrattamentiEtichetta, parolaConformita } from '../shared/js/registro-trattamenti-conformita.js';
-import { righeTrattamentoDaMiscela, rigaHaConferma, valutaCancellazioneRegistro } from '../shared/js/registro-trattamenti.js';
+import { righeTrattamentoDaMiscela, rigaDelFiltroImpianto, rigaHaConferma, valutaCancellazioneRegistro } from '../shared/js/registro-trattamenti.js';
+import { mostraNotaPassaggioNonRegistrato } from '../shared/js/registro-trattamenti-lavoro-semaforo.js';
 import { registroConfermaManuale } from '../shared/js/registro-trattamenti-form.js';
 import {
   allineaTrattamentiAiLavori,
@@ -14,6 +15,7 @@ import {
 } from '../shared/js/registro-trattamenti-passaggi.js';
 import {
   avvisoCarenzaRaccolta,
+  htmlAvvisoCarenza,
   tipoLavoroRaccolta,
   valutaTrattamentoPianificato
 } from '../shared/js/semaforo-etichetta-pianificazione.js';
@@ -137,6 +139,47 @@ describe('valutaTrattamentoPianificato', () => {
     expect(esito.colore).toBe('grigio');
     expect(parolaConformita(esito)).toBe("Nessun dato d'etichetta");
     expect(esito.motivi.some((m) => m.colore === 'rosso')).toBe(false);
+  });
+
+  it('una riga Errore con nome breve conta; annullata e fuori data no', () => {
+    const errore = {
+      id: 'err',
+      data: giorno('2026-11-20'),
+      terrenoId: 't1',
+      prodottoId: 'magazzino-altro',
+      nome: 'Folpan',
+      numeroRegistrazioneLetto: '8601',
+      stato: 'errore'
+    };
+    const prima = pianifica({ data: '2026-11-15', precedenti: [errore] });
+    const dopo = pianifica({ data: '2026-11-21', precedenti: [errore] });
+    const conAltri = pianifica({
+      data: '2026-11-15',
+      precedenti: [errore, {
+        id: 'piano',
+        data: giorno('2026-06-01'),
+        terrenoId: 't1',
+        nome: 'FOLPAN 80 WDG',
+        stato: 'assegnato',
+        pianificato: true
+      }, {
+        id: 'ann',
+        data: giorno('2026-06-02'),
+        terrenoId: 't1',
+        nome: 'FOLPAN 80 WDG',
+        stato: 'annullato'
+      }, {
+        id: 'vecchio',
+        data: giorno('2025-11-20'),
+        terrenoId: 't1',
+        nome: 'FOLPAN 80 WDG'
+      }]
+    });
+    expect(prima.motivi.some((m) => /sarebbe il 1°/.test(m.testo || ''))).toBe(true);
+    expect(prima.motivi.some((m) => /ne restano 9/.test(m.testo || ''))).toBe(true);
+    expect(dopo.motivi.some((m) => /sarebbe il 2°/.test(m.testo || ''))).toBe(true);
+    expect(dopo.motivi.some((m) => /ne restano 8/.test(m.testo || ''))).toBe(true);
+    expect(conAltri.motivi.some((m) => /sarebbe il 2°/.test(m.testo || ''))).toBe(true);
   });
 
   it('la scheda stub dello stesso lavoro non conta', () => {
@@ -307,6 +350,26 @@ describe('avvisoCarenzaRaccolta', () => {
       vocabolario
     });
     expect(esito.testo.startsWith('Non si può vendemmiare prima del 24/09/2026')).toBe(true);
+    expect(esito.testo).toContain('e un altro trattamento ancora in carenza');
+    expect((esito.testo.match(/Non si può/g) || []).length).toBe(1);
+  });
+
+  it('sette trattamenti: una frase, il più tardi, e gli altri nel details', () => {
+    const trattamenti = Array.from({ length: 7 }, (_, i) => trattamento('2026-08-' + String(i + 1).padStart(2, '0'), 'Peronospora (Plasmopara viticola)'));
+    const esito = avvisoCarenzaRaccolta({
+      dataRaccolta: giorno('2026-08-20'),
+      coltura: 'vite da vino',
+      verbo: 'vendemmiare',
+      trattamenti,
+      ...legami(folpan)
+    });
+    expect((esito.testo.match(/Non si può vendemmiare/g) || []).length).toBe(1);
+    expect(esito.testo).toContain('e altri 6 trattamenti ancora in carenza');
+    expect(esito.testo).toContain('fine carenza');
+    const html = htmlAvvisoCarenza(esito);
+    expect(html).toContain('<details>');
+    expect(html).not.toContain('<details open');
+    expect((html.match(/Non si può vendemmiare/g) || []).length).toBe(1);
   });
 
   it('frutteto e seminativo usano raccogliere', () => {
@@ -393,6 +456,39 @@ describe('avvisoCarenzaRaccolta', () => {
       ...legami(folpan)
     });
     expect(esito.testo).toContain('12/09/2026');
+  });
+
+  it('la nota di ieri compare solo se il passaggio del giorno prima non è registrato', () => {
+    const oggi = giorno('2026-11-22');
+    const base = {
+      eTrattamento: true,
+      dataLavoro: '2026-11-21',
+      oggi,
+      lavoroId: 'L21',
+      lavoroCompletato: false,
+      precedenti: []
+    };
+    expect(mostraNotaPassaggioNonRegistrato(base)).toBe(true);
+    expect(mostraNotaPassaggioNonRegistrato({ ...base, eTrattamento: false })).toBe(false);
+    expect(mostraNotaPassaggioNonRegistrato({
+      ...base,
+      dataLavoro: '2026-11-10',
+      precedenti: [{ id: 'reg', data: giorno('2026-11-09'), terrenoId: 't1', nome: 'FOLPAN 80 WDG', stato: 'completato' }]
+    })).toBe(false);
+    expect(mostraNotaPassaggioNonRegistrato({
+      ...base,
+      dataLavoro: '2026-11-10',
+      precedenti: [{ id: 'bozza', data: giorno('2026-11-09'), pianificato: true, stato: 'assegnato' }]
+    })).toBe(true);
+  });
+
+  it('il filtro coltura tiene solo le righe di quel vigneto', () => {
+    expect(rigaDelFiltroImpianto('sang', 'sang', ['sang', 'merlot'])).toBe(true);
+    expect(rigaDelFiltroImpianto('sang', 'merlot', ['sang', 'merlot'])).toBe(false);
+    expect(rigaDelFiltroImpianto('sang', '', ['sang', 'merlot'])).toBe(false);
+    expect(rigaDelFiltroImpianto('sang', '', ['sang'])).toBe(true);
+    expect(rigaDelFiltroImpianto('sang', '', ['sang', 'merlot'], { tutti: true })).toBe(true);
+    expect(rigaDelFiltroImpianto('merlot', '', ['sang', 'merlot'], { tutti: true })).toBe(false);
   });
 
   it('riconosce raccolta e vendemmia', () => {

@@ -42,6 +42,7 @@ export function unisciPassaggiLavoriPianificati(passaggi, lavori, opzioni = {}) 
     const lavoro = lavoroId ? perId.get(lavoroId) : null;
     if (lavoro && lavoroAnnullato(lavoro)) return;
     const copia = { ...passaggio };
+    if (lavoro && lavoro.stato) copia.stato = lavoro.stato;
     if (lavoro && lavoroPianificatoNonEseguito(lavoro) && lavoro.dataInizio) {
       copia.data = lavoro.dataInizio;
     }
@@ -59,15 +60,20 @@ export function unisciPassaggiLavoriPianificati(passaggi, lavori, opzioni = {}) 
     if (!prodotti.length || giaInRegistro.has(id)) return;
     prodotti.forEach((prodotto) => {
       if (!prodotto || (!prodotto.prodottoId && !prodotto.nome && !prodotto.prodotto)) return;
-      out.push({
+      const rif = prodotto.riferimentoRiga && typeof prodotto.riferimentoRiga === 'object' ? prodotto.riferimentoRiga : null;
+      const numero = String(prodotto.numeroRegistrazioneLetto || (rif && rif.numeroRegistrazione) || '').trim();
+      const voce = {
         id: 'lavoro:' + id,
         lavoroId: id,
         data: lavoro.dataInizio,
         terrenoId: lavoro.terrenoId || terrenoId || null,
         prodottoId: prodotto.prodottoId || null,
         nome: prodotto.nome || prodotto.prodotto || '',
+        stato: lavoro.stato || null,
         pianificato: true
-      });
+      };
+      if (numero) voce.numeroRegistrazioneLetto = numero;
+      out.push(voce);
     });
   });
   return out;
@@ -99,15 +105,22 @@ function daTrattamenti(lista, terrenoId) {
   (lista || []).forEach((t) => {
     const prodotti = t && Array.isArray(t.prodotti) ? t.prodotti : [];
     prodotti.forEach((p) => {
-      if (!p || (!p.prodottoId && !p.prodotto)) return;
-      out.push({
+      if (!p) return;
+      const nome = String(p.prodotto || p.nome || '').trim();
+      const rif = p.riferimentoRiga && typeof p.riferimentoRiga === 'object' ? p.riferimentoRiga : null;
+      const numero = String(p.numeroRegistrazioneLetto || (rif && rif.numeroRegistrazione) || '').trim();
+      if (!p.prodottoId && !nome && !numero) return;
+      const voce = {
         id: t.id,
         lavoroId: t.lavoroId || null,
         data: t.data,
         terrenoId,
         prodottoId: p.prodottoId || null,
-        nome: p.prodotto || ''
-      });
+        nome
+      };
+      if (numero) voce.numeroRegistrazioneLetto = numero;
+      if (t.stato) voce.stato = t.stato;
+      out.push(voce);
     });
   });
   return out;
