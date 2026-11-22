@@ -46,6 +46,8 @@ function formLavoro(tipo = 'Trattamento fitosanitario') {
         <div id="lavoro-semaforo-banner" hidden></div>
         <select id="lavoro-miscela-prodotto"><option value="">— Nessun prodotto —</option></select>
         <input id="lavoro-miscela-nome" value="FOLPAN 80 WDG">
+        <button type="button" class="btn btn-sm btn-secondary btn-leggi-scheda" id="btn-leggi-scheda-miscela">Leggi scheda</button>
+        <div id="lavoro-scheda-esito"></div>
         <select id="lavoro-miscela-avversita"><option value="">— da scegliere —</option></select>
         <input id="lavoro-miscela-dose-ha" value="">
         <span id="lavoro-semaforo-riga"></span>
@@ -301,6 +303,95 @@ describe('diario carenza', () => {
     expect(box.hidden).toBe(true);
     expect(confirm).not.toHaveBeenCalled();
     confirm.mockRestore();
+  });
+
+  it('nome libero: Leggi scheda aggancia Folpan, semaforo e riapertura senza conferma', async () => {
+    const { attaccaLeggiSchedaLavoro, componiMiscelaDalForm, scriviMiscelaNelForm } = await import('../shared/js/registro-trattamenti-lavoro.js');
+    const { aggiornaSemaforoPianificazione } = await import('../shared/js/registro-trattamenti-lavoro-semaforo.js');
+    const { rigaHaConferma, righeTrattamentoDaMiscela } = await import('../shared/js/registro-trattamenti.js');
+    const { cercaProdottiEtichetta } = await import('../shared/js/registro-trattamenti-conformita.js');
+    formLavoro();
+    document.getElementById('lavoro-miscela-nome').value = 'Folpan';
+    document.getElementById('lavoro-miscela-dose-ha').value = '3';
+    attaccaLeggiSchedaLavoro();
+    const ctx = {
+      specie: 'vite da vino',
+      terrenoId: 't1',
+      data: '2026-08-01',
+      precedenti: [],
+      prodotti: [],
+      terreni: [{ id: 't1', superficie: 1 }]
+    };
+    const prima = await aggiornaSemaforoPianificazione(ctx);
+    expect(prima.colore).toBe('grigio');
+    expect(document.getElementById('lavoro-semaforo-banner').textContent).toContain('Leggi scheda');
+    expect(document.getElementById('btn-leggi-scheda-miscela').textContent).toContain('Leggi scheda');
+    expect(cercaProdottiEtichetta('Folpan', indice).map((p) => p.numero_registrazione)).toContain('008601');
+
+    document.getElementById('btn-leggi-scheda-miscela').click();
+    await vi.waitFor(() => {
+      expect(document.querySelector('#lavoro-scheda-esito [data-scegli-prodotto]')).toBeTruthy();
+    });
+    expect(document.getElementById('lavoro-scheda-esito').textContent).toContain('FOLPAN 80 WDG');
+    expect(document.getElementById('lavoro-scheda-esito').textContent).toContain('008601');
+    document.querySelector('#lavoro-scheda-esito [data-scegli-prodotto]').click();
+    await vi.waitFor(() => {
+      expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-numero-registrazione')).toBe('008601');
+    });
+    expect(document.getElementById('lavoro-miscela-nome').value).toBe('Folpan');
+    expect(document.getElementById('lavoro-miscela-dose-ha').value).toBe('3');
+
+    const rosso = await aggiornaSemaforoPianificazione(ctx);
+    expect(rosso.colore).toBe('rosso');
+    expect(document.getElementById('lavoro-miscela-dose-ha').value).toBe('3');
+    const select = document.getElementById('lavoro-miscela-avversita');
+    expect(select.innerHTML).toContain('Peronospora');
+    const voce = Array.from(select.options).find((opt) => /peronospora/i.test(opt.textContent));
+    select.value = voce.value;
+    select.setAttribute('data-avversita', voce.value);
+    document.getElementById('lavoro-miscela-dose-ha').value = '1.4';
+    const verde = await aggiornaSemaforoPianificazione(ctx);
+    expect(verde.colore).toBe('verde');
+    expect(document.getElementById('lavoro-dose-etichetta').textContent).toContain('Da etichetta');
+    expect(document.getElementById('lavoro-miscela-dose-ha').value).toBe('1.4');
+
+    const miscela = componiMiscelaDalForm(1, null);
+    const nata = righeTrattamentoDaMiscela(miscela, 1).prodotti[0];
+    expect(nata.numeroRegistrazioneLetto).toBe('008601');
+    expect(nata.riferimentoRiga.nomeProdotto).toBe('FOLPAN 80 WDG');
+    expect(nata.avversitaPianificata).toContain('Peronospora');
+    expect(nata.avversita).toBeUndefined();
+    expect(rigaHaConferma(nata)).toBe(false);
+
+    formLavoro();
+    document.getElementById('lavoro-miscela-nome').value = '';
+    scriviMiscelaNelForm(miscela);
+    expect(document.getElementById('lavoro-miscela-nome').value).toBe('Folpan');
+    expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-numero-registrazione')).toBe('008601');
+    expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-nome-scheda')).toBe('FOLPAN 80 WDG');
+    expect(document.getElementById('lavoro-miscela-avversita').getAttribute('data-avversita')).toContain('Peronospora');
+    const riaperto = await aggiornaSemaforoPianificazione(ctx);
+    expect(document.getElementById('lavoro-miscela-avversita').value).toContain('Peronospora');
+    expect(riaperto.colore).toBe('verde');
+    expect(document.getElementById('lavoro-miscela-dose-ha').value).toBe('1.4');
+
+    scriviMiscelaNelForm({
+      prodotti: [
+        miscela.prodotti[0],
+        { nome: 'Altro libero', dosePerEttaro: 1 }
+      ]
+    });
+    const extra = document.querySelector('#tbody-miscela-lavoro .btn-leggi-scheda');
+    expect(extra).toBeTruthy();
+    expect(extra.textContent).toContain('Leggi scheda');
+
+    const sel = document.getElementById('lavoro-miscela-prodotto');
+    sel.innerHTML = '<option value="">— Nessun prodotto —</option><option value="p1">Prodotto a magazzino</option>';
+    sel.value = 'p1';
+    document.getElementById('lavoro-miscela-nome').setAttribute('data-numero-registrazione', '008601');
+    const daMagazzino = componiMiscelaDalForm(1, null).prodotti[0];
+    expect(daMagazzino.prodottoId).toBe('p1');
+    expect(daMagazzino.numeroRegistrazioneLetto).toBeUndefined();
   });
 
   it('in Conto Terzi il box non compare', async () => {

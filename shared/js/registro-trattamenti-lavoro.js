@@ -13,6 +13,15 @@ import {
   stessoProdotto,
   messaggiUnici
 } from './registro-trattamenti.js';
+import { htmlCardProdottoAgganciato, htmlPannelloOpenData } from './registro-trattamenti-form.js';
+import { cercaProdottiEtichetta } from './registro-trattamenti-conformita.js';
+import {
+  caricaIndiceEtichette,
+  caricaSchedaEtichetta,
+  caricaVocabolarioColture,
+  numeroFileEtichetta,
+  preparaEtichetta
+} from './registro-trattamenti-etichetta.js';
 
 function esc(value) {
   return String(value == null ? '' : value)
@@ -137,6 +146,51 @@ function testoAvversitaProdotto(prodotto) {
   return String(prodotto.avversitaPianificata || prodotto.avversita || '').trim();
 }
 
+function testoAttributo(nodo, nome) {
+  if (!nodo || !nodo.getAttribute) return '';
+  return String(nodo.getAttribute(nome) || '').trim();
+}
+
+/** Legame proposto sulla riga libera. Con un prodotto di magazzino non si sovrascrive. */
+function legameDalNodo(nodo, prodottoId) {
+  if (prodottoId) return null;
+  const numero = numeroFileEtichetta(testoAttributo(nodo, 'data-numero-registrazione'));
+  const nomeScheda = testoAttributo(nodo, 'data-nome-scheda');
+  if (!numero && !nomeScheda) return null;
+  const legame = {
+    riferimentoRiga: {
+      nomeProdotto: nomeScheda,
+      numeroRegistrazione: numero,
+      colturaScheda: ''
+    }
+  };
+  if (numero) legame.numeroRegistrazioneLetto = numero;
+  return legame;
+}
+
+function scriviLegameSulNodo(nodo, prodotto) {
+  if (!nodo) return;
+  const daMagazzino = !!(prodotto && prodotto.prodottoId);
+  const rif = !daMagazzino && prodotto && prodotto.riferimentoRiga;
+  const numero = daMagazzino
+    ? ''
+    : numeroFileEtichetta((prodotto && prodotto.numeroRegistrazioneLetto) || (rif && rif.numeroRegistrazione) || '');
+  const nomeScheda = daMagazzino ? '' : String((rif && rif.nomeProdotto) || '').trim();
+  if (numero) nodo.setAttribute('data-numero-registrazione', numero);
+  else nodo.removeAttribute('data-numero-registrazione');
+  if (nomeScheda) nodo.setAttribute('data-nome-scheda', nomeScheda);
+  else nodo.removeAttribute('data-nome-scheda');
+}
+
+function copiaLegameTraNodi(da, a) {
+  if (!da || !a) return;
+  ['data-numero-registrazione', 'data-nome-scheda'].forEach((attr) => {
+    const valore = testoAttributo(da, attr);
+    if (valore) a.setAttribute(attr, valore);
+    else a.removeAttribute(attr);
+  });
+}
+
 function leggiProdottiMiscelaDalForm() {
   const rows = [];
   const aggiungi = (riga) => {
@@ -146,7 +200,8 @@ function leggiProdottiMiscelaDalForm() {
   const id = document.getElementById('lavoro-miscela-prodotto')?.value || '';
   const nomeSel = document.getElementById('lavoro-miscela-prodotto');
   const nomeOpt = nomeSel && nomeSel.selectedIndex >= 0 ? nomeSel.options[nomeSel.selectedIndex].text : '';
-  const nomeLibero = document.getElementById('lavoro-miscela-nome')?.value?.trim() || '';
+  const nomeInput = document.getElementById('lavoro-miscela-nome');
+  const nomeLibero = nomeInput?.value?.trim() || '';
   const dose = document.getElementById('lavoro-miscela-dose-ha')?.value;
   const nome = id ? nomeOpt : nomeLibero;
   const selectAvversita = document.getElementById('lavoro-miscela-avversita');
@@ -160,6 +215,8 @@ function leggiProdottiMiscelaDalForm() {
       dosePerEttolitro: nomeSel?.selectedOptions?.[0]?.getAttribute('data-dose-hl') || null
     };
     if (avversitaPrincipale) riga.avversitaPianificata = avversitaPrincipale;
+    const legame = legameDalNodo(nomeInput, id);
+    if (legame) Object.assign(riga, legame);
     aggiungi(riga);
   }
   document.querySelectorAll('#tbody-miscela-lavoro tr[data-extra]').forEach((tr) => {
@@ -177,6 +234,8 @@ function leggiProdottiMiscelaDalForm() {
       dosePerEttolitro: tr.getAttribute('data-dose-hl') || null
     };
     if (extraAvversita) riga.avversitaPianificata = extraAvversita;
+    const legameExtra = legameDalNodo(tr, extraId);
+    if (legameExtra) Object.assign(riga, legameExtra);
     aggiungi(riga);
   });
   return rows;
@@ -214,9 +273,18 @@ export function scriviMiscelaNelForm(miscela) {
     avversita.setAttribute('data-avversita', testo);
     avversita.value = testo;
   }
+  scriviLegameSulNodo(nome, primo && !primo.prodottoId ? primo : null);
   const tbody = document.getElementById('tbody-miscela-lavoro');
   if (!tbody) return;
   tbody.innerHTML = prodotti.slice(1).map((p) => rigaExtraMiscela(p)).join('');
+}
+
+function attributiLegameHtml(p) {
+  if (p && p.prodottoId) return '';
+  const rif = p && p.riferimentoRiga;
+  const numero = numeroFileEtichetta((p && p.numeroRegistrazioneLetto) || (rif && rif.numeroRegistrazione) || '');
+  const nomeScheda = String((rif && rif.nomeProdotto) || '').trim();
+  return ' data-numero-registrazione="' + esc(numero) + '" data-nome-scheda="' + esc(nomeScheda) + '"';
 }
 
 function celleExtraMiscela(p) {
@@ -225,12 +293,13 @@ function celleExtraMiscela(p) {
     + '<td><select class="miscela-avversita-extra" data-avversita="' + esc(avversita) + '"><option value="">— da scegliere —</option></select></td>'
     + '<td><input type="number" class="miscela-dose-extra" min="0" step="0.001" value="' + esc(p.dosePerEttaro != null ? p.dosePerEttaro : '') + '"></td>'
     + '<td><span class="lavoro-dose-etichetta-extra"></span></td>'
-    + '<td><button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td>';
+    + '<td><button type="button" class="btn btn-sm btn-secondary btn-leggi-scheda">Leggi scheda</button> '
+    + '<button type="button" class="btn btn-sm btn-danger miscela-togli">Togli</button></td>';
 }
 
 function rigaExtraMiscela(p) {
   const avversita = testoAvversitaProdotto(p);
-  return '<tr data-extra="1" data-prodotto-id="' + esc(p.prodottoId || '') + '" data-nome="' + esc(p.nome || '') + '" data-unita="' + esc(p.unita || '') + '" data-dose-hl="' + esc(p.dosePerEttolitro != null ? p.dosePerEttolitro : '') + '" data-avversita="' + esc(avversita) + '">'
+  return '<tr data-extra="1" data-prodotto-id="' + esc(p.prodottoId || '') + '" data-nome="' + esc(p.nome || '') + '" data-unita="' + esc(p.unita || '') + '" data-dose-hl="' + esc(p.dosePerEttolitro != null ? p.dosePerEttolitro : '') + '" data-avversita="' + esc(avversita) + '"' + attributiLegameHtml(p) + '>'
     + celleExtraMiscela(p) + '</tr>';
 }
 
@@ -291,12 +360,124 @@ function puliscaCampiMiscela() {
     avversita.value = '';
     avversita.removeAttribute('data-avversita');
   }
+  scriviLegameSulNodo(nome, null);
+}
+
+let prodottiLeggiScheda = [];
+let rigaLeggiScheda = null;
+
+function scriviEsitoLavoro(html) {
+  const el = document.getElementById('lavoro-scheda-esito');
+  if (!el) return null;
+  el.innerHTML = html || '';
+  return el;
+}
+
+function vociIndice(lista) {
+  return (lista || []).map((p) => ({
+    denominazione: p && p.nome_prodotto ? String(p.nome_prodotto) : '',
+    numeroRegistrazione: numeroFileEtichetta(p && p.numero_registrazione) || ''
+  })).filter((p) => p.denominazione || p.numeroRegistrazione);
+}
+
+function disegnaSceltaIndice(nome) {
+  scriviEsitoLavoro(htmlPannelloOpenData({
+    esito: { prodotti: prodottiLeggiScheda },
+    nome,
+    soloScelta: true
+  }));
+}
+
+async function cercaEDisegna(nome) {
+  const richiesto = String(nome || '').trim();
+  if (!richiesto) {
+    scriviEsitoLavoro('<p>Indica prima il nome del prodotto.</p>');
+    return;
+  }
+  scriviEsitoLavoro('<p>Cerco il prodotto nell\'indice delle etichette…</p>');
+  let indice = { prodotti: [] };
+  try {
+    indice = await caricaIndiceEtichette();
+  } catch (e) {
+    scriviEsitoLavoro('<p>L\'indice delle etichette non si legge. Non invento numero, titolare o stato.</p>');
+    return;
+  }
+  prodottiLeggiScheda = vociIndice(cercaProdottiEtichetta(richiesto, indice));
+  disegnaSceltaIndice(richiesto);
+}
+
+async function applicaProdottoScelto(prodotto) {
+  if (!prodotto) return;
+  const numero = numeroFileEtichetta(prodotto.numeroRegistrazione);
+  const nomeScheda = String(prodotto.denominazione || '').trim();
+  const nodo = rigaLeggiScheda || document.getElementById('lavoro-miscela-nome');
+  if (nodo) {
+    if (numero) nodo.setAttribute('data-numero-registrazione', numero);
+    if (nomeScheda) nodo.setAttribute('data-nome-scheda', nomeScheda);
+  }
+  let scheda = null;
+  try {
+    scheda = numero ? await caricaSchedaEtichetta(numero) : null;
+    if (scheda) {
+      const vocabolario = await caricaVocabolarioColture();
+      preparaEtichetta({ scheda, coltura: '', vocabolario, avversitaScelta: '' });
+    }
+  } catch (e) {
+    scheda = null;
+  }
+  scriviEsitoLavoro(htmlCardProdottoAgganciato({
+    numeroRegistrazioneLetto: numero || null,
+    riferimentoRiga: {
+      nomeProdotto: nomeScheda,
+      numeroRegistrazione: numero,
+      colturaScheda: ''
+    }
+  }, scheda));
+  const dose = document.getElementById('lavoro-miscela-dose-ha');
+  if (dose) dose.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+/** «Leggi scheda» sulla miscela prevista: stesso indice e stesso pannello del registro, senza conferma. */
+export function attaccaLeggiSchedaLavoro() {
+  const section = document.getElementById('lavoro-miscela-section');
+  if (!section || section.dataset.leggiScheda === '1') return;
+  section.dataset.leggiScheda = '1';
+  section.addEventListener('click', (evento) => {
+    const nodo = evento.target && evento.target.closest ? evento.target : null;
+    if (!nodo || !nodo.closest) return;
+    const scegli = nodo.closest('[data-scegli-prodotto]');
+    if (scegli && section.contains(scegli)) {
+      const indice = Number(scegli.getAttribute('data-scegli-prodotto'));
+      applicaProdottoScelto(prodottiLeggiScheda[indice]);
+      return;
+    }
+    const riprova = nodo.closest('[data-riprova-numero]');
+    if (riprova && section.contains(riprova)) {
+      const numero = String(section.querySelector('.registro-numero-manuale')?.value || '').trim();
+      if (!numero) return;
+      cercaEDisegna(numero);
+      return;
+    }
+    const btn = nodo.closest('.btn-leggi-scheda');
+    if (!btn || !section.contains(btn)) return;
+    const tr = btn.closest('tr[data-extra]');
+    if (tr && String(tr.getAttribute('data-prodotto-id') || '').trim()) {
+      scriviEsitoLavoro('<p>Questo prodotto arriva dal magazzino: il numero già in anagrafica non si sostituisce.</p>');
+      return;
+    }
+    rigaLeggiScheda = tr || null;
+    const nome = tr
+      ? String(tr.getAttribute('data-nome') || '').trim()
+      : String(document.getElementById('lavoro-miscela-nome')?.value || '').trim();
+    cercaEDisegna(nome);
+  });
 }
 
 export function installaMiscelaLavoro(opts = {}) {
   const form = document.getElementById('lavoro-form');
   if (!form || form.dataset.miscelaRegistro === '1') return;
   form.dataset.miscelaRegistro = '1';
+  attaccaLeggiSchedaLavoro();
   const nota = document.getElementById('lavoro-miscela-nota');
   if (nota) nota.textContent = NOTA_REGISTRO_PRIVATO;
   form.addEventListener('change', (e) => {
@@ -342,6 +523,7 @@ export function installaMiscelaLavoro(opts = {}) {
       tr.setAttribute('data-unita', (sel?.selectedOptions?.[0]?.getAttribute('data-unita')) || '');
       tr.setAttribute('data-dose-hl', (sel?.selectedOptions?.[0]?.getAttribute('data-dose-hl')) || '');
       tr.setAttribute('data-avversita', avversitaScelta);
+      if (!id) copiaLegameTraNodi(document.getElementById('lavoro-miscela-nome'), tr);
       tr.innerHTML = celleExtraMiscela({ nome, dosePerEttaro: dose, avversita: avversitaScelta });
       tbody.appendChild(tr);
       puliscaCampiMiscela();

@@ -69,7 +69,16 @@ export async function runPianificazioneSemaforoWrite(page, expect) {
   if (await capo.locator('option').count() > 1) await capo.selectOption({ index: 1 });
   await page.locator('#lavoro-durata').fill('1');
   await page.locator('#lavoro-data-inizio').fill('2026-08-01');
-  await page.locator('#lavoro-miscela-nome').fill('FOLPAN 80 WDG');
+  await page.locator('#lavoro-miscela-nome').fill('Folpan');
+  await page.locator('#lavoro-miscela-nome').dispatchEvent('change');
+  const leggiScheda = page.locator('#btn-leggi-scheda-miscela');
+  await expect(leggiScheda).toBeVisible();
+  await expect(page.locator('#lavoro-semaforo-banner')).toContainText('Leggi scheda', { timeout: 20_000 });
+  await leggiScheda.click();
+  const scegli = page.locator('#lavoro-scheda-esito [data-scegli-prodotto]').first();
+  await expect(scegli).toBeVisible({ timeout: 20_000 });
+  await scegli.click();
+  await expect(page.locator('#lavoro-scheda-esito')).toContainText('008601', { timeout: 20_000 });
   await page.locator('#lavoro-miscela-dose-ha').fill('3');
   await page.locator('#lavoro-miscela-dose-ha').dispatchEvent('change');
   const banner = page.locator('#lavoro-semaforo-banner');

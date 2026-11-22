@@ -273,7 +273,9 @@ function firmaMiscela(miscela) {
     id: prodotto && prodotto.prodottoId ? String(prodotto.prodottoId) : '',
     nome: String((prodotto && (prodotto.nome || prodotto.prodotto)) || '').trim(),
     dose: prodotto && prodotto.dosePerEttaro != null ? prodotto.dosePerEttaro : null,
-    avversita: String((prodotto && (prodotto.avversitaPianificata || prodotto.avversita)) || '').trim()
+    avversita: String((prodotto && (prodotto.avversitaPianificata || prodotto.avversita)) || '').trim(),
+    numero: String((prodotto && (prodotto.numeroRegistrazioneLetto
+      || (prodotto.riferimentoRiga && prodotto.riferimentoRiga.numeroRegistrazione))) || '').trim()
   }));
   return JSON.stringify({
     prodotti,
