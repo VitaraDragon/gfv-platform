@@ -7,6 +7,7 @@
 import { preparaEtichetta } from './registro-trattamenti-etichetta.js';
 import {
   caricaPacchettoPerRighe,
+  dataGiorno,
   htmlBannerConformita,
   htmlSemaforoConformita,
   legamiScheda
@@ -49,6 +50,63 @@ function nomeTipoLavoro() {
   return sel.options[sel.selectedIndex].text || sel.value || '';
 }
 
+function chiaveGiornoNota(value) {
+  const giorno = dataGiorno(value);
+  if (!giorno) return '';
+  const mm = String(giorno.getMonth() + 1).padStart(2, '0');
+  const gg = String(giorno.getDate()).padStart(2, '0');
+  return giorno.getFullYear() + '-' + mm + '-' + gg;
+}
+
+function giornoPrimaNota(value) {
+  const giorno = dataGiorno(value);
+  if (!giorno) return null;
+  const out = new Date(giorno.getFullYear(), giorno.getMonth(), giorno.getDate());
+  out.setDate(out.getDate() - 1);
+  return out;
+}
+
+function passaggioRegistratoIlGiorno(passaggio, chiave, lavoroId) {
+  if (!passaggio || passaggio.pianificato === true) return false;
+  const stato = String(passaggio.stato || '').toLowerCase();
+  if (stato === 'annullato' || stato === 'eliminato' || stato === 'da_completare') return false;
+  if (lavoroId && passaggio.lavoroId && String(passaggio.lavoroId) === String(lavoroId)) return false;
+  return chiaveGiornoNota(passaggio.data) === chiave;
+}
+
+/**
+ * Nota non bloccante. Visibile su un lavoro di trattamento quando il passaggio
+ * del giorno prima della data scelta non è nel registro, oppure quando il lavoro
+ * stesso è di ieri e non è completato. Resta visibile anche se il banner è nascosto.
+ */
+export function mostraNotaPassaggioNonRegistrato({
+  eTrattamento,
+  dataLavoro,
+  precedenti,
+  oggi,
+  lavoroId,
+  lavoroCompletato
+} = {}) {
+  if (!eTrattamento) return false;
+  const oggiG = dataGiorno(oggi) || dataGiorno(new Date());
+  const data = dataGiorno(dataLavoro);
+  if (data && oggiG && chiaveGiornoNota(data) === chiaveGiornoNota(giornoPrimaNota(oggiG)) && !lavoroCompletato) {
+    return true;
+  }
+  const riferimento = data || oggiG;
+  if (!riferimento) return true;
+  const chiave = chiaveGiornoNota(giornoPrimaNota(riferimento));
+  const coperto = (Array.isArray(precedenti) ? precedenti : []).some((p) => (
+    passaggioRegistratoIlGiorno(p, chiave, lavoroId)
+  ));
+  return !coperto;
+}
+
+function lavoroCompletatoNelForm() {
+  const stato = String(document.getElementById('lavoro-stato')?.value || '').toLowerCase();
+  return stato === 'completato' || stato === 'completato_da_approvare';
+}
+
 function scriviNotaPassaggio(visibile) {
   const nota = document.getElementById('lavoro-nota-passaggio');
   if (!nota) return;
@@ -58,12 +116,27 @@ function scriviNotaPassaggio(visibile) {
     return;
   }
   nota.hidden = false;
+  nota.style.color = '#664d03';
+  nota.style.background = '#fff3cd';
+  nota.style.padding = '8px 10px';
+  nota.style.borderRadius = '6px';
+  nota.style.margin = '8px 0';
   nota.textContent = NOTA_PASSAGGIO_NON_REGISTRATO;
+}
+
+function scriviNotaDaContesto(ctx) {
+  scriviNotaPassaggio(mostraNotaPassaggioNonRegistrato({
+    eTrattamento: tipoLavoroETrattamento(nomeTipoLavoro()),
+    dataLavoro: dataCampoSemaforo() || (ctx && ctx.data) || '',
+    precedenti: (ctx && ctx.precedenti) || [],
+    oggi: (ctx && ctx.oggi) || new Date(),
+    lavoroId: document.getElementById('lavoro-id')?.value || (ctx && ctx.lavoroId) || '',
+    lavoroCompletato: lavoroCompletatoNelForm()
+  }));
 }
 
 function nascondiBanner() {
   const banner = document.getElementById('lavoro-semaforo-banner');
-  scriviNotaPassaggio(false);
   if (!banner) return;
   banner.hidden = true;
   banner.innerHTML = '';
@@ -130,8 +203,10 @@ export async function aggiornaSemaforoPianificazione(ctx = {}) {
   const banner = document.getElementById('lavoro-semaforo-banner');
   if (!tipoLavoroETrattamento(nomeTipoLavoro())) {
     nascondiBanner();
+    scriviNotaPassaggio(false);
     return null;
   }
+  scriviNotaDaContesto(ctx);
   const terreno = (ctx.terreni || []).find((t) => t && t.id === (document.getElementById('lavoro-terreno')?.value || ctx.terrenoId));
   const ettari = terreno && terreno.superficie != null ? Number(terreno.superficie) : null;
   const miscela = componiMiscelaDalForm(Number.isFinite(ettari) ? ettari : null, ctx.attrezzo || null);
@@ -184,7 +259,8 @@ export async function aggiornaSemaforoPianificazione(ctx = {}) {
     banner.hidden = false;
     banner.innerHTML = htmlBannerConformita(esito);
   }
-  scriviNotaPassaggio(true);
+  if (seq !== bannerSeq) return null;
+  scriviNotaDaContesto(ctx);
   const principale = haPrincipale ? ((miscelaValutata.prodotti && miscelaValutata.prodotti[0]) || null) : null;
   const schedaPrincipale = principale ? legami.schedaPerRiga(principale) : null;
   scriviDose(
@@ -221,11 +297,13 @@ export function chiudiSemaforoPianificazione() {
   bannerSeq += 1;
   letturaSeq += 1;
   nascondiBanner();
+  scriviNotaPassaggio(false);
 }
 
 function eseguiLetturaSemaforo() {
   if (!tipoLavoroETrattamento(nomeTipoLavoro())) {
     nascondiBanner();
+    scriviNotaPassaggio(false);
     return Promise.resolve(null);
   }
   const seq = ++letturaSeq;
@@ -254,6 +332,7 @@ function programmaSemaforo(subito) {
     if (timerSemaforo) clearTimeout(timerSemaforo);
     timerSemaforo = null;
     nascondiBanner();
+    scriviNotaPassaggio(false);
     return Promise.resolve(null);
   }
   if (subito) {

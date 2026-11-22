@@ -23,7 +23,8 @@ import {
   righeTrattamentoDaMiscela,
   applicaCostiDaAnagrafica,
   righeSenzaCampiVuoti,
-  trattamentoHaSoloRigaVuota
+  trattamentoHaSoloRigaVuota,
+  rigaDelFiltroImpianto
 } from '../../../shared/js/registro-trattamenti.js';
 
 const SUB_COLLECTION_NAME = 'trattamenti';
@@ -454,7 +455,7 @@ async function buildIndiceTrattamentiPerTerreno(terrenoId) {
   const vignetiTerreno = await getAllVigneti({ terrenoId });
   const byLavoro = new Map();
   const byAttivita = new Map();
-  if (!vignetiTerreno.length) return { byLavoro, byAttivita };
+  if (!vignetiTerreno.length) return { byLavoro, byAttivita, impiantiIds: [] };
   const lists = await Promise.all(vignetiTerreno.map(v => getTrattamenti(v.id)));
   vignetiTerreno.forEach((v, i) => {
     for (const t of lists[i]) {
@@ -466,7 +467,7 @@ async function buildIndiceTrattamentiPerTerreno(terrenoId) {
       }
     }
   });
-  return { byLavoro, byAttivita };
+  return { byLavoro, byAttivita, impiantiIds: vignetiTerreno.map((v) => v.id) };
 }
 
 /**
@@ -500,7 +501,13 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno, op
       getAttivitaByTerreno(vigneto.terrenoId),
       buildIndiceTrattamentiPerTerreno(vigneto.terrenoId)
     ]);
-    const { byLavoro, byAttivita } = indiceTrattamenti;
+    const { byLavoro, byAttivita, impiantiIds } = indiceTrattamenti;
+    const nelFiltro = (found) => rigaDelFiltroImpianto(
+      vignetoId,
+      found && found.vignetoId,
+      impiantiIds,
+      { tutti: options.vistaTutti === true }
+    );
     const { nomeTerrenoPerStorico } = await import('../../../shared/js/terreno-archivio.js');
     const terrenoLabel = terreno
       ? nomeTerrenoPerStorico(terreno, vigneto.terrenoId || '-')
@@ -531,6 +538,7 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno, op
     for (const lavoro of lavori) {
       const dataInizio = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio));
       const found = byLavoro.get(lavoro.id);
+      if (!nelFiltro(found)) continue;
       const trattamento = found && found.vignetoId === vignetoId ? found.trattamento : null;
       rows.push({
         source: 'lavoro',
@@ -548,6 +556,7 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno, op
     for (const att of attivitaFiltrate) {
       const dataAtt = att.data && (typeof att.data.toDate === 'function') ? att.data.toDate() : (att.data ? new Date(att.data) : new Date());
       const found = byAttivita.get(att.id);
+      if (!nelFiltro(found)) continue;
       const trattamento = found && found.vignetoId === vignetoId ? found.trattamento : null;
       rows.push({
         source: 'attivita',
@@ -585,7 +594,7 @@ export async function getLavoriAttivitaTrattamentiTuttiVigneti(anno, options = {
 
     const chunks = await Promise.all(
       vigneti.map(async v => {
-        const rows = await getLavoriAttivitaTrattamentiPerVigneto(v.id, anno, options);
+        const rows = await getLavoriAttivitaTrattamentiPerVigneto(v.id, anno, { ...options, vistaTutti: true });
         const vignetoNome = v.varieta || v.nome || v.id;
         return rows.map(row => ({ ...row, vignetoNome }));
       })
