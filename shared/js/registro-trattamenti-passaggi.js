@@ -5,6 +5,7 @@
  */
 
 import { colturaSchedaRegistro } from '../../core/config/registro-trattamenti-specie.js';
+import { dataGiorno } from './registro-trattamenti-conformita.js';
 import { tipoLavoroETrattamento } from './registro-trattamenti-lavoro.js';
 
 export function lavoroAnnullato(lavoro) {
@@ -15,6 +16,64 @@ export function lavoroAnnullato(lavoro) {
 export function lavoroPianificatoNonEseguito(lavoro) {
   const stato = String(lavoro && lavoro.stato || '').toLowerCase();
   return stato !== 'annullato' && stato !== 'completato' && stato !== 'completato_da_approvare';
+}
+
+const STATI_LAVORO_ESEGUITO = new Set(['completato', 'completato_da_approvare']);
+const STATI_LAVORO_NON_ESEGUITO = new Set([
+  'da_pianificare',
+  'assegnato',
+  'in_corso',
+  'in_standby',
+  'sospeso',
+  'pianificato',
+  'bozza',
+  'attivo'
+]);
+
+function statoLavoro(lavoro) {
+  return String(lavoro && lavoro.stato || '').toLowerCase();
+}
+
+/** Fatto, oppure in attesa di approvazione. Annullato ed eliminato no. */
+export function lavoroEseguitoPerCarenza(lavoro) {
+  if (!lavoro || lavoro.eliminato === true) return false;
+  const stato = statoLavoro(lavoro);
+  if (stato === 'annullato' || stato === 'eliminato') return false;
+  return STATI_LAVORO_ESEGUITO.has(stato);
+}
+
+/**
+ * La carenza conta solo un passaggio eseguito.
+ * Con un lavoro collegato decide il lavoro: completato o in attesa di approvazione,
+ * anche se la riga è in Errore o Da completare. Senza lavoro, conta un'attività
+ * o una riga di registro che ha una data effettiva.
+ * Restano fuori i pianificati, gli assegnati non ancora eseguiti, gli annullati,
+ * gli eliminati e le righe `pianificato: true`.
+ */
+export function passaggioEseguitoPerCarenza(voce, lavoro) {
+  if (!voce || voce.pianificato === true || voce.eliminato === true) return false;
+  if (lavoro) {
+    if (!lavoroEseguitoPerCarenza(lavoro)) return false;
+    return dataGiorno(voce.data) != null || dataGiorno(lavoro.dataInizio) != null;
+  }
+  const stato = String(voce.stato || voce.statoLavoro || '').toLowerCase();
+  if (stato === 'annullato' || stato === 'eliminato') return false;
+  if (STATI_LAVORO_NON_ESEGUITO.has(stato)) return false;
+  return dataGiorno(voce.data) != null;
+}
+
+function schedaEseguitaPerCarenza(trattamento, lavoro) {
+  if (!lavoro || !lavoroEseguitoPerCarenza(lavoro)) return trattamento;
+  const stato = String(trattamento.stato || trattamento.statoLavoro || '').toLowerCase();
+  const data = dataGiorno(trattamento.data) ? trattamento.data : lavoro.dataInizio;
+  const statoDaSistemare = STATI_LAVORO_NON_ESEGUITO.has(stato) || stato === 'annullato' || stato === 'eliminato';
+  if (!statoDaSistemare && data === trattamento.data) return trattamento;
+  const copia = { ...trattamento, data };
+  if (statoDaSistemare) {
+    copia.stato = lavoro.stato;
+    if (copia.statoLavoro) copia.statoLavoro = lavoro.stato;
+  }
+  return copia;
 }
 
 /**
@@ -80,8 +139,10 @@ export function unisciPassaggiLavoriPianificati(passaggi, lavori, opzioni = {}) 
 }
 
 /**
- * Stessa regola dei passaggi, sulle schede intere usate per la carenza.
- * Un lavoro annullato esce dal conto. Uno ancora da fare vale con la data attuale.
+ * Schede usate per la carenza. Solo i passaggi eseguiti.
+ * Un lavoro annullato, eliminato o ancora da fare esce.
+ * Un'attività o una riga di registro con data effettiva resta.
+ * Non scrive nulla: una scheda già compilata resta com'è in archivio.
  */
 export function allineaTrattamentiAiLavori(trattamenti, lavori) {
   const perId = new Map((lavori || []).filter((lavoro) => lavoro && lavoro.id).map((lavoro) => [String(lavoro.id), lavoro]));
@@ -90,12 +151,8 @@ export function allineaTrattamentiAiLavori(trattamenti, lavori) {
     if (!trattamento) return;
     const lavoroId = trattamento.lavoroId ? String(trattamento.lavoroId) : '';
     const lavoro = lavoroId ? perId.get(lavoroId) : null;
-    if (lavoro && lavoroAnnullato(lavoro)) return;
-    if (lavoro && lavoroPianificatoNonEseguito(lavoro) && lavoro.dataInizio) {
-      out.push({ ...trattamento, data: lavoro.dataInizio });
-      return;
-    }
-    out.push(trattamento);
+    if (!passaggioEseguitoPerCarenza(trattamento, lavoro)) return;
+    out.push(schedaEseguitaPerCarenza(trattamento, lavoro));
   });
   return out;
 }

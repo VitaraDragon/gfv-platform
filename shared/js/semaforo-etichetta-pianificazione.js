@@ -7,6 +7,7 @@
 
 import { NOTA_PASSAGGIO_NON_REGISTRATO, numeroFinito, righeTrattamentoDaMiscela } from './registro-trattamenti.js';
 import { intervalloDoseHa } from './registro-trattamenti-etichetta.js';
+import { passaggioEseguitoPerCarenza } from './registro-trattamenti-passaggi.js';
 import {
   dataGiorno,
   formattaDataIt,
@@ -164,6 +165,7 @@ export function htmlAvvisoCarenza(esito) {
 /**
  * Avviso di carenza d'etichetta prima di una raccolta o di una vendemmia.
  * Punto d'aggancio futuro per Tony. Solo la carenza d'etichetta: se manca, nessun avviso.
+ * Conta solo i passaggi eseguiti: un pianificato o un assegnato non ancora fatto non entra.
  * Non blocca e non chiede conferma: chi chiama decide solo se mostrare `testo`.
  * @param {object} input
  * @param {string|Date} [input.dataRaccolta]
@@ -179,6 +181,7 @@ export function avvisoCarenzaRaccolta(input = {}) {
   const vocabolario = input.vocabolario || (input.legami && input.legami.vocabolario) || null;
   const voci = [];
   (Array.isArray(input.trattamenti) ? input.trattamenti : []).forEach((trattamento) => {
+    if (!passaggioEseguitoPerCarenza(trattamento)) return;
     const dataTrattamento = dataGiorno(trattamento && trattamento.data);
     if (dataRaccolta && dataTrattamento && dataTrattamento.getTime() > dataRaccolta.getTime()) return;
     const prodotti = trattamento && Array.isArray(trattamento.prodotti) ? trattamento.prodotti : [];
