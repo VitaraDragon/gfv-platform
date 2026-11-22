@@ -398,6 +398,55 @@ describe('salvataggio e rilettura Folpan scritto a mano', () => {
     });
   });
 
+  it('scheda nata dal piano: tendina solo etichetta, preseleziona soltanto se è una', async () => {
+    document.body.innerHTML = '<div id="registro-scheda-esito"></div>';
+    await ripristinaCardProdottoSalvato([{
+      prodotto: 'Folpan',
+      avversitaPianificata: 'Peronospora (Plasmopara viticola)',
+      numeroRegistrazioneLetto: '008601',
+      riferimentoRiga: { nomeProdotto: 'FOLPAN 80 WDG', numeroRegistrazione: '008601', colturaScheda: '' }
+    }], {
+      coltura: 'vite da vino',
+      caricaScheda: async () => folpan,
+      caricaVocabolario: async () => vocabolario
+    });
+    const box = document.getElementById('registro-scheda-esito');
+    const select = box.querySelector('select.registro-avversita-scelta');
+    expect(select).toBeTruthy();
+    expect(select.value).toBe('');
+    expect(select.textContent).toContain('Peronospora');
+    expect(select.innerHTML).not.toMatch(/Altra/);
+    expect(box.textContent).toContain('In pianificazione:');
+    expect(box.textContent).not.toMatch(/kg\/ha|consigliat/i);
+
+    await ripristinaCardProdottoSalvato([{
+      prodotto: 'Prova',
+      avversitaPianificata: 'Peronospora',
+      numeroRegistrazioneLetto: '000099'
+    }], {
+      coltura: 'vite da vino',
+      caricaScheda: async () => ({
+        nome_prodotto: 'PROVA UNA',
+        numero_registrazione: '000099',
+        righe: [{
+          id: '1',
+          coltura: 'VITE',
+          colture: ['vite da vino'],
+          avversita: 'Oidio',
+          dose_ha: [],
+          dose_hl: [],
+          carenza: [],
+          max_trattamenti: [],
+          intervallo: []
+        }]
+      }),
+      caricaVocabolario: async () => vocabolario
+    });
+    const scelta = document.querySelector('#registro-scheda-esito select');
+    expect(scelta.selectedOptions[0].textContent).toContain('Oidio');
+    expect(document.getElementById('registro-scheda-esito').textContent).not.toContain('In pianificazione');
+  });
+
   it('la pagina non rimette il mapping stretto in Modifica, Completa e precedente', () => {
     const src = readFileSync(path.join(root, 'shared/js/trattamenti-coltura-page.js'), 'utf8');
     expect(src).toContain('function righeFormDaTrattamento');

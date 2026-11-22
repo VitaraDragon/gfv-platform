@@ -38,13 +38,19 @@ function prodottoRiga(riga) {
   if (!riga) return null;
   const nome = String(riga.prodotto || riga.nome || '').trim();
   if (!nome && !riga.prodottoId) return null;
-  return {
+  const rif = riga.riferimentoRiga && typeof riga.riferimentoRiga === 'object' ? riga.riferimentoRiga : null;
+  const numero = String(riga.numeroRegistrazioneLetto || (rif && rif.numeroRegistrazione) || '').trim();
+  const out = {
     prodottoId: riga.prodottoId || null,
     prodotto: nome,
     dosaggio: riga.dosaggio != null ? riga.dosaggio : riga.dosePerEttaro,
     unitaDosaggio: riga.unitaDosaggio || riga.unita || null,
-    avversita: riga.avversita || ''
+    avversita: String(riga.avversita || riga.avversitaPianificata || '').trim()
   };
+  if (numero) out.numeroRegistrazioneLetto = numero;
+  if (rif) out.riferimentoRiga = rif;
+  if (riga.avversitaPianificata) out.avversitaPianificata = riga.avversitaPianificata;
+  return out;
 }
 
 function normalizzaTrattamento(trattamento, extra = {}) {
@@ -55,7 +61,10 @@ function normalizzaTrattamento(trattamento, extra = {}) {
       prodotto: trattamento.prodotto,
       prodottoId: trattamento.prodottoId,
       dosaggio: trattamento.dosaggio,
-      avversita: trattamento.avversita
+      avversita: trattamento.avversita,
+      avversitaPianificata: trattamento.avversitaPianificata,
+      numeroRegistrazioneLetto: trattamento.numeroRegistrazioneLetto,
+      riferimentoRiga: trattamento.riferimentoRiga
     })].filter(Boolean);
   if (!prodotti.length) return null;
   return {
@@ -148,6 +157,8 @@ async function lavoriDelTerreno(terrenoId, lavori) {
 /**
  * Calcola l'avviso e lo scrive nel box. Se non serve, il box resta nascosto.
  */
+const seqAvvisoCarenza = new Map();
+
 export async function aggiornaAvvisoCarenzaRaccolta({
   box,
   dataRaccolta,
@@ -160,6 +171,9 @@ export async function aggiornaAvvisoCarenzaRaccolta({
   terrenoColtura
 } = {}) {
   if (!box) return null;
+  const idBox = box.id || 'avviso-carenza-raccolta';
+  const seq = (seqAvvisoCarenza.get(idBox) || 0) + 1;
+  seqAvvisoCarenza.set(idBox, seq);
   const lista = allineaTrattamentiAiLavori(
     Array.isArray(trattamenti) ? trattamenti : [],
     await lavoriDelTerreno(terrenoId, lavori)
@@ -172,6 +186,7 @@ export async function aggiornaAvvisoCarenzaRaccolta({
   } catch (e) {
     legami = { vocabolario: null, schedaPerRiga: () => null };
   }
+  if (seqAvvisoCarenza.get(idBox) !== seq) return null;
   const esito = avvisoCarenzaRaccolta({
     dataRaccolta,
     coltura,
@@ -180,6 +195,7 @@ export async function aggiornaAvvisoCarenzaRaccolta({
     vocabolario: legami.vocabolario,
     schedaPerRiga: legami.schedaPerRiga
   });
+  if (seqAvvisoCarenza.get(idBox) !== seq) return null;
   scriviBoxCarenza(box, esito);
   return esito;
 }
@@ -188,7 +204,9 @@ export function installaAvvisoCarenzaVendemmia({ vigneti } = {}) {
   const form = document.getElementById('vendemmia-form');
   if (!form || form.dataset.avvisoCarenza === '1') return;
   form.dataset.avvisoCarenza = '1';
+  let seq = 0;
   const aggiorna = async () => {
+    const mio = ++seq;
     try {
     const vignetoId = document.getElementById('vignetoId')?.value || '';
     const data = document.getElementById('data')?.value || '';
@@ -199,6 +217,7 @@ export function installaAvvisoCarenzaVendemmia({ vigneti } = {}) {
       ? colturaSchedaRegistro({ modulo: 'vigneto', destinazioneUva: vigneto.destinazioneUva })
       : '';
     const trattamenti = vignetoId ? await caricaTrattamentiPerCarenza({ vignetoId, terrenoId: vigneto && vigneto.terrenoId }) : [];
+    if (mio !== seq) return;
     await aggiornaAvvisoCarenzaRaccolta({
       box: document.getElementById('avviso-carenza-raccolta'),
       dataRaccolta: data,
@@ -212,9 +231,13 @@ export function installaAvvisoCarenzaVendemmia({ vigneti } = {}) {
     }
   };
   aggiornaVendemmia = aggiorna;
-  form.addEventListener('change', (evento) => {
+  const suCampo = (evento) => {
     const id = evento.target && evento.target.id;
     if (id === 'vignetoId' || id === 'data') aggiorna();
+  };
+  form.addEventListener('change', suCampo);
+  form.addEventListener('input', (evento) => {
+    if (evento.target && evento.target.id === 'data') aggiorna();
   });
 }
 
@@ -222,7 +245,9 @@ export function installaAvvisoCarenzaFrutteto({ frutteti } = {}) {
   const form = document.getElementById('raccolta-form');
   if (!form || form.dataset.avvisoCarenza === '1') return;
   form.dataset.avvisoCarenza = '1';
+  let seq = 0;
   const aggiorna = async () => {
+    const mio = ++seq;
     try {
     const fruttetoId = document.getElementById('fruttetoId')?.value || '';
     const data = document.getElementById('data')?.value || '';
@@ -235,6 +260,7 @@ export function installaAvvisoCarenzaFrutteto({ frutteti } = {}) {
     const trattamenti = fruttetoId
       ? await caricaTrattamentiPerCarenza({ fruttetoId, terrenoId: frutteto && frutteto.terrenoId })
       : [];
+    if (mio !== seq) return;
     await aggiornaAvvisoCarenzaRaccolta({
       box: document.getElementById('avviso-carenza-raccolta'),
       dataRaccolta: data,
@@ -248,9 +274,13 @@ export function installaAvvisoCarenzaFrutteto({ frutteti } = {}) {
     }
   };
   aggiornaFrutteto = aggiorna;
-  form.addEventListener('change', (evento) => {
+  const suCampo = (evento) => {
     const id = evento.target && evento.target.id;
     if (id === 'fruttetoId' || id === 'data') aggiorna();
+  };
+  form.addEventListener('change', suCampo);
+  form.addEventListener('input', (evento) => {
+    if (evento.target && evento.target.id === 'data') aggiorna();
   });
 }
 

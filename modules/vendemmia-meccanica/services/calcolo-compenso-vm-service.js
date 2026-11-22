@@ -8,6 +8,7 @@ import {
   tariffaVmKey,
   getAnnoStagioneCorrente
 } from '../config/vm-constants.js';
+import { famigliaTariffaPalo } from '../../vigneto/config/tipi-palo.js';
 
 /**
  * Ettari fatturabili per terreno/anno.
@@ -65,7 +66,7 @@ export function validateTerrenoForCalcolo(terreno) {
  */
 export function resolveTariffaEttaro(terreno, tariffeConfig = {}) {
   const morf = String(terreno?.tipoCampo || '').toLowerCase();
-  const palo = String(terreno?.tipoPalo || '').toLowerCase();
+  const palo = famigliaTariffaPalo(terreno?.tipoPalo);
   const chiave = tariffaVmKey(morf, palo);
   const griglia = tariffeConfig.tariffeVendemmia || {};
   const tariffaBase = Number(griglia[chiave]) || 0;

@@ -641,7 +641,7 @@ async function compilaModuloTrattamento(row) {
     acquaEttolitriTotali: scheda.acquaEttolitriTotali
   });
   renderProdottiTrattamento(scheda.prodotti);
-  await ripristinaCardProdottoSalvato(scheda.prodotti);
+  await ripristinaCardProdottoSalvato(scheda.prodotti, { coltura: specieSchedaCorrente() || '' });
   const operatoreGia = trattamento && String(trattamento.operatore || '').trim();
   const operatoreValore = operatoreGia || (hasManodopera ? (operatoreDaLavoro(lavoroScheda) || '') : '');
   try {
