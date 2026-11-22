@@ -617,3 +617,92 @@ describe('diario carenza', () => {
     expect(document.getElementById('avviso-carenza-attivita').hidden).toBe(true);
   });
 });
+
+describe('conteggio al cambio data e avviso compatto', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    formLavoro();
+  });
+
+  it('input e change ricalcolano il testo con la data scelta', async () => {
+    vi.useFakeTimers();
+    try {
+      const {
+        chiudiSemaforoPianificazione,
+        collegaSemaforoPianificazione
+      } = await import('../shared/js/registro-trattamenti-lavoro-semaforo.js');
+      chiudiSemaforoPianificazione();
+      formLavoro();
+      const data = document.getElementById('lavoro-data-inizio');
+      data.value = '2026-11-15';
+      document.getElementById('lavoro-miscela-dose-ha').value = '1.4';
+      const select = document.getElementById('lavoro-miscela-avversita');
+      const opt = document.createElement('option');
+      opt.value = 'Peronospora (Plasmopara viticola)';
+      opt.textContent = opt.value;
+      select.appendChild(opt);
+      select.value = opt.value;
+      const precedenti = [{
+        id: 'err',
+        data: '2026-11-20',
+        terrenoId: 't1',
+        prodottoId: 'altro',
+        nome: 'Folpan',
+        numeroRegistrazioneLetto: '8601',
+        stato: 'errore'
+      }];
+      collegaSemaforoPianificazione(async () => ({
+        specie: 'vite da vino',
+        prodotti: [],
+        precedenti,
+        terreni: [{ id: 't1', superficie: 1 }],
+        terrenoId: 't1',
+        oggi: new Date(2026, 10, 22)
+      }), { attesaMs: 0 });
+      data.dispatchEvent(new Event('input', { bubbles: true }));
+      await vi.runAllTimersAsync();
+      const banner = document.getElementById('lavoro-semaforo-banner');
+      expect(banner.textContent).toContain('sarebbe il 1°');
+      expect(banner.textContent).toContain('ne restano 9');
+      data.value = '2026-11-21';
+      data.dispatchEvent(new Event('change', { bubbles: true }));
+      await vi.runAllTimersAsync();
+      expect(banner.textContent).toContain('sarebbe il 2°');
+      expect(banner.textContent).toContain('ne restano 8');
+      expect(document.getElementById('lavoro-nota-passaggio').hidden).toBe(false);
+      banner.hidden = true;
+      expect(document.getElementById('lavoro-nota-passaggio').hidden).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('il box di carenza resta una frase anche in riapertura', async () => {
+    const { avvisoCarenzaRaccolta } = await import('../shared/js/semaforo-etichetta-pianificazione.js');
+    const { azzeraBoxCarenza, scriviBoxCarenza } = await import('../shared/js/avviso-carenza-raccolta.js');
+    const esito = avvisoCarenzaRaccolta({
+      dataRaccolta: '2026-08-20',
+      coltura: 'vite da vino',
+      verbo: 'vendemmiare',
+      trattamenti: [1, 2, 3].map((n) => ({
+        id: 't' + n,
+        data: '2026-08-0' + n,
+        prodotti: [{ prodotto: 'FOLPAN 80 WDG', avversita: 'Peronospora (Plasmopara viticola)', dosaggio: 1.4 }]
+      })),
+      vocabolario,
+      schedaPerRiga: () => folpan
+    });
+    const box = document.createElement('div');
+    box.id = 'avviso-carenza-raccolta';
+    document.body.appendChild(box);
+    scriviBoxCarenza(box, esito);
+    expect(box.hidden).toBe(false);
+    expect((box.textContent.match(/Non si può/g) || []).length).toBe(1);
+    expect(box.querySelector('details').open).toBe(false);
+    azzeraBoxCarenza(box);
+    expect(box.hidden).toBe(true);
+    scriviBoxCarenza(box, esito);
+    expect(box.hidden).toBe(false);
+    expect(box.textContent).toContain('e altri 2 trattamenti ancora in carenza');
+  });
+});

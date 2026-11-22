@@ -8,6 +8,7 @@ import { caricaPacchettoPerRighe, legamiScheda } from './registro-trattamenti-co
 import { allineaTrattamentiAiLavori } from './registro-trattamenti-passaggi.js';
 import {
   avvisoCarenzaRaccolta,
+  htmlAvvisoCarenza,
   tipoLavoroRaccolta,
   verboRaccolta
 } from './semaforo-etichetta-pianificazione.js';
@@ -23,15 +24,15 @@ function stileBox(box) {
 
 export function scriviBoxCarenza(box, esito) {
   if (!box) return;
-  const testo = esito && esito.testo ? String(esito.testo) : '';
-  if (!testo) {
+  const html = htmlAvvisoCarenza(esito);
+  if (!html) {
     box.hidden = true;
     box.textContent = '';
     return;
   }
   stileBox(box);
   box.hidden = false;
-  box.textContent = testo;
+  box.innerHTML = html;
 }
 
 function prodottoRiga(riga) {

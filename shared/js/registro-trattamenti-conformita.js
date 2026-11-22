@@ -4,7 +4,7 @@
  * @module shared/js/registro-trattamenti-conformita
  */
 
-import { numeroFinito, stessoProdotto, dataRegistro, messaggioDoseFuoriRiga } from './registro-trattamenti.js';
+import { numeroFinito, dataRegistro, messaggioDoseFuoriRiga } from './registro-trattamenti.js';
 import { classificaStatoAmministrativo } from './registro-trattamenti-fonte.js';
 import {
   MSG_ETICHETTA_COLTURA_ASSENTE,
@@ -580,22 +580,58 @@ function finestraPeriodo(periodo, data) {
   return { tipo: 'anno', anno: data ? data.getFullYear() : null };
 }
 
+function numeroConteggio(voce) {
+  if (!voce) return '';
+  const rif = voce.riferimentoRiga && typeof voce.riferimentoRiga === 'object' ? voce.riferimentoRiga : null;
+  return numeroFileEtichetta(
+    voce.numeroRegistrazioneLetto || voce.numeroRegistrazione || (rif && rif.numeroRegistrazione) || ''
+  );
+}
+
+/** Annullato o eliminato esce. Errore, da completare e pianificato restano nel conto. */
+function passaggioFuoriConteggio(passaggio) {
+  if (!passaggio) return true;
+  if (passaggio.eliminato === true) return true;
+  const stato = String(passaggio.stato || passaggio.statoLavoro || '').toLowerCase();
+  return stato === 'annullato' || stato === 'eliminato';
+}
+
+/**
+ * Stesso fitofarmaco anche se la riga Errore ha un id di magazzino diverso
+ * o il nome breve («Folpan») al posto del nome in etichetta.
+ */
+function stessoProdottoConteggio(a, b) {
+  const na = numeroConteggio(a);
+  const nb = numeroConteggio(b);
+  if (na && nb && na === nb) return true;
+  if (a && b && a.prodottoId && b.prodottoId && String(a.prodottoId) === String(b.prodottoId)) return true;
+  const nomeA = normalizzaNomeProdottoScheda((a && (a.nome || a.prodotto)) || '');
+  const nomeB = normalizzaNomeProdottoScheda((b && (b.nome || b.prodotto)) || '');
+  if (nomeA && nomeA === nomeB) return true;
+  if (na && nb && na !== nb) return false;
+  if (!nomeA || !nomeB) return false;
+  const corto = nomeA.length <= nomeB.length ? nomeA : nomeB;
+  const lungo = nomeA.length <= nomeB.length ? nomeB : nomeA;
+  return corto.length >= 5 && lungo.includes(corto);
+}
+
 function passaggiStessoProdotto(input, dataLimite) {
   const riga = input.riga || {};
   const trattamento = input.trattamento || {};
   const corrente = {
     prodottoId: riga.prodottoId || null,
     nome: riga.prodotto || riga.nome || '',
+    numeroRegistrazioneLetto: numeroConteggio(riga),
     terrenoId: trattamento.terrenoId || riga.terrenoId || null
   };
   const idCorrente = trattamento.id || riga.id || null;
   return (Array.isArray(input.precedenti) ? input.precedenti : []).filter((p) => {
-    if (!p) return false;
+    if (passaggioFuoriConteggio(p)) return false;
     if (idCorrente && p.id && String(p.id) === String(idCorrente)) return false;
     const d = dataGiorno(p.data);
     if (!d || (dataLimite && d.getTime() > dataLimite.getTime())) return false;
     if (!stessoCampo(corrente, p) && (corrente.terrenoId || p.terrenoId)) return false;
-    return stessoProdotto(corrente, { prodottoId: p.prodottoId, nome: p.nome || p.prodotto });
+    return stessoProdottoConteggio(corrente, p);
   });
 }
 

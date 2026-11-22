@@ -433,6 +433,25 @@ export function stessoProdotto(a, b) {
   return !!na && na === nb;
 }
 
+/**
+ * Una riga del registro appartiene al vigneto, frutteto o campagna scelti.
+ * Se la scheda indica un altro impianto, non entra. Senza scheda entra solo
+ * se sul terreno c'è un solo impianto; nella vista «tutti» entra una volta sola.
+ */
+export function rigaDelFiltroImpianto(impiantoId, schedaImpiantoId, impiantiSulTerreno, opzioni = {}) {
+  const id = String(impiantoId || '');
+  if (!id) return true;
+  if (schedaImpiantoId) return String(schedaImpiantoId) === id;
+  const ids = [];
+  (impiantiSulTerreno || []).forEach((voce) => {
+    const chiave = String(voce || '');
+    if (chiave && !ids.includes(chiave)) ids.push(chiave);
+  });
+  if (ids.length <= 1) return true;
+  if (opzioni.tutti === true) return ids[0] === id;
+  return false;
+}
+
 /** Toglie i messaggi uguali, mantenendo l'ordine. */
 export function messaggiUnici(messaggi) {
   const visti = new Set();

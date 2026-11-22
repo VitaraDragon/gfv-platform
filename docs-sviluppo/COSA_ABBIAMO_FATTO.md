@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-22 — Leggi scheda nel modale lavoro.**
+**Ultimo aggiornamento documentazione: 2026-11-22 — residui registro dopo la PR 444.**
+
+## 2026-11-22 — residui registro dopo la PR 444
+
+Su `fix/residui-registro-pr444` (PR verso develop). Nessun merge, nessun deploy.
+
+L'avviso di carenza dice una volta sola il trattamento che finisce più tardi e quanti altri sono ancora in carenza; l'elenco completo sta in un details chiuso. Il conteggio nel modale lavoro include le righe Errore, da completare e pianificate (non le annullate) e segue la data scelta. La nota sul trattamento di ieri resta visibile anche se il banner del semaforo è nascosto, quando il passaggio del giorno prima non è registrato. Nel registro vigneto il filtro per varietà non mostra più i trattamenti di un altro vigneto sullo stesso terreno. Eliminare un lavoro chiede conferma con il nome, nel dialogo dell'app.
+
+---
 
 ## 2026-11-22 — Leggi scheda anche in pianificazione
 
