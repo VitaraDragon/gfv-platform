@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-22 — residui registro dopo la PR 444.**
+**Ultimo aggiornamento documentazione: 2026-11-22 — carenza solo sui trattamenti fatti.**
+
+## 2026-11-22 — carenza solo sui trattamenti fatti
+
+Su `fix/carenza-solo-trattamenti-fatti` (PR verso develop). Nessun merge, nessun deploy.
+
+L'avviso di carenza (Nuova Vendemmia, raccolte, riapertura, diario, modale lavori) parte solo da un passaggio eseguito: lavoro completato o in attesa di approvazione, oppure attività o riga di registro con data effettiva. Un lavoro solo pianificato o assegnato, anche se ha già la scheda, non sposta la data di vendemmia. Restano fuori anche annullati, eliminati e le righe `pianificato: true`. Una riga in Errore o Da completare conta se il lavoro collegato è stato fatto. Il conteggio annuo e l'intervallo minimo tra passaggi continuano a contare anche i pianificati.
+
+---
 
 ## 2026-11-22 — residui registro dopo la PR 444
 
