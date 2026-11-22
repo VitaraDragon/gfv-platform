@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-17 — valori d'etichetta v3.**
+**Ultimo aggiornamento documentazione: 2026-11-22 — Leggi scheda nel modale lavoro.**
+
+## 2026-11-22 — Leggi scheda anche in pianificazione
+
+Su `feat/leggi-scheda-pianificazione` (PR verso develop). Nessun merge, nessun deploy.
+
+Nel modale Crea/Modifica lavoro, miscela prevista, il nome scritto a mano ha «Leggi scheda» (anche su ogni riga extra). La ricerca usa l'indice etichette già del semaforo, non una seconda banca. Scelto il prodotto (es. FOLPAN 80 WDG n. 008601) la riga tiene numero e nome: il semaforo diventa rosso o verde, la tendina avversità si riempie e accanto alla dose compare «Da etichetta», senza precompilarla. Il legame è una proposta, come l'avversità pianificata: la scheda che nasce dal lavoro non risulta confermata. Un prodotto di magazzino che ha già il numero non cambia.
+
+---
 
 ## 2026-11-17 — valori d'etichetta v3
 

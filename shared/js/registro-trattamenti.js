@@ -346,6 +346,22 @@ export function doseBottePiena(dosePerEttolitro, quintali) {
 }
 
 /**
+ * Legame letto in pianificazione. Non copia avversità né data di conferma:
+ * rigaHaConferma resta falso finché l'azienda non conferma nel registro.
+ */
+function applicaLegameProposto(dest, row) {
+  if (!dest || !row || typeof row !== 'object') return dest;
+  const rif = row.riferimentoRiga && typeof row.riferimentoRiga === 'object' ? row.riferimentoRiga : null;
+  const numero = String(row.numeroRegistrazioneLetto || (rif && rif.numeroRegistrazione) || '').trim();
+  const nomeProdotto = String((rif && rif.nomeProdotto) || '').trim();
+  const colturaScheda = String((rif && rif.colturaScheda) || '').trim();
+  if (!numero && !nomeProdotto) return dest;
+  if (numero) dest.numeroRegistrazioneLetto = numero;
+  dest.riferimentoRiga = { nomeProdotto, numeroRegistrazione: numero, colturaScheda };
+  return dest;
+}
+
+/**
  * Miscela prevista. Senza quintali della botte non inventa la botte piena.
  * L'ultima botte, se parziale, usa la dose per ettolitro sull'acqua di quella botte.
  */
@@ -376,6 +392,7 @@ export function calcolaMiscela(input = {}) {
     };
     const pianificata = String(row.avversitaPianificata || '').trim();
     if (pianificata) prodotto.avversitaPianificata = pianificata;
+    applicaLegameProposto(prodotto, row);
     return prodotto;
   });
 
@@ -456,6 +473,7 @@ export function righeTrattamentoDaMiscela(miscela, superficieHa) {
     };
     const pianificata = String(p.avversitaPianificata || p.avversita || '').trim();
     if (pianificata) riga.avversitaPianificata = pianificata;
+    applicaLegameProposto(riga, p);
     if (prodotti.some((r) => stessoProdotto(r, riga))) return;
     prodotti.push(riga);
   });
