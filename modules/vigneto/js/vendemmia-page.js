@@ -17,7 +17,7 @@ import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 import { getDestinazioneLabel } from '../../../shared/js/destinazione-vendemmia.js';
-import { installaAvvisoCarenzaVendemmia } from '../../../shared/js/avviso-carenza-raccolta.js';
+import { aggiornaAvvisoCarenzaVendemmiaOra, azzeraAvvisoCarenzaRaccolta, installaAvvisoCarenzaVendemmia } from '../../../shared/js/avviso-carenza-raccolta.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const lavoriServiceModule = await import(resolvePath('../../../core/services/lavori-service.js'));
@@ -546,10 +546,12 @@ window.openCreateModal = function() {
     // Campi macchine/ore rimossi - non più necessari
     
     document.getElementById('vendemmia-modal').classList.add('active');
+    aggiornaAvvisoCarenzaVendemmiaOra();
 };
 
 window.closeModal = function() {
     document.getElementById('vendemmia-modal').classList.remove('active');
+    azzeraAvvisoCarenzaRaccolta();
     currentEditingId = null;
     currentVignetoId = null;
     
@@ -751,6 +753,7 @@ window.editVendemmia = async function(vignetoId, vendemmiaId) {
 
         calcolaResa();
         document.getElementById('vendemmia-modal').classList.add('active');
+        aggiornaAvvisoCarenzaVendemmiaOra();
     } catch (error) {
         console.error('Errore modifica vendemmia:', error);
         alert('Errore nel caricamento della vendemmia: ' + error.message);

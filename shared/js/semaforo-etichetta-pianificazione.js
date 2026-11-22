@@ -176,6 +176,13 @@ export function avvisoCarenzaRaccolta(input = {}) {
   return { dataMinima, voci, testo: fraseCarenza(verbo, dataMinima, voci) };
 }
 
+function rigaPerSemaforo(riga) {
+  if (!riga) return riga;
+  const scelta = String(riga.avversita || riga.avversitaPianificata || '').trim();
+  if (!scelta || riga.avversita) return riga;
+  return { ...riga, avversita: scelta };
+}
+
 function precedentiSenzaQuestoLavoro(precedenti, lavoroId) {
   const id = lavoroId ? String(lavoroId) : '';
   return (Array.isArray(precedenti) ? precedenti : []).filter((passaggio) => {
@@ -194,6 +201,7 @@ function precedentiSenzaQuestoLavoro(precedenti, lavoroId) {
  */
 export function valutaTrattamentoPianificato(input = {}) {
   const costruito = righeTrattamentoDaMiscela(input.miscela, input.superficieHa);
+  const prodotti = costruito.prodotti.map(rigaPerSemaforo);
   const legami = input.legami || {};
   const trattamento = {
     id: input.lavoroId ? 'lavoro:' + input.lavoroId : null,
@@ -211,7 +219,7 @@ export function valutaTrattamentoPianificato(input = {}) {
     mostraRestanti: true,
     vocabolario: legami.vocabolario || input.vocabolario || null
   };
-  const perRiga = costruito.prodotti.map((riga) => {
+  const perRiga = prodotti.map((riga) => {
     const scheda = typeof legami.schedaPerRiga === 'function'
       ? legami.schedaPerRiga(riga)
       : (typeof input.schedaPerRiga === 'function' ? input.schedaPerRiga(riga) : input.scheda);
@@ -226,10 +234,10 @@ export function valutaTrattamentoPianificato(input = {}) {
     });
     return { riga, esito };
   });
-  const fuso = costruito.prodotti.length
+  const fuso = prodotti.length
     ? valutaConformitaTrattamento({
       ...base,
-      righe: costruito.prodotti,
+      righe: prodotti,
       schedaPerRiga: legami.schedaPerRiga || input.schedaPerRiga,
       statoPerRiga: legami.statoPerRiga || input.statoPerRiga,
       riconoscimentoPerRiga: legami.riconoscimentoPerRiga || input.riconoscimentoPerRiga,
@@ -265,7 +273,7 @@ function firmaMiscela(miscela) {
     id: prodotto && prodotto.prodottoId ? String(prodotto.prodottoId) : '',
     nome: String((prodotto && (prodotto.nome || prodotto.prodotto)) || '').trim(),
     dose: prodotto && prodotto.dosePerEttaro != null ? prodotto.dosePerEttaro : null,
-    avversita: String((prodotto && prodotto.avversita) || '').trim()
+    avversita: String((prodotto && (prodotto.avversitaPianificata || prodotto.avversita)) || '').trim()
   }));
   return JSON.stringify({
     prodotti,

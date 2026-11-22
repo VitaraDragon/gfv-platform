@@ -207,6 +207,7 @@ export function installaAvvisoCarenzaVendemmia({ vigneti } = {}) {
       terrenoId: vigneto && vigneto.terrenoId
     });
   };
+  aggiornaVendemmia = aggiorna;
   form.addEventListener('change', (evento) => {
     const id = evento.target && evento.target.id;
     if (id === 'vignetoId' || id === 'data') aggiorna();
@@ -238,6 +239,7 @@ export function installaAvvisoCarenzaFrutteto({ frutteti } = {}) {
       terrenoId: frutteto && frutteto.terrenoId
     });
   };
+  aggiornaFrutteto = aggiorna;
   form.addEventListener('change', (evento) => {
     const id = evento.target && evento.target.id;
     if (id === 'fruttetoId' || id === 'data') aggiorna();
@@ -257,6 +259,54 @@ export async function aggiornaAvvisoCarenzaDaRiga({ box, dataRaccolta, terrenoId
 }
 
 let seqAttivita = 0;
+let aggiornaAttivita = null;
+let timerAttivita = null;
+let aggiornaVendemmia = null;
+let aggiornaFrutteto = null;
+const ATTESA_LETTURA_MS = 400;
+
+export function azzeraBoxCarenza(box) {
+  scriviBoxCarenza(box, null);
+}
+
+function pianificaAttivita(subito) {
+  if (timerAttivita) clearTimeout(timerAttivita);
+  if (subito) {
+    timerAttivita = null;
+    if (aggiornaAttivita) aggiornaAttivita();
+    return;
+  }
+  timerAttivita = setTimeout(() => {
+    timerAttivita = null;
+    if (aggiornaAttivita) aggiornaAttivita();
+  }, ATTESA_LETTURA_MS);
+}
+
+export function aggiornaAvvisoCarenzaAttivitaOra() {
+  pianificaAttivita(true);
+}
+
+export function azzeraAvvisoCarenzaAttivita() {
+  if (timerAttivita) clearTimeout(timerAttivita);
+  timerAttivita = null;
+  azzeraBoxCarenza(typeof document !== 'undefined' ? document.getElementById('avviso-carenza-attivita') : null);
+}
+
+export function aggiornaAvvisoCarenzaVendemmiaOra() {
+  if (aggiornaVendemmia) return aggiornaVendemmia();
+  azzeraBoxCarenza(typeof document !== 'undefined' ? document.getElementById('avviso-carenza-raccolta') : null);
+  return null;
+}
+
+export function aggiornaAvvisoCarenzaFruttetoOra() {
+  if (aggiornaFrutteto) return aggiornaFrutteto();
+  azzeraBoxCarenza(typeof document !== 'undefined' ? document.getElementById('avviso-carenza-raccolta') : null);
+  return null;
+}
+
+export function azzeraAvvisoCarenzaRaccolta() {
+  azzeraBoxCarenza(typeof document !== 'undefined' ? document.getElementById('avviso-carenza-raccolta') : null);
+}
 
 /**
  * Diario attività. In Conto Terzi il box non compare: il registro non è dell'azienda.
@@ -309,13 +359,14 @@ export function installaAvvisoCarenzaAttivita({ contoTerzi } = {}) {
       terrenoId
     });
   };
+  aggiornaAttivita = aggiorna;
   form.addEventListener('change', (evento) => {
     const id = evento.target && evento.target.id;
     if (id === 'attivita-data' || id === 'attivita-terreno' || id === 'attivita-tipo-lavoro' || id === 'attivita-tipo-lavoro-gerarchico') {
-      aggiorna();
+      pianificaAttivita(false);
     }
   });
   form.addEventListener('input', (evento) => {
-    if (evento.target && evento.target.id === 'attivita-data') aggiorna();
+    if (evento.target && evento.target.id === 'attivita-data') pianificaAttivita(false);
   });
 }

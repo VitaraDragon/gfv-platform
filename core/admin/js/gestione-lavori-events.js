@@ -44,7 +44,11 @@ import {
     testoAnteprimaMiscela,
     tipoLavoroETrattamento
 } from '../../../shared/js/registro-trattamenti-lavoro.js';
-import { collegaSemaforoPianificazione } from '../../../shared/js/registro-trattamenti-lavoro-semaforo.js';
+import {
+    chiudiSemaforoPianificazione,
+    chiediSemaforoPianificazione,
+    collegaSemaforoPianificazione
+} from '../../../shared/js/registro-trattamenti-lavoro-semaforo.js';
 
 async function caricaProdottiMiscela() {
     const terrenoId = document.getElementById('lavoro-terreno')?.value || '';
@@ -73,6 +77,20 @@ async function caricaProdottiMiscela() {
 }
 
 registraCaricamentoProdottiMiscela(() => { caricaProdottiMiscela(); });
+
+function azzeraAvvisiAperturaLavoro() {
+    chiudiSemaforoPianificazione();
+    const box = document.getElementById('lavoro-avviso-carenza');
+    if (box) {
+        box.hidden = true;
+        box.textContent = '';
+    }
+}
+
+async function avvisiLavoroAllApertura() {
+    chiediSemaforoPianificazione({ subito: true });
+    await aggiornaAvvisoCarenzaLavoro(null);
+}
 
 async function preparaMiscelaNelForm(miscela) {
     installaMiscelaLavoro();
@@ -1072,7 +1090,9 @@ export async function openCreaModal(
     }
     
     clearSospensioneForm();
-    preparaMiscelaNelForm(null);
+    azzeraAvvisiAperturaLavoro();
+    await preparaMiscelaNelForm(null);
+    await avvisiLavoroAllApertura();
 
     // Prima si mostra il modale, poi si sincronizzano i required.
     // campoLavoroVisibile risale gli antenati: con .modal { display:none } un sync
@@ -1104,6 +1124,7 @@ export function closeLavoroModal(state, updateState) {
     }
     aggiornaPulsanteBozzaLavoro();
     if (lavoroModal) lavoroModal.classList.remove('active');
+    azzeraAvvisiAperturaLavoro();
     fermaFlussoCreazioneLavoroTony();
     applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), { solaLettura: false });
     try {
@@ -1361,7 +1382,9 @@ export async function openModificaModal(
     
     // Aggiorna visibilità dropdown
     if (setupTipoAssegnazioneHandlersCallback) setupTipoAssegnazioneHandlersCallback();
-    preparaMiscelaNelForm(lavoro && lavoro.miscelaPrevista);
+    azzeraAvvisiAperturaLavoro();
+    await preparaMiscelaNelForm(lavoro && lavoro.miscelaPrevista);
+    await avvisiLavoroAllApertura();
 
     applyLavoroFormContoTerziDaPianificareLock(lavoro);
 

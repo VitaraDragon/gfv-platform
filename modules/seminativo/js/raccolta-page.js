@@ -210,14 +210,23 @@ function aggiornaResa() {
   if (box) box.style.display = resa == null ? 'none' : 'block';
 }
 
+function svuotaBoxCarenza() {
+  const box = document.getElementById('avviso-carenza-raccolta');
+  if (!box) return;
+  box.hidden = true;
+  box.textContent = '';
+}
+
 function closeModal() {
   const modal = document.getElementById('modal-raccolta');
   if (modal) modal.style.display = 'none';
+  svuotaBoxCarenza();
   editingRow = null;
 }
 
 function openModal(row) {
   if (!row) return;
+  svuotaBoxCarenza();
   editingRow = row;
   const raccolta = row.raccolta;
   document.getElementById('raccolta-id').value = raccolta ? raccolta.id || '' : '';

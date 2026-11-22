@@ -6,7 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { conteggioTrattamentiEtichetta, parolaConformita } from '../shared/js/registro-trattamenti-conformita.js';
-import { righeTrattamentoDaMiscela } from '../shared/js/registro-trattamenti.js';
+import { righeTrattamentoDaMiscela, rigaHaConferma, valutaCancellazioneRegistro } from '../shared/js/registro-trattamenti.js';
+import { registroConfermaManuale } from '../shared/js/registro-trattamenti-form.js';
 import {
   allineaTrattamentiAiLavori,
   unisciPassaggiLavoriPianificati
@@ -46,7 +47,7 @@ function pianifica({
 } = {}) {
   return valutaTrattamentoPianificato({
     miscela: {
-      prodotti: [{ nome, dosePerEttaro: dose, unita: 'kg', avversita }]
+      prodotti: [{ nome, dosePerEttaro: dose, unita: 'kg', avversitaPianificata: avversita }]
     },
     data: giorno(data),
     terrenoId: 't1',
@@ -405,10 +406,24 @@ describe('avvisoCarenzaRaccolta', () => {
 });
 
 describe('righeTrattamentoDaMiscela', () => {
-  it('porta l\'avversità sulla riga', () => {
+  it('tiene l\'avversità pianificata come suggerimento, senza confermarla', () => {
     const righe = righeTrattamentoDaMiscela({
-      prodotti: [{ nome: 'FOLPAN 80 WDG', dosePerEttaro: 1.4, avversita: 'Peronospora (Plasmopara viticola)' }]
+      prodotti: [{ nome: 'FOLPAN 80 WDG', dosePerEttaro: 1.4, avversitaPianificata: 'Peronospora (Plasmopara viticola)' }]
     }, 1);
-    expect(righe.prodotti[0].avversita).toBe('Peronospora (Plasmopara viticola)');
+    const riga = righe.prodotti[0];
+    expect(riga.avversitaPianificata).toBe('Peronospora (Plasmopara viticola)');
+    expect(riga.avversita).toBeUndefined();
+    expect(rigaHaConferma(riga)).toBe(false);
+    const trattamento = { data: '2026-08-01', prodotti: [riga] };
+    expect(valutaCancellazioneRegistro(trattamento, { ora: new Date('2026-11-22') }).consentita).toBe(true);
+    const confermata = registroConfermaManuale(
+      { denominazione: 'FOLPAN 80 WDG', numeroRegistrazione: '008601' },
+      { avversita: 'Peronospora (Plasmopara viticola)', coltura: 'vite da vino' }
+    );
+    expect(rigaHaConferma(confermata)).toBe(true);
+    expect(valutaCancellazioneRegistro({
+      data: '2026-08-01',
+      prodotti: [confermata]
+    }, { ora: new Date('2026-11-22'), exportConfermato: false }).consentita).toBe(false);
   });
 });

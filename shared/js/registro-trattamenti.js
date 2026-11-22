@@ -137,6 +137,9 @@ export function campiConfermaRiga(raw = {}) {
       : null,
     dataScadenzaAutorizzazioneScheda: raw.dataScadenzaAutorizzazioneScheda != null && String(raw.dataScadenzaAutorizzazioneScheda).trim()
       ? String(raw.dataScadenzaAutorizzazioneScheda).trim()
+      : null,
+    avversitaPianificata: raw.avversitaPianificata != null && String(raw.avversitaPianificata).trim()
+      ? String(raw.avversitaPianificata).trim()
       : null
   };
 }
@@ -371,8 +374,8 @@ export function calcolaMiscela(input = {}) {
       dosePerEttolitro,
       doseBottePiena: haBotte ? doseBottePiena(dosePerEttolitro, quintali) : null
     };
-    const avversita = String(row.avversita || '').trim();
-    if (avversita) prodotto.avversita = avversita;
+    const pianificata = String(row.avversitaPianificata || '').trim();
+    if (pianificata) prodotto.avversitaPianificata = pianificata;
     return prodotto;
   });
 
@@ -451,8 +454,8 @@ export function righeTrattamentoDaMiscela(miscela, superficieHa) {
       quantita: dosaggio != null && haSuperficie ? arrotonda(dosaggio * sup, 4) : null,
       dosePerEttolitroScheda: numeroFinito(p.dosePerEttolitro != null ? p.dosePerEttolitro : p.dosePerEttolitroScheda)
     };
-    const avversita = String(p.avversita || '').trim();
-    if (avversita) riga.avversita = avversita;
+    const pianificata = String(p.avversitaPianificata || p.avversita || '').trim();
+    if (pianificata) riga.avversitaPianificata = pianificata;
     if (prodotti.some((r) => stessoProdotto(r, riga))) return;
     prodotti.push(riga);
   });

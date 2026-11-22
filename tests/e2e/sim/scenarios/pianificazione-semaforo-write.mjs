@@ -79,7 +79,7 @@ export async function runPianificazioneSemaforoWrite(page, expect) {
   const colore = await fascia.getAttribute('data-colore');
   const html = await banner.innerHTML();
   if (!/rosso|red/.test(String(colore)) && !/fuori dall'intervallo/.test(html)) {
-    return { saltato: 'Il banner non è diventato rosso con FOLPAN a 3 kg/ha. Colore: ' + colore };
+    throw new Error('Il banner non è diventato rosso con FOLPAN a 3 kg/ha. Colore: ' + colore);
   }
 
   page.once('dialog', async (dialog) => {

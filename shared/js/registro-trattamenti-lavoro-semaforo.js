@@ -18,6 +18,17 @@ import {
 import { testoDoseDaEtichetta, valutaTrattamentoPianificato } from './semaforo-etichetta-pianificazione.js';
 
 let bannerSeq = 0;
+let leggiContestoRegistrato = null;
+let timerSemaforo = null;
+let cacheSemaforo = null;
+let attesaSemaforoMs = 400;
+const CAMPI_CHE_NON_RICALCOLANO = new Set(['lavoro-nome', 'lavoro-note']);
+
+function chiaveCacheSemaforo() {
+  const terreno = document.getElementById('lavoro-terreno')?.value || '';
+  const data = document.getElementById('lavoro-data-inizio')?.value || '';
+  return terreno + '|' + String(data).slice(0, 4);
+}
 
 function esc(value) {
   return String(value == null ? '' : value)
@@ -101,10 +112,10 @@ export async function aggiornaSemaforoPianificazione(ctx = {}) {
   const legami = legamiScheda(pacchetto, anagraficaDi);
   const esito = valutaTrattamentoPianificato({
     miscela,
-    data: ctx.data || document.getElementById('lavoro-data-inizio')?.value,
-    terrenoId: ctx.terrenoId || document.getElementById('lavoro-terreno')?.value || null,
+    data: document.getElementById('lavoro-data-inizio')?.value || ctx.data,
+    terrenoId: document.getElementById('lavoro-terreno')?.value || ctx.terrenoId || null,
     specie: ctx.specie || '',
-    lavoroId: ctx.lavoroId || document.getElementById('lavoro-id')?.value || '',
+    lavoroId: document.getElementById('lavoro-id')?.value || ctx.lavoroId || '',
     precedenti: ctx.precedenti || [],
     legami,
     oggi: ctx.oggi || new Date(),
@@ -148,20 +159,78 @@ export async function aggiornaSemaforoPianificazione(ctx = {}) {
   return esito;
 }
 
-export function collegaSemaforoPianificazione(leggiContesto) {
+export function azzeraCacheSemaforoPianificazione() {
+  cacheSemaforo = null;
+}
+
+export function chiudiSemaforoPianificazione() {
+  if (timerSemaforo) clearTimeout(timerSemaforo);
+  timerSemaforo = null;
+  cacheSemaforo = null;
+  bannerSeq += 1;
+  nascondiBanner();
+}
+
+function eseguiLetturaSemaforo() {
+  if (!tipoLavoroETrattamento(nomeTipoLavoro())) {
+    nascondiBanner();
+    return Promise.resolve(null);
+  }
+  const chiave = chiaveCacheSemaforo();
+  const applica = (ctx) => aggiornaSemaforoPianificazione(ctx || {});
+  if (cacheSemaforo && cacheSemaforo.chiave === chiave) {
+    return Promise.resolve(applica(cacheSemaforo.valore));
+  }
+  const lettura = typeof leggiContestoRegistrato === 'function' ? leggiContestoRegistrato() : {};
+  const atteso = lettura && typeof lettura.then === 'function' ? lettura : Promise.resolve(lettura);
+  return atteso.then((ctx) => {
+    if (!tipoLavoroETrattamento(nomeTipoLavoro())) return null;
+    cacheSemaforo = { chiave, valore: ctx || {} };
+    return applica(ctx);
+  }).catch(() => null);
+}
+
+function programmaSemaforo(subito) {
+  if (!tipoLavoroETrattamento(nomeTipoLavoro())) {
+    if (timerSemaforo) clearTimeout(timerSemaforo);
+    timerSemaforo = null;
+    nascondiBanner();
+    return Promise.resolve(null);
+  }
+  if (subito) {
+    if (timerSemaforo) clearTimeout(timerSemaforo);
+    timerSemaforo = null;
+    return eseguiLetturaSemaforo();
+  }
+  if (timerSemaforo) clearTimeout(timerSemaforo);
+  return new Promise((resolve) => {
+    timerSemaforo = setTimeout(() => {
+      timerSemaforo = null;
+      resolve(eseguiLetturaSemaforo());
+    }, attesaSemaforoMs);
+  });
+}
+
+export function chiediSemaforoPianificazione(opzioni = {}) {
+  return programmaSemaforo(!!(opzioni && opzioni.subito));
+}
+
+export function collegaSemaforoPianificazione(leggiContesto, opzioni = {}) {
+  leggiContestoRegistrato = leggiContesto;
+  if (opzioni && opzioni.attesaMs != null) attesaSemaforoMs = opzioni.attesaMs;
   const form = document.getElementById('lavoro-form');
   if (!form || form.dataset.semaforoPianificazione === '1') return;
   form.dataset.semaforoPianificazione = '1';
-  const aggiorna = () => {
-    const contesto = typeof leggiContesto === 'function' ? leggiContesto() : {};
-    const atteso = contesto && typeof contesto.then === 'function' ? contesto : Promise.resolve(contesto);
-    atteso.then((ctx) => aggiornaSemaforoPianificazione(ctx || {})).catch(() => {});
+  const suEvento = (evento) => {
+    const id = evento && evento.target && evento.target.id;
+    if (CAMPI_CHE_NON_RICALCOLANO.has(id)) return;
+    programmaSemaforo(false);
   };
-  form.addEventListener('input', aggiorna);
-  form.addEventListener('change', aggiorna);
+  form.addEventListener('input', suEvento);
+  form.addEventListener('change', suEvento);
   form.addEventListener('click', (evento) => {
     const nodo = evento.target;
     if (!nodo || !nodo.closest) return;
-    if (nodo.closest('#btn-miscela-aggiungi, .miscela-togli')) aggiorna();
+    if (nodo.closest('#btn-miscela-aggiungi, .miscela-togli')) programmaSemaforo(false);
   });
 }
