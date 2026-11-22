@@ -152,6 +152,13 @@ export class Lavoro extends Base {
     /** Miscela prevista del trattamento: dosi, acqua, e botte se l'attrezzo ha i quintali. */
     this.miscelaPrevista = data.miscelaPrevista && typeof data.miscelaPrevista === 'object' ? data.miscelaPrevista : null;
     this.registroAvvisi = Array.isArray(data.registroAvvisi) ? data.registroAvvisi.map((v) => String(v)) : [];
+    const conformita = data.conformitaPianificazione;
+    this.conformitaPianificazione = conformita && typeof conformita === 'object'
+      ? {
+        colore: conformita.colore ? String(conformita.colore) : null,
+        confermatoIl: conformita.confermatoIl || null
+      }
+      : null;
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;

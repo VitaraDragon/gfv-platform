@@ -17,6 +17,7 @@ import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 import { getDestinazioneLabel } from '../../../shared/js/destinazione-vendemmia.js';
+import { installaAvvisoCarenzaVendemmia } from '../../../shared/js/avviso-carenza-raccolta.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const lavoriServiceModule = await import(resolvePath('../../../core/services/lavori-service.js'));
@@ -2439,3 +2440,4 @@ document.getElementById('modal-mappa-vendemmia').addEventListener('click', (e) =
 
 // Inizializza al caricamento
 init();
+installaAvvisoCarenzaVendemmia({ vigneti: () => vigneti });

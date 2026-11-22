@@ -254,6 +254,18 @@ function openModal(row) {
   const modal = document.getElementById('modal-raccolta');
   if (modal) modal.style.display = 'flex';
   prefillCosti(row, raccolta);
+  import('../../../shared/js/avviso-carenza-raccolta.js').then(async (mod) => {
+    const { colturaSchedaRegistro } = await import('../../../core/config/registro-trattamenti-specie.js');
+    const coltura = colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: row.colturaNome }) || row.colturaNome || '';
+    return mod.aggiornaAvvisoCarenzaDaRiga({
+      box: document.getElementById('avviso-carenza-raccolta'),
+      dataRaccolta: row.data,
+      terrenoId: row.terrenoId,
+      campagnaId: row.campagnaId,
+      coltura,
+      verbo: 'raccogliere'
+    });
+  }).catch(() => {});
 }
 
 async function prefillCosti(row, raccolta) {
