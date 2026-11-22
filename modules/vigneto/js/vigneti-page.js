@@ -17,6 +17,7 @@ try {
     throw err;
 }
 import { getFormeAllevamentoList } from '../config/forme-allevamento.js';
+import { riempiSelectTipoPalo } from '../config/tipi-palo.js';
 
 // Import servizio ricalcolo spese
 let ricalcolaSpeseVignetoAnno = null;
@@ -74,20 +75,16 @@ const PORTAINNESTO_PREDEFINITI = [
 // Usa lista centralizzata da config/forme-allevamento.js
 // FORME_ALLEVAMENTO_PREDEFINITE è ora ottenuta da getFormeAllevamentoList()
 
-const TIPI_PALO_PREDEFINITI = [
-    'Cemento', 'Cemento armato', 'Ferro', 'Acciaio', 'Acciaio zincato',
-    'Ferro zincato a caldo', 'Ferro zincato a freddo',
-    'Legno', 'Legno trattato', 'Plastica', 'Fibra di vetro', 'PVC',
-    'Bambù', 'Alluminio', 'Misto cemento-ferro'
-];
+function popolaTipoPalo(valore) {
+    riempiSelectTipoPalo(document.getElementById('tipoPalo'), valore);
+}
 
 // Carica valori personalizzati da localStorage
 function loadCustomValues() {
     return {
         varieta: JSON.parse(localStorage.getItem('vigneto_varieta_custom') || '[]'),
         portainnesto: JSON.parse(localStorage.getItem('vigneto_portainnesto_custom') || '[]'),
-        formaAllevamento: JSON.parse(localStorage.getItem('vigneto_forma_allevamento_custom') || '[]'),
-        tipoPalo: JSON.parse(localStorage.getItem('vigneto_tipo_palo_custom') || '[]')
+        formaAllevamento: JSON.parse(localStorage.getItem('vigneto_forma_allevamento_custom') || '[]')
     };
 }
 
@@ -141,11 +138,6 @@ window.openAddFormaAllevamentoModal = function() {
     setTimeout(() => document.getElementById('new-forma-allevamento').focus(), 100);
 };
 
-window.openAddTipoPaloModal = function() {
-    document.getElementById('add-tipo-palo-modal').classList.add('active');
-    setTimeout(() => document.getElementById('new-tipo-palo').focus(), 100);
-};
-
 // Funzioni per chiudere modali
 window.closeAddModal = function(modalId) {
     document.getElementById(modalId).classList.remove('active');
@@ -184,17 +176,6 @@ window.addNewFormaAllevamento = function(e) {
         populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
         document.getElementById('formaAllevamento').value = value;
         closeAddModal('add-forma-allevamento-modal');
-    }
-};
-
-window.addNewTipoPalo = function(e) {
-    e.preventDefault();
-    const value = document.getElementById('new-tipo-palo').value.trim();
-    if (value) {
-        saveCustomValue('tipoPalo', value);
-        populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
-        document.getElementById('tipoPalo').value = value;
-        closeAddModal('add-tipo-palo-modal');
     }
 };
 
@@ -262,7 +243,7 @@ async function init() {
                 populateDropdown('varieta', VARIETA_PREDEFINITE, 'varieta');
                 populateDropdown('portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
                 populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
-                populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+                popolaTipoPalo();
                 
                 await loadVigneti();
                 
@@ -476,7 +457,7 @@ window.openCreateModal = function() {
     populateDropdown('varieta', VARIETA_PREDEFINITE, 'varieta');
     populateDropdown('portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
     populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
-    populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+    popolaTipoPalo();
     
     document.getElementById('vigneto-modal').classList.add('active');
 };
@@ -499,7 +480,6 @@ window.editVigneto = async function(vignetoId) {
         populateDropdown('varieta', VARIETA_PREDEFINITE, 'varieta');
         populateDropdown('portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
         populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
-        populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
 
         await loadTerreni(vigneto.terrenoId);
         // Popola form
@@ -511,7 +491,7 @@ window.editVigneto = async function(vignetoId) {
         document.getElementById('superficieEttari').value = vigneto.superficieEttari || '';
         document.getElementById('distanzaFile').value = vigneto.distanzaFile || '';
         document.getElementById('distanzaUnita').value = vigneto.distanzaUnita || '';
-        document.getElementById('tipoPalo').value = vigneto.tipoPalo || '';
+        popolaTipoPalo(vigneto.tipoPalo || '');
         document.getElementById('destinazioneUva').value = vigneto.destinazioneUva || '';
         document.getElementById('orientamentoFilari').value = vigneto.orientamentoFilari || '';
         document.getElementById('cantina').value = vigneto.cantina || '';

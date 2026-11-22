@@ -1409,7 +1409,7 @@ async function openModalCompleta(idx) {
             if (!rowsProdotti.length) rowsProdotti = [rigaProdottoVuota()];
             renderProdottiTrattamento(rowsProdotti);
         }
-        await ripristinaCardProdottoSalvato(getProdottiRowsFromTable());
+        await ripristinaCardProdottoSalvato(getProdottiRowsFromTable(), { coltura: specieSchedaCorrente() || '' });
         try {
             const { getDatiPrecompilazioneTrattamento } = await import(resolvePath(cfg.servicePath));
             const prefill = await getDatiPrecompilazioneTrattamento(row[cfg.idKey], found.trattamento);
@@ -1509,7 +1509,7 @@ async function apriModificaTrattamento(idx) {
         if (!rowsProdotti.length) rowsProdotti = [rigaProdottoVuota()];
         renderProdottiTrattamento(rowsProdotti);
     }
-    await ripristinaCardProdottoSalvato(getProdottiRowsFromTable());
+    await ripristinaCardProdottoSalvato(getProdottiRowsFromTable(), { coltura: specieSchedaCorrente() || '' });
     try {
         const { getDatiPrecompilazioneTrattamento } = await import(resolvePath(cfg.servicePath));
         const prefill = await getDatiPrecompilazioneTrattamento(colturaId, t);

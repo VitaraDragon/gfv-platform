@@ -44,6 +44,7 @@ function formLavoro(tipo = 'Trattamento fitosanitario') {
       <div id="lavoro-avviso-carenza" hidden></div>
       <div id="lavoro-miscela-section">
         <div id="lavoro-semaforo-banner" hidden></div>
+        <p id="lavoro-nota-passaggio" hidden></p>
         <select id="lavoro-miscela-prodotto"><option value="">— Nessun prodotto —</option></select>
         <input id="lavoro-miscela-nome" value="FOLPAN 80 WDG">
         <button type="button" class="btn btn-sm btn-secondary btn-leggi-scheda" id="btn-leggi-scheda-miscela">Leggi scheda</button>
@@ -109,6 +110,7 @@ describe('miscelaPrevistaPerSalvataggio', () => {
     const rifiuto = await miscelaPrevistaPerSalvataggio(state, 't1', '2026-08-01', 'Trattamento fitosanitario', null, {
       confirmFn: (testo) => {
         expect(testo.startsWith('Il trattamento pianificato non è conforme all\'etichetta:')).toBe(true);
+        expect(testo).not.toContain('trattamento di ieri');
         return false;
       }
     });
@@ -125,6 +127,7 @@ describe('miscelaPrevistaPerSalvataggio', () => {
   it('in modifica conserva l\'avversità anche se la tendina non ha ancora le voci', async () => {
     const { miscelaPrevistaPerSalvataggio } = await import('../core/admin/js/gestione-lavori-events.js');
     const select = document.getElementById('lavoro-miscela-avversita');
+    select.innerHTML = '<option value="">— da scegliere —</option>';
     select.value = '';
     select.setAttribute('data-avversita', 'Peronospora (Plasmopara viticola)');
     document.getElementById('lavoro-miscela-dose-ha').value = '3';
@@ -206,6 +209,46 @@ describe('letture e apertura', () => {
     vi.useRealTimers();
   });
 
+  it('una lettura della data precedente non sovrascrive il conteggio della data nuova', async () => {
+    const {
+      chiudiSemaforoPianificazione,
+      collegaSemaforoPianificazione
+    } = await import('../shared/js/registro-trattamenti-lavoro-semaforo.js');
+    chiudiSemaforoPianificazione();
+    formLavoro();
+    const attese = [];
+    const leggi = vi.fn(() => new Promise((resolve) => { attese.push(resolve); }));
+    collegaSemaforoPianificazione(leggi);
+    vi.useFakeTimers();
+    const data = document.getElementById('lavoro-data-inizio');
+    data.value = '2026-08-01';
+    data.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(400);
+    data.value = '2026-09-01';
+    data.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(leggi).toHaveBeenCalledTimes(2);
+    const ctx = (giorno) => ({
+      specie: 'vite da vino',
+      prodotti: [],
+      precedenti: [],
+      terreni: [{ id: 't1', superficie: 1 }],
+      data: giorno
+    });
+    attese[1](ctx('2026-09-01'));
+    await Promise.resolve();
+    const dopo = document.getElementById('lavoro-semaforo-banner').innerHTML;
+    attese[0](ctx('2026-08-01'));
+    await Promise.resolve();
+    expect(document.getElementById('lavoro-semaforo-banner').innerHTML).toBe(dopo);
+    const dose = document.getElementById('lavoro-miscela-dose-ha');
+    dose.value = '1.4';
+    dose.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(leggi).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
   it('all\'apertura il banner compare subito e si azzera alla chiusura', async () => {
     const {
       chiudiSemaforoPianificazione,
@@ -230,6 +273,9 @@ describe('letture e apertura', () => {
     expect(leggi).toHaveBeenCalledTimes(1);
     expect(banner.hidden).toBe(false);
     expect(banner.innerHTML).toMatch(/fuori dall'intervallo|data-colore="rosso"/);
+    const nota = document.getElementById('lavoro-nota-passaggio');
+    expect(nota.hidden).toBe(false);
+    expect(nota.textContent).toContain('trattamento di ieri');
     const box = document.getElementById('lavoro-avviso-carenza');
     scriviBoxCarenza(box, { testo: 'avviso vecchio' });
     azzeraBoxCarenza(box);
@@ -247,10 +293,46 @@ describe('letture e apertura', () => {
       lavori: []
     });
     expect(box.textContent).toContain('12/09/2026');
+    await aggiornaAvvisoCarenzaRaccolta({
+      box,
+      dataRaccolta: '2026-09-01',
+      coltura: 'vite da vino',
+      verbo: 'vendemmiare',
+      trattamenti: [{
+        data: '2026-08-15',
+        prodotti: [{ prodotto: 'Folpan', dosaggio: 1.4, avversitaPianificata: 'Peronospora (Plasmopara viticola)' }]
+      }],
+      lavori: []
+    });
+    expect(box.textContent).toBe('');
+    await aggiornaAvvisoCarenzaRaccolta({
+      box,
+      dataRaccolta: '2026-09-01',
+      coltura: 'vite da vino',
+      verbo: 'vendemmiare',
+      trattamenti: [{
+        data: '2026-08-15',
+        prodotti: [{
+          prodotto: 'Folpan',
+          dosaggio: 1.4,
+          avversitaPianificata: 'Peronospora (Plasmopara viticola)',
+          numeroRegistrazioneLetto: '008601',
+          riferimentoRiga: {
+            nomeProdotto: 'FOLPAN 80 WDG',
+            numeroRegistrazione: '008601',
+            colturaScheda: 'vite da vino'
+          }
+        }]
+      }],
+      lavori: []
+    });
+    expect(box.textContent).toContain('Non si può vendemmiare');
+    expect(box.textContent).toContain('12/09/2026');
     chiudiSemaforoPianificazione();
     azzeraBoxCarenza(box);
     expect(banner.hidden).toBe(true);
     expect(banner.innerHTML).toBe('');
+    expect(nota.hidden).toBe(true);
     expect(box.textContent).toBe('');
 
     formLavoro('Potatura');
@@ -339,7 +421,7 @@ describe('diario carenza', () => {
     await vi.waitFor(() => {
       expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-numero-registrazione')).toBe('008601');
     });
-    expect(document.getElementById('lavoro-miscela-nome').value).toBe('Folpan');
+    expect(document.getElementById('lavoro-miscela-nome').value).toBe('FOLPAN 80 WDG');
     expect(document.getElementById('lavoro-miscela-dose-ha').value).toBe('3');
 
     const rosso = await aggiornaSemaforoPianificazione(ctx);
@@ -367,24 +449,30 @@ describe('diario carenza', () => {
     formLavoro();
     document.getElementById('lavoro-miscela-nome').value = '';
     scriviMiscelaNelForm(miscela);
-    expect(document.getElementById('lavoro-miscela-nome').value).toBe('Folpan');
+    expect(document.getElementById('lavoro-miscela-nome').value).toBe('FOLPAN 80 WDG');
     expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-numero-registrazione')).toBe('008601');
     expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-nome-scheda')).toBe('FOLPAN 80 WDG');
     expect(document.getElementById('lavoro-miscela-avversita').getAttribute('data-avversita')).toContain('Peronospora');
     const riaperto = await aggiornaSemaforoPianificazione(ctx);
-    expect(document.getElementById('lavoro-miscela-avversita').value).toContain('Peronospora');
-    expect(riaperto.colore).toBe('verde');
+    expect(document.getElementById('lavoro-miscela-avversita').value).toBe('');
+    expect(document.querySelector('.lavoro-avversita-suggerita').textContent).toContain('Peronospora');
+    expect(riaperto.colore).not.toBe('verde');
     expect(document.getElementById('lavoro-miscela-dose-ha').value).toBe('1.4');
 
     scriviMiscelaNelForm({
       prodotti: [
         miscela.prodotti[0],
-        { nome: 'Altro libero', dosePerEttaro: 1 }
+        {
+          nome: 'Rame libero',
+          dosePerEttaro: 1,
+          riferimentoRiga: { nomeProdotto: 'POLTIGLIA DISPERSS', numeroRegistrazione: '000123' }
+        }
       ]
     });
     const extra = document.querySelector('#tbody-miscela-lavoro .btn-leggi-scheda');
     expect(extra).toBeTruthy();
     expect(extra.textContent).toContain('Leggi scheda');
+    expect(document.querySelector('#tbody-miscela-lavoro tr').textContent).toContain('POLTIGLIA DISPERSS');
 
     const sel = document.getElementById('lavoro-miscela-prodotto');
     sel.innerHTML = '<option value="">— Nessun prodotto —</option><option value="p1">Prodotto a magazzino</option>';
@@ -419,7 +507,8 @@ describe('diario carenza', () => {
     await vi.waitFor(() => {
       expect(nome.getAttribute('data-numero-registrazione')).toBe('008601');
     });
-    expect(nome.getAttribute('data-nome-legato')).toBe('Folpan');
+    expect(nome.value).toBe('FOLPAN 80 WDG');
+    expect(nome.getAttribute('data-nome-legato')).toBe('FOLPAN 80 WDG');
     const select = document.getElementById('lavoro-miscela-avversita');
     await aggiornaSemaforoPianificazione(ctx);
     const voce = Array.from(select.options).find((opt) => /peronospora/i.test(opt.textContent));
@@ -430,11 +519,21 @@ describe('diario carenza', () => {
     expect(document.getElementById('lavoro-dose-etichetta').textContent).toContain('Da etichetta');
     const agganciata = componiMiscelaDalForm(1, null);
 
-    nome.value = 'Folpan';
+    nome.value = '  folpan 80 wdg  ';
     nome.dispatchEvent(new Event('input', { bubbles: true }));
     expect(nome.getAttribute('data-numero-registrazione')).toBe('008601');
     expect(document.getElementById('lavoro-scheda-esito').textContent).toContain('FOLPAN 80 WDG');
-    nome.value = '  FOLPAN  ';
+    nome.value = 'Folpan';
+    nome.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(nome.getAttribute('data-numero-registrazione')).toBeNull();
+    nome.value = 'FOLPAN 80 WDG';
+    nome.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(nome.getAttribute('data-numero-registrazione')).toBeNull();
+    nome.value = 'FOLPAN 80 WDG';
+    nome.setAttribute('data-numero-registrazione', '008601');
+    nome.setAttribute('data-nome-scheda', 'FOLPAN 80 WDG');
+    nome.setAttribute('data-nome-legato', 'FOLPAN 80 WDG');
+    nome.value = '  FOLPAN   80   WDG ';
     nome.dispatchEvent(new Event('input', { bubbles: true }));
     expect(nome.getAttribute('data-numero-registrazione')).toBe('008601');
     expect(nome.getAttribute('data-nome-scheda')).toBe('FOLPAN 80 WDG');
@@ -468,8 +567,8 @@ describe('diario carenza', () => {
     attaccaLeggiSchedaLavoro();
     scriviMiscelaNelForm(agganciata);
     const riaperto = document.getElementById('lavoro-miscela-nome');
-    expect(riaperto.value).toBe('Folpan');
-    expect(riaperto.getAttribute('data-nome-legato')).toBe('Folpan');
+    expect(riaperto.value).toBe('FOLPAN 80 WDG');
+    expect(riaperto.getAttribute('data-nome-legato')).toBe('FOLPAN 80 WDG');
     expect(riaperto.getAttribute('data-numero-registrazione')).toBe('008601');
     riaperto.dispatchEvent(new Event('input', { bubbles: true }));
     expect(riaperto.getAttribute('data-numero-registrazione')).toBe('008601');

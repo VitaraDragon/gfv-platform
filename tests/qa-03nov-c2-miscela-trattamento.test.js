@@ -380,7 +380,7 @@ describe('form miscela sul lavoro', () => {
 describe('avvisi non duplicati', () => {
   const precedenti = [];
 
-  it('avvisiMiscelaLavoro: lo stesso avviso una volta, più la nota finale una volta', () => {
+  it('avvisiMiscelaLavoro: lo stesso avviso una volta, senza la nota del trattamento di ieri', () => {
     const miscela = {
       prodotti: [
         { prodottoId: 'p1', nome: 'Folpan' },
@@ -390,7 +390,7 @@ describe('avvisi non duplicati', () => {
     const out = avvisiMiscelaLavoro({ miscela, terrenoId: 't', data: new Date('2026-05-01'), precedenti, prodottiAnagrafica: [], specie: 'vite da vino' });
     const nonConfermata = out.filter((m) => m.includes('conferma dell\'azienda'));
     expect(nonConfermata).toHaveLength(1);
-    expect(out.filter((m) => m.includes('trattamento di ieri'))).toHaveLength(1);
+    expect(out.filter((m) => m.includes('trattamento di ieri'))).toHaveLength(0);
   });
 
   it('avvisiMiscelaLavoro: senza prodotti nessun messaggio', () => {
