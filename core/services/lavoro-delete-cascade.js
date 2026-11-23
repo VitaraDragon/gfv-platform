@@ -16,6 +16,7 @@ import { getCurrentUserData } from './auth-service.js';
 import {
   normalizeRelatedLavoroId,
   matchesLavoroId,
+  filterDocsByLavoroId,
   comunicazioneRiferisceLavoroInesistente,
   assenzaCascadeAction,
   unlinkPreventivoPatch,
@@ -32,6 +33,7 @@ export {
   filterComunicazioniSenzaLavoroMorto,
   buildLavoroCascadePlan,
   matchesLavoroId,
+  filterDocsByLavoroId,
   isRipresaFigliaDi,
   assenzaCascadeAction,
   unlinkPreventivoPatch,
@@ -196,6 +198,45 @@ async function listCropRecordsForLavoro(lavoroId, terrenoId) {
     }
   } catch (err) {
     console.warn('[lavoro-delete-cascade] crop frutteto:', err?.message || err);
+  }
+
+  // Seminativo / orticole: collezione piatta con lavoroId (non sotto campagna).
+  try {
+    const {
+      getAllTrattamentiSeminativo,
+      deleteTrattamentoSeminativo
+    } = await import('../../modules/seminativo/services/trattamenti-service.js');
+    const trattamenti = await getAllTrattamentiSeminativo().catch(() => []);
+    filterDocsByLavoroId(trattamenti, lavoroId).forEach((x) => {
+      out.trattamenti.push({
+        modulo: 'seminativo',
+        parentId: x.campagnaId || null,
+        id: x.id,
+        magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
+        delete: () => deleteTrattamentoSeminativo(x.id)
+      });
+    });
+  } catch (err) {
+    console.warn('[lavoro-delete-cascade] crop seminativo:', err?.message || err);
+  }
+
+  try {
+    const {
+      getAllTrattamentiOrticole,
+      deleteTrattamentoOrticole
+    } = await import('../../modules/orticole/services/trattamenti-service.js');
+    const trattamenti = await getAllTrattamentiOrticole().catch(() => []);
+    filterDocsByLavoroId(trattamenti, lavoroId).forEach((x) => {
+      out.trattamenti.push({
+        modulo: 'orticole',
+        parentId: x.campagnaId || null,
+        id: x.id,
+        magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
+        delete: () => deleteTrattamentoOrticole(x.id)
+      });
+    });
+  } catch (err) {
+    console.warn('[lavoro-delete-cascade] crop orticole:', err?.message || err);
   }
 
   return out;
