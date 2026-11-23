@@ -23,6 +23,14 @@ function messageToHtml(message) {
     .join('');
 }
 
+function applyConfirmEnabled(confirmBtn, enabled) {
+  if (!confirmBtn) return;
+  confirmBtn.disabled = !enabled;
+  confirmBtn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+  confirmBtn.style.opacity = enabled ? '1' : '0.55';
+  confirmBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+}
+
 function ensureOverlay() {
   let overlay = document.getElementById(OVERLAY_ID);
   if (overlay) return overlay;
@@ -78,7 +86,19 @@ function ensureOverlay() {
  *   bodyHtml?: string,
  *   confirmLabel?: string,
  *   cancelLabel?: string,
- *   icon?: string
+ *   icon?: string,
+ *   confirmDisabled?: boolean,
+ *   prepare?: (api: {
+ *     update: (patch: {
+ *       title?: string,
+ *       message?: string,
+ *       bodyHtml?: string,
+ *       confirmLabel?: string,
+ *       confirmDisabled?: boolean
+ *     }) => void,
+ *     isOpen: () => boolean,
+ *     close: (result: boolean) => void
+ *   }) => void | Promise<void>
  * }} [options]
  * @returns {Promise<boolean>}
  */
@@ -110,9 +130,13 @@ export function showConfirmDialog(options = {}) {
       cancelBtn.removeEventListener('click', onCancel);
       overlay.removeEventListener('click', onBackdrop);
       document.removeEventListener('keydown', onKey);
+      applyConfirmEnabled(confirmBtn, true);
       resolve(result);
     };
-    const onOk = () => finish(true);
+    const onOk = () => {
+      if (confirmBtn.disabled) return;
+      finish(true);
+    };
     const onCancel = () => finish(false);
     const onBackdrop = (event) => {
       if (event.target === overlay) finish(false);
@@ -121,12 +145,25 @@ export function showConfirmDialog(options = {}) {
       if (event.key === 'Escape') finish(false);
     };
 
+    const update = (patch = {}) => {
+      if (done) return;
+      if (patch.title != null) titleEl.textContent = patch.title;
+      if (patch.bodyHtml != null) {
+        bodyEl.innerHTML = patch.bodyHtml;
+      } else if (patch.message != null) {
+        bodyEl.innerHTML = messageToHtml(patch.message);
+      }
+      if (patch.confirmLabel != null) confirmBtn.textContent = patch.confirmLabel;
+      if (patch.confirmDisabled != null) applyConfirmEnabled(confirmBtn, !patch.confirmDisabled);
+    };
+
     const previousOverflow = document.body.style.overflow;
     titleEl.textContent = options.title || 'Conferma';
     bodyEl.innerHTML = options.bodyHtml || messageToHtml(options.message || '');
     confirmBtn.textContent = options.confirmLabel || 'Continua';
     cancelBtn.textContent = options.cancelLabel || 'Annulla';
     if (iconEl) iconEl.textContent = options.icon || '⚠️';
+    applyConfirmEnabled(confirmBtn, options.confirmDisabled !== true);
 
     overlay.style.display = 'flex';
     overlay.setAttribute('aria-hidden', 'false');
@@ -137,6 +174,18 @@ export function showConfirmDialog(options = {}) {
     overlay.addEventListener('click', onBackdrop);
     document.addEventListener('keydown', onKey);
     cancelBtn.focus();
+
+    if (typeof options.prepare === 'function') {
+      Promise.resolve()
+        .then(() => options.prepare({
+          update,
+          isOpen: () => !done,
+          close: finish
+        }))
+        .catch(() => {
+          /* prepare gestisce errori internamente; non chiudere il dialog */
+        });
+    }
   });
 }
 
