@@ -21,8 +21,19 @@ import {
   nomiSeedCategoriaCampo,
   selezionaRigheTrattamento
 } from '../models/OrticolaTrattamento.js';
+import { intervalloCampagna } from '../models/OrticolaSpese.js';
+import {
+  createTrattamentoCampoFromLavoro,
+  findTrattamentoCampoByLavoroId,
+  syncTrattamentoCampoFromLavoro
+} from '../../../shared/js/trattamento-campo-from-lavoro.js';
 
 const COLLECTION_NAME = TRATTAMENTI_ORTICOLE_COLLECTION;
+const LOG_PREFIX = 'TRATTAMENTI-ORTICOLE';
+
+function mapDocs(docs) {
+  return (docs || []).map((doc) => OrticolaTrattamento.fromData(doc));
+}
 
 function requireTenantId() {
   const tenantId = getCurrentTenantId();
@@ -159,4 +170,65 @@ export async function deleteTrattamentoOrticole(id, opzioni = {}) {
     throw err;
   }
   await deleteDocument(COLLECTION_NAME, id, tenantId);
+}
+
+/**
+ * @param {string} lavoroId
+ * @returns {Promise<{ trattamentoId: string, campagnaId: string|null, trattamento: object }|null>}
+ */
+export async function findTrattamentoByLavoroId(lavoroId) {
+  try {
+    return await findTrattamentoCampoByLavoroId({
+      collectionName: COLLECTION_NAME,
+      lavoroId,
+      tenantId: getCurrentTenantId(),
+      mapDocs
+    });
+  } catch (error) {
+    console.error(`[${LOG_PREFIX}] findTrattamentoByLavoroId:`, error);
+    return null;
+  }
+}
+
+/**
+ * Crea (o sincronizza) il doc in trattamentiOrticole dal lavoro. Niente scarico magazzino.
+ * @param {string} lavoroId
+ * @returns {Promise<string|null>}
+ */
+export async function createTrattamentoFromLavoro(lavoroId) {
+  try {
+    return await createTrattamentoCampoFromLavoro({
+      collectionName: COLLECTION_NAME,
+      logPrefix: LOG_PREFIX,
+      lavoroId,
+      tenantId: getCurrentTenantId(),
+      loadCampagne: () => getAllOrticole().catch(() => []),
+      intervalloCampagna,
+      Model: OrticolaTrattamento,
+      mapDocs
+    });
+  } catch (error) {
+    console.error(`[${LOG_PREFIX}] createTrattamentoFromLavoro:`, error);
+    return null;
+  }
+}
+
+/**
+ * @param {string} lavoroId
+ * @returns {Promise<string|null>}
+ */
+export async function syncTrattamentoFromLavoro(lavoroId) {
+  try {
+    return await syncTrattamentoCampoFromLavoro({
+      collectionName: COLLECTION_NAME,
+      logPrefix: LOG_PREFIX,
+      lavoroId,
+      tenantId: getCurrentTenantId(),
+      Model: OrticolaTrattamento,
+      mapDocs
+    });
+  } catch (error) {
+    console.error(`[${LOG_PREFIX}] syncTrattamentoFromLavoro:`, error);
+    return null;
+  }
 }

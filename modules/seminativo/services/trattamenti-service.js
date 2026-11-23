@@ -21,8 +21,19 @@ import {
   nomiSeedCategoriaCampo,
   selezionaRigheTrattamento
 } from '../models/SeminativoTrattamento.js';
+import { intervalloCampagna } from '../models/SeminativoSpese.js';
+import {
+  createTrattamentoCampoFromLavoro,
+  findTrattamentoCampoByLavoroId,
+  syncTrattamentoCampoFromLavoro
+} from '../../../shared/js/trattamento-campo-from-lavoro.js';
 
 const COLLECTION_NAME = TRATTAMENTI_SEMINATIVO_COLLECTION;
+const LOG_PREFIX = 'TRATTAMENTI-SEMINATIVO';
+
+function mapDocs(docs) {
+  return (docs || []).map((doc) => SeminativoTrattamento.fromData(doc));
+}
 
 function requireTenantId() {
   const tenantId = getCurrentTenantId();
@@ -157,4 +168,65 @@ export async function deleteTrattamentoSeminativo(id, opzioni = {}) {
     throw err;
   }
   await deleteDocument(COLLECTION_NAME, id, tenantId);
+}
+
+/**
+ * @param {string} lavoroId
+ * @returns {Promise<{ trattamentoId: string, campagnaId: string|null, trattamento: object }|null>}
+ */
+export async function findTrattamentoByLavoroId(lavoroId) {
+  try {
+    return await findTrattamentoCampoByLavoroId({
+      collectionName: COLLECTION_NAME,
+      lavoroId,
+      tenantId: getCurrentTenantId(),
+      mapDocs
+    });
+  } catch (error) {
+    console.error(`[${LOG_PREFIX}] findTrattamentoByLavoroId:`, error);
+    return null;
+  }
+}
+
+/**
+ * Crea (o sincronizza) il doc in trattamentiSeminativo dal lavoro. Niente scarico magazzino.
+ * @param {string} lavoroId
+ * @returns {Promise<string|null>}
+ */
+export async function createTrattamentoFromLavoro(lavoroId) {
+  try {
+    return await createTrattamentoCampoFromLavoro({
+      collectionName: COLLECTION_NAME,
+      logPrefix: LOG_PREFIX,
+      lavoroId,
+      tenantId: getCurrentTenantId(),
+      loadCampagne: () => getAllSeminativi().catch(() => []),
+      intervalloCampagna,
+      Model: SeminativoTrattamento,
+      mapDocs
+    });
+  } catch (error) {
+    console.error(`[${LOG_PREFIX}] createTrattamentoFromLavoro:`, error);
+    return null;
+  }
+}
+
+/**
+ * @param {string} lavoroId
+ * @returns {Promise<string|null>}
+ */
+export async function syncTrattamentoFromLavoro(lavoroId) {
+  try {
+    return await syncTrattamentoCampoFromLavoro({
+      collectionName: COLLECTION_NAME,
+      logPrefix: LOG_PREFIX,
+      lavoroId,
+      tenantId: getCurrentTenantId(),
+      Model: SeminativoTrattamento,
+      mapDocs
+    });
+  } catch (error) {
+    console.error(`[${LOG_PREFIX}] syncTrattamentoFromLavoro:`, error);
+    return null;
+  }
 }

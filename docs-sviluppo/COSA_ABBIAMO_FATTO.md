@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — Elimina lavoro: Conferma aspetta il conteggio collegati.**
+**Ultimo aggiornamento documentazione: 2026-11-23 — Lavoro trattamento seminativo → registro.**
+
+## 2026-11-23 — Lavoro trattamento seminativo (e orticole) → registro
+
+Su `fix/lavoro-trattamento-seminativo-registro` (PR verso develop). Nessun merge, nessun deploy.
+
+Salvando un lavoro di trattamento/concimazione da Gestione lavori su terreno con campagna seminativo (o orticole), nasce/si aggiorna il doc in `trattamentiSeminativo` / `trattamentiOrticole` con `lavoroId` (miscela → prodotti se presente), come già per vigneto/frutteto. Helper comune `shared/js/trattamento-campo-from-lavoro.js`; niente scarico magazzino in creazione (resta il checkbox del registro). Elimina cascade per lavoroId già coperto dalla PR 456. Niente migrazione dei lavori già esistenti. Niente indici/rules/functions.
 
 ## 2026-11-23 — Elimina lavoro: Conferma aspetta il conteggio collegati
 

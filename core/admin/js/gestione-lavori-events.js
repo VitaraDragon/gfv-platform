@@ -3025,7 +3025,7 @@ export async function salvaLavoroCorpo(
                         console.error('[GESTIONE-LAVORI] Errore rilevamento automatico raccolta frutta:', error);
                     }
                 }
-                // Rilevamento automatico potatura/trattamenti vigneto e frutteto (categoria Potatura o Trattamenti)
+                // Rilevamento automatico potatura/trattamenti vigneto, frutteto, seminativo, orticole
                 try {
                     const lavoroIdPerDet = nuovoLavoroId || lavoroIdSalvataggio;
                     if (lavoroIdPerDet && lavoroData.terrenoId) {
@@ -3040,6 +3040,14 @@ export async function salvaLavoroCorpo(
                             const { createPotaturaFromLavoro } = await import('../../../modules/frutteto/services/potatura-frutteto-service.js');
                             const { createTrattamentoFromLavoro } = await import('../../../modules/frutteto/services/trattamenti-frutteto-service.js');
                             await createPotaturaFromLavoro(lavoroIdPerDet);
+                            await createTrattamentoFromLavoro(lavoroIdPerDet);
+                        }
+                        if (await hasModuleAccess('seminativo')) {
+                            const { createTrattamentoFromLavoro } = await import('../../../modules/seminativo/services/trattamenti-service.js');
+                            await createTrattamentoFromLavoro(lavoroIdPerDet);
+                        }
+                        if (await hasModuleAccess('orticole')) {
+                            const { createTrattamentoFromLavoro } = await import('../../../modules/orticole/services/trattamenti-service.js');
                             await createTrattamentoFromLavoro(lavoroIdPerDet);
                         }
                     }
