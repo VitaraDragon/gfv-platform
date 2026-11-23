@@ -1524,25 +1524,65 @@ export async function openEliminaModal(
             formatLavoroDeleteConfirmMessage,
             formatLavoroDeleteBlockedByRipreseMessage
         } = await import('../../services/lavori-service.js');
-
-        const counts = await countRelatedLavoroData(lavoroId, {
-            tenantId: currentTenantId,
-            lavoro: { ...lavoro, id: lavoroId }
-        });
-
-        if ((counts.ripreseFiglie || 0) > 0) {
-            showAlert(formatLavoroDeleteBlockedByRipreseMessage(counts), 'error');
-            return;
-        }
-
         const { showConfirmDialog } = await import('../../../shared/js/confirm-dialog.js');
+
+        const titolo = lavoro.nome ? `"${lavoro.nome}"` : 'selezionato';
+        const intro = `Sei sicuro di voler eliminare il lavoro ${titolo}?`;
+        const loadingMessage = `${intro}\n\nControllo dati collegati…`;
+        const countFailedMessage =
+            `${intro}\n\nNon è stato possibile verificare i dati collegati: eliminando il lavoro verranno comunque rimossi quelli trovati.\n\nQuesta azione non può essere annullata.`;
+        const COUNT_TIMEOUT_MS = 15000;
+        let blockedByRipreseMessage = null;
+
         const confermato = await showConfirmDialog({
             title: 'Elimina lavoro',
-            message: formatLavoroDeleteConfirmMessage(lavoro.nome, counts),
+            message: loadingMessage,
             confirmLabel: 'Elimina',
             cancelLabel: 'Annulla',
-            icon: '🗑️'
+            icon: '🗑️',
+            confirmDisabled: true,
+            prepare: async ({ update, isOpen, close }) => {
+                let timer = null;
+                try {
+                    const counts = await Promise.race([
+                        countRelatedLavoroData(lavoroId, {
+                            tenantId: currentTenantId,
+                            lavoro: { ...lavoro, id: lavoroId }
+                        }),
+                        new Promise((_, reject) => {
+                            timer = setTimeout(() => {
+                                const err = new Error('timeout conteggio collegati');
+                                err.code = 'LAVORO_DELETE_COUNT_TIMEOUT';
+                                reject(err);
+                            }, COUNT_TIMEOUT_MS);
+                        })
+                    ]);
+                    if (timer) clearTimeout(timer);
+                    if (!isOpen()) return;
+                    if ((counts.ripreseFiglie || 0) > 0) {
+                        blockedByRipreseMessage = formatLavoroDeleteBlockedByRipreseMessage(counts);
+                        close(false);
+                        return;
+                    }
+                    update({
+                        message: formatLavoroDeleteConfirmMessage(lavoro.nome, counts),
+                        confirmDisabled: false
+                    });
+                } catch (_) {
+                    if (timer) clearTimeout(timer);
+                    if (!isOpen()) return;
+                    update({
+                        message: countFailedMessage,
+                        confirmDisabled: false
+                    });
+                }
+            }
         });
+
+        if (blockedByRipreseMessage) {
+            showAlert(blockedByRipreseMessage, 'error');
+            return;
+        }
         if (!confermato) return;
 
         await deleteLavoroCascade(lavoroId, {
