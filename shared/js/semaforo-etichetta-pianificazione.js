@@ -91,16 +91,27 @@ function carenzaDalleCandidate(candidate) {
   };
 }
 
+function riferimentoConColtura(riferimento, coltura) {
+  const colturaScheda = String(coltura || '').trim();
+  if (!riferimento || typeof riferimento !== 'object') {
+    return colturaScheda ? { colturaScheda } : riferimento;
+  }
+  if (String(riferimento.colturaScheda || '').trim() || !colturaScheda) return riferimento;
+  return { ...riferimento, colturaScheda };
+}
+
 function voceCarenzaProdotto({ riga, trattamento, coltura, vocabolario, scheda }) {
   if (!riga || !scheda) return null;
+  const avversita = String(riga.avversita || riga.avversitaPianificata || '').trim();
   const trovato = trovaRigaEtichetta({
     scheda,
     vocabolario,
     trattamento: { specieUsata: coltura, data: trattamento && trattamento.data },
     riga: {
       ...riga,
+      ...(avversita ? { avversita } : {}),
       specieUsata: riga.specieUsata || coltura,
-      riferimentoRiga: riga.riferimentoRiga || { colturaScheda: coltura }
+      riferimentoRiga: riferimentoConColtura(riga.riferimentoRiga, coltura)
     }
   });
   if (trovato.blocco && trovato.blocco.codice !== 'riga_ambigua') return null;

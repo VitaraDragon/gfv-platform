@@ -177,7 +177,7 @@ async function contestoSemaforoLavoro(state) {
     };
 }
 
-async function aggiornaAvvisoCarenzaLavoro(state, sessione) {
+export async function aggiornaAvvisoCarenzaLavoro(state, sessione) {
     const box = document.getElementById('lavoro-avviso-carenza');
     if (!box) return;
     if (sessione != null && sessione !== lavoroModalSessione) return;
@@ -191,9 +191,11 @@ async function aggiornaAvvisoCarenzaLavoro(state, sessione) {
         return;
     }
     const terrenoId = document.getElementById('lavoro-terreno')?.value || '';
-    const data = document.getElementById('lavoro-data-inizio')?.value || '';
+    const dataInizio = document.getElementById('lavoro-data-inizio')?.value || '';
+    const lavoroId = document.getElementById('lavoro-id')?.value || '';
+    const lavoro = ((sorgente && sorgente.lavoriList) || []).find((voce) => voce && String(voce.id) === String(lavoroId));
     const terreno = ((sorgente && sorgente.terreniList) || []).find((t) => t && t.id === terrenoId);
-    const { aggiornaAvvisoCarenzaRaccolta, caricaTrattamentiPerCarenza } = await import('../../../shared/js/avviso-carenza-raccolta.js');
+    const { aggiornaAvvisoCarenzaRaccolta, caricaTrattamentiPerCarenza, dataRaccoltaPerCarenza } = await import('../../../shared/js/avviso-carenza-raccolta.js');
     const { contestoRegistroTerreno } = await import('../../../shared/js/registro-trattamenti-passaggi.js');
     let specie = '';
     try {
@@ -206,7 +208,7 @@ async function aggiornaAvvisoCarenzaLavoro(state, sessione) {
     if (sessione != null && sessione !== lavoroModalSessione) return;
     await aggiornaAvvisoCarenzaRaccolta({
         box,
-        dataRaccolta: data,
+        dataRaccolta: dataRaccoltaPerCarenza(lavoro, dataInizio),
         coltura: specie,
         tipoLavoro: nomeTipo,
         terrenoColtura: terreno && terreno.coltura,

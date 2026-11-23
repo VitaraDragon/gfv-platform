@@ -108,6 +108,9 @@ export function normalizzaRiferimentoRiga(raw) {
 export function campiConfermaRiga(raw = {}) {
   return {
     avversita: raw.avversita != null && String(raw.avversita).trim() ? String(raw.avversita).trim() : null,
+    avversitaPianificata: raw.avversitaPianificata != null && String(raw.avversitaPianificata).trim()
+      ? String(raw.avversitaPianificata).trim()
+      : null,
     specieUsata: raw.specieUsata != null && String(raw.specieUsata).trim() ? String(raw.specieUsata).trim() : null,
     riferimentoRiga: normalizzaRiferimentoRiga(raw.riferimentoRiga),
     confermatoDa: raw.confermatoDa != null && String(raw.confermatoDa).trim() ? String(raw.confermatoDa).trim() : null,

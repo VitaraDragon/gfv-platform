@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-22 — carenza solo sui trattamenti fatti.**
+**Ultimo aggiornamento documentazione: 2026-11-22 — carenza dal trattamento di Gestione lavori (frutteto, CIDELY).**
+
+## 2026-11-22 — carenza dal trattamento di Gestione lavori (frutteto, CIDELY)
+
+Su `fix/carenza-raccolta-seminativo` (PR 450 verso develop). Nessun merge, nessun deploy.
+
+La raccolta del frutteto legge anche un trattamento eseguito che sta solo sul lavoro, o sulla scheda senza il numero. Il numero e l'avversità scelta in pianificazione arrivano dalla miscela; se la coltura scheda è vuota si usa la coltura della raccolta. I giorni restano quelli della scheda v3. Un lavoro ancora assegnato non sposta la data. «Leggi scheda» su una riga già agganciata riapre la ricerca. Il salvataggio del lavoro non si blocca. Il semaforo di pianificazione continua a non mostrare la carenza.
+
+## 2026-11-22 — carenza sulla raccolta del seminativo
+
+Su `fix/carenza-raccolta-seminativo` (PR verso develop). Nessun merge, nessun deploy.
+
+Nel modale Completa raccolta del seminativo e delle orticole, e nel modale lavoro quando il tipo è Raccolta, l'avviso di carenza vede anche un trattamento eseguito che sta solo sul lavoro, senza scheda in `trattamentiSeminativo` o `trattamentiOrticole`. I pianificati restano fuori. La data è quella del lavoro; se il lavoro è già chiuso e ha `completatoIl` o `approvatoIl`, vale quella. Il salvataggio non si blocca. Il conteggio annuo e l'intervallo minimo non cambiano.
+
+---
 
 ## 2026-11-22 — carenza solo sui trattamenti fatti
 

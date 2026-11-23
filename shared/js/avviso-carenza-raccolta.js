@@ -4,8 +4,8 @@
  * @module shared/js/avviso-carenza-raccolta
  */
 
-import { caricaPacchettoPerRighe, legamiScheda } from './registro-trattamenti-conformita.js';
-import { allineaTrattamentiAiLavori } from './registro-trattamenti-passaggi.js';
+import { caricaPacchettoPerRighe, dataGiorno, legamiScheda } from './registro-trattamenti-conformita.js';
+import { allineaTrattamentiAiLavori, lavoroEseguitoPerCarenza } from './registro-trattamenti-passaggi.js';
 import {
   avvisoCarenzaRaccolta,
   htmlAvvisoCarenza,
@@ -87,6 +87,109 @@ function stessoContesto(trattamento, filtro) {
 }
 
 /**
+ * Data contro cui misurare la carenza.
+ * Vale la data del lavoro. Se il lavoro è già eseguito e ha una data di chiusura, vale quella.
+ * Senza chiusura non si indovina un giorno.
+ */
+export function dataRaccoltaPerCarenza(lavoro, dataInizio) {
+  if (lavoroEseguitoPerCarenza(lavoro)) {
+    if (dataGiorno(lavoro.completatoIl)) return lavoro.completatoIl;
+    if (dataGiorno(lavoro.approvatoIl)) return lavoro.approvatoIl;
+  }
+  if (dataGiorno(dataInizio)) return dataInizio;
+  if (lavoro && dataGiorno(lavoro.dataInizio)) return lavoro.dataInizio;
+  if (lavoro && dataGiorno(lavoro.data)) return lavoro.data;
+  return dataInizio || '';
+}
+
+function numeroProdotto(riga) {
+  if (!riga) return '';
+  const rif = riga.riferimentoRiga && typeof riga.riferimentoRiga === 'object' ? riga.riferimentoRiga : null;
+  return String(riga.numeroRegistrazioneLetto || (rif && rif.numeroRegistrazione) || '').trim();
+}
+
+function nomeProdottoRiga(riga) {
+  return String((riga && (riga.prodotto || riga.nome)) || '').trim().toLowerCase();
+}
+
+function copiaAvversitaMancante(riga, daMiscela) {
+  if (!riga || String(riga.avversita || '').trim()) return;
+  const numero = numeroProdotto(riga);
+  const nome = nomeProdottoRiga(riga);
+  const gemella = (daMiscela || []).find((prodotto) => {
+    const numeroGemello = numeroProdotto(prodotto);
+    if (numero && numeroGemello && numero === numeroGemello) return true;
+    const nomeGemello = nomeProdottoRiga(prodotto);
+    return !!(nome && nomeGemello && nome === nomeGemello);
+  });
+  const avversita = String((gemella && (gemella.avversita || gemella.avversitaPianificata)) || '').trim();
+  if (!avversita) return;
+  riga.avversita = avversita;
+  riga.avversitaPianificata = avversita;
+}
+
+/**
+ * Un trattamento eseguito da Gestione lavori può non avere la scheda,
+ * o averla senza il numero letto in pianificazione. I prodotti stanno sulla miscela del lavoro.
+ * Vale per seminativo, orticole, frutteto e vigneto. I pianificati non entrano.
+ * Un lavoro il cui nome non contiene «trattamento» (es. Anticrittogamico) entra solo se la miscela ha un numero di registrazione.
+ */
+async function integraTrattamentiEseguitiDaLavori(out, filtro) {
+  const terrenoId = filtro.terrenoId ? String(filtro.terrenoId) : '';
+  if (!terrenoId) return;
+  let lavori = [];
+  try {
+    const { getLavoriByTerreno } = await import('../../core/services/lavori-service.js');
+    lavori = await getLavoriByTerreno(terrenoId) || [];
+  } catch (e) {
+    return;
+  }
+  const { tipoLavoroETrattamento } = await import('./registro-trattamenti-lavoro.js');
+  const { righeTrattamentoDaMiscela } = await import('./registro-trattamenti.js');
+  const perLavoro = new Map();
+  (out || []).forEach((voce) => {
+    const id = voce && voce.lavoroId ? String(voce.lavoroId) : '';
+    if (id && !perLavoro.has(id)) perLavoro.set(id, voce);
+  });
+  lavori.forEach((lavoro) => {
+    if (!lavoro || !lavoroEseguitoPerCarenza(lavoro)) return;
+    if (tipoLavoroRaccolta(lavoro.tipoLavoro).eRaccolta) return;
+    if (String(lavoro.terrenoId || '') !== terrenoId) return;
+    const id = String(lavoro.id || '');
+    if (!id) return;
+    const da = righeTrattamentoDaMiscela(lavoro.miscelaPrevista, null);
+    const haNumero = da.prodotti.some((prodotto) => numeroProdotto(prodotto));
+    if (!tipoLavoroETrattamento(lavoro.tipoLavoro) && !haNumero) return;
+    if (!da.prodotti.length) return;
+    const esistente = perLavoro.get(id);
+    if (esistente) {
+      const senzaNumero = !(esistente.prodotti || []).some((prodotto) => numeroProdotto(prodotto));
+      if (senzaNumero && haNumero) {
+        const prodotti = da.prodotti.map(prodottoRiga).filter(Boolean);
+        if (prodotti.length) {
+          esistente.prodotti = prodotti;
+          if (!dataGiorno(esistente.data)) esistente.data = lavoro.dataInizio || lavoro.data;
+        }
+      } else {
+        (esistente.prodotti || []).forEach((riga) => copiaAvversitaMancante(riga, da.prodotti));
+      }
+      return;
+    }
+    const voce = normalizzaTrattamento({
+      id: 'lavoro:' + id,
+      lavoroId: id,
+      data: lavoro.dataInizio || lavoro.data,
+      stato: lavoro.stato,
+      terrenoId: lavoro.terrenoId,
+      prodotti: da.prodotti
+    }, { terrenoId });
+    if (!voce) return;
+    out.push(voce);
+    perLavoro.set(id, voce);
+  });
+}
+
+/**
  * Schede del terreno, con le righe prodotto. Stessi moduli di contestoRegistroTerreno.
  */
 export async function caricaTrattamentiPerCarenza(filtro = {}) {
@@ -106,6 +209,7 @@ export async function caricaTrattamentiPerCarenza(filtro = {}) {
       const { getTrattamenti } = await import('../../modules/vigneto/services/trattamenti-vigneto-service.js');
       spingi(await getTrattamenti(filtro.vignetoId), { vignetoId: filtro.vignetoId, terrenoId: filtro.terrenoId });
     } catch (e) { /* modulo assente */ }
+    await integraTrattamentiEseguitiDaLavori(out, filtro);
     return out;
   }
   if (filtro.fruttetoId) {
@@ -113,6 +217,7 @@ export async function caricaTrattamentiPerCarenza(filtro = {}) {
       const { getTrattamenti } = await import('../../modules/frutteto/services/trattamenti-frutteto-service.js');
       spingi(await getTrattamenti(filtro.fruttetoId), { fruttetoId: filtro.fruttetoId, terrenoId: filtro.terrenoId });
     } catch (e) { /* modulo assente */ }
+    await integraTrattamentiEseguitiDaLavori(out, filtro);
     return out;
   }
   const terrenoId = filtro.terrenoId ? String(filtro.terrenoId) : '';
@@ -141,6 +246,7 @@ export async function caricaTrattamentiPerCarenza(filtro = {}) {
     const { getAllTrattamentiOrticole } = await import('../../modules/orticole/services/trattamenti-service.js');
     spingi(await getAllTrattamentiOrticole(), {});
   } catch (e) { /* modulo assente */ }
+  await integraTrattamentiEseguitiDaLavori(out, filtro);
   return out;
 }
 
