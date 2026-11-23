@@ -2,7 +2,12 @@
  * Report Economici — caricamento fonti + aggregazione terreno × coltura.
  * I calcoli puri stanno in report-economici-aggregate.js (testabili / riusabili).
  *
- * Prestazioni: letture per collezione + oreOperai in parallelo (niente calcolaCostiLavoro sequenziale).
+ * Prestazioni (senza indici/functions/rules nuovi):
+ * - lavori / attività / movimenti / trattamenti flat interrogati sul periodo quando possibile;
+ * - cache in memoria del bundle grezzo per periodo (filtri terreno/coltura = solo ricalcolo);
+ * - campagna/anagrafiche caricate una sola volta;
+ * - fase manodopera/macchine prima, prodotti dopo (progressive UI).
+ * Limite noto: oreOperai restano 1 lettura per lavoro (niente collectionGroup senza indice nuovo).
  *
  * @module modules/report/services/report-economici-service
  */
@@ -13,21 +18,29 @@ import {
   collection,
   getDocs,
   doc,
-  getDoc
+  getDoc,
+  query,
+  where,
+  dateToTimestamp
 } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId, getCurrentTenant } from '../../../core/services/tenant-service.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { fetchOreOperaiForLavori, fetchUsersByIds } from '../../../core/services/manodopera-lavori-ore-loader.js';
 import {
   aggregateEconomiciRows,
+  assembleEconomiciReport,
   buildEconomiciLines,
+  buildEconomiciVoci,
   companyTotal,
   dataIsoFromAny,
   dataIsoInRange,
   filterUsciteMagazzinoPerEconomici,
+  formatLocalIsoDate,
   inRange,
+  prepareEconomiciExportData,
   prodottoCostFromMovimentoUscita,
   prodottoCostFromTrattamento,
+  prodottoVociFromTrattamento,
   totalsByColtura,
   euro
 } from './report-economici-aggregate.js';
@@ -41,8 +54,15 @@ const TARIFFE_OPERAI_DEFAULT = {
   altro: 10.0
 };
 
+/** @type {{ key: string, data: object }|null} */
+let periodBundleCache = null;
+
 function modsSet(activeModules) {
   return new Set((activeModules || []).map((m) => String(m || '').toLowerCase()));
+}
+
+function periodKey(start, end, mods) {
+  return `${formatLocalIsoDate(start)}|${formatLocalIsoDate(end)}|${[...mods].sort().join(',')}`;
 }
 
 function resolveTariffaOperaio(tariffeOperai, operaio) {
@@ -89,18 +109,22 @@ async function loadTariffe(tenantId) {
 async function loadMacchineMap(hasParco) {
   /** @type {Map<string, number>} */
   const map = new Map();
-  if (!hasParco) return map;
+  /** @type {Map<string, string>} */
+  const nomi = new Map();
+  if (!hasParco) return { map, nomi };
   try {
     const { getAllMacchine } = await import('../../parco-macchine/services/macchine-service.js');
     const list = await getAllMacchine();
     for (const m of list || []) {
       if (!m || !m.id) continue;
       map.set(String(m.id), m.costoOra != null ? Number(m.costoOra) : 0);
+      const label = (m.nome || m.targa || m.modello || m.id || '').toString();
+      nomi.set(String(m.id), label);
     }
   } catch (e) {
     console.warn('[report-economici] macchine', e && e.message);
   }
-  return map;
+  return { map, nomi };
 }
 
 /**
@@ -111,6 +135,7 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
     usersById,
     tariffeOperai,
     macchineById,
+    macchineNomiById,
     hasParco,
     tariffaProprietario,
     tariffaProprietarioConfigurata
@@ -127,6 +152,10 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
   const orePerOperaio = {};
   /** @type {Record<string, number>} */
   const oreMacchinaPerId = {};
+  /** @type {Array<object>} */
+  const voci = [];
+  const tipo = (lavoro && lavoro.tipoLavoro) || 'Lavoro';
+  const dataIso = dataIsoFromAny((lavoro && (lavoro.dataInizio || lavoro.data)) || '');
 
   for (const oraDoc of oreDocs || []) {
     const ora = typeof oraDoc.data === 'function' ? oraDoc.data() : oraDoc;
@@ -152,46 +181,94 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
   if (operaioIds.length > 0) {
     for (const oid of operaioIds) {
       const user = usersById.get(String(oid));
+      const oreO = orePerOperaio[oid];
+      const nome = user
+        ? (`${user.nome || ''} ${user.cognome || ''}`.trim() || user.displayName || oid)
+        : oid;
       if (!user) {
         missingManodopera = true;
         notes.push('Operaio non trovato in anagrafica per calcolo tariffa');
+        voci.push({
+          origine: 'lavoro',
+          categoria: 'manodopera',
+          descrizione: `${tipo} — ${nome} (${oreO} h)`,
+          importo: null,
+          prezzoMancante: true,
+          dataIso
+        });
         continue;
       }
       const { tariffa, fromConfig } = resolveTariffaOperaio(tariffeOperai, user);
       if (!fromConfig && user.tariffaPersonalizzata == null) {
-        // default di sistema: ok, ma se non c’è tipo né personalizzata segnaliamo solo se ore>0 e tenant senza doc tariffe
         if (!tariffeOperai && !user.tipoOperaio) {
           missingManodopera = true;
           notes.push('Tariffa oraria non impostata');
+          voci.push({
+            origine: 'lavoro',
+            categoria: 'manodopera',
+            descrizione: `${tipo} — ${nome} (${oreO} h)`,
+            importo: null,
+            prezzoMancante: true,
+            dataIso
+          });
           continue;
         }
       }
-      costoManodopera += orePerOperaio[oid] * tariffa;
+      const importo = oreO * tariffa;
+      costoManodopera += importo;
+      voci.push({
+        origine: 'lavoro',
+        categoria: 'manodopera',
+        descrizione: `${tipo} — ${nome} (${oreO} h × € ${tariffa}/h)`,
+        importo: euro(importo),
+        prezzoMancante: false,
+        dataIso
+      });
     }
-  } else if (ore > 0) {
-    // ore senza operaio (raro): non contiamo manodopera
   }
-
-  // Se non ci sono ore validate da operai, il costo manodopera lavoro può arrivare dal diario
-  // (gestito a parte). Qui non inventiamo.
 
   if (hasParco) {
     for (const [mid, oreM] of Object.entries(oreMacchinaPerId)) {
+      const label = (macchineNomiById && macchineNomiById.get(String(mid))) || mid;
       if (!macchineById.has(String(mid))) {
         missingMacchine = true;
         notes.push('Macchina non in anagrafica (costo orario mancante)');
+        voci.push({
+          origine: 'lavoro',
+          categoria: 'macchine',
+          descrizione: `${tipo} — ${label} (${oreM} h)`,
+          importo: null,
+          prezzoMancante: true,
+          dataIso
+        });
         continue;
       }
       const costoOra = macchineById.get(String(mid));
       if (!costoOra || costoOra <= 0) {
         missingMacchine = true;
         notes.push('Costo orario macchina non impostato');
+        voci.push({
+          origine: 'lavoro',
+          categoria: 'macchine',
+          descrizione: `${tipo} — ${label} (${oreM} h)`,
+          importo: null,
+          prezzoMancante: true,
+          dataIso
+        });
         continue;
       }
-      costoMacchine += oreM * costoOra;
+      const importo = oreM * costoOra;
+      costoMacchine += importo;
+      voci.push({
+        origine: 'lavoro',
+        categoria: 'macchine',
+        descrizione: `${tipo} — ${label} (${oreM} h × € ${costoOra}/h)`,
+        importo: euro(importo),
+        prezzoMancante: false,
+        dataIso
+      });
     }
   } else if (Object.keys(oreMacchinaPerId).length > 0) {
-    // Parco non attivo: macchine = 0 senza warning di prezzo
     costoMacchine = 0;
   }
 
@@ -204,13 +281,15 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
     costoMacchine: missingMacchine ? null : euro(costoMacchine),
     missingManodopera,
     missingMacchine,
-    notes: [...new Set(notes)]
+    notes: [...new Set(notes)],
+    voci
   };
 }
 
 function costiAttivitaDiario(att, ctx) {
   const {
     macchineById,
+    macchineNomiById,
     hasParco,
     tariffaProprietario,
     tariffaProprietarioConfigurata
@@ -218,15 +297,35 @@ function costiAttivitaDiario(att, ctx) {
   const ore = Number(att.oreNette) || 0;
   /** @type {string[]} */
   const notes = [];
+  /** @type {Array<object>} */
+  const voci = [];
   let missingManodopera = false;
   let costoManodopera = 0;
+  const tipo = att.tipoLavoro || 'Diario';
+  const dataIso = dataIsoFromAny(att.data);
 
   if (ore > 0) {
     if (!tariffaProprietarioConfigurata) {
       missingManodopera = true;
       notes.push('Tariffa oraria non impostata');
+      voci.push({
+        origine: 'diario',
+        categoria: 'manodopera',
+        descrizione: `${tipo} — proprietario (${ore} h)`,
+        importo: null,
+        prezzoMancante: true,
+        dataIso
+      });
     } else {
       costoManodopera = ore * Number(tariffaProprietario || 0);
+      voci.push({
+        origine: 'diario',
+        categoria: 'manodopera',
+        descrizione: `${tipo} — proprietario (${ore} h × € ${tariffaProprietario}/h)`,
+        importo: euro(costoManodopera),
+        prezzoMancante: false,
+        dataIso
+      });
     }
   }
 
@@ -237,18 +336,44 @@ function costiAttivitaDiario(att, ctx) {
     const ids = [att.macchinaId, att.attrezzoId].filter(Boolean);
     const unique = [...new Set(ids.map(String))];
     for (const mid of unique) {
+      const label = (macchineNomiById && macchineNomiById.get(mid)) || mid;
       if (!macchineById.has(mid)) {
         missingMacchine = true;
         notes.push('Macchina non in anagrafica (costo orario mancante)');
+        voci.push({
+          origine: 'diario',
+          categoria: 'macchine',
+          descrizione: `${tipo} — ${label} (${oreMac} h)`,
+          importo: null,
+          prezzoMancante: true,
+          dataIso
+        });
         continue;
       }
       const costoOra = macchineById.get(mid);
       if (!costoOra || costoOra <= 0) {
         missingMacchine = true;
         notes.push('Costo orario macchina non impostato');
+        voci.push({
+          origine: 'diario',
+          categoria: 'macchine',
+          descrizione: `${tipo} — ${label} (${oreMac} h)`,
+          importo: null,
+          prezzoMancante: true,
+          dataIso
+        });
         continue;
       }
-      costoMacchine += oreMac * costoOra;
+      const importo = oreMac * costoOra;
+      costoMacchine += importo;
+      voci.push({
+        origine: 'diario',
+        categoria: 'macchine',
+        descrizione: `${tipo} — ${label} (${oreMac} h × € ${costoOra}/h)`,
+        importo: euro(importo),
+        prezzoMancante: false,
+        dataIso
+      });
     }
   }
 
@@ -258,7 +383,8 @@ function costiAttivitaDiario(att, ctx) {
     costoMacchine: missingMacchine ? null : euro(costoMacchine),
     missingManodopera,
     missingMacchine,
-    notes: [...new Set(notes)]
+    notes: [...new Set(notes)],
+    voci
   };
 }
 
@@ -292,8 +418,36 @@ async function loadAttivitaInRange(tenantId, start, end) {
   }
 }
 
+async function loadLavoriInRange(tenantId, start, end) {
+  const t0 = dateToTimestamp(start);
+  const t1 = dateToTimestamp(end);
+  try {
+    const docs = await getCollectionData('lavori', {
+      tenantId,
+      where: [
+        ['dataInizio', '>=', t0],
+        ['dataInizio', '<=', t1]
+      ],
+      orderBy: 'dataInizio',
+      orderDirection: 'desc'
+    });
+    return docs || [];
+  } catch (e) {
+    try {
+      const docs = await getCollectionData('lavori', {
+        tenantId,
+        orderBy: 'dataInizio',
+        orderDirection: 'desc'
+      });
+      return (docs || []).filter((l) => inRange(l.dataInizio || l.data, start, end));
+    } catch (e2) {
+      console.warn('[report-economici] lavori', e2 && e2.message);
+      return [];
+    }
+  }
+}
+
 async function loadTrattamentiSubcol(tenantId, collectionPath, start, end) {
-  const { dateToTimestamp } = await import('../../../core/services/firebase-service.js');
   const t0 = dateToTimestamp(start);
   const t1 = dateToTimestamp(end);
   try {
@@ -322,31 +476,123 @@ async function loadTrattamentiSubcol(tenantId, collectionPath, start, end) {
   }
 }
 
+async function loadTrattamentiFlatInRange(tenantId, collectionName, start, end) {
+  const dataDaStr = formatLocalIsoDate(start);
+  const dataAStr = formatLocalIsoDate(end);
+  // seminativo/orticole: data spesso ISO string
+  try {
+    const docs = await getCollectionData(collectionName, {
+      tenantId,
+      where: [
+        ['data', '>=', dataDaStr],
+        ['data', '<=', dataAStr]
+      ],
+      orderBy: 'data',
+      orderDirection: 'desc'
+    });
+    return docs || [];
+  } catch (e) {
+    try {
+      const t0 = dateToTimestamp(start);
+      const t1 = dateToTimestamp(end);
+      const docs = await getCollectionData(collectionName, {
+        tenantId,
+        where: [
+          ['data', '>=', t0],
+          ['data', '<=', t1]
+        ],
+        orderBy: 'data',
+        orderDirection: 'desc'
+      });
+      return docs || [];
+    } catch (e2) {
+      try {
+        const docs = await getCollectionData(collectionName, { tenantId });
+        return (docs || []).filter((d) => dataIsoInRange(d.data, start, end));
+      } catch (e3) {
+        return [];
+      }
+    }
+  }
+}
+
+async function loadUsciteMagazzinoInRange(start, end) {
+  const t0 = dateToTimestamp(start);
+  const t1 = dateToTimestamp(end);
+  try {
+    const { getAllMovimenti } = await import('../../magazzino/services/movimenti-service.js');
+    // Indice esistente tipo+data: estendiamo con range via getCollectionData diretto
+    const tenantId = getCurrentTenantId();
+    try {
+      const docs = await getCollectionData('movimentiMagazzino', {
+        tenantId,
+        where: [
+          ['tipo', '==', 'uscita'],
+          ['data', '>=', t0],
+          ['data', '<=', t1]
+        ],
+        orderBy: 'data',
+        orderDirection: 'desc'
+      });
+      return docs || [];
+    } catch (_) {
+      const all = await getAllMovimenti({ tipo: 'uscita' }).catch(() => []);
+      return (all || []).filter((m) => m && dataIsoInRange(m.data, start, end));
+    }
+  } catch (e) {
+    console.warn('[report-economici] magazzino uscite', e && e.message);
+    return [];
+  }
+}
+
+function timePhase(timings, name, ms) {
+  timings[name] = Math.round(ms);
+  if (typeof console !== 'undefined' && console.info) {
+    console.info(`[report-economici] ${name}: ${Math.round(ms)} ms`);
+  }
+}
+
 /**
+ * Carica (o riusa dalla cache) il bundle grezzo del periodo.
  * @param {Date} start
  * @param {Date} end
- * @param {{ terrenoId?: string|null, coltura?: string|null, activeModules?: string[] }} [filters]
+ * @param {{ activeModules?: string[], forceReload?: boolean, onLabourReady?: Function }} [opts]
  */
-export async function buildReportEconomici(start, end, filters = {}) {
+export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
   const tenantId = getCurrentTenantId();
   if (!tenantId) throw new Error('Tenant non disponibile');
 
   const tenant = await getCurrentTenant().catch(() => null);
-  const activeModules = filters.activeModules
-    || resolveEffectiveModules(tenant || {});
+  const activeModules = opts.activeModules || resolveEffectiveModules(tenant || {});
   const mods = modsSet(activeModules);
+  const key = periodKey(start, end, mods);
+
+  if (!opts.forceReload && periodBundleCache && periodBundleCache.key === key) {
+    const cached = periodBundleCache.data;
+    if (typeof opts.onLabourReady === 'function' && cached.labourReady) {
+      opts.onLabourReady(cached);
+    }
+    return cached;
+  }
+
+  const timings = {};
+  const tAll = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   const hasParco = mods.has('parcomacchine') || mods.has('parco-macchine');
 
-  const [terreniRaw, lavoriRaw, attivitaDocs, tariffe, macchineById] = await Promise.all([
+  let t0 = performance.now();
+  const [terreniRaw, lavoriRaw, attivitaDocs, tariffe, macchinePack] = await Promise.all([
     getCollectionData('terreni', { tenantId }).catch(() => []),
-    getCollectionData('lavori', { tenantId, orderBy: 'dataInizio', orderDirection: 'desc' }).catch(() => []),
+    loadLavoriInRange(tenantId, start, end),
     loadAttivitaInRange(tenantId, start, end),
     loadTariffe(tenantId),
     loadMacchineMap(hasParco)
   ]);
+  timePhase(timings, 'terreni_lavori_attivita_tariffe_macchine', performance.now() - t0);
 
   const terreni = (terreniRaw || []).filter((t) => !t.clienteId || String(t.clienteId).trim() === '');
   const terrenoById = new Map(terreni.map((t) => [String(t.id), t]));
+  const macchineById = macchinePack.map;
+  const macchineNomiById = macchinePack.nomi;
 
   const lavoriInRange = (lavoriRaw || []).filter((l) => {
     if (!l || l.stato !== 'completato') return false;
@@ -361,14 +607,16 @@ export async function buildReportEconomici(start, end, filters = {}) {
     data: () => l
   }));
 
+  t0 = performance.now();
   const oreByLavoroId = db
     ? await fetchOreOperaiForLavori(
       tenantId,
       lavoriDocs,
-      { db, collection, getDocs },
+      { db, collection, getDocs, query, where },
       { statoFilter: 'validate' }
     )
     : new Map();
+  timePhase(timings, 'oreOperai', performance.now() - t0);
 
   const operaioIds = [];
   oreByLavoroId.forEach((entry) => {
@@ -377,14 +625,17 @@ export async function buildReportEconomici(start, end, filters = {}) {
       if (ora && ora.operaioId) operaioIds.push(ora.operaioId);
     }
   });
+  t0 = performance.now();
   const usersById = db
     ? await fetchUsersByIds(operaioIds, { db, doc, getDoc })
     : new Map();
+  timePhase(timings, 'utenti_operai', performance.now() - t0);
 
   const costCtx = {
     usersById,
     tariffeOperai: tariffe.tariffeOperai,
     macchineById,
+    macchineNomiById,
     hasParco,
     tariffaProprietario: tariffe.tariffaProprietario,
     tariffaProprietarioConfigurata: tariffe.tariffaProprietarioConfigurata
@@ -393,37 +644,55 @@ export async function buildReportEconomici(start, end, filters = {}) {
   const lavoriCosti = lavoriInRange.map((lav) => {
     const entry = oreByLavoroId.get(lav.id) || { oreDocs: [] };
     const c = costiFromOreBundle(lav, entry.oreDocs, costCtx);
-    // Se non ci sono ore validate sul lavoro, prova ore dalle attività collegate
     if ((c.ore || 0) === 0) {
       const linked = (attivitaDocs || []).filter((a) => a && String(a.lavoroId || '') === String(lav.id));
       let ore = 0;
       for (const a of linked) ore += Number(a.oreNette) || 0;
       if (ore > 0) {
+        const dataIso = dataIsoFromAny(lav.dataInizio || lav.data);
+        const tipo = lav.tipoLavoro || '';
         if (!tariffe.tariffaProprietarioConfigurata) {
           return {
             id: lav.id,
             terrenoId: lav.terrenoId,
-            dataIso: dataIsoFromAny(lav.dataInizio || lav.data),
-            tipoLavoro: lav.tipoLavoro || '',
+            dataIso,
+            tipoLavoro: tipo,
             ore: euro(ore) || 0,
             costoManodopera: null,
             costoMacchine: 0,
             missingManodopera: true,
             missingMacchine: false,
-            notes: ['Tariffa oraria non impostata']
+            notes: ['Tariffa oraria non impostata'],
+            voci: [{
+              origine: 'lavoro',
+              categoria: 'manodopera',
+              descrizione: `${tipo || 'Lavoro'} — da attività collegate (${ore} h)`,
+              importo: null,
+              prezzoMancante: true,
+              dataIso
+            }]
           };
         }
+        const importo = euro(ore * tariffe.tariffaProprietario);
         return {
           id: lav.id,
           terrenoId: lav.terrenoId,
-          dataIso: dataIsoFromAny(lav.dataInizio || lav.data),
-          tipoLavoro: lav.tipoLavoro || '',
+          dataIso,
+          tipoLavoro: tipo,
           ore: euro(ore) || 0,
-          costoManodopera: euro(ore * tariffe.tariffaProprietario),
+          costoManodopera: importo,
           costoMacchine: 0,
           missingManodopera: false,
           missingMacchine: false,
-          notes: []
+          notes: [],
+          voci: [{
+            origine: 'lavoro',
+            categoria: 'manodopera',
+            descrizione: `${tipo || 'Lavoro'} — da attività collegate (${ore} h × € ${tariffe.tariffaProprietario}/h)`,
+            importo,
+            prezzoMancante: false,
+            dataIso
+          }]
         };
       }
     }
@@ -441,6 +710,7 @@ export async function buildReportEconomici(start, end, filters = {}) {
     .map((a) => {
       const c = costiAttivitaDiario(a, costCtx);
       return {
+        id: a.id,
         terrenoId: a.terrenoId,
         dataIso: dataIsoFromAny(a.data),
         tipoLavoro: a.tipoLavoro || '',
@@ -451,10 +721,6 @@ export async function buildReportEconomici(start, end, filters = {}) {
     });
 
   /** @type {Array<object>} */
-  const prodottiCosti = [];
-  /** @type {Set<string>} */
-  const magazzinoIdsDaTrattamenti = new Set();
-  /** @type {Array<object>} */
   let campagneSeminativo = [];
   /** @type {Array<object>} */
   let campagneOrticole = [];
@@ -463,20 +729,79 @@ export async function buildReportEconomici(start, end, filters = {}) {
   /** @type {Array<object>} */
   let fruttetiList = [];
 
+  // Anagrafiche coltura una sola volta (in parallelo), prima dei prodotti
+  t0 = performance.now();
+  await Promise.all([
+    (async () => {
+      if (!mods.has('seminativo')) return;
+      try {
+        const { getAllSeminativi } = await import('../../seminativo/services/seminativi-service.js');
+        campagneSeminativo = await getAllSeminativi().catch(() => []) || [];
+      } catch (_) { /* ignore */ }
+    })(),
+    (async () => {
+      if (!mods.has('orticole')) return;
+      try {
+        const { getAllOrticole } = await import('../../orticole/services/orticole-service.js');
+        campagneOrticole = await getAllOrticole().catch(() => []) || [];
+      } catch (_) { /* ignore */ }
+    })(),
+    (async () => {
+      if (!mods.has('vigneto')) return;
+      vignetiList = await getCollectionData('vigneti', { tenantId }).catch(() => []) || [];
+    })(),
+    (async () => {
+      if (!mods.has('frutteto')) return;
+      fruttetiList = await getCollectionData('frutteti', { tenantId }).catch(() => []) || [];
+    })()
+  ]);
+  timePhase(timings, 'campagne_anagrafiche', performance.now() - t0);
+
+  const colturaContext = {
+    campagneSeminativo,
+    campagneOrticole,
+    vigneti: vignetiList,
+    frutteti: fruttetiList
+  };
+
+  const labourBundle = {
+    terreni,
+    lavoriCosti,
+    attivitaCosti,
+    prodottiCosti: [],
+    colturaContext,
+    lavoriRaw,
+    attivitaDocs,
+    terrenoById,
+    vignetiList,
+    fruttetiList,
+    campagneSeminativo,
+    campagneOrticole,
+    mods: [...mods],
+    timings: { ...timings },
+    labourReady: true,
+    prodottiReady: false,
+    lavoriCount: lavoriInRange.length,
+    start,
+    end
+  };
+
+  if (typeof opts.onLabourReady === 'function') {
+    opts.onLabourReady(labourBundle);
+  }
+
+  /** @type {Array<object>} */
+  const prodottiCosti = [];
+  /** @type {Set<string>} */
+  const magazzinoIdsDaTrattamenti = new Set();
+
   const productLoaders = [];
 
   if (mods.has('seminativo')) {
     productLoaders.push((async () => {
+      const tP = performance.now();
       try {
-        const [{ getAllTrattamentiSeminativo }, { getAllSeminativi }] = await Promise.all([
-          import('../../seminativo/services/trattamenti-service.js'),
-          import('../../seminativo/services/seminativi-service.js')
-        ]);
-        const [list, campagne] = await Promise.all([
-          getAllTrattamentiSeminativo().catch(() => []),
-          getAllSeminativi().catch(() => [])
-        ]);
-        campagneSeminativo = campagne || [];
+        const list = await loadTrattamentiFlatInRange(tenantId, 'trattamentiSeminativo', start, end);
         for (const row of list || []) {
           if (!row || !dataIsoInRange(row.data, start, end)) continue;
           const tid = row.terrenoId;
@@ -485,32 +810,30 @@ export async function buildReportEconomici(start, end, filters = {}) {
             if (id) magazzinoIdsDaTrattamenti.add(String(id));
           }
           const p = prodottoCostFromTrattamento(row);
+          const voci = prodottoVociFromTrattamento(row).map((v) => ({ ...v, origine: 'trattamento' }));
           prodottiCosti.push({
+            id: row.id,
             terrenoId: String(tid),
             dataIso: dataIsoFromAny(row.data),
             campagnaId: row.campagnaId || null,
             coltura: row.colturaNome || null,
+            origine: 'trattamento',
+            voci,
             ...p
           });
         }
       } catch (e) {
         console.warn('[report-economici] seminativo trattamenti', e && e.message);
       }
+      timePhase(timings, 'trattamenti_seminativo', performance.now() - tP);
     })());
   }
 
   if (mods.has('orticole')) {
     productLoaders.push((async () => {
+      const tP = performance.now();
       try {
-        const [{ getAllTrattamentiOrticole }, { getAllOrticole }] = await Promise.all([
-          import('../../orticole/services/trattamenti-service.js'),
-          import('../../orticole/services/orticole-service.js')
-        ]);
-        const [list, campagne] = await Promise.all([
-          getAllTrattamentiOrticole().catch(() => []),
-          getAllOrticole().catch(() => [])
-        ]);
-        campagneOrticole = campagne || [];
+        const list = await loadTrattamentiFlatInRange(tenantId, 'trattamentiOrticole', start, end);
         for (const row of list || []) {
           if (!row || !dataIsoInRange(row.data, start, end)) continue;
           const tid = row.terrenoId;
@@ -519,24 +842,29 @@ export async function buildReportEconomici(start, end, filters = {}) {
             if (id) magazzinoIdsDaTrattamenti.add(String(id));
           }
           const p = prodottoCostFromTrattamento(row);
+          const voci = prodottoVociFromTrattamento(row).map((v) => ({ ...v, origine: 'trattamento' }));
           prodottiCosti.push({
+            id: row.id,
             terrenoId: String(tid),
             dataIso: dataIsoFromAny(row.data),
             campagnaId: row.campagnaId || null,
             coltura: row.colturaNome || null,
+            origine: 'trattamento',
+            voci,
             ...p
           });
         }
       } catch (e) {
         console.warn('[report-economici] orticole trattamenti', e && e.message);
       }
+      timePhase(timings, 'trattamenti_orticole', performance.now() - tP);
     })());
   }
 
   if (mods.has('vigneto')) {
     productLoaders.push((async () => {
+      const tP = performance.now();
       try {
-        vignetiList = await getCollectionData('vigneti', { tenantId }).catch(() => []) || [];
         await Promise.all((vignetiList || []).map(async (v) => {
           if (!v || !v.id || !v.terrenoId || !terrenoById.has(String(v.terrenoId))) return;
           const docs = await loadTrattamentiSubcol(tenantId, `vigneti/${v.id}/trattamenti`, start, end);
@@ -545,10 +873,14 @@ export async function buildReportEconomici(start, end, filters = {}) {
               if (id) magazzinoIdsDaTrattamenti.add(String(id));
             }
             const p = prodottoCostFromTrattamento(row);
+            const voci = prodottoVociFromTrattamento(row).map((vx) => ({ ...vx, origine: 'trattamento' }));
             prodottiCosti.push({
+              id: row.id,
               terrenoId: String(v.terrenoId),
               dataIso: dataIsoFromAny(row.data),
               coltura: (v.varieta && String(v.varieta).trim()) || 'Vite',
+              origine: 'trattamento',
+              voci,
               ...p
             });
           }
@@ -556,13 +888,14 @@ export async function buildReportEconomici(start, end, filters = {}) {
       } catch (e) {
         console.warn('[report-economici] vigneto trattamenti', e && e.message);
       }
+      timePhase(timings, 'trattamenti_vigneto', performance.now() - tP);
     })());
   }
 
   if (mods.has('frutteto')) {
     productLoaders.push((async () => {
+      const tP = performance.now();
       try {
-        fruttetiList = await getCollectionData('frutteti', { tenantId }).catch(() => []) || [];
         await Promise.all((fruttetiList || []).map(async (f) => {
           if (!f || !f.id || !f.terrenoId || !terrenoById.has(String(f.terrenoId))) return;
           const docs = await loadTrattamentiSubcol(tenantId, `frutteti/${f.id}/trattamenti`, start, end);
@@ -571,12 +904,16 @@ export async function buildReportEconomici(start, end, filters = {}) {
               if (id) magazzinoIdsDaTrattamenti.add(String(id));
             }
             const p = prodottoCostFromTrattamento(row);
+            const voci = prodottoVociFromTrattamento(row).map((vx) => ({ ...vx, origine: 'trattamento' }));
             prodottiCosti.push({
+              id: row.id,
               terrenoId: String(f.terrenoId),
               dataIso: dataIsoFromAny(row.data),
               coltura: (f.specie && String(f.specie).trim())
                 || (f.varieta && String(f.varieta).trim())
                 || 'Frutteto',
+              origine: 'trattamento',
+              voci,
               ...p
             });
           }
@@ -584,44 +921,18 @@ export async function buildReportEconomici(start, end, filters = {}) {
       } catch (e) {
         console.warn('[report-economici] frutteto trattamenti', e && e.message);
       }
+      timePhase(timings, 'trattamenti_frutteto', performance.now() - tP);
     })());
   }
 
   await Promise.all(productLoaders);
 
-  // Contesto coltura se un modulo è attivo ma non ha ancora caricato anagrafiche
-  await Promise.all([
-    (async () => {
-      if (!mods.has('seminativo') || campagneSeminativo.length) return;
-      try {
-        const { getAllSeminativi } = await import('../../seminativo/services/seminativi-service.js');
-        campagneSeminativo = await getAllSeminativi().catch(() => []) || [];
-      } catch (_) { /* ignore */ }
-    })(),
-    (async () => {
-      if (!mods.has('orticole') || campagneOrticole.length) return;
-      try {
-        const { getAllOrticole } = await import('../../orticole/services/orticole-service.js');
-        campagneOrticole = await getAllOrticole().catch(() => []) || [];
-      } catch (_) { /* ignore */ }
-    })(),
-    (async () => {
-      if (!mods.has('vigneto') || vignetiList.length) return;
-      vignetiList = await getCollectionData('vigneti', { tenantId }).catch(() => []) || [];
-    })(),
-    (async () => {
-      if (!mods.has('frutteto') || fruttetiList.length) return;
-      fruttetiList = await getCollectionData('frutteti', { tenantId }).catch(() => []) || [];
-    })()
-  ]);
-
-  // Uscite magazzino (sementi/concimi/altro) non già contate via trattamento
   if (mods.has('magazzino')) {
+    const tP = performance.now();
     try {
-      const { getAllMovimenti } = await import('../../magazzino/services/movimenti-service.js');
       const { getAllProdotti } = await import('../../magazzino/services/prodotti-service.js');
       const [movimenti, prodotti] = await Promise.all([
-        getAllMovimenti({ tipo: 'uscita' }).catch(() => []),
+        loadUsciteMagazzinoInRange(start, end),
         getAllProdotti().catch(() => [])
       ]);
       const prodottiById = new Map((prodotti || []).map((p) => [String(p.id), p]));
@@ -673,19 +984,36 @@ export async function buildReportEconomici(start, end, filters = {}) {
           }
         }
 
-        const p = prodottoCostFromMovimentoUscita(mov, prodottiById.get(String(mov.prodottoId || '')));
+        const prodAnag = prodottiById.get(String(mov.prodottoId || ''));
+        const p = prodottoCostFromMovimentoUscita(mov, prodAnag);
+        const nomeProd = (prodAnag && (prodAnag.nome || prodAnag.nomeCommerciale))
+          || mov.prodottoNome
+          || 'Prodotto';
+        const qty = Number(mov.quantita) || 0;
+        const voce = {
+          origine: 'uscita_magazzino',
+          descrizione: `Uscita magazzino: ${nomeProd}${qty ? ` × ${qty}` : ''}`,
+          importo: p.missingProdotti ? null : p.costoProdotti,
+          prezzoMancante: !!p.missingProdotti
+        };
         if (terrenoId && terrenoById.has(String(terrenoId))) {
           prodottiCosti.push({
+            id: mov.id,
             terrenoId: String(terrenoId),
             dataIso: dataIsoFromAny(mov.data),
             coltura: colturaHint,
             campagnaId,
+            origine: 'uscita_magazzino',
+            voci: [voce],
             ...p
           });
         } else {
           prodottiCosti.push({
+            id: mov.id,
             nonAttribuito: true,
             dataIso: dataIsoFromAny(mov.data),
+            origine: 'uscita_magazzino',
+            voci: [voce],
             ...p
           });
         }
@@ -693,42 +1021,108 @@ export async function buildReportEconomici(start, end, filters = {}) {
     } catch (e) {
       console.warn('[report-economici] magazzino uscite', e && e.message);
     }
+    timePhase(timings, 'magazzino', performance.now() - tP);
   }
+
+  timePhase(timings, 'totale', (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()) - tAll);
 
   const lines = buildEconomiciLines({
     terreni,
     lavoriCosti,
     attivitaCosti,
     prodottiCosti,
-    colturaContext: {
-      campagneSeminativo,
-      campagneOrticole,
-      vigneti: vignetiList,
-      frutteti: fruttetiList
-    }
+    colturaContext
+  });
+  const voci = buildEconomiciVoci({
+    terreni,
+    lavoriCosti,
+    attivitaCosti,
+    prodottiCosti,
+    colturaContext
   });
 
-  const { rows, notes } = aggregateEconomiciRows(lines, {
+  const full = {
+    ...labourBundle,
+    prodottiCosti,
+    lines,
+    voci,
+    timings,
+    labourReady: true,
+    prodottiReady: true
+  };
+
+  periodBundleCache = { key, data: full };
+  return full;
+}
+
+/**
+ * Invalida la cache periodo (es. dopo cambio dati).
+ */
+export function clearEconomiciPeriodCache() {
+  periodBundleCache = null;
+}
+
+/**
+ * Assembla il report filtrato dal bundle già caricato.
+ */
+export function assembleEconomiciFromBundle(bundle, filters = {}) {
+  if (!bundle) {
+    return {
+      rows: [],
+      byColtura: [],
+      totaleAzienda: companyTotal([]),
+      notes: [],
+      voci: [],
+      meta: { prodottiReady: false }
+    };
+  }
+  const assembled = assembleEconomiciReport({
+    terreni: bundle.terreni,
+    lavoriCosti: bundle.lavoriCosti,
+    attivitaCosti: bundle.attivitaCosti,
+    prodottiCosti: bundle.prodottiCosti || [],
+    colturaContext: bundle.colturaContext,
+    lines: bundle.prodottiReady ? bundle.lines : null,
+    voci: bundle.prodottiReady ? bundle.voci : null
+  }, {
     terrenoId: filters.terrenoId || null,
     coltura: filters.coltura || null
   });
 
-  const byColtura = totalsByColtura(rows);
-  const totaleAzienda = companyTotal(rows);
-
   return {
-    rows,
-    byColtura,
-    totaleAzienda,
-    notes,
+    ...assembled,
     meta: {
-      start,
-      end,
-      activeModules: [...mods],
-      lavoriCount: lavoriInRange.length,
-      skippedModules: ['vigneto', 'frutteto', 'seminativo', 'orticole'].filter((m) => !mods.has(m))
+      start: bundle.start,
+      end: bundle.end,
+      activeModules: bundle.mods || [],
+      lavoriCount: bundle.lavoriCount || 0,
+      timings: bundle.timings || {},
+      prodottiReady: !!bundle.prodottiReady,
+      labourReady: !!bundle.labourReady,
+      skippedModules: ['vigneto', 'frutteto', 'seminativo', 'orticole'].filter(
+        (m) => !(bundle.mods || []).includes(m)
+      )
     }
   };
+}
+
+/**
+ * @param {Date} start
+ * @param {Date} end
+ * @param {{ terrenoId?: string|null, coltura?: string|null, activeModules?: string[], forceReload?: boolean, onLabourReady?: Function }} [filters]
+ */
+export async function buildReportEconomici(start, end, filters = {}) {
+  const bundle = await loadEconomiciPeriodBundle(start, end, {
+    activeModules: filters.activeModules,
+    forceReload: filters.forceReload,
+    onLabourReady: typeof filters.onLabourReady === 'function'
+      ? (labourBundle) => {
+        const partial = assembleEconomiciFromBundle(labourBundle, filters);
+        filters.onLabourReady(partial);
+      }
+      : undefined
+  });
+  return assembleEconomiciFromBundle(bundle, filters);
 }
 
 /**
@@ -754,12 +1148,19 @@ export async function getEconomiciFilterOptions() {
 
 export {
   aggregateEconomiciRows,
+  assembleEconomiciReport,
   buildEconomiciLines,
+  buildEconomiciVoci,
   totalsByColtura,
   companyTotal,
   prodottoCostFromTrattamento,
+  prodottoVociFromTrattamento,
   resolveColturaAtDate,
   sumNullable,
+  sumVociImporti,
+  vociForRow,
+  filterEconomiciVoci,
+  prepareEconomiciExportData,
   prodottoCostFromMovimentoUscita,
   filterUsciteMagazzinoPerEconomici
 } from './report-economici-aggregate.js';

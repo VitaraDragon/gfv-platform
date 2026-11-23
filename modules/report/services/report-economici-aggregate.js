@@ -646,3 +646,418 @@ export function filterUsciteMagazzinoPerEconomici(movimenti, excludedMovimentoId
     return true;
   });
 }
+
+/**
+ * Somma importi noti delle voci di dettaglio (null / prezzo mancante esclusi dalla somma).
+ * @param {Array<{ importo?: number|null, prezzoMancante?: boolean }>} voci
+ * @returns {{ value: number|null, partial: boolean, known: number }}
+ */
+export function sumVociImporti(voci) {
+  let sum = 0;
+  let known = 0;
+  let missing = false;
+  for (const v of voci || []) {
+    if (!v) continue;
+    if (v.prezzoMancante || v.importo == null || Number.isNaN(Number(v.importo))) {
+      missing = true;
+      continue;
+    }
+    known += 1;
+    sum += Number(v.importo);
+  }
+  if (known === 0) {
+    return { value: missing ? null : 0, partial: false, known: 0 };
+  }
+  return { value: euro(sum), partial: missing, known };
+}
+
+/**
+ * Filtra voci con gli stessi criteri delle righe aggregate.
+ * @param {Array<object>} voci
+ * @param {{ terrenoId?: string|null, coltura?: string|null }} [filters]
+ */
+export function filterEconomiciVoci(voci, filters = {}) {
+  const wantTerreno = filters.terrenoId ? String(filters.terrenoId) : null;
+  const wantColtura = filters.coltura != null && String(filters.coltura).trim() !== ''
+    ? String(filters.coltura).trim().toLowerCase()
+    : null;
+  return (voci || []).filter((v) => {
+    if (!v) return false;
+    const nonAttribuito = !!v.nonAttribuito || String(v.terrenoId || '') === TERRENO_NON_ATTRIBUITO_ID;
+    const terrenoId = nonAttribuito ? TERRENO_NON_ATTRIBUITO_ID : String(v.terrenoId || '');
+    if (!terrenoId) return false;
+    if (wantTerreno && terrenoId !== wantTerreno) return false;
+    const coltura = (v.coltura && String(v.coltura).trim()) || 'Senza coltura';
+    if (wantColtura && coltura.toLowerCase() !== wantColtura) return false;
+    return true;
+  });
+}
+
+/**
+ * Voci che compongono una riga (o una colonna di costo della riga).
+ * @param {Array<object>} voci
+ * @param {{ terrenoId: string, coltura: string }} row
+ * @param {'manodopera'|'macchine'|'prodotti'|null} [categoria]
+ */
+export function vociForRow(voci, row, categoria = null) {
+  if (!row) return [];
+  const tid = String(row.terrenoId || '');
+  const col = ((row.coltura && String(row.coltura).trim()) || 'Senza coltura').toLowerCase();
+  const cat = categoria ? String(categoria).toLowerCase() : null;
+  return (voci || []).filter((v) => {
+    if (!v) return false;
+    const nonAttribuito = !!v.nonAttribuito || String(v.terrenoId || '') === TERRENO_NON_ATTRIBUITO_ID;
+    const vTid = nonAttribuito ? TERRENO_NON_ATTRIBUITO_ID : String(v.terrenoId || '');
+    if (vTid !== tid) return false;
+    const vCol = ((v.coltura && String(v.coltura).trim()) || 'Senza coltura').toLowerCase();
+    if (vCol !== col) return false;
+    if (cat && String(v.categoria || '').toLowerCase() !== cat) return false;
+    return true;
+  });
+}
+
+/**
+ * Dettaglio prodotti da un trattamento (una voce per prodotto, o una aggregata).
+ * @param {object} row
+ * @returns {Array<{ descrizione: string, importo: number|null, prezzoMancante: boolean, quantita?: number|null, unita?: string|null }>}
+ */
+export function prodottoVociFromTrattamento(row) {
+  if (!row) return [];
+  const prodotti = Array.isArray(row.prodotti) ? row.prodotti : [];
+  const costoEsplicito = row.costoProdotto != null ? Number(row.costoProdotto) : null;
+  const tipo = (row.tipoTrattamento || row.tipoLavoro || 'Trattamento').toString().trim() || 'Trattamento';
+
+  if (prodotti.length > 0) {
+    const voci = [];
+    let sommaRighe = 0;
+    let anyQty = false;
+    let anyMissing = false;
+    for (const p of prodotti) {
+      if (!p) continue;
+      const nome = (p.prodotto && String(p.prodotto).trim()) || 'Prodotto';
+      const qty = Number(p.quantita != null ? p.quantita : p.dosaggio);
+      const hasQty = !Number.isNaN(qty) && qty > 0;
+      if (hasQty) anyQty = true;
+      const costo = p.costo != null ? Number(p.costo) : null;
+      if (costo != null && !Number.isNaN(costo) && costo > 0) {
+        sommaRighe += costo;
+        voci.push({
+          descrizione: `${tipo}: ${nome}${hasQty ? ` × ${qty}${p.unitaDosaggio ? ` ${p.unitaDosaggio}` : ''}` : ''}`,
+          importo: euro(costo),
+          prezzoMancante: false,
+          quantita: hasQty ? qty : null,
+          unita: p.unitaDosaggio || null
+        });
+      } else if (hasQty || nome) {
+        anyMissing = true;
+        voci.push({
+          descrizione: `${tipo}: ${nome}${hasQty ? ` × ${qty}${p.unitaDosaggio ? ` ${p.unitaDosaggio}` : ''}` : ''}`,
+          importo: null,
+          prezzoMancante: true,
+          quantita: hasQty ? qty : null,
+          unita: p.unitaDosaggio || null
+        });
+      }
+    }
+    if (voci.length) {
+      // Se c’è un costo esplicito sul doc e le righe non lo spiegano, tieni le voci riga
+      // (regola aggregato invariata: costo esplicito vince sul totale riga).
+      if (costoEsplicito != null && !Number.isNaN(costoEsplicito) && costoEsplicito > 0
+        && Math.abs(costoEsplicito - sommaRighe) > 0.02 && !anyMissing) {
+        return [{
+          descrizione: `${tipo} (costo registrato)`,
+          importo: euro(costoEsplicito),
+          prezzoMancante: false
+        }];
+      }
+      return voci;
+    }
+  }
+
+  const agg = prodottoCostFromTrattamento(row);
+  if ((agg.costoProdotti == null || agg.costoProdotti === 0) && !agg.missingProdotti) return [];
+  return [{
+    descrizione: tipo,
+    importo: agg.missingProdotti ? null : agg.costoProdotti,
+    prezzoMancante: !!agg.missingProdotti
+  }];
+}
+
+/**
+ * Costruisce le voci di dettaglio (stessa attribuzione terreno×coltura delle lines).
+ * @param {object} input
+ * @returns {Array<object>}
+ */
+export function buildEconomiciVoci(input = {}) {
+  const terreniById = new Map();
+  for (const t of input.terreni || []) {
+    if (!t || !t.id) continue;
+    if (t.clienteId && String(t.clienteId).trim()) continue;
+    terreniById.set(String(t.id), t);
+  }
+  const colturaCtx = input.colturaContext || {};
+  const resolve = (terrenoId, dataIso, hints = {}) => {
+    if (hints.coltura && String(hints.coltura).trim()) return String(hints.coltura).trim();
+    const terreno = terrenoId ? terreniById.get(String(terrenoId)) : null;
+    return resolveColturaAtDate({
+      dataIso,
+      terrenoId,
+      explicitColtura: hints.coltura,
+      campagnaId: hints.campagnaId,
+      campagneSeminativo: colturaCtx.campagneSeminativo,
+      campagneOrticole: colturaCtx.campagneOrticole,
+      vigneti: colturaCtx.vigneti,
+      frutteti: colturaCtx.frutteti,
+      terrenoColtura: terreno && terreno.coltura
+    });
+  };
+
+  const chiaviLavoro = new Set();
+  /** @type {Array<object>} */
+  const voci = [];
+
+  const pushVoce = (base) => {
+    if (!base) return;
+    voci.push({
+      terrenoId: base.terrenoId,
+      terrenoNome: base.terrenoNome,
+      coltura: base.coltura,
+      nonAttribuito: !!base.nonAttribuito,
+      dataIso: base.dataIso || '',
+      origine: base.origine,
+      categoria: base.categoria,
+      descrizione: base.descrizione || '',
+      importo: base.prezzoMancante ? null : (base.importo != null ? euro(base.importo) : 0),
+      prezzoMancante: !!base.prezzoMancante,
+      sourceId: base.sourceId || null
+    });
+  };
+
+  for (const lav of input.lavoriCosti || []) {
+    if (!lav || !lav.terrenoId) continue;
+    const terreno = terreniById.get(String(lav.terrenoId));
+    if (!terreno) continue;
+    const dataIso = lav.dataIso || '';
+    const tipo = lav.tipoLavoro || 'Lavoro';
+    chiaviLavoro.add(chiaveLavoroDiario(lav.terrenoId, dataIso, tipo));
+    const coltura = resolve(lav.terrenoId, dataIso, lav);
+    const terrenoNome = terreno.nome || terreno.podere || lav.terrenoId;
+    const detail = Array.isArray(lav.voci) ? lav.voci : [];
+    if (detail.length) {
+      for (const d of detail) {
+        pushVoce({
+          terrenoId: String(lav.terrenoId),
+          terrenoNome,
+          coltura,
+          dataIso: d.dataIso || dataIso,
+          origine: d.origine || 'lavoro',
+          categoria: d.categoria,
+          descrizione: d.descrizione || tipo,
+          importo: d.importo,
+          prezzoMancante: !!d.prezzoMancante,
+          sourceId: lav.id || null
+        });
+      }
+    } else {
+      if ((lav.costoManodopera != null && lav.costoManodopera !== 0) || lav.missingManodopera) {
+        pushVoce({
+          terrenoId: String(lav.terrenoId),
+          terrenoNome,
+          coltura,
+          dataIso,
+          origine: 'lavoro',
+          categoria: 'manodopera',
+          descrizione: tipo,
+          importo: lav.missingManodopera ? null : lav.costoManodopera,
+          prezzoMancante: !!lav.missingManodopera,
+          sourceId: lav.id || null
+        });
+      }
+      if ((lav.costoMacchine != null && lav.costoMacchine !== 0) || lav.missingMacchine) {
+        pushVoce({
+          terrenoId: String(lav.terrenoId),
+          terrenoNome,
+          coltura,
+          dataIso,
+          origine: 'lavoro',
+          categoria: 'macchine',
+          descrizione: tipo,
+          importo: lav.missingMacchine ? null : lav.costoMacchine,
+          prezzoMancante: !!lav.missingMacchine,
+          sourceId: lav.id || null
+        });
+      }
+    }
+  }
+
+  for (const att of input.attivitaCosti || []) {
+    if (!att || !att.terrenoId) continue;
+    if (att.lavoroId || att.clienteId) continue;
+    const terreno = terreniById.get(String(att.terrenoId));
+    if (!terreno) continue;
+    const dataIso = att.dataIso || '';
+    const tipo = att.tipoLavoro || 'Diario';
+    if (chiaviLavoro.has(chiaveLavoroDiario(att.terrenoId, dataIso, tipo))) continue;
+    const coltura = resolve(att.terrenoId, dataIso, att);
+    const terrenoNome = terreno.nome || terreno.podere || att.terrenoId;
+    const detail = Array.isArray(att.voci) ? att.voci : [];
+    if (detail.length) {
+      for (const d of detail) {
+        pushVoce({
+          terrenoId: String(att.terrenoId),
+          terrenoNome,
+          coltura,
+          dataIso: d.dataIso || dataIso,
+          origine: d.origine || 'diario',
+          categoria: d.categoria,
+          descrizione: d.descrizione || tipo,
+          importo: d.importo,
+          prezzoMancante: !!d.prezzoMancante,
+          sourceId: att.id || null
+        });
+      }
+    } else {
+      if ((att.costoManodopera != null && att.costoManodopera !== 0) || att.missingManodopera) {
+        pushVoce({
+          terrenoId: String(att.terrenoId),
+          terrenoNome,
+          coltura,
+          dataIso,
+          origine: 'diario',
+          categoria: 'manodopera',
+          descrizione: tipo,
+          importo: att.missingManodopera ? null : att.costoManodopera,
+          prezzoMancante: !!att.missingManodopera,
+          sourceId: att.id || null
+        });
+      }
+      if ((att.costoMacchine != null && att.costoMacchine !== 0) || att.missingMacchine) {
+        pushVoce({
+          terrenoId: String(att.terrenoId),
+          terrenoNome,
+          coltura,
+          dataIso,
+          origine: 'diario',
+          categoria: 'macchine',
+          descrizione: tipo,
+          importo: att.missingMacchine ? null : att.costoMacchine,
+          prezzoMancante: !!att.missingMacchine,
+          sourceId: att.id || null
+        });
+      }
+    }
+  }
+
+  for (const prod of input.prodottiCosti || []) {
+    if (!prod) continue;
+    const detail = Array.isArray(prod.voci) && prod.voci.length
+      ? prod.voci
+      : [{
+        descrizione: prod.descrizione || 'Prodotto',
+        importo: prod.missingProdotti ? null : prod.costoProdotti,
+        prezzoMancante: !!prod.missingProdotti,
+        origine: prod.origine || 'trattamento'
+      }];
+    const nonAttribuito = !!prod.nonAttribuito || !prod.terrenoId;
+    if (nonAttribuito) {
+      for (const d of detail) {
+        pushVoce({
+          terrenoId: TERRENO_NON_ATTRIBUITO_ID,
+          terrenoNome: TERRENO_NON_ATTRIBUITO_NOME,
+          coltura: (prod.coltura && String(prod.coltura).trim()) || 'Senza coltura',
+          nonAttribuito: true,
+          dataIso: prod.dataIso || d.dataIso || '',
+          origine: d.origine || prod.origine || 'uscita_magazzino',
+          categoria: 'prodotti',
+          descrizione: d.descrizione || 'Uscita magazzino',
+          importo: d.importo,
+          prezzoMancante: !!d.prezzoMancante,
+          sourceId: prod.id || null
+        });
+      }
+      continue;
+    }
+    const terreno = terreniById.get(String(prod.terrenoId));
+    if (!terreno) continue;
+    const dataIso = prod.dataIso || '';
+    const coltura = resolve(prod.terrenoId, dataIso, prod);
+    const terrenoNome = terreno.nome || terreno.podere || prod.terrenoId;
+    for (const d of detail) {
+      pushVoce({
+        terrenoId: String(prod.terrenoId),
+        terrenoNome,
+        coltura,
+        dataIso: d.dataIso || dataIso,
+        origine: d.origine || prod.origine || 'trattamento',
+        categoria: 'prodotti',
+        descrizione: d.descrizione || 'Prodotto',
+        importo: d.importo,
+        prezzoMancante: !!d.prezzoMancante,
+        sourceId: prod.id || null
+      });
+    }
+  }
+
+  voci.sort((a, b) => {
+    const da = String(a.dataIso || '');
+    const db = String(b.dataIso || '');
+    if (da !== db) return da < db ? -1 : 1;
+    return String(a.descrizione || '').localeCompare(String(b.descrizione || ''), 'it');
+  });
+  return voci;
+}
+
+/**
+ * Assembla report filtrato da lines + voci già costruite (niente I/O).
+ * @param {object} input
+ * @param {{ terrenoId?: string|null, coltura?: string|null }} [filters]
+ */
+export function assembleEconomiciReport(input = {}, filters = {}) {
+  const lines = input.lines || buildEconomiciLines(input);
+  const allVoci = input.voci || buildEconomiciVoci(input);
+  const { rows, notes } = aggregateEconomiciRows(lines, filters);
+  const voci = filterEconomiciVoci(allVoci, filters);
+  return {
+    rows,
+    byColtura: totalsByColtura(rows),
+    totaleAzienda: companyTotal(rows),
+    notes,
+    voci,
+    lines,
+    allVoci
+  };
+}
+
+/**
+ * Dati pronti per export Excel: esattamente ciò che è visibile + meta filtri + foglio Voci.
+ * @param {object} report - output di assembleEconomiciReport / buildReportEconomici
+ * @param {{ periodoLabel?: string, terrenoId?: string|null, terrenoNome?: string|null, coltura?: string|null }} [meta]
+ */
+export function prepareEconomiciExportData(report, meta = {}) {
+  const rows = (report && report.rows) || [];
+  const byColtura = (report && report.byColtura) || [];
+  const totaleAzienda = report && report.totaleAzienda ? report.totaleAzienda : null;
+  const notes = (report && report.notes) || [];
+  const voci = (report && report.voci) || [];
+  const filtroTerreno = meta.terrenoId
+    ? (meta.terrenoNome || meta.terrenoId)
+    : 'Tutti';
+  const filtroColtura = meta.coltura && String(meta.coltura).trim()
+    ? String(meta.coltura).trim()
+    : 'Tutte';
+  return {
+    periodoLabel: meta.periodoLabel || '',
+    filtroTerreno,
+    filtroColtura,
+    dettaglio: rows,
+    perColtura: byColtura,
+    totaleAzienda: totaleAzienda ? [totaleAzienda] : [],
+    noteRows: [
+      `Periodo: ${meta.periodoLabel || '—'}`,
+      `Filtro terreno: ${filtroTerreno}`,
+      `Filtro coltura: ${filtroColtura}`,
+      ...notes
+    ],
+    voci
+  };
+}

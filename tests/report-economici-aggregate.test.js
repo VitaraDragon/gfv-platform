@@ -5,14 +5,19 @@ import { describe, expect, it } from 'vitest';
 import {
   aggregateEconomiciRows,
   buildEconomiciLines,
+  buildEconomiciVoci,
   companyTotal,
   euroPerHa,
   filterUsciteMagazzinoPerEconomici,
+  prepareEconomiciExportData,
   prodottoCostFromMovimentoUscita,
   prodottoCostFromTrattamento,
   resolveColturaAtDate,
   sumNullable,
+  sumVociImporti,
   TERRENO_NON_ATTRIBUITO_ID,
+  vociForRow,
+  assembleEconomiciReport,
   totalsByColtura
 } from '../modules/report/services/report-economici-aggregate.js';
 
@@ -301,5 +306,126 @@ describe('Report Economici — aggregazione', () => {
     const onlyGrano = aggregateEconomiciRows(lines, { coltura: 'Grano' });
     expect(onlyGrano.rows).toHaveLength(1);
     expect(onlyGrano.rows[0].coltura).toBe('Grano');
+  });
+
+  it('prepareEconomiciExportData rispetta i filtri visibili e include note periodo/filtri', () => {
+    const input = {
+      terreni,
+      colturaContext,
+      lavoriCosti: [
+        { terrenoId: 't1', dataIso: '2025-03-01', tipoLavoro: 'A', ore: 1, costoManodopera: 10, costoMacchine: 0 },
+        { terrenoId: 't2', dataIso: '2026-01-02', tipoLavoro: 'B', ore: 2, costoManodopera: 20, costoMacchine: 5 }
+      ],
+      attivitaCosti: [],
+      prodottiCosti: [
+        { terrenoId: 't1', dataIso: '2025-03-02', costoProdotti: 7, origine: 'trattamento', voci: [{ descrizione: 'Rame', importo: 7, origine: 'trattamento' }] }
+      ]
+    };
+    const full = assembleEconomiciReport(input);
+    const filtered = assembleEconomiciReport(input, { coltura: 'Grano' });
+    expect(filtered.rows).toHaveLength(1);
+    expect(filtered.voci.every((v) => v.coltura === 'Grano')).toBe(true);
+    expect(filtered.voci.length).toBeLessThan(full.voci.length);
+
+    const exportData = prepareEconomiciExportData(filtered, {
+      periodoLabel: 'Annata 2025/2026',
+      coltura: 'Grano',
+      terrenoId: null
+    });
+    expect(exportData.dettaglio).toHaveLength(1);
+    expect(exportData.dettaglio[0].coltura).toBe('Grano');
+    expect(exportData.voci.every((v) => v.coltura === 'Grano')).toBe(true);
+    expect(exportData.filtroColtura).toBe('Grano');
+    expect(exportData.filtroTerreno).toBe('Tutti');
+    expect(exportData.noteRows[0]).toMatch(/Periodo/);
+    expect(exportData.noteRows.some((n) => /Filtro coltura: Grano/.test(n))).toBe(true);
+  });
+
+  it('somma voci dettaglio = valore riga anche con prezzo mancante (parziale)', () => {
+    const input = {
+      terreni,
+      colturaContext,
+      lavoriCosti: [
+        {
+          terrenoId: 't1',
+          dataIso: '2026-01-10',
+          tipoLavoro: 'Aratura',
+          ore: 3,
+          costoManodopera: 45,
+          costoMacchine: 15,
+          voci: [
+            { origine: 'lavoro', categoria: 'manodopera', descrizione: 'Mario 3h', importo: 45 },
+            { origine: 'lavoro', categoria: 'macchine', descrizione: 'Trattore 1h', importo: 15 }
+          ]
+        }
+      ],
+      attivitaCosti: [],
+      prodottiCosti: [
+        {
+          terrenoId: 't1',
+          dataIso: '2026-01-11',
+          costoProdotti: 20,
+          missingProdotti: false,
+          origine: 'trattamento',
+          voci: [
+            { descrizione: 'Rame', importo: 20, prezzoMancante: false, origine: 'trattamento' },
+            { descrizione: 'Zolfo', importo: null, prezzoMancante: true, origine: 'trattamento' }
+          ]
+        }
+      ]
+    };
+
+    const report = assembleEconomiciReport(input);
+    expect(report.rows).toHaveLength(1);
+    const row = report.rows[0];
+    expect(row.costoManodopera).toBe(45);
+    expect(row.costoMacchine).toBe(15);
+    expect(row.costoProdotti).toBe(20);
+    expect(row.totale).toBe(80);
+
+    const vociAll = vociForRow(report.voci, row);
+    const sumAll = sumVociImporti(vociAll);
+    // Somma dei noti = cella; le voci a prezzo mancante restano fuori dalla somma
+    expect(sumAll.value).toBe(80);
+    expect(sumAll.partial).toBe(true);
+
+    const vociMano = vociForRow(report.voci, row, 'manodopera');
+    expect(sumVociImporti(vociMano).value).toBe(45);
+
+    const nonAttr = assembleEconomiciReport({
+      terreni,
+      colturaContext,
+      lavoriCosti: [],
+      attivitaCosti: [],
+      prodottiCosti: [
+        {
+          nonAttribuito: true,
+          dataIso: '2026-02-01',
+          costoProdotti: 12,
+          origine: 'uscita_magazzino',
+          voci: [{ descrizione: 'Concime', importo: 12, origine: 'uscita_magazzino' }]
+        }
+      ]
+    });
+    const na = nonAttr.rows.find((r) => r.terrenoId === TERRENO_NON_ATTRIBUITO_ID);
+    expect(na).toBeTruthy();
+    expect(sumVociImporti(vociForRow(nonAttr.voci, na)).value).toBe(12);
+  });
+
+  it('buildEconomiciVoci rispetta anti-doppio diario/lavoro', () => {
+    const voci = buildEconomiciVoci({
+      terreni,
+      colturaContext,
+      lavoriCosti: [
+        { terrenoId: 't1', dataIso: '2026-01-10', tipoLavoro: 'Erpicatura', ore: 4, costoManodopera: 60, costoMacchine: 20 }
+      ],
+      attivitaCosti: [
+        { terrenoId: 't1', dataIso: '2026-01-10', tipoLavoro: 'Erpicatura', ore: 4, costoManodopera: 60, costoMacchine: 20 }
+      ],
+      prodottiCosti: []
+    });
+    const mano = voci.filter((v) => v.categoria === 'manodopera');
+    expect(mano).toHaveLength(1);
+    expect(mano[0].importo).toBe(60);
   });
 });
