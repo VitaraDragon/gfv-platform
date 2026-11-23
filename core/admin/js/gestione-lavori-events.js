@@ -695,10 +695,17 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
         if (target.id === 'lavoro-categoria-principale') {
             const categoriaPrincipaleId = listedSelectValue(target);
             if (categoriaPrincipaleId) {
+                const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
+                const currentTipoValue = tipoSelect ? tipoSelect.value : null;
+                const currentTipoText = tipoSelect && tipoSelect.selectedIndex >= 0
+                    ? tipoSelect.options[tipoSelect.selectedIndex]?.text
+                    : null;
                 const preserveSub = listedSelectValue(sottocategoriaSelect);
                 populate(categoriaPrincipaleId, preserveSub || null);
                 const filterId = listedSelectValue(document.getElementById('lavoro-sottocategoria')) || categoriaPrincipaleId;
-                load(filterId);
+                afterLavoroTipiReload(load(filterId), () => {
+                    restoreLavoroTipoSelection(currentTipoValue, currentTipoText);
+                });
             } else {
                 const sottocategoriaGroup = document.getElementById('lavoro-sottocategoria-group');
                 const tipoLavoroGroup = document.getElementById('tipo-lavoro-group');
@@ -1434,6 +1441,37 @@ export async function openModificaModal(
         const catSel = document.getElementById('lavoro-categoria-principale');
         if (categoriaIdModifica && catSel && !catSel.value && catSel.dataset.userTouched !== '1' && populateCategoriaLavoroDropdownCallback) {
             populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
+        }
+        const tipoSel = document.getElementById('lavoro-tipo-lavoro');
+        if (
+            lavoro.tipoLavoro
+            && tipoSel
+            && tipoSel.dataset.userTouched !== '1'
+            && populateTipoLavoroDropdownCallback
+        ) {
+            const attuale = (tipoSel.value || '').trim();
+            const atteso = String(lavoro.tipoLavoro).trim();
+            if (!attuale || attuale.toLowerCase() !== atteso.toLowerCase()) {
+                const catId = categoriaIdModifica
+                    || document.getElementById('lavoro-sottocategoria')?.value
+                    || catSel?.value
+                    || null;
+                if (catId) populateTipoLavoroDropdownCallback(catId, lavoro.tipoLavoro);
+            }
+        }
+        if (lavoro.miscelaPrevista && sessioneApertura === lavoroModalSessione) {
+            const section = document.getElementById('lavoro-miscela-section');
+            const dose = document.getElementById('lavoro-miscela-dose-ha');
+            const prodotto = document.getElementById('lavoro-miscela-prodotto');
+            const nomeLibero = document.getElementById('lavoro-miscela-nome');
+            const vuota = !(dose && String(dose.value || '').trim())
+                && !(prodotto && String(prodotto.value || '').trim())
+                && !(nomeLibero && String(nomeLibero.value || '').trim());
+            if (section && section.style.display !== 'none' && vuota) {
+                scriviMiscelaNelForm(lavoro.miscelaPrevista);
+                const anteprima = document.getElementById('lavoro-miscela-anteprima');
+                if (anteprima) anteprima.textContent = testoAnteprimaMiscela(lavoro.miscelaPrevista);
+            }
         }
         syncRequiredConVisibilita(document.getElementById('lavoro-form'));
     }, 350);
