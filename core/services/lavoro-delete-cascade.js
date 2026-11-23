@@ -21,7 +21,9 @@ import {
   assenzaCascadeAction,
   unlinkPreventivoPatch,
   buildLavoroCascadePlan,
-  formatLavoroDeleteBlockedByRipreseMessage
+  formatLavoroDeleteBlockedByRipreseMessage,
+  collectMagazzinoMovimentoIdsFromTrattamenti,
+  mergeMovimentiForCascade
 } from './lavoro-delete-cascade-utils.js';
 
 export {
@@ -37,7 +39,9 @@ export {
   isRipresaFigliaDi,
   assenzaCascadeAction,
   unlinkPreventivoPatch,
-  normalizeRelatedLavoroId
+  normalizeRelatedLavoroId,
+  collectMagazzinoMovimentoIdsFromTrattamenti,
+  mergeMovimentiForCascade
 } from './lavoro-delete-cascade-utils.js';
 
 const RIPRESE_BLOCKED_CODE = 'LAVORO_HAS_RIPRESE_FIGLIE';
@@ -327,6 +331,20 @@ async function gatherRelated(lavoroId, tenantId, lavoro) {
     listCropRecordsForLavoro(lavoroId, terrenoId, tenantId)
   ]);
 
+  // Scarichi dal registro: spesso solo su magazzinoMovimentoIds (o senza lavoroId).
+  // Stesso insieme in anteprima Elimina e in delete.
+  const idsDaTrattamenti = collectMagazzinoMovimentoIdsFromTrattamenti(crop.trattamenti);
+  const gia = new Set((movimenti || []).map((m) => String(m.id)));
+  const missingIds = idsDaTrattamenti.filter((id) => !gia.has(String(id)));
+  const extraMovimenti = [];
+  for (const mid of missingIds) {
+    try {
+      const doc = await getDocumentData('movimentiMagazzino', mid, tenantId);
+      if (doc) extraMovimenti.push({ ...doc, id: mid });
+    } catch (_) { /* movimento già assente */ }
+  }
+  const movimentiMerged = mergeMovimentiForCascade(movimenti, extraMovimenti);
+
   return {
     lavoroId,
     lavoroNome: lavoro?.nome || '',
@@ -339,7 +357,7 @@ async function gatherRelated(lavoroId, tenantId, lavoro) {
     assenze,
     calcoliVm,
     speseVm,
-    movimenti,
+    movimenti: movimentiMerged,
     preventivi,
     guasti,
     vendemmie: crop.vendemmie,
@@ -469,17 +487,23 @@ export async function deleteLavoroCascade(lavoroId, options = {}) {
     );
   }
 
-  const movimentoIdsFromTrattamenti = new Set();
-  related.trattamenti.forEach((t) => {
-    (t.magazzinoMovimentoIds || []).forEach((id) => movimentoIdsFromTrattamenti.add(String(id)));
-  });
+  // deleteTrattamento* storna già gli scarichi; qui ritentiamo tutti i movimenti
+  // del piano (lavoroId + magazzinoMovimentoIds) così conteggio e delete restano allineati
+  // anche se lo storno sul trattamento fallisce in quiet.
+  const idsGia = new Set((related.movimenti || []).map((m) => String(m.id)));
+  for (const mid of collectMagazzinoMovimentoIdsFromTrattamenti(related.trattamenti)) {
+    if (!idsGia.has(String(mid))) {
+      related.movimenti.push({ id: mid });
+      idsGia.add(String(mid));
+    }
+  }
   for (const mov of related.movimenti) {
-    if (movimentoIdsFromTrattamenti.has(String(mov.id))) continue;
     await deleteQuiet(`movimento ${mov.id}`, async () => {
       try {
         const { deleteMovimento } = await import('../../modules/magazzino/services/movimenti-service.js');
         await deleteMovimento(mov.id);
-      } catch (_) {
+      } catch (err) {
+        if (err && err.code === 'MOVIMENTO_NON_TROVATO') return;
         await deleteDocument('movimentiMagazzino', mov.id, tenantId);
       }
     });
