@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Report — Economici GFV</title>
+  <meta name="theme-color" content="#1F2937" />
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #111827 0%, #374151 100%);
+      color: #111827;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header {
+      background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+      color: white;
+      padding: 22px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .header h1 { font-size: 22px; }
+    .header p { opacity: .9; font-size: 13px; margin-top: 6px; }
+    .nav-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.18); }
+    .btn-accent {
+      background: #2563eb;
+      border-color: #1d4ed8;
+    }
+    .btn-accent:hover { background: #1d4ed8; }
+    .panel {
+      margin-top: 14px;
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+    .filter-group label { font-size: 12px; font-weight: 700; color: #374151; }
+    select, input[type="date"] {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 14px;
+      background: white;
+    }
+    .period-hint {
+      font-size: 13px;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .alert { padding: 12px 14px; border-radius: 12px; border: 1px solid; margin-top: 10px; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .hidden { display: none !important; }
+    .muted { color: #6b7280; font-size: 13px; }
+    .loading-box { padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    table.data th, table.data td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    table.data th { background: #f9fafb; color: #374151; font-weight: 700; }
+    table.data td.num, table.data th.num { text-align: right; }
+    table.data tfoot td { font-weight: 700; background: #f3f4f6; }
+    .notes {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+    .notes ul { margin: 6px 0 0 18px; }
+    h2.section { font-size: 16px; color: #374151; margin-bottom: 8px; }
+    h3.section { font-size: 14px; color: #4b5563; margin: 16px 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>💶 Report — Economici</h1>
+        <p>Costi per terreno e coltura nell’annata. Solo spese (niente ricavi/margine in questa vista).</p>
+      </div>
+      <div class="nav-row">
+        <a class="btn" href="./report-dashboard-standalone.html">← Dashboard</a>
+        <a class="btn" href="../../../core/dashboard-standalone.html">Home</a>
+        <button type="button" class="btn btn-accent" id="btn-export">Esporta Excel</button>
+      </div>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden"><div class="alert alert-error" id="gate-message"></div></div>
+
+    <div id="main-content" class="hidden">
+      <div class="panel">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="sel-mode">Tipo periodo</label>
+            <select id="sel-mode">
+              <option value="agrarian">Annata agraria (11 nov – 10 nov)</option>
+              <option value="solar">Anno solare</option>
+              <option value="custom">Intervallo personalizzato</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-year">
+            <label for="sel-year">Anno di riferimento</label>
+            <select id="sel-year"></select>
+          </div>
+          <div class="filter-group hidden" id="group-from">
+            <label for="date-from">Da</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div class="filter-group hidden" id="group-to">
+            <label for="date-to">A</label>
+            <input type="date" id="date-to" />
+          </div>
+          <div class="filter-group">
+            <label for="sel-terreno">Terreno</label>
+            <select id="sel-terreno"><option value="">Tutti</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-coltura">Coltura</label>
+            <select id="sel-coltura"><option value="">Tutte</option></select>
+          </div>
+        </div>
+        <div class="period-hint" id="period-label"></div>
+        <p class="muted" style="margin-top:10px;">
+          Manodopera e macchine da lavori completati e diario; prodotti (fitofarmaci, concimi, …) dal costo prodotto dei registri trattamenti dei moduli attivi. Un trattamento collegato a un lavoro non raddoppia manodopera/macchine.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2 class="section">Costi per terreno × coltura</h2>
+        <div id="alert-box"></div>
+        <div id="table-host" class="loading-box">Caricamento…</div>
+        <div class="notes" id="notes-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+  <script type="module">
+    import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[report-economici] Bootstrap failed:', err);
+      throw err;
+    }
+
+    import {
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } from '../../../core/services/firebase-service.js';
+    import { initializeTenantService, setCurrentTenantId, getCurrentTenant } from '../../../core/services/tenant-service.js';
+    import { hasReportModuleAccess } from '../services/report-service.js';
+    import { canAccessStrategicReports } from '../js/report-access.js';
+    import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
+    import { buildReportEconomici, getEconomiciFilterOptions } from '../services/report-economici-service.js';
+
+    const auth = getAuthInstance();
+    initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const gateMessage = document.getElementById('gate-message');
+    const mainContent = document.getElementById('main-content');
+    const selMode = document.getElementById('sel-mode');
+    const selYear = document.getElementById('sel-year');
+    const groupYear = document.getElementById('group-year');
+    const groupFrom = document.getElementById('group-from');
+    const groupTo = document.getElementById('group-to');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+    const periodLabel = document.getElementById('period-label');
+    const selTerreno = document.getElementById('sel-terreno');
+    const selColtura = document.getElementById('sel-coltura');
+    const tableHost = document.getElementById('table-host');
+    const alertBox = document.getElementById('alert-box');
+    const notesBox = document.getElementById('notes-box');
+    const btnExport = document.getElementById('btn-export');
+
+    let tenantId = null;
+    /** @type {object|null} */
+    let cached = null;
+
+    function showGate(msg) {
+      gateMessage.textContent = msg;
+      gateBlocked.classList.remove('hidden');
+      mainContent.classList.add('hidden');
+    }
+
+    function fillYearSelect() {
+      const y = new Date().getFullYear();
+      selYear.innerHTML = '';
+      for (let i = 0; i < 8; i++) {
+        const yy = y - i;
+        const o = document.createElement('option');
+        o.value = String(yy);
+        o.textContent = String(yy);
+        selYear.appendChild(o);
+      }
+      selYear.value = String(y);
+    }
+
+    function currentPeriodBounds() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        let a = dateFrom.value ? new Date(dateFrom.value + 'T00:00:00') : new Date();
+        let b = dateTo.value ? new Date(dateTo.value + 'T23:59:59.999') : new Date();
+        if (a > b) {
+          const x = a;
+          a = b;
+          b = x;
+        }
+        return { start: a, end: b, label: formatRangeIt(a, b) };
+      }
+      const refY = parseInt(selYear.value, 10) || new Date().getFullYear();
+      if (mode === 'solar') {
+        return getSolarYearBounds(new Date(refY, 5, 15));
+      }
+      return getAgrarianYearBounds(new Date(refY, 10, 15));
+    }
+
+    function updatePeriodLabel() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        groupYear.classList.add('hidden');
+        groupFrom.classList.remove('hidden');
+        groupTo.classList.remove('hidden');
+        if (!dateFrom.value) {
+          const t = new Date();
+          t.setMonth(t.getMonth() - 3);
+          dateFrom.value = t.toISOString().slice(0, 10);
+        }
+        if (!dateTo.value) {
+          dateTo.value = new Date().toISOString().slice(0, 10);
+        }
+      } else {
+        groupYear.classList.remove('hidden');
+        groupFrom.classList.add('hidden');
+        groupTo.classList.add('hidden');
+      }
+      const p = currentPeriodBounds();
+      periodLabel.textContent = p.label || formatRangeIt(p.start, p.end);
+    }
+
+    function fmtEuro(v, partial) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      const n = Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return partial ? `${n}*` : n;
+    }
+
+    function fmtNum(v, digits = 2) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      return Number(v).toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+
+    function rowCells(r, name) {
+      return `
+        <td>${escapeHtml(name)}</td>
+        <td class="num">${fmtNum(r.ettari)}</td>
+        <td class="num">${fmtNum(r.ore)}</td>
+        <td class="num">${fmtEuro(r.costoManodopera, r.partialManodopera)}</td>
+        <td class="num">${fmtEuro(r.costoMacchine, r.partialMacchine)}</td>
+        <td class="num">${fmtEuro(r.costoProdotti, r.partialProdotti)}</td>
+        <td class="num">${fmtEuro(r.totale, r.partialTotale)}</td>
+        <td class="num">${fmtEuro(r.euroHa, r.partialEuroHa)}</td>
+      `;
+    }
+
+    function render(data) {
+      cached = data;
+      const rows = data.rows || [];
+      if (!rows.length) {
+        tableHost.innerHTML = '<div class="alert alert-info">Nessun costo nel periodo con i filtri scelti.</div>';
+        notesBox.innerHTML = '';
+        return;
+      }
+
+      let html = `
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Terreno / coltura</th>
+                <th class="num">ha</th>
+                <th class="num">Ore</th>
+                <th class="num">Manodopera €</th>
+                <th class="num">Macchine €</th>
+                <th class="num">Prodotti €</th>
+                <th class="num">Totale €</th>
+                <th class="num">€/ha</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      for (const r of rows) {
+        html += `<tr>${rowCells(r, `${r.terrenoNome} · ${r.coltura}`)}</tr>`;
+      }
+      html += '</tbody></table></div>';
+
+      const byColtura = data.byColtura || [];
+      if (byColtura.length) {
+        html += '<h3 class="section">Totali per coltura</h3><div class="table-wrap"><table class="data"><thead><tr>';
+        html += '<th>Coltura</th><th class="num">ha</th><th class="num">Ore</th><th class="num">Manodopera €</th><th class="num">Macchine €</th><th class="num">Prodotti €</th><th class="num">Totale €</th><th class="num">€/ha</th>';
+        html += '</tr></thead><tbody>';
+        for (const r of byColtura) {
+          html += `<tr>${rowCells(r, r.coltura)}</tr>`;
+        }
+        html += '</tbody></table></div>';
+      }
+
+      const tot = data.totaleAzienda;
+      if (tot) {
+        html += '<h3 class="section">Totale azienda</h3><div class="table-wrap"><table class="data"><tfoot>';
+        html += `<tr>${rowCells(tot, tot.label || 'Totale azienda')}</tr>`;
+        html += '</tfoot></table></div>';
+      }
+
+      tableHost.innerHTML = html;
+
+      const notes = data.notes || [];
+      if (notes.length) {
+        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno un costo). «—» = nessun valore noto.<ul>${
+          notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
+        }</ul>`;
+      } else {
+        notesBox.innerHTML = '<span class="muted">* = parziale. «—» solo se non c’è alcun valore noto per quella voce.</span>';
+      }
+    }
+
+    async function fillFilters() {
+      const opts = await getEconomiciFilterOptions();
+      const curT = selTerreno.value;
+      const curC = selColtura.value;
+      selTerreno.innerHTML = '<option value="">Tutti</option>';
+      for (const t of opts.terreni || []) {
+        const o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.nome;
+        selTerreno.appendChild(o);
+      }
+      selColtura.innerHTML = '<option value="">Tutte</option>';
+      for (const c of opts.colture || []) {
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = c;
+        selColtura.appendChild(o);
+      }
+      if (curT) selTerreno.value = curT;
+      if (curC) selColtura.value = curC;
+    }
+
+    async function refreshReport() {
+      if (!tenantId) return;
+      tableHost.innerHTML = '<div class="loading-box">Caricamento costi nel periodo…</div>';
+      alertBox.innerHTML = '';
+      notesBox.innerHTML = '';
+      const t0 = performance.now();
+      try {
+        const p = currentPeriodBounds();
+        const data = await buildReportEconomici(p.start, p.end, {
+          terrenoId: selTerreno.value || null,
+          coltura: selColtura.value || null
+        });
+        const ms = Math.round(performance.now() - t0);
+        if (ms > 3000 && data.meta && data.meta.lavoriCount >= 50) {
+          console.warn('[report-economici] caricamento lento', ms, 'ms con', data.meta.lavoriCount, 'lavori');
+        }
+        render(data);
+      } catch (e) {
+        console.error(e);
+        cached = null;
+        tableHost.innerHTML = '';
+        alertBox.innerHTML = `<div class="alert alert-error">Errore report: ${escapeHtml(e.message || e)}</div>`;
+      }
+    }
+
+    async function exportExcel() {
+      if (typeof ExcelJS === 'undefined') {
+        alertBox.innerHTML = '<div class="alert alert-error">Libreria Excel non caricata. Ricarica la pagina.</div>';
+        return;
+      }
+      if (!cached || !(cached.rows || []).length) {
+        alertBox.innerHTML = '<div class="alert alert-info">Nessun dato da esportare. Carica prima il report.</div>';
+        return;
+      }
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'GFV Platform';
+      wb.created = new Date();
+      const p = currentPeriodBounds();
+
+      function addSheet(name, headerLabel, list) {
+        const ws = wb.addWorksheet(name);
+        ws.addRow(['Periodo', p.label || formatRangeIt(p.start, p.end)]);
+        ws.addRow([]);
+        ws.addRow([headerLabel, 'ha', 'Ore', 'Manodopera €', 'Macchine €', 'Prodotti €', 'Totale €', '€/ha', 'Note/parziale']);
+        for (const r of list) {
+          const partialBits = [];
+          if (r.partialManodopera) partialBits.push('manodopera');
+          if (r.partialMacchine) partialBits.push('macchine');
+          if (r.partialProdotti) partialBits.push('prodotti');
+          if (r.partialTotale) partialBits.push('totale');
+          ws.addRow([
+            name === 'Dettaglio' ? `${r.terrenoNome} · ${r.coltura}` : (r.coltura || r.label || ''),
+            r.ettari,
+            r.ore,
+            r.costoManodopera,
+            r.costoMacchine,
+            r.costoProdotti,
+            r.totale,
+            r.euroHa,
+            r.noteParziale || (partialBits.length ? `parziale: ${partialBits.join(', ')}` : '')
+          ]);
+        }
+        ws.columns = [
+          { width: 36 },
+          { width: 10 },
+          { width: 10 },
+          { width: 14 },
+          { width: 12 },
+          { width: 12 },
+          { width: 12 },
+          { width: 10 },
+          { width: 40 }
+        ];
+        for (let c = 2; c <= 8; c++) ws.getColumn(c).numFmt = '#,##0.00';
+      }
+
+      addSheet('Dettaglio', 'Terreno · coltura', cached.rows);
+      addSheet('Per coltura', 'Coltura', cached.byColtura || []);
+      if (cached.totaleAzienda) {
+        addSheet('Totale azienda', 'Voce', [cached.totaleAzienda]);
+      }
+      if ((cached.notes || []).length) {
+        const ws = wb.addWorksheet('Note');
+        ws.addRow(['Note costi mancanti']);
+        for (const n of cached.notes) ws.addRow([n]);
+        ws.getColumn(1).width = 80;
+      }
+
+      const dataStr = new Date().toISOString().split('T')[0];
+      const fileName = `report-economici-${dataStr}.xlsx`;
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      alertBox.innerHTML = `<div class="alert alert-info">Export completato: ${escapeHtml(fileName)}</div>`;
+    }
+
+    function onPeriodChange() {
+      updatePeriodLabel();
+      if (mainContent && !mainContent.classList.contains('hidden') && tenantId) {
+        refreshReport();
+      }
+    }
+
+    selMode.addEventListener('change', onPeriodChange);
+    selYear.addEventListener('change', onPeriodChange);
+    dateFrom.addEventListener('change', onPeriodChange);
+    dateTo.addEventListener('change', onPeriodChange);
+    selTerreno.addEventListener('change', () => refreshReport());
+    selColtura.addEventListener('change', () => refreshReport());
+    btnExport.addEventListener('click', exportExcel);
+
+    fillYearSelect();
+    updatePeriodLabel();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
+      if (!user) {
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+        return;
+      }
+      const userData = await getDocumentData('users', user.uid);
+      if (!userData) {
+        showGate('Profilo utente non trovato.');
+        return;
+      }
+      tenantId = userData.tenantId;
+      if (tenantId) {
+        setCurrentTenantId(tenantId);
+        await getCurrentTenant();
+      }
+      if (!(await hasReportModuleAccess())) {
+        showGate('Modulo Report non attivo.');
+        return;
+      }
+      if (!canAccessStrategicReports(userData)) {
+        showGate('Area riservata a Manager e Amministratore.');
+        return;
+      }
+      mainContent.classList.remove('hidden');
+      await fillFilters();
+      await refreshReport();
+    });
+  </script>
+  <script type="module">
+      import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+      const swPath = window.location.pathname.includes('/gfv-platform/')
+          ? '/gfv-platform/service-worker.js'
+          : '../../../service-worker.js';
+      registraServiceWorker(swPath);
+  </script>
+</body>
+</html>
