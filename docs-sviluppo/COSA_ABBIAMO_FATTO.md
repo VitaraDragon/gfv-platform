@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — avversità ripristinata in Modifica lavoro.**
+**Ultimo aggiornamento documentazione: 2026-11-23 — residui Modifica/Elimina lavori (tipo, miscela, seminativo).**
+
+## 2026-11-23 — residui Modifica/Elimina lavori (tipo, miscela, seminativo)
+
+Su `fix/lavori-modifica-elimina-residui` (PR verso develop). Nessun merge, nessun deploy.
+
+Dopo una ricarica, un `loadTipiLavoro()` globale non azzera più «Tipo Lavoro Specifico» e «Miscela prevista» già compilati in Modifica (generazione + niente wipe del form senza categoria). Il modale Elimina conta e cancella anche i trattamenti seminativo/orticole collegati al lavoro, non solo vigneto/frutteto. Carenza (#450) e avversità (#452) non toccate.
 
 ## 2026-11-23 — avversità ripristinata in Modifica lavoro
 

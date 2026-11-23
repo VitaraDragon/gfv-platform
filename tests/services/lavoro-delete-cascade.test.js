@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     normalizeRelatedLavoroId,
     matchesLavoroId,
+    filterDocsByLavoroId,
     isRipresaFigliaDi,
     comunicazioneRiferisceLavoroInesistente,
     filterComunicazioniSenzaLavoroMorto,
@@ -25,6 +26,29 @@ describe('lavoro-delete-cascade-utils', () => {
     it('matchesLavoroId allinea path e id semplice', () => {
         expect(matchesLavoroId('tenants/t/lavori/L1', 'L1')).toBe(true);
         expect(matchesLavoroId('L2', 'L1')).toBe(false);
+    });
+
+    it('filterDocsByLavoroId include trattamenti seminativo/orticole collegati', () => {
+        const docs = [
+            { id: 'ts1', lavoroId: 'lav-grano', nome: 'KARATE' },
+            { id: 'ts2', lavoroId: 'altro' },
+            { id: 'ts3', lavoroId: 'tenants/t/lavori/lav-grano' }
+        ];
+        const linked = filterDocsByLavoroId(docs, 'lav-grano');
+        expect(linked.map((d) => d.id)).toEqual(['ts1', 'ts3']);
+    });
+
+    it('buildLavoroCascadePlan conta 1 trattamento seminativo nel messaggio Elimina', () => {
+        const plan = buildLavoroCascadePlan({
+            lavoroId: 'lav-grano',
+            lavoroNome: 'Insetticida grano',
+            lavori: [{ id: 'lav-grano' }],
+            trattamenti: [{ id: 'ts-karate', modulo: 'seminativo' }]
+        });
+        expect(plan.blocked).toBe(false);
+        expect(plan.counts.trattamenti).toBe(1);
+        expect(plan.confirmMessage).toContain('Verranno eliminati anche');
+        expect(plan.confirmMessage).toContain('1 trattamento');
     });
 
     it('isRipresaFigliaDi ignora il lavoro origine stesso', () => {

@@ -39,6 +39,17 @@ export function matchesLavoroId(docLavoroId, targetLavoroId) {
 }
 
 /**
+ * Documenti (es. trattamenti seminativo/orticole) collegati a un lavoro.
+ * @param {Array<{ lavoroId?: unknown, id?: unknown }>|null|undefined} docs
+ * @param {unknown} lavoroId
+ * @returns {Array}
+ */
+export function filterDocsByLavoroId(docs, lavoroId) {
+  const list = Array.isArray(docs) ? docs : [];
+  return list.filter((d) => matchesLavoroId(d?.lavoroId, lavoroId));
+}
+
+/**
  * @param {{ id?: unknown, ripresaDaLavoroId?: unknown }} lavoro
  * @param {unknown} origineId
  * @returns {boolean}

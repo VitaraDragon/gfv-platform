@@ -632,6 +632,16 @@ export async function initializeTipiLavoroPredefiniti(currentTenantId) {
  * @param {Function} populateTipoLavoroDropdownCallback - Callback per popolare dropdown tipi lavoro
  * @param {Function} populateTipoLavoroFilterCallback - Callback per popolare filtro tipo lavoro (opzionale)
  */
+/** Solo l'ultimo loadTipiLavoro in volo aggiorna la UI (evita wipe da risposte tardive). */
+let loadTipiLavoroGeneration = 0;
+
+/**
+ * @returns {number} generazione corrente (test / debug)
+ */
+export function getLoadTipiLavoroGeneration() {
+    return loadTipiLavoroGeneration;
+}
+
 export async function loadTipiLavoro(
     categoriaId,
     currentTenantId,
@@ -644,6 +654,7 @@ export async function loadTipiLavoro(
     populateTipoLavoroDropdownCallback,
     populateTipoLavoroFilterCallback
 ) {
+    const generation = ++loadTipiLavoroGeneration;
     try {
         if (!currentTenantId) return;
         
@@ -655,6 +666,7 @@ export async function loadTipiLavoro(
             const { collection, query, getDocs, orderBy } = await import('../../services/firebase-service.js');
             const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
             const snapshot = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
+            if (generation !== loadTipiLavoroGeneration) return;
             tipiLavoroList.length = 0; // Pulisci array
             
             snapshot.forEach(doc => {
@@ -687,6 +699,8 @@ export async function loadTipiLavoro(
                 orderDirection: 'asc'
             });
 
+            if (generation !== loadTipiLavoroGeneration) return;
+
             // Converti in formato compatibile con il codice esistente
             tipiLavoroList.length = 0; // Pulisci array
             tipiLavoro.forEach(tipo => {
@@ -705,10 +719,12 @@ export async function loadTipiLavoro(
             try {
                 const { initializeTipiLavoroPredefiniti: initTipiLavoro } = await import('../../services/tipi-lavoro-service.js');
                 await initTipiLavoro();
+                if (generation !== loadTipiLavoroGeneration) return;
                 const tipiLavoroReload = await getAllTipiLavoro({
                     orderBy: 'nome',
                     orderDirection: 'asc'
                 });
+                if (generation !== loadTipiLavoroGeneration) return;
                 tipiLavoroList.length = 0;
                 tipiLavoroReload.forEach(tipo => {
                     tipiLavoroList.push({
@@ -725,6 +741,8 @@ export async function loadTipiLavoro(
                 console.warn('Impossibile inizializzare tipi lavoro predefiniti:', initError);
             }
         }
+
+        if (generation !== loadTipiLavoroGeneration) return;
         
         // Se è specificata una categoria, filtra per quella categoria o le sue sottocategorie
         const tipiLavoroFiltrati = categoriaId
@@ -736,15 +754,25 @@ export async function loadTipiLavoro(
             )
             : tipiLavoroList;
         
-        // Passa i tipi filtrati alla funzione di popolamento
-        if (populateTipoLavoroDropdownCallback) {
-            populateTipoLavoroDropdownCallback(categoriaId, null, tipiLavoroFiltrati);
+        // Reload globale (senza categoria): aggiorna solo il filtro lista, non il form.
+        // Altrimenti un loadTipiLavoro() di init che finisce dopo Modifica azzera tipo/miscela.
+        if (populateTipoLavoroDropdownCallback && categoriaId) {
+            const tipoSelect = typeof document !== 'undefined'
+                ? document.getElementById('lavoro-tipo-lavoro')
+                : null;
+            const preserveNome = tipoSelect && tipoSelect.value
+                ? tipoSelect.value
+                : (tipoSelect && tipoSelect.selectedIndex > 0
+                    ? (tipoSelect.options[tipoSelect.selectedIndex]?.text || null)
+                    : null);
+            populateTipoLavoroDropdownCallback(categoriaId, preserveNome || null, tipiLavoroFiltrati);
         }
         // Popola filtro tipo lavoro (usa lista completa, non filtrata)
         if (populateTipoLavoroFilterCallback) {
             populateTipoLavoroFilterCallback(tipiLavoroList);
         }
     } catch (error) {
+        if (generation !== loadTipiLavoroGeneration) return;
         console.error('Errore caricamento tipi lavoro:', error);
         tipiLavoroList.length = 0;
     }
@@ -1817,16 +1845,17 @@ export function populateTipoLavoroDropdown(
         return;
     }
 
-    const previousTipo = select.value || null;
-    
-    select.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option>';
-    
+    // Senza categoria non smontare il select: un reload globale tardivo non deve
+    // nascondere tipo/miscela già compilati in Crea/Modifica.
     if (!categoriaId) {
-        tipoLavoroGroup.style.display = 'none';
         syncRequiredConVisibilita(document.getElementById('lavoro-form'));
         notificaSezioneMiscelaSeVisibile();
         return;
     }
+
+    const previousTipo = select.value || null;
+    
+    select.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option>';
     
     tipoLavoroGroup.style.display = 'block';
 
