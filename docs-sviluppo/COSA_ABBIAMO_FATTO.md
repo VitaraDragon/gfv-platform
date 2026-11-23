@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — residui Modifica/Elimina lavori (tipo, miscela, seminativo).**
+**Ultimo aggiornamento documentazione: 2026-11-23 — avversità subito in Modifica + Elimina per lavoroId.**
+
+## 2026-11-23 — avversità subito in Modifica + Elimina per lavoroId
+
+Su `fix/lavori-avversita-elimina-cascade` (PR verso develop). Nessun merge, nessun deploy.
+
+In Modifica, prodotto/dose/avversità di `miscelaPrevista` compaiono subito (opzione in tendina), senza aspettare magazzino o etichetta. Il semaforo non azzera più la scelta salvata se l'etichetta arriva dopo. Il modale Elimina conta i trattamenti collegati con query `lavoroId` (seminativo/orticole e sotto-collezioni vigneto/frutteto), in parallelo; niente dump a priori di tutti i trattamenti del tenant. Carenza (#450), ripristino avversità (#452) e stabilità tipo/miscela (#454) non toccati nella loro logica.
 
 ## 2026-11-23 — residui Modifica/Elimina lavori (tipo, miscela, seminativo)
 

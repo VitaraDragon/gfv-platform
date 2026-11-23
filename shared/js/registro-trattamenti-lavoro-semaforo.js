@@ -188,14 +188,20 @@ function riempiTendinaAvversita(select, scheda, coltura, vocabolario) {
   const gia = String(select.value || '').trim()
     || String(select.getAttribute('data-avversita') || '').trim();
   if (select.dataset.chiave !== chiave) {
-    select.innerHTML = '<option value="">— da scegliere —</option>' + lista.map((voce) => (
+    let html = '<option value="">— da scegliere —</option>' + lista.map((voce) => (
       '<option value="' + esc(voce.testo) + '">' + esc(voce.testo) + '</option>'
     )).join('');
+    // Se l'etichetta non è ancora pronta (o non elenca la voce), tieni la salvata visibile.
+    if (gia && !voceAvversitaCorrisponde(lista, gia)) {
+      html += '<option value="' + esc(gia) + '">' + esc(gia) + '</option>';
+    }
+    select.innerHTML = html;
     select.dataset.chiave = chiave;
   }
   if (!String(select.value || '').trim()) {
     const corrisponde = voceAvversitaCorrisponde(lista, gia);
     if (corrisponde) select.value = corrisponde.testo;
+    else if (gia) select.value = gia;
     else if (lista.length === 1) select.value = lista[0].testo;
     else select.value = '';
   }
