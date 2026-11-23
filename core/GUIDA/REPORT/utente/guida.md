@@ -8,7 +8,8 @@ Il modulo **Report** raccoglie viste e export per area (terreni, colture, …). 
 
 1. **Moduli** → **Report** → hub. **[Impara qui](#mini-guida-hub-report)**  
 2. Aprite **Terreni** (report campi). **[Impara qui](#mini-guida-report-terreni)**  
-3. Se avete **Vigneto**, usate la card **Vigneto** per gli export MVP. **[Impara qui](#mini-guida-report-vigneto)**  
+3. Aprite **Economici** per i costi per terreno/coltura. **[Impara qui](#mini-guida-report-economici)**  
+4. Se avete **Vigneto**, usate la card **Vigneto** per gli export MVP. **[Impara qui](#mini-guida-report-vigneto)**  
 
 ---
 
@@ -18,6 +19,7 @@ Il modulo **Report** raccoglie viste e export per area (terreni, colture, …). 
 |-----------|------|
 | Hub Report | [Impara qui](#mini-guida-hub-report) |
 | Report Terreni | [Impara qui](#mini-guida-report-terreni) |
+| Report Economici | [Impara qui](#mini-guida-report-economici) |
 | Report Vigneto | [Impara qui](#mini-guida-report-vigneto) |
 | Aree in sviluppo | [Impara qui](#aree-in-sviluppo) |
 
@@ -39,6 +41,15 @@ Il modulo **Report** raccoglie viste e export per area (terreni, colture, …). 
 
 ---
 
+## Mini-guida report Economici
+
+1. Dall’hub toccate **Economici**.  
+2. Scegliete il **periodo** (annata agraria, anno solare o intervallo), eventualmente **terreno** e **coltura**.  
+3. La tabella mostra per ogni terreno × coltura: ettari, ore, costo manodopera, macchine, prodotti, totale € e €/ha; sotto i totali per coltura e il totale azienda.  
+4. **Esporta Excel** scarica la stessa tabella. I valori «—» indicano un costo non calcolabile (es. prezzo prodotto o tariffa mancante). In questa scheda non ci sono ricavi né margine.
+
+---
+
 ## Mini-guida report Vigneto
 
 Compare solo se il modulo **Vigneto** è attivo. Apre la vista report vigneto (export/tabelle vendemmie e lavori — MVP). Senza Vigneto la card non viene proposta.
@@ -47,7 +58,7 @@ Compare solo se il modulo **Vigneto** è attivo. Apre la vista report vigneto (e
 
 ## Aree in sviluppo
 
-Frutteto, Magazzino, Manodopera, Conto terzi, **Sintesi** trasversale e **Economici** possono mostrare il badge **In sviluppo**: non sono ancora un flusso completo. Quando saranno attive, questa guida andrà ampliata.
+Frutteto, Magazzino, Manodopera, Conto terzi e **Sintesi** trasversale possono mostrare il badge **In sviluppo**: non sono ancora un flusso completo. Quando saranno attive, questa guida andrà ampliata.
 
 ---
 
