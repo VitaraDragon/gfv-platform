@@ -30,6 +30,28 @@ function esc(value) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Garantisce un'opzione nella select e la seleziona.
+ * Serve in Modifica: prodotto/avversità salvati si vedono subito, senza aspettare
+ * magazzino o etichetta.
+ * @param {HTMLSelectElement|null|undefined} select
+ * @param {string} value
+ * @param {string} [label]
+ */
+export function assicuratiOpzioneSelect(select, value, label) {
+  if (!select || value == null) return;
+  const v = String(value).trim();
+  if (!v) return;
+  const esiste = Array.from(select.options || []).some((opt) => String(opt.value || '') === v);
+  if (!esiste) {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = label != null && String(label).trim() ? String(label).trim() : v;
+    select.appendChild(opt);
+  }
+  select.value = v;
+}
+
 export function tipoLavoroETrattamento(nome) {
   return String(nome || '').toLowerCase().includes('trattament');
 }
@@ -312,15 +334,21 @@ export function scriviMiscelaNelForm(miscela) {
   const sel = document.getElementById('lavoro-miscela-prodotto');
   const nome = document.getElementById('lavoro-miscela-nome');
   const dose = document.getElementById('lavoro-miscela-dose-ha');
-  if (sel && primo && primo.prodottoId) sel.value = primo.prodottoId;
+  if (sel && primo && primo.prodottoId) {
+    assicuratiOpzioneSelect(sel, primo.prodottoId, nomeVisibileProdotto(primo));
+  }
   if (nome) nome.value = primo && !primo.prodottoId ? nomeVisibileProdotto(primo) : '';
   if (dose) dose.value = primo && primo.dosePerEttaro != null ? primo.dosePerEttaro : '';
   const avversita = document.getElementById('lavoro-miscela-avversita');
   if (avversita) {
     const testo = testoAvversitaProdotto(primo);
-    if (testo) avversita.setAttribute('data-avversita', testo);
-    else avversita.removeAttribute('data-avversita');
-    avversita.value = '';
+    if (testo) {
+      avversita.setAttribute('data-avversita', testo);
+      assicuratiOpzioneSelect(avversita, testo);
+    } else {
+      avversita.removeAttribute('data-avversita');
+      avversita.value = '';
+    }
   }
   scriviLegameSulNodo(nome, primo && !primo.prodottoId ? primo : null);
   const tbody = document.getElementById('tbody-miscela-lavoro');
@@ -339,8 +367,11 @@ function attributiLegameHtml(p) {
 function celleExtraMiscela(p) {
   const avversita = testoAvversitaProdotto(p);
   const nome = nomeVisibileProdotto(p);
+  const optAvversita = avversita
+    ? '<option value="' + esc(avversita) + '" selected>' + esc(avversita) + '</option>'
+    : '';
   return '<td>' + esc(nome) + ' <span class="lavoro-semaforo-pallino"></span></td>'
-    + '<td><select class="miscela-avversita-extra" data-avversita="' + esc(avversita) + '"><option value="">— da scegliere —</option></select></td>'
+    + '<td><select class="miscela-avversita-extra" data-avversita="' + esc(avversita) + '"><option value="">— da scegliere —</option>' + optAvversita + '</select></td>'
     + '<td><input type="number" class="miscela-dose-extra" min="0" step="0.001" value="' + esc(p.dosePerEttaro != null ? p.dosePerEttaro : '') + '"></td>'
     + '<td><span class="lavoro-dose-etichetta-extra"></span></td>'
     + '<td><button type="button" class="btn btn-sm btn-secondary btn-leggi-scheda">Leggi scheda</button> '
