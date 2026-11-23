@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — Lavoro trattamento seminativo → registro.**
+**Ultimo aggiornamento documentazione: 2026-11-23 — Scarico magazzino registro: superficie + cascade.**
+
+## 2026-11-23 — Scarico magazzino dal registro: Salva bloccato + Elimina orfana uscita
+
+Su `fix/scarico-magazzino-registro-superficie-cascade` (PR verso develop). Nessun merge, nessun deploy.
+
+Bug 1: superficie da anagrafe con troppi decimali (es. 1.405…) bloccava il Salva del registro seminativo/orticole (input `step=0.01` senza messaggio app). Ora si arrotonda a 2 decimali in create/sync dal lavoro, in lista e nel modale (anche righe già salvate). Bug 2: Elimina lavoro contava il movimento di scarico ma non lo cancellava (delete trattamento seminativo/orticole non stornava; la cascade saltava gli ID già su `magazzinoMovimentoIds`). Ora delete storno come vigneto e la cascade elimina tutti i movimenti del piano (lavoroId + ID dal trattamento). Niente functions/rules/indici/migrazioni. «Da completare» dopo lo scarico resta il semaforo conformità etichetta (non stato magazzino): non cambiato.
 
 ## 2026-11-23 — Lavoro trattamento seminativo (e orticole) → registro
 

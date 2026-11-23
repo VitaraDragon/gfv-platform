@@ -27,7 +27,8 @@ import {
   prodottiSchedaDaMiscelaLavoro,
   testoStatoVuotoRegistro,
   messaggiUnici,
-  valutaCancellazioneRegistro
+  valutaCancellazioneRegistro,
+  arrotonda
 } from '../../../shared/js/registro-trattamenti.js';
 import {
   caricaPacchettoPerRighe,
@@ -234,7 +235,7 @@ async function renderTable() {
       <td><strong>${escapeHtml(row.tipoLavoro || '—')}</strong></td>
       <td>${escapeHtml(getTerrenoLabel(row.terrenoId))}</td>
       <td>${escapeHtml(trattamento ? trattamento.prodotto : '—')}</td>
-      <td>${trattamento && trattamento.superficieTrattata != null ? escapeHtml(trattamento.superficieTrattata) : '—'}</td>
+      <td>${trattamento && trattamento.superficieTrattata != null ? escapeHtml(formatSuperficieLista(trattamento.superficieTrattata)) : '—'}</td>
       <td>${trattamento ? euro(trattamento.costoTotale) : '—'}</td>
       <td>${ref}</td>
       <td>${cella.html}</td>
@@ -324,14 +325,27 @@ function avvisoHtml(row, pacchetto) {
   return htmlCellaAvvisi(esito, avviso.hasWarning ? avviso.tooltip : '');
 }
 
+function formatSuperficieLista(value) {
+  const n = arrotonda(value, 2);
+  return n == null ? '—' : n.toFixed(2);
+}
+
 function superficieDefault(row) {
   const trattamento = row.trattamento;
-  if (trattamento && trattamento.superficieTrattata != null && !Number.isNaN(trattamento.superficieTrattata)) {
-    return trattamento.superficieTrattata;
+  if (trattamento && trattamento.superficieTrattata != null && !Number.isNaN(Number(trattamento.superficieTrattata))) {
+    const n = arrotonda(trattamento.superficieTrattata, 2);
+    return n == null ? '' : String(n);
   }
-  if (row.superficieEttari != null && row.superficieEttari !== '') return row.superficieEttari;
+  if (row.superficieEttari != null && row.superficieEttari !== '') {
+    const n = arrotonda(row.superficieEttari, 2);
+    return n == null ? '' : String(n);
+  }
   const terreno = terreni.find((item) => item.id === row.terrenoId);
-  return terreno && terreno.superficie != null ? terreno.superficie : '';
+  if (terreno && terreno.superficie != null) {
+    const n = arrotonda(terreno.superficie, 2);
+    return n == null ? '' : String(n);
+  }
+  return '';
 }
 
 function applySuperficieAnagrafe() {
@@ -601,7 +615,14 @@ async function compilaModuloTrattamento(row) {
   const trattamento = row.trattamento;
   document.getElementById('trattamento-id').value = trattamento ? trattamento.id || '' : '';
   const superficie = document.getElementById('trattamento-superficie');
-  if (superficie) superficie.value = superficieDefault(row);
+  if (superficie) {
+    superficie.value = superficieDefault(row);
+    // Righe già salvate con troppi decimali: allinea allo step 0.01 prima del Salva.
+    if (superficie.value && !superficie.checkValidity()) {
+      const n = arrotonda(superficie.value, 2);
+      if (n != null) superficie.value = String(n);
+    }
+  }
   const anagrafe = document.getElementById('trattamento-superficie-anagrafe');
   if (anagrafe) anagrafe.checked = !!(trattamento && trattamento.superficieDaAnagrafeTerreno);
   const note = document.getElementById('trattamento-note');
@@ -754,7 +775,7 @@ async function onSubmit(event) {
       tipoLavoro: editingRow.tipoLavoro,
       tipoTrattamento: tipoEsistente || inferTipoTrattamentoColturaFromTipoLavoroNome(editingRow.tipoLavoro),
       prodotti: rowsProdotti,
-      superficieTrattata: Number.isFinite(superficie) ? superficie : null,
+      superficieTrattata: Number.isFinite(superficie) ? arrotonda(superficie, 2) : null,
       superficieDaAnagrafeTerreno: usaAnagrafe,
       giorniCarenza: document.getElementById('trattamento-giorni-carenza').value,
       acquaEttolitriPerEttaro: acquaUsata.ettolitriPerEttaro,
