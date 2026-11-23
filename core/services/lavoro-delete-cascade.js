@@ -67,22 +67,28 @@ function resolveTenantId(options = {}) {
 async function listDocsByLavoroId(collectionName, lavoroId, tenantId) {
   const target = normalizeRelatedLavoroId(lavoroId);
   if (!target) return [];
-  try {
-    const docs = await getCollectionData(collectionName, {
-      tenantId,
-      where: [['lavoroId', '==', lavoroId]]
-    });
-    if (Array.isArray(docs) && docs.length) return docs;
-    if (target !== String(lavoroId)) {
-      const alt = await getCollectionData(collectionName, {
+  const idsToTry = [lavoroId];
+  if (target !== String(lavoroId)) idsToTry.push(target);
+
+  // where su lavoroId (campo singolo): se la query riesce, anche vuota, ci fidiamo.
+  // Scan completo solo se tutte le query falliscono (es. permesso), senza indici nuovi.
+  let queryOk = false;
+  let queryFailed = false;
+  for (const id of idsToTry) {
+    try {
+      const docs = await getCollectionData(collectionName, {
         tenantId,
-        where: [['lavoroId', '==', target]]
+        where: [['lavoroId', '==', id]]
       });
-      if (Array.isArray(alt) && alt.length) return alt;
+      queryOk = true;
+      if (Array.isArray(docs) && docs.length) return docs;
+    } catch (err) {
+      queryFailed = true;
+      console.warn('[lavoro-delete-cascade] query', collectionName, err?.message || err);
     }
-  } catch (err) {
-    console.warn('[lavoro-delete-cascade] query', collectionName, err?.message || err);
   }
+  if (queryOk) return [];
+  if (!queryFailed) return [];
   try {
     const all = await getCollectionData(collectionName, { tenantId });
     return (all || []).filter((d) => matchesLavoroId(d.lavoroId, target));
@@ -101,144 +107,173 @@ async function listSubcollection(path, tenantId) {
   }
 }
 
-function sameLavoro(rec, lavoroId) {
-  return matchesLavoroId(rec?.lavoroId, lavoroId);
+/**
+ * Sotto-collezione coltura: preferisce where lavoroId (campo singolo, senza indice nuovo).
+ * Se la query fallisce, listDocsByLavoroId fa già lo scan della sola sotto-collezione.
+ * @param {string} path
+ * @param {string} lavoroId
+ * @param {string} tenantId
+ */
+async function listCropSubByLavoroId(path, lavoroId, tenantId) {
+  return listDocsByLavoroId(path, lavoroId, tenantId);
+}
+
+async function listVignetoCropForLavoro(lavoroId, terrenoId, tenantId) {
+  const out = { vendemmie: [], potature: [], trattamenti: [], raccolte: [] };
+  const { getAllVigneti } = await import('../../modules/vigneto/services/vigneti-service.js');
+  const { deleteVendemmia } = await import('../../modules/vigneto/services/vendemmia-service.js');
+  const { deletePotatura } = await import('../../modules/vigneto/services/potatura-vigneto-service.js');
+  const { deleteTrattamento } = await import('../../modules/vigneto/services/trattamenti-vigneto-service.js');
+  const vigneti = await getAllVigneti(terrenoId ? { terrenoId } : {});
+  await Promise.all((vigneti || []).map(async (v) => {
+    const vid = v.id;
+    const [vendemmie, potature, trattamenti] = await Promise.all([
+      listCropSubByLavoroId(`vigneti/${vid}/vendemmie`, lavoroId, tenantId),
+      listCropSubByLavoroId(`vigneti/${vid}/potature`, lavoroId, tenantId),
+      listCropSubByLavoroId(`vigneti/${vid}/trattamenti`, lavoroId, tenantId)
+    ]);
+    vendemmie.forEach((x) => {
+      out.vendemmie.push({
+        modulo: 'vigneto',
+        parentId: vid,
+        id: x.id,
+        delete: () => deleteVendemmia(vid, x.id)
+      });
+    });
+    potature.forEach((x) => {
+      out.potature.push({
+        modulo: 'vigneto',
+        parentId: vid,
+        id: x.id,
+        delete: () => deletePotatura(vid, x.id)
+      });
+    });
+    trattamenti.forEach((x) => {
+      out.trattamenti.push({
+        modulo: 'vigneto',
+        parentId: vid,
+        id: x.id,
+        magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
+        delete: () => deleteTrattamento(vid, x.id)
+      });
+    });
+  }));
+  return out;
+}
+
+async function listFruttetoCropForLavoro(lavoroId, terrenoId, tenantId) {
+  const out = { vendemmie: [], potature: [], trattamenti: [], raccolte: [] };
+  const { getAllFrutteti } = await import('../../modules/frutteto/services/frutteti-service.js');
+  const { deletePotatura } = await import('../../modules/frutteto/services/potatura-frutteto-service.js');
+  const { deleteTrattamento } = await import('../../modules/frutteto/services/trattamenti-frutteto-service.js');
+  const { deleteRaccolta } = await import('../../modules/frutteto/services/raccolta-frutta-service.js');
+  const frutteti = await getAllFrutteti(terrenoId ? { terrenoId } : {});
+  await Promise.all((frutteti || []).map(async (f) => {
+    const fid = f.id;
+    const [potature, trattamenti, raccolte] = await Promise.all([
+      listCropSubByLavoroId(`frutteti/${fid}/potature`, lavoroId, tenantId),
+      listCropSubByLavoroId(`frutteti/${fid}/trattamenti`, lavoroId, tenantId),
+      listCropSubByLavoroId(`frutteti/${fid}/raccolte`, lavoroId, tenantId)
+    ]);
+    potature.forEach((x) => {
+      out.potature.push({
+        modulo: 'frutteto',
+        parentId: fid,
+        id: x.id,
+        delete: () => deletePotatura(fid, x.id)
+      });
+    });
+    trattamenti.forEach((x) => {
+      out.trattamenti.push({
+        modulo: 'frutteto',
+        parentId: fid,
+        id: x.id,
+        magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
+        delete: () => deleteTrattamento(fid, x.id)
+      });
+    });
+    raccolte.forEach((x) => {
+      out.raccolte.push({
+        modulo: 'frutteto',
+        parentId: fid,
+        id: x.id,
+        delete: () => deleteRaccolta(fid, x.id)
+      });
+    });
+  }));
+  return out;
 }
 
 /**
- * Stub coltura (vigneto/frutteto) collegati al lavoro — tutti i match, non solo il primo.
+ * Collezioni piatte: where lavoroId (o scan della sola collezione), senza getAll del modulo.
+ */
+async function listFlatTrattamentiForLavoro(collectionName, lavoroId, tenantId, modulo, deleteFn) {
+  const docs = await listDocsByLavoroId(collectionName, lavoroId, tenantId);
+  return docs.map((x) => ({
+    modulo,
+    parentId: x.campagnaId || null,
+    id: x.id,
+    magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
+    delete: () => deleteFn(x.id)
+  }));
+}
+
+/**
+ * Stub coltura collegati al lavoro — tutti i match, non solo il primo.
+ * Moduli in parallelo; sotto-doc e collezioni piatte per lavoroId (no dump tenant intero a priori).
  * @param {string} lavoroId
  * @param {string|null} terrenoId
+ * @param {string} tenantId
  */
-async function listCropRecordsForLavoro(lavoroId, terrenoId) {
+async function listCropRecordsForLavoro(lavoroId, terrenoId, tenantId) {
   const out = { vendemmie: [], potature: [], trattamenti: [], raccolte: [] };
   const tid = terrenoId || null;
 
-  try {
-    const { getAllVigneti } = await import('../../modules/vigneto/services/vigneti-service.js');
-    const { getVendemmie, deleteVendemmia } = await import('../../modules/vigneto/services/vendemmia-service.js');
-    const { getPotature, deletePotatura } = await import('../../modules/vigneto/services/potatura-vigneto-service.js');
-    const { getTrattamenti, deleteTrattamento } = await import('../../modules/vigneto/services/trattamenti-vigneto-service.js');
-    const vigneti = await getAllVigneti(tid ? { terrenoId: tid } : {});
-    for (const v of vigneti || []) {
-      const vid = v.id;
-      const [vendemmie, potature, trattamenti] = await Promise.all([
-        getVendemmie(vid).catch(() => []),
-        getPotature(vid).catch(() => []),
-        getTrattamenti(vid).catch(() => [])
-      ]);
-      (vendemmie || []).filter((x) => sameLavoro(x, lavoroId)).forEach((x) => {
-        out.vendemmie.push({
-          modulo: 'vigneto',
-          parentId: vid,
-          id: x.id,
-          delete: () => deleteVendemmia(vid, x.id)
-        });
-      });
-      (potature || []).filter((x) => sameLavoro(x, lavoroId)).forEach((x) => {
-        out.potature.push({
-          modulo: 'vigneto',
-          parentId: vid,
-          id: x.id,
-          delete: () => deletePotatura(vid, x.id)
-        });
-      });
-      (trattamenti || []).filter((x) => sameLavoro(x, lavoroId)).forEach((x) => {
-        out.trattamenti.push({
-          modulo: 'vigneto',
-          parentId: vid,
-          id: x.id,
-          magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
-          delete: () => deleteTrattamento(vid, x.id)
-        });
-      });
-    }
-  } catch (err) {
-    console.warn('[lavoro-delete-cascade] crop vigneto:', err?.message || err);
-  }
+  const [vigneto, frutteto, seminativo, orticole] = await Promise.all([
+    listVignetoCropForLavoro(lavoroId, tid, tenantId).catch((err) => {
+      console.warn('[lavoro-delete-cascade] crop vigneto:', err?.message || err);
+      return null;
+    }),
+    listFruttetoCropForLavoro(lavoroId, tid, tenantId).catch((err) => {
+      console.warn('[lavoro-delete-cascade] crop frutteto:', err?.message || err);
+      return null;
+    }),
+    (async () => {
+      const { deleteTrattamentoSeminativo } = await import('../../modules/seminativo/services/trattamenti-service.js');
+      return listFlatTrattamentiForLavoro(
+        'trattamentiSeminativo',
+        lavoroId,
+        tenantId,
+        'seminativo',
+        deleteTrattamentoSeminativo
+      );
+    })().catch((err) => {
+      console.warn('[lavoro-delete-cascade] crop seminativo:', err?.message || err);
+      return [];
+    }),
+    (async () => {
+      const { deleteTrattamentoOrticole } = await import('../../modules/orticole/services/trattamenti-service.js');
+      return listFlatTrattamentiForLavoro(
+        'trattamentiOrticole',
+        lavoroId,
+        tenantId,
+        'orticole',
+        deleteTrattamentoOrticole
+      );
+    })().catch((err) => {
+      console.warn('[lavoro-delete-cascade] crop orticole:', err?.message || err);
+      return [];
+    })
+  ]);
 
-  try {
-    const { getAllFrutteti } = await import('../../modules/frutteto/services/frutteti-service.js');
-    const { getPotature, deletePotatura } = await import('../../modules/frutteto/services/potatura-frutteto-service.js');
-    const { getTrattamenti, deleteTrattamento } = await import('../../modules/frutteto/services/trattamenti-frutteto-service.js');
-    const { getRaccolte, deleteRaccolta } = await import('../../modules/frutteto/services/raccolta-frutta-service.js');
-    const frutteti = await getAllFrutteti(tid ? { terrenoId: tid } : {});
-    for (const f of frutteti || []) {
-      const fid = f.id;
-      const [potature, trattamenti, raccolte] = await Promise.all([
-        getPotature(fid).catch(() => []),
-        getTrattamenti(fid).catch(() => []),
-        getRaccolte(fid).catch(() => [])
-      ]);
-      (potature || []).filter((x) => sameLavoro(x, lavoroId)).forEach((x) => {
-        out.potature.push({
-          modulo: 'frutteto',
-          parentId: fid,
-          id: x.id,
-          delete: () => deletePotatura(fid, x.id)
-        });
-      });
-      (trattamenti || []).filter((x) => sameLavoro(x, lavoroId)).forEach((x) => {
-        out.trattamenti.push({
-          modulo: 'frutteto',
-          parentId: fid,
-          id: x.id,
-          magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
-          delete: () => deleteTrattamento(fid, x.id)
-        });
-      });
-      (raccolte || []).filter((x) => sameLavoro(x, lavoroId)).forEach((x) => {
-        out.raccolte.push({
-          modulo: 'frutteto',
-          parentId: fid,
-          id: x.id,
-          delete: () => deleteRaccolta(fid, x.id)
-        });
-      });
-    }
-  } catch (err) {
-    console.warn('[lavoro-delete-cascade] crop frutteto:', err?.message || err);
-  }
-
-  // Seminativo / orticole: collezione piatta con lavoroId (non sotto campagna).
-  try {
-    const {
-      getAllTrattamentiSeminativo,
-      deleteTrattamentoSeminativo
-    } = await import('../../modules/seminativo/services/trattamenti-service.js');
-    const trattamenti = await getAllTrattamentiSeminativo().catch(() => []);
-    filterDocsByLavoroId(trattamenti, lavoroId).forEach((x) => {
-      out.trattamenti.push({
-        modulo: 'seminativo',
-        parentId: x.campagnaId || null,
-        id: x.id,
-        magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
-        delete: () => deleteTrattamentoSeminativo(x.id)
-      });
-    });
-  } catch (err) {
-    console.warn('[lavoro-delete-cascade] crop seminativo:', err?.message || err);
-  }
-
-  try {
-    const {
-      getAllTrattamentiOrticole,
-      deleteTrattamentoOrticole
-    } = await import('../../modules/orticole/services/trattamenti-service.js');
-    const trattamenti = await getAllTrattamentiOrticole().catch(() => []);
-    filterDocsByLavoroId(trattamenti, lavoroId).forEach((x) => {
-      out.trattamenti.push({
-        modulo: 'orticole',
-        parentId: x.campagnaId || null,
-        id: x.id,
-        magazzinoMovimentoIds: x.magazzinoMovimentoIds || [],
-        delete: () => deleteTrattamentoOrticole(x.id)
-      });
-    });
-  } catch (err) {
-    console.warn('[lavoro-delete-cascade] crop orticole:', err?.message || err);
-  }
-
+  [vigneto, frutteto].forEach((block) => {
+    if (!block) return;
+    out.vendemmie.push(...block.vendemmie);
+    out.potature.push(...block.potature);
+    out.trattamenti.push(...block.trattamenti);
+    out.raccolte.push(...block.raccolte);
+  });
+  out.trattamenti.push(...(seminativo || []), ...(orticole || []));
   return out;
 }
 
@@ -282,7 +317,7 @@ async function gatherRelated(lavoroId, tenantId, lavoro) {
     listDocsByLavoroId('preventivi', lavoroId, tenantId),
     listDocsByLavoroId('guasti', lavoroId, tenantId),
     getCollectionData('lavori', { tenantId }).catch(() => []),
-    listCropRecordsForLavoro(lavoroId, terrenoId)
+    listCropRecordsForLavoro(lavoroId, terrenoId, tenantId)
   ]);
 
   return {

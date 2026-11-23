@@ -96,6 +96,13 @@ async function avvisiLavoroAllApertura(sessione) {
 
 /** Miscela, semaforo e carenza partono a modale già aperto. Un errore non lo chiude. */
 function avviaCalcoliAperturaLavoro(miscela, sessione) {
+    // Prima i valori salvati (prodotto/dose/avversità): non dipendono da magazzino/etichetta.
+    installaMiscelaLavoro();
+    if (miscela) {
+        scriviMiscelaNelForm(miscela);
+        const anteprima = document.getElementById('lavoro-miscela-anteprima');
+        if (anteprima) anteprima.textContent = testoAnteprimaMiscela(miscela);
+    }
     Promise.resolve()
         .then(() => {
             if (sessione !== lavoroModalSessione) return null;
@@ -114,9 +121,12 @@ async function preparaMiscelaNelForm(miscela, sessione) {
     installaMiscelaLavoro();
     await caricaProdottiMiscela();
     if (sessione != null && sessione !== lavoroModalSessione) return;
-    scriviMiscelaNelForm(miscela);
-    const anteprima = document.getElementById('lavoro-miscela-anteprima');
-    if (anteprima) anteprima.textContent = testoAnteprimaMiscela(miscela);
+    // Dopo le opzioni magazzino, riapplica: la select prodotto resta agganciata.
+    if (miscela) {
+        scriviMiscelaNelForm(miscela);
+        const anteprima = document.getElementById('lavoro-miscela-anteprima');
+        if (anteprima) anteprima.textContent = testoAnteprimaMiscela(miscela);
+    }
 }
 
 function installaMiscelaSulFormLavoro() {
