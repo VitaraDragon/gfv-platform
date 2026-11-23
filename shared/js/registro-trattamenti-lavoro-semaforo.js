@@ -166,6 +166,16 @@ function scriviSuggerimentoAvversita(select, lista) {
   if (!nota) select.insertAdjacentElement('afterend', el);
 }
 
+function voceAvversitaCorrisponde(lista, richiesta) {
+  const gia = String(richiesta || '').trim();
+  if (!gia) return null;
+  return (lista || []).find((voce) => voce.testo === gia || voce.chiave === gia) || null;
+}
+
+/**
+ * Riempie la tendina e ripristina la scelta già salvata (`value` o `data-avversita`
+ * da miscelaPrevista), così in Modifica non serve riscegliere l'avversità.
+ */
 function riempiTendinaAvversita(select, scheda, coltura, vocabolario) {
   if (!select) return;
   const vista = preparaEtichetta({
@@ -175,16 +185,22 @@ function riempiTendinaAvversita(select, scheda, coltura, vocabolario) {
   });
   const lista = (vista && vista.avversita) || [];
   const chiave = (coltura || '') + '|' + lista.map((voce) => voce.chiave).join('|');
+  const gia = String(select.value || '').trim()
+    || String(select.getAttribute('data-avversita') || '').trim();
   if (select.dataset.chiave !== chiave) {
-    const gia = String(select.value || '').trim();
     select.innerHTML = '<option value="">— da scegliere —</option>' + lista.map((voce) => (
       '<option value="' + esc(voce.testo) + '">' + esc(voce.testo) + '</option>'
     )).join('');
     select.dataset.chiave = chiave;
-    const corrisponde = lista.find((voce) => voce.testo === gia || voce.chiave === gia);
+  }
+  if (!String(select.value || '').trim()) {
+    const corrisponde = voceAvversitaCorrisponde(lista, gia);
     if (corrisponde) select.value = corrisponde.testo;
     else if (lista.length === 1) select.value = lista[0].testo;
     else select.value = '';
+  }
+  if (String(select.value || '').trim()) {
+    select.setAttribute('data-avversita', select.value);
   }
   scriviSuggerimentoAvversita(select, lista);
 }
