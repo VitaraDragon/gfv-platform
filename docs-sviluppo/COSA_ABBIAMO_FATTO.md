@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — avversità subito in Modifica + Elimina per lavoroId.**
+**Ultimo aggiornamento documentazione: 2026-11-23 — Elimina lavoro: Conferma aspetta il conteggio collegati.**
+
+## 2026-11-23 — Elimina lavoro: Conferma aspetta il conteggio collegati
+
+Su `fix/elimina-lavoro-conferma-attende-conteggio` (PR verso develop). Nessun merge, nessun deploy.
+
+In Gestione lavori → Elimina, il modale si apre subito con «Controllo dati collegati…» e il pulsante Elimina disattivato finché non arriva il conteggio cascade. A conteggio pronto mostra l’elenco (o niente se zero) e riattiva Elimina; su errore o timeout ~15 s riattiva con avviso breve. Annulla resta sempre attivo; se si chiude prima, il risultato in arrivo viene ignorato. Query `lavoroId` candidate in parallelo (niente indici/rules/functions). La cancellazione vera resta invariata.
 
 ## 2026-11-23 — avversità subito in Modifica + Elimina per lavoroId
 

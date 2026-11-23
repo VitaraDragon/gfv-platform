@@ -72,23 +72,30 @@ async function listDocsByLavoroId(collectionName, lavoroId, tenantId) {
 
   // where su lavoroId (campo singolo): se la query riesce, anche vuota, ci fidiamo.
   // Scan completo solo se tutte le query falliscono (es. permesso), senza indici nuovi.
-  let queryOk = false;
-  let queryFailed = false;
-  for (const id of idsToTry) {
+  // Id candidati in parallelo (niente attesa in serie).
+  const settled = await Promise.all(idsToTry.map(async (id) => {
     try {
       const docs = await getCollectionData(collectionName, {
         tenantId,
         where: [['lavoroId', '==', id]]
       });
-      queryOk = true;
-      if (Array.isArray(docs) && docs.length) return docs;
+      return { ok: true, docs: Array.isArray(docs) ? docs : [] };
     } catch (err) {
-      queryFailed = true;
       console.warn('[lavoro-delete-cascade] query', collectionName, err?.message || err);
+      return { ok: false };
     }
+  }));
+  const queryOk = settled.some((r) => r.ok);
+  if (queryOk) {
+    const byId = new Map();
+    settled.forEach((r) => {
+      if (!r.ok) return;
+      r.docs.forEach((doc) => {
+        if (doc && doc.id != null) byId.set(String(doc.id), doc);
+      });
+    });
+    return Array.from(byId.values());
   }
-  if (queryOk) return [];
-  if (!queryFailed) return [];
   try {
     const all = await getCollectionData(collectionName, { tenantId });
     return (all || []).filter((d) => matchesLavoroId(d.lavoroId, target));
