@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-22 — carenza dal trattamento di Gestione lavori (frutteto, CIDELY).**
+**Ultimo aggiornamento documentazione: 2026-11-23 — avversità ripristinata in Modifica lavoro.**
+
+## 2026-11-23 — avversità ripristinata in Modifica lavoro
+
+Su `fix/avversita-modifica-lavoro` (PR verso develop). Nessun merge, nessun deploy.
+
+Riaprire un lavoro di trattamento in Modifica ripristina l'avversità già salvata in `miscelaPrevista` (`avversita` / `avversitaPianificata`) sulla tendina di ogni riga, senza rifare Leggi scheda e senza l'avviso «scegli l'avversità». Un salvataggio senza modifiche lascia l'avversità com'era. La logica della carenza (#450) non cambia.
 
 ## 2026-11-22 — carenza dal trattamento di Gestione lavori (frutteto, CIDELY)
 

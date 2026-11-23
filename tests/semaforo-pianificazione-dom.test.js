@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dati = path.join(root, 'shared/data/fitofarmaci-etichette');
 const folpan = JSON.parse(readFileSync(path.join(dati, 'per-registrazione/008601.json'), 'utf8'));
+const karate = JSON.parse(readFileSync(path.join(dati, 'per-registrazione/012940.json'), 'utf8'));
+const cidely = JSON.parse(readFileSync(path.join(dati, 'per-registrazione/015449.json'), 'utf8'));
 const indice = JSON.parse(readFileSync(path.join(dati, 'indice.json'), 'utf8'));
 const vocabolario = JSON.parse(readFileSync(path.join(dati, 'colture-vocabolario.json'), 'utf8'));
 
@@ -30,6 +32,8 @@ function fetchMock(url) {
   if (u.includes('indice.json')) json = indice;
   else if (u.includes('colture-vocabolario')) json = vocabolario;
   else if (u.includes('008601')) json = folpan;
+  else if (u.includes('012940')) json = karate;
+  else if (u.includes('015449')) json = cidely;
   if (!json) return Promise.resolve({ ok: false, json: async () => null });
   return Promise.resolve({ ok: true, json: async () => json });
 }
@@ -454,9 +458,9 @@ describe('diario carenza', () => {
     expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-nome-scheda')).toBe('FOLPAN 80 WDG');
     expect(document.getElementById('lavoro-miscela-avversita').getAttribute('data-avversita')).toContain('Peronospora');
     const riaperto = await aggiornaSemaforoPianificazione(ctx);
-    expect(document.getElementById('lavoro-miscela-avversita').value).toBe('');
-    expect(document.querySelector('.lavoro-avversita-suggerita').textContent).toContain('Peronospora');
-    expect(riaperto.colore).not.toBe('verde');
+    expect(document.getElementById('lavoro-miscela-avversita').value).toContain('Peronospora');
+    expect(document.querySelector('.lavoro-avversita-suggerita')).toBeNull();
+    expect(riaperto.colore).toBe('verde');
     expect(document.getElementById('lavoro-miscela-dose-ha').value).toBe('1.4');
 
     scriviMiscelaNelForm({
@@ -647,6 +651,77 @@ describe('diario carenza', () => {
     document.getElementById('attivita-data').dispatchEvent(new Event('change', { bubbles: true }));
     await new Promise((r) => setTimeout(r, 20));
     expect(document.getElementById('avviso-carenza-attivita').hidden).toBe(true);
+  });
+});
+
+describe('riapertura Modifica ripristina l\'avversità salvata', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    formLavoro();
+  });
+
+  it('KARATE ZEON 1.5 012940 con Afidi resta selezionata senza avviso', async () => {
+    const { scriviMiscelaNelForm, componiMiscelaDalForm } = await import('../shared/js/registro-trattamenti-lavoro.js');
+    const { aggiornaSemaforoPianificazione } = await import('../shared/js/registro-trattamenti-lavoro-semaforo.js');
+    scriviMiscelaNelForm({
+      prodotti: [{
+        nome: 'KARATE ZEON 1.5',
+        dosePerEttaro: 1.25,
+        avversitaPianificata: 'Afidi',
+        numeroRegistrazioneLetto: '012940',
+        riferimentoRiga: {
+          nomeProdotto: 'KARATE ZEON 1.5',
+          numeroRegistrazione: '012940',
+          colturaScheda: 'frumento'
+        }
+      }]
+    });
+    const esito = await aggiornaSemaforoPianificazione({
+      specie: 'frumento',
+      terrenoId: 't1',
+      data: '2026-06-01',
+      precedenti: [],
+      prodotti: [],
+      terreni: [{ id: 't1', superficie: 1 }]
+    });
+    const select = document.getElementById('lavoro-miscela-avversita');
+    expect(select.value).toBe('Afidi');
+    expect(document.querySelector('.lavoro-avversita-suggerita')).toBeNull();
+    expect(String(document.getElementById('lavoro-semaforo-banner').textContent || '')).not.toMatch(/scegli l'avversit/i);
+    expect(esito.colore).not.toBe('grigio');
+    expect(componiMiscelaDalForm(1, null).prodotti[0].avversitaPianificata).toBe('Afidi');
+  });
+
+  it('CIDELY 015449 con Oidio (Sphaerotheca pannosa) resta selezionata senza avviso', async () => {
+    const { scriviMiscelaNelForm, componiMiscelaDalForm } = await import('../shared/js/registro-trattamenti-lavoro.js');
+    const { aggiornaSemaforoPianificazione } = await import('../shared/js/registro-trattamenti-lavoro-semaforo.js');
+    scriviMiscelaNelForm({
+      prodotti: [{
+        nome: 'CIDELY',
+        dosePerEttaro: 0.2,
+        avversitaPianificata: 'Oidio (Sphaerotheca pannosa)',
+        numeroRegistrazioneLetto: '015449',
+        riferimentoRiga: {
+          nomeProdotto: 'CIDELY',
+          numeroRegistrazione: '015449',
+          colturaScheda: 'pesco'
+        }
+      }]
+    });
+    const esito = await aggiornaSemaforoPianificazione({
+      specie: 'pesco',
+      terrenoId: 't1',
+      data: '2026-06-01',
+      precedenti: [],
+      prodotti: [],
+      terreni: [{ id: 't1', superficie: 1 }]
+    });
+    const select = document.getElementById('lavoro-miscela-avversita');
+    expect(select.value).toBe('Oidio (Sphaerotheca pannosa)');
+    expect(document.querySelector('.lavoro-avversita-suggerita')).toBeNull();
+    expect(String(document.getElementById('lavoro-semaforo-banner').textContent || '')).not.toMatch(/scegli l'avversit/i);
+    expect(esito.colore).not.toBe('grigio');
+    expect(componiMiscelaDalForm(1, null).prodotti[0].avversitaPianificata).toBe('Oidio (Sphaerotheca pannosa)');
   });
 });
 
