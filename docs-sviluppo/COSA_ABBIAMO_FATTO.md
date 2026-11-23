@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — Scarico magazzino registro: superficie + cascade.**
+**Ultimo aggiornamento documentazione: 2026-11-23 — Report Economici: coltura storica, parziali, magazzino.**
+
+## 2026-11-23 — Report Economici: correzione coltura storica, totali parziali, magazzino
+
+Su `feature/report-economici-scheda` (stessa PR #464 verso develop). Nessun merge, nessun deploy.
+
+1) Coltura alla **data della riga** (campagna seminativo/orticole, vigneto/frutteto, campo esplicito; fallback anagrafe). 2) Totali **parziali**: somma dei noti + `*`; «—» solo senza valori noti. 3) Uscite magazzino nel periodo valorizzate da anagrafica, escluse quelle già in `magazzinoMovimentoIds`/origine trattamento; senza terreno → «Non attribuito a un terreno». Test e guida REPORT aggiornati.
+
+## 2026-11-23 — Report: scheda Economici (costi per terreno, coltura e annata)
+
+Su `feature/report-economici-scheda` (PR verso develop). Nessun merge, nessun deploy.
+
+Card **Economici** attiva sull’hub Report → `report-economici-standalone.html`: filtri periodo (come Terreni), terreno, coltura; tabella terreno × coltura (ha, ore, manodopera, macchine, prodotti, totale €, €/ha) con totali per coltura e azienda; export Excel. Service `report-economici-service.js` + aggregati puri in `report-economici-aggregate.js` (test unitari). Moduli coltura disattivi saltati; anti-doppio conteggio lavoro↔trattamento (prodotti solo da `costoProdotto`). Niente ricavi/margine, niente Tony, niente functions/rules/indici.
 
 ## 2026-11-23 — Scarico magazzino dal registro: Salva bloccato + Elimina orfana uscita
 
