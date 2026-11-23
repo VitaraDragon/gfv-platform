@@ -289,9 +289,10 @@
       periodLabel.textContent = p.label || formatRangeIt(p.start, p.end);
     }
 
-    function fmtEuro(v) {
+    function fmtEuro(v, partial) {
       if (v == null || Number.isNaN(Number(v))) return '—';
-      return Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const n = Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return partial ? `${n}*` : n;
     }
 
     function fmtNum(v, digits = 2) {
@@ -304,11 +305,11 @@
         <td>${escapeHtml(name)}</td>
         <td class="num">${fmtNum(r.ettari)}</td>
         <td class="num">${fmtNum(r.ore)}</td>
-        <td class="num">${fmtEuro(r.costoManodopera)}</td>
-        <td class="num">${fmtEuro(r.costoMacchine)}</td>
-        <td class="num">${fmtEuro(r.costoProdotti)}</td>
-        <td class="num">${fmtEuro(r.totale)}</td>
-        <td class="num">${fmtEuro(r.euroHa)}</td>
+        <td class="num">${fmtEuro(r.costoManodopera, r.partialManodopera)}</td>
+        <td class="num">${fmtEuro(r.costoMacchine, r.partialMacchine)}</td>
+        <td class="num">${fmtEuro(r.costoProdotti, r.partialProdotti)}</td>
+        <td class="num">${fmtEuro(r.totale, r.partialTotale)}</td>
+        <td class="num">${fmtEuro(r.euroHa, r.partialEuroHa)}</td>
       `;
     }
 
@@ -365,11 +366,11 @@
 
       const notes = data.notes || [];
       if (notes.length) {
-        notesBox.innerHTML = `<strong>Note sui costi mancanti («—»):</strong><ul>${
+        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno un costo). «—» = nessun valore noto.<ul>${
           notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
         }</ul>`;
       } else {
-        notesBox.innerHTML = '<span class="muted">I valori «—» compaiono quando manca un prezzo o una tariffa necessaria al calcolo.</span>';
+        notesBox.innerHTML = '<span class="muted">* = parziale. «—» solo se non c’è alcun valore noto per quella voce.</span>';
       }
     }
 
@@ -438,8 +439,13 @@
         const ws = wb.addWorksheet(name);
         ws.addRow(['Periodo', p.label || formatRangeIt(p.start, p.end)]);
         ws.addRow([]);
-        ws.addRow([headerLabel, 'ha', 'Ore', 'Manodopera €', 'Macchine €', 'Prodotti €', 'Totale €', '€/ha']);
+        ws.addRow([headerLabel, 'ha', 'Ore', 'Manodopera €', 'Macchine €', 'Prodotti €', 'Totale €', '€/ha', 'Note/parziale']);
         for (const r of list) {
+          const partialBits = [];
+          if (r.partialManodopera) partialBits.push('manodopera');
+          if (r.partialMacchine) partialBits.push('macchine');
+          if (r.partialProdotti) partialBits.push('prodotti');
+          if (r.partialTotale) partialBits.push('totale');
           ws.addRow([
             name === 'Dettaglio' ? `${r.terrenoNome} · ${r.coltura}` : (r.coltura || r.label || ''),
             r.ettari,
@@ -448,7 +454,8 @@
             r.costoMacchine,
             r.costoProdotti,
             r.totale,
-            r.euroHa
+            r.euroHa,
+            r.noteParziale || (partialBits.length ? `parziale: ${partialBits.join(', ')}` : '')
           ]);
         }
         ws.columns = [
@@ -459,7 +466,8 @@
           { width: 12 },
           { width: 12 },
           { width: 12 },
-          { width: 10 }
+          { width: 10 },
+          { width: 40 }
         ];
         for (let c = 2; c <= 8; c++) ws.getColumn(c).numFmt = '#,##0.00';
       }

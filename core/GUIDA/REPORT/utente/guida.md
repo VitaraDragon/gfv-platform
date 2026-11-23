@@ -45,8 +45,9 @@ Il modulo **Report** raccoglie viste e export per area (terreni, colture, …). 
 
 1. Dall’hub toccate **Economici**.  
 2. Scegliete il **periodo** (annata agraria, anno solare o intervallo), eventualmente **terreno** e **coltura**.  
-3. La tabella mostra per ogni terreno × coltura: ettari, ore, costo manodopera, macchine, prodotti, totale € e €/ha; sotto i totali per coltura e il totale azienda.  
-4. **Esporta Excel** scarica la stessa tabella. I valori «—» indicano un costo non calcolabile (es. prezzo prodotto o tariffa mancante). In questa scheda non ci sono ricavi né margine.
+3. La tabella mostra per ogni terreno × coltura **dell’annata** (non solo la coltura attuale in anagrafe): ettari, ore, costo manodopera, macchine, prodotti (trattamenti + uscite magazzino non già scaricate dal trattamento), totale € e €/ha; sotto i totali per coltura e il totale azienda.  
+4. Un asterisco (*) indica un **totale parziale** (manca almeno un prezzo/tariffa); «—» solo se non c’è alcun valore noto. Uscite magazzino senza terreno compaiono come **Non attribuito a un terreno**.  
+5. **Esporta Excel** include anche la colonna Note/parziale. In questa scheda non ci sono ricavi né margine.
 
 ---
 

@@ -24,7 +24,9 @@ import {
   companyTotal,
   dataIsoFromAny,
   dataIsoInRange,
+  filterUsciteMagazzinoPerEconomici,
   inRange,
+  prodottoCostFromMovimentoUscita,
   prodottoCostFromTrattamento,
   totalsByColtura,
   euro
@@ -448,23 +450,48 @@ export async function buildReportEconomici(start, end, filters = {}) {
       };
     });
 
-  /** @type {Array<{ terrenoId: string, costoProdotti: number|null, missingProdotti?: boolean, notes?: string[] }>} */
+  /** @type {Array<object>} */
   const prodottiCosti = [];
+  /** @type {Set<string>} */
+  const magazzinoIdsDaTrattamenti = new Set();
+  /** @type {Array<object>} */
+  let campagneSeminativo = [];
+  /** @type {Array<object>} */
+  let campagneOrticole = [];
+  /** @type {Array<object>} */
+  let vignetiList = [];
+  /** @type {Array<object>} */
+  let fruttetiList = [];
 
-  // Prodotti: moduli coltura attivi (skip silenzioso se disattivo)
   const productLoaders = [];
 
   if (mods.has('seminativo')) {
     productLoaders.push((async () => {
       try {
-        const { getAllTrattamentiSeminativo } = await import('../../seminativo/services/trattamenti-service.js');
-        const list = await getAllTrattamentiSeminativo();
+        const [{ getAllTrattamentiSeminativo }, { getAllSeminativi }] = await Promise.all([
+          import('../../seminativo/services/trattamenti-service.js'),
+          import('../../seminativo/services/seminativi-service.js')
+        ]);
+        const [list, campagne] = await Promise.all([
+          getAllTrattamentiSeminativo().catch(() => []),
+          getAllSeminativi().catch(() => [])
+        ]);
+        campagneSeminativo = campagne || [];
         for (const row of list || []) {
           if (!row || !dataIsoInRange(row.data, start, end)) continue;
           const tid = row.terrenoId;
           if (!tid || !terrenoById.has(String(tid))) continue;
+          for (const id of row.magazzinoMovimentoIds || []) {
+            if (id) magazzinoIdsDaTrattamenti.add(String(id));
+          }
           const p = prodottoCostFromTrattamento(row);
-          prodottiCosti.push({ terrenoId: String(tid), ...p });
+          prodottiCosti.push({
+            terrenoId: String(tid),
+            dataIso: dataIsoFromAny(row.data),
+            campagnaId: row.campagnaId || null,
+            coltura: row.colturaNome || null,
+            ...p
+          });
         }
       } catch (e) {
         console.warn('[report-economici] seminativo trattamenti', e && e.message);
@@ -475,14 +502,30 @@ export async function buildReportEconomici(start, end, filters = {}) {
   if (mods.has('orticole')) {
     productLoaders.push((async () => {
       try {
-        const { getAllTrattamentiOrticole } = await import('../../orticole/services/trattamenti-service.js');
-        const list = await getAllTrattamentiOrticole();
+        const [{ getAllTrattamentiOrticole }, { getAllOrticole }] = await Promise.all([
+          import('../../orticole/services/trattamenti-service.js'),
+          import('../../orticole/services/orticole-service.js')
+        ]);
+        const [list, campagne] = await Promise.all([
+          getAllTrattamentiOrticole().catch(() => []),
+          getAllOrticole().catch(() => [])
+        ]);
+        campagneOrticole = campagne || [];
         for (const row of list || []) {
           if (!row || !dataIsoInRange(row.data, start, end)) continue;
           const tid = row.terrenoId;
           if (!tid || !terrenoById.has(String(tid))) continue;
+          for (const id of row.magazzinoMovimentoIds || []) {
+            if (id) magazzinoIdsDaTrattamenti.add(String(id));
+          }
           const p = prodottoCostFromTrattamento(row);
-          prodottiCosti.push({ terrenoId: String(tid), ...p });
+          prodottiCosti.push({
+            terrenoId: String(tid),
+            dataIso: dataIsoFromAny(row.data),
+            campagnaId: row.campagnaId || null,
+            coltura: row.colturaNome || null,
+            ...p
+          });
         }
       } catch (e) {
         console.warn('[report-economici] orticole trattamenti', e && e.message);
@@ -493,13 +536,21 @@ export async function buildReportEconomici(start, end, filters = {}) {
   if (mods.has('vigneto')) {
     productLoaders.push((async () => {
       try {
-        const vigneti = await getCollectionData('vigneti', { tenantId }).catch(() => []);
-        await Promise.all((vigneti || []).map(async (v) => {
+        vignetiList = await getCollectionData('vigneti', { tenantId }).catch(() => []) || [];
+        await Promise.all((vignetiList || []).map(async (v) => {
           if (!v || !v.id || !v.terrenoId || !terrenoById.has(String(v.terrenoId))) return;
           const docs = await loadTrattamentiSubcol(tenantId, `vigneti/${v.id}/trattamenti`, start, end);
           for (const row of docs) {
+            for (const id of row.magazzinoMovimentoIds || []) {
+              if (id) magazzinoIdsDaTrattamenti.add(String(id));
+            }
             const p = prodottoCostFromTrattamento(row);
-            prodottiCosti.push({ terrenoId: String(v.terrenoId), ...p });
+            prodottiCosti.push({
+              terrenoId: String(v.terrenoId),
+              dataIso: dataIsoFromAny(row.data),
+              coltura: (v.varieta && String(v.varieta).trim()) || 'Vite',
+              ...p
+            });
           }
         }));
       } catch (e) {
@@ -511,13 +562,23 @@ export async function buildReportEconomici(start, end, filters = {}) {
   if (mods.has('frutteto')) {
     productLoaders.push((async () => {
       try {
-        const frutteti = await getCollectionData('frutteti', { tenantId }).catch(() => []);
-        await Promise.all((frutteti || []).map(async (f) => {
+        fruttetiList = await getCollectionData('frutteti', { tenantId }).catch(() => []) || [];
+        await Promise.all((fruttetiList || []).map(async (f) => {
           if (!f || !f.id || !f.terrenoId || !terrenoById.has(String(f.terrenoId))) return;
           const docs = await loadTrattamentiSubcol(tenantId, `frutteti/${f.id}/trattamenti`, start, end);
           for (const row of docs) {
+            for (const id of row.magazzinoMovimentoIds || []) {
+              if (id) magazzinoIdsDaTrattamenti.add(String(id));
+            }
             const p = prodottoCostFromTrattamento(row);
-            prodottiCosti.push({ terrenoId: String(f.terrenoId), ...p });
+            prodottiCosti.push({
+              terrenoId: String(f.terrenoId),
+              dataIso: dataIsoFromAny(row.data),
+              coltura: (f.specie && String(f.specie).trim())
+                || (f.varieta && String(f.varieta).trim())
+                || 'Frutteto',
+              ...p
+            });
           }
         }));
       } catch (e) {
@@ -528,11 +589,123 @@ export async function buildReportEconomici(start, end, filters = {}) {
 
   await Promise.all(productLoaders);
 
+  // Contesto coltura se un modulo è attivo ma non ha ancora caricato anagrafiche
+  await Promise.all([
+    (async () => {
+      if (!mods.has('seminativo') || campagneSeminativo.length) return;
+      try {
+        const { getAllSeminativi } = await import('../../seminativo/services/seminativi-service.js');
+        campagneSeminativo = await getAllSeminativi().catch(() => []) || [];
+      } catch (_) { /* ignore */ }
+    })(),
+    (async () => {
+      if (!mods.has('orticole') || campagneOrticole.length) return;
+      try {
+        const { getAllOrticole } = await import('../../orticole/services/orticole-service.js');
+        campagneOrticole = await getAllOrticole().catch(() => []) || [];
+      } catch (_) { /* ignore */ }
+    })(),
+    (async () => {
+      if (!mods.has('vigneto') || vignetiList.length) return;
+      vignetiList = await getCollectionData('vigneti', { tenantId }).catch(() => []) || [];
+    })(),
+    (async () => {
+      if (!mods.has('frutteto') || fruttetiList.length) return;
+      fruttetiList = await getCollectionData('frutteti', { tenantId }).catch(() => []) || [];
+    })()
+  ]);
+
+  // Uscite magazzino (sementi/concimi/altro) non già contate via trattamento
+  if (mods.has('magazzino')) {
+    try {
+      const { getAllMovimenti } = await import('../../magazzino/services/movimenti-service.js');
+      const { getAllProdotti } = await import('../../magazzino/services/prodotti-service.js');
+      const [movimenti, prodotti] = await Promise.all([
+        getAllMovimenti({ tipo: 'uscita' }).catch(() => []),
+        getAllProdotti().catch(() => [])
+      ]);
+      const prodottiById = new Map((prodotti || []).map((p) => [String(p.id), p]));
+      const lavoriById = new Map((lavoriRaw || []).map((l) => [String(l.id), l]));
+      const attivitaById = new Map((attivitaDocs || []).map((a) => [String(a.id), a]));
+      const vignetoById = new Map((vignetiList || []).map((v) => [String(v.id), v]));
+      const fruttetoById = new Map((fruttetiList || []).map((f) => [String(f.id), f]));
+      const campagnaSemiById = new Map((campagneSeminativo || []).map((c) => [String(c.id), c]));
+      const campagnaOrtById = new Map((campagneOrticole || []).map((c) => [String(c.id), c]));
+
+      const uscite = filterUsciteMagazzinoPerEconomici(
+        (movimenti || []).filter((m) => m && dataIsoInRange(m.data, start, end)),
+        magazzinoIdsDaTrattamenti
+      );
+
+      for (const mov of uscite) {
+        let terrenoId = null;
+        let colturaHint = null;
+        let campagnaId = null;
+
+        if (mov.lavoroId && lavoriById.has(String(mov.lavoroId))) {
+          const lav = lavoriById.get(String(mov.lavoroId));
+          terrenoId = lav.terrenoId || null;
+        } else if (mov.attivitaId && attivitaById.has(String(mov.attivitaId))) {
+          const att = attivitaById.get(String(mov.attivitaId));
+          terrenoId = att.terrenoId || null;
+        } else if (mov.origineTrattamentoColturaId) {
+          const cid = String(mov.origineTrattamentoColturaId);
+          if (vignetoById.has(cid)) {
+            const v = vignetoById.get(cid);
+            terrenoId = v.terrenoId || null;
+            colturaHint = (v.varieta && String(v.varieta).trim()) || 'Vite';
+          } else if (fruttetoById.has(cid)) {
+            const f = fruttetoById.get(cid);
+            terrenoId = f.terrenoId || null;
+            colturaHint = (f.specie && String(f.specie).trim())
+              || (f.varieta && String(f.varieta).trim())
+              || 'Frutteto';
+          } else if (campagnaSemiById.has(cid)) {
+            const c = campagnaSemiById.get(cid);
+            terrenoId = c.terrenoId || null;
+            colturaHint = c.colturaNome || null;
+            campagnaId = c.id;
+          } else if (campagnaOrtById.has(cid)) {
+            const c = campagnaOrtById.get(cid);
+            terrenoId = c.terrenoId || null;
+            colturaHint = c.colturaNome || null;
+            campagnaId = c.id;
+          }
+        }
+
+        const p = prodottoCostFromMovimentoUscita(mov, prodottiById.get(String(mov.prodottoId || '')));
+        if (terrenoId && terrenoById.has(String(terrenoId))) {
+          prodottiCosti.push({
+            terrenoId: String(terrenoId),
+            dataIso: dataIsoFromAny(mov.data),
+            coltura: colturaHint,
+            campagnaId,
+            ...p
+          });
+        } else {
+          prodottiCosti.push({
+            nonAttribuito: true,
+            dataIso: dataIsoFromAny(mov.data),
+            ...p
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[report-economici] magazzino uscite', e && e.message);
+    }
+  }
+
   const lines = buildEconomiciLines({
     terreni,
     lavoriCosti,
     attivitaCosti,
-    prodottiCosti
+    prodottiCosti,
+    colturaContext: {
+      campagneSeminativo,
+      campagneOrticole,
+      vigneti: vignetiList,
+      frutteti: fruttetiList
+    }
   });
 
   const { rows, notes } = aggregateEconomiciRows(lines, {
@@ -579,4 +752,14 @@ export async function getEconomiciFilterOptions() {
   return { terreni, colture };
 }
 
-export { aggregateEconomiciRows, buildEconomiciLines, totalsByColtura, companyTotal, prodottoCostFromTrattamento };
+export {
+  aggregateEconomiciRows,
+  buildEconomiciLines,
+  totalsByColtura,
+  companyTotal,
+  prodottoCostFromTrattamento,
+  resolveColturaAtDate,
+  sumNullable,
+  prodottoCostFromMovimentoUscita,
+  filterUsciteMagazzinoPerEconomici
+} from './report-economici-aggregate.js';

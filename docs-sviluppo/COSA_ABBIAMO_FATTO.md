@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — Report Economici (costi terreno × coltura).**
+**Ultimo aggiornamento documentazione: 2026-11-23 — Report Economici: coltura storica, parziali, magazzino.**
+
+## 2026-11-23 — Report Economici: correzione coltura storica, totali parziali, magazzino
+
+Su `feature/report-economici-scheda` (stessa PR #464 verso develop). Nessun merge, nessun deploy.
+
+1) Coltura alla **data della riga** (campagna seminativo/orticole, vigneto/frutteto, campo esplicito; fallback anagrafe). 2) Totali **parziali**: somma dei noti + `*`; «—» solo senza valori noti. 3) Uscite magazzino nel periodo valorizzate da anagrafica, escluse quelle già in `magazzinoMovimentoIds`/origine trattamento; senza terreno → «Non attribuito a un terreno». Test e guida REPORT aggiornati.
 
 ## 2026-11-23 — Report: scheda Economici (costi per terreno, coltura e annata)
 
