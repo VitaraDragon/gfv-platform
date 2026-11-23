@@ -151,6 +151,9 @@ export class Lavoro extends Base {
 
     /** Miscela prevista del trattamento: dosi, acqua, e botte se l'attrezzo ha i quintali. */
     this.miscelaPrevista = data.miscelaPrevista && typeof data.miscelaPrevista === 'object' ? data.miscelaPrevista : null;
+    /** Giorno in cui il lavoro è stato chiuso, se c'è. La carenza della raccolta lo preferisce alla data di inizio. */
+    this.completatoIl = data.completatoIl ? timestampToDate(data.completatoIl) : null;
+    this.approvatoIl = data.approvatoIl ? timestampToDate(data.approvatoIl) : null;
     this.registroAvvisi = Array.isArray(data.registroAvvisi) ? data.registroAvvisi.map((v) => String(v)) : [];
     const conformita = data.conformitaPianificazione;
     this.conformitaPianificazione = conformita && typeof conformita === 'object'
@@ -380,6 +383,10 @@ export class Lavoro extends Base {
     if (this.assenzaSostitutoIl instanceof Date) {
       data.assenzaSostitutoIl = dateToTimestamp(this.assenzaSostitutoIl);
     }
+    if (this.completatoIl instanceof Date) data.completatoIl = dateToTimestamp(this.completatoIl);
+    else delete data.completatoIl;
+    if (this.approvatoIl instanceof Date) data.approvatoIl = dateToTimestamp(this.approvatoIl);
+    else delete data.approvatoIl;
 
     // Rimuovi dati derivati se sono null o 0 (verranno ricalcolati)
     // Mantieni solo quelli già calcolati se presenti

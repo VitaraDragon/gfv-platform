@@ -483,6 +483,38 @@ describe('diario carenza', () => {
     expect(daMagazzino.numeroRegistrazioneLetto).toBeUndefined();
   });
 
+  it('dopo Scegli, Leggi scheda riapre la ricerca anche sulla riga già agganciata', async () => {
+    const { attaccaLeggiSchedaLavoro } = await import('../shared/js/registro-trattamenti-lavoro.js');
+    formLavoro();
+    document.getElementById('lavoro-miscela-nome').value = 'Folpan';
+    attaccaLeggiSchedaLavoro();
+    const btn = document.getElementById('btn-leggi-scheda-miscela');
+    btn.click();
+    await vi.waitFor(() => {
+      expect(document.querySelector('#lavoro-scheda-esito [data-scegli-prodotto]')).toBeTruthy();
+    });
+    document.querySelector('#lavoro-scheda-esito [data-scegli-prodotto]').click();
+    await vi.waitFor(() => {
+      expect(document.getElementById('lavoro-miscela-nome').getAttribute('data-numero-registrazione')).toBe('008601');
+    });
+    btn.click();
+    await vi.waitFor(() => {
+      expect(document.querySelector('#lavoro-scheda-esito [data-scegli-prodotto]')).toBeTruthy();
+    });
+
+    const tbody = document.getElementById('tbody-miscela-lavoro');
+    tbody.innerHTML = '<tr data-extra="1" data-prodotto-id="mag-1" data-nome="FOLPAN 80 WDG" data-numero-registrazione="008601" data-nome-scheda="FOLPAN 80 WDG"><td><button type="button" class="btn btn-sm btn-secondary btn-leggi-scheda">Leggi scheda</button></td></tr>';
+    tbody.querySelector('.btn-leggi-scheda').click();
+    await vi.waitFor(() => {
+      expect(document.querySelector('#lavoro-scheda-esito [data-scegli-prodotto]')).toBeTruthy();
+    });
+    expect(document.getElementById('lavoro-scheda-esito').textContent).not.toContain('arriva dal magazzino');
+
+    tbody.innerHTML = '<tr data-extra="1" data-prodotto-id="mag-1" data-nome="Prodotto a magazzino"><td><button type="button" class="btn btn-sm btn-secondary btn-leggi-scheda">Leggi scheda</button></td></tr>';
+    tbody.querySelector('.btn-leggi-scheda').click();
+    expect(document.getElementById('lavoro-scheda-esito').textContent).toContain('arriva dal magazzino');
+  });
+
   it('cambiare il nome a mano stacca il legame e il semaforo torna grigio', async () => {
     const { attaccaLeggiSchedaLavoro, componiMiscelaDalForm, scriviMiscelaNelForm } = await import('../shared/js/registro-trattamenti-lavoro.js');
     const { aggiornaSemaforoPianificazione } = await import('../shared/js/registro-trattamenti-lavoro-semaforo.js');

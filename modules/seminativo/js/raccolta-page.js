@@ -268,7 +268,7 @@ function openModal(row) {
     const coltura = colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: row.colturaNome }) || row.colturaNome || '';
     return mod.aggiornaAvvisoCarenzaDaRiga({
       box: document.getElementById('avviso-carenza-raccolta'),
-      dataRaccolta: row.data,
+      dataRaccolta: mod.dataRaccoltaPerCarenza(row, row.data),
       terrenoId: row.terrenoId,
       campagnaId: row.campagnaId,
       coltura,

@@ -678,6 +678,27 @@ export async function findTrattamentoByAttivitaId(attivitaId) {
   }
 }
 
+function numeroSuRiga(riga) {
+  const rif = riga && riga.riferimentoRiga && typeof riga.riferimentoRiga === 'object' ? riga.riferimentoRiga : null;
+  return String((riga && riga.numeroRegistrazioneLetto) || (rif && rif.numeroRegistrazione) || '').trim();
+}
+
+/** Scheda nata vuota, o senza il numero letto in pianificazione: lo copia dalla miscela. Non tocca una scheda che il numero ce l'ha già. */
+async function copiaNumeroDallaMiscelaSeManca(frutteto, trattamento, lavoro) {
+  const righe = Array.isArray(trattamento.prodotti) ? trattamento.prodotti : [];
+  const vuota = !righe.length || trattamentoHaSoloRigaVuota(trattamento);
+  if (!vuota && righe.some((riga) => numeroSuRiga(riga))) return;
+  const da = righeTrattamentoDaMiscela(lavoro && lavoro.miscelaPrevista, trattamento.superficieTrattata);
+  if (!da.prodotti.some((riga) => numeroSuRiga(riga))) return;
+  const conCosti = applicaCostiDaAnagrafica(da.prodotti, await caricaAnagraficaProdotti());
+  await updateTrattamento(frutteto.id, trattamento.id, {
+    prodotti: righeSenzaCampiVuoti(conCosti.prodotti),
+    costoProdotto: conCosti.costoProdotto,
+    acquaEttolitriPerEttaro: da.acquaEttolitriPerEttaro,
+    acquaEttolitriTotali: da.acquaEttolitriTotali
+  });
+}
+
 export async function createTrattamentoFromLavoro(lavoroId) {
   try {
     const tenantId = getCurrentTenantId();
@@ -698,7 +719,14 @@ export async function createTrattamentoFromLavoro(lavoroId) {
     const frutteto = frutteti.find(f => (f.specie || '').toLowerCase() === colturaLower) || frutteti[0];
     const trattamentiEsistenti = await getTrattamenti(frutteto.id);
     const esistente = trattamentiEsistenti.find(t => t.lavoroId === lavoroId);
-    if (esistente) return esistente.id;
+    if (esistente) {
+      try {
+        await copiaNumeroDallaMiscelaSeManca(frutteto, esistente, lavoro);
+      } catch (error) {
+        console.warn('[TRATTAMENTI-FRUTTETO] numero dalla miscela non copiato:', error);
+      }
+      return esistente.id;
+    }
     const dataTrattamento = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date());
     const operatore = lavoro.caposquadraId || lavoro.operaioId || null;
     const trattamentoData = {
