@@ -50,6 +50,38 @@ export function filterDocsByLavoroId(docs, lavoroId) {
 }
 
 /**
+ * ID movimenti magazzino collegati ai trattamenti (scarico dal registro).
+ * @param {Array<{ magazzinoMovimentoIds?: unknown }>|null|undefined} trattamenti
+ * @returns {string[]}
+ */
+export function collectMagazzinoMovimentoIdsFromTrattamenti(trattamenti) {
+  const ids = new Set();
+  (Array.isArray(trattamenti) ? trattamenti : []).forEach((t) => {
+    (Array.isArray(t?.magazzinoMovimentoIds) ? t.magazzinoMovimentoIds : []).forEach((id) => {
+      if (id != null && String(id).trim()) ids.add(String(id).trim());
+    });
+  });
+  return Array.from(ids);
+}
+
+/**
+ * Unisce movimenti trovati per lavoroId e quelli riferiti da magazzinoMovimentoIds.
+ * Stesso insieme per conteggio anteprima e delete.
+ * @param {Array<{ id?: unknown }>|null|undefined} movimentiByLavoro
+ * @param {Array<{ id?: unknown }>|null|undefined} movimentiExtra
+ * @returns {Array}
+ */
+export function mergeMovimentiForCascade(movimentiByLavoro, movimentiExtra) {
+  const byId = new Map();
+  [...(Array.isArray(movimentiByLavoro) ? movimentiByLavoro : []),
+    ...(Array.isArray(movimentiExtra) ? movimentiExtra : [])].forEach((m) => {
+    if (!m || m.id == null || m.id === '') return;
+    byId.set(String(m.id), m);
+  });
+  return Array.from(byId.values());
+}
+
+/**
  * @param {{ id?: unknown, ripresaDaLavoroId?: unknown }} lavoro
  * @param {unknown} origineId
  * @returns {boolean}

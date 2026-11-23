@@ -10,6 +10,7 @@ import { TIPO_LAVORO_CATEGORIA_CODICE } from '../../core/config/app-catalog-seed
 import { inferTipoTrattamentoColturaFromTipoLavoroNome } from '../../core/config/trattamenti-lavoro-defaults.js';
 import {
   applicaCostiDaAnagrafica,
+  arrotonda,
   righeSenzaCampiVuoti,
   righeTrattamentoDaMiscela,
   trattamentoHaSoloRigaVuota
@@ -17,6 +18,18 @@ import {
 import { operatoreDaLavoro } from './registro-operatore.js';
 
 const CODICI_TRATTAMENTI = ['trattamenti', 'concimazione'];
+
+/**
+ * Superficie trattata da anagrafe terreno, arrotondata a 2 decimali
+ * (compatibile con input step=0.01 del registro).
+ * @param {{ superficie?: unknown }|null|undefined} terreno
+ * @returns {number|null}
+ */
+export function superficieTrattataDaTerreno(terreno) {
+  const n = terreno && terreno.superficie != null ? parseFloat(terreno.superficie) : NaN;
+  if (!Number.isFinite(n)) return null;
+  return arrotonda(n, 2);
+}
 
 function simCodiceCategoria(tipoLavoroNome) {
   if (!tipoLavoroNome) return null;
@@ -182,7 +195,7 @@ export async function createTrattamentoCampoFromLavoro(opts) {
 
   const { getTerreno } = await import('../../core/services/terreni-service.js');
   const terreno = await getTerreno(lavoro.terrenoId);
-  const superficieTrattata = terreno && terreno.superficie ? parseFloat(terreno.superficie) : null;
+  const superficieTrattata = superficieTrattataDaTerreno(terreno);
   const operatore = operatoreDaLavoro(lavoro) || '';
 
   const trattamentoData = {
@@ -194,8 +207,8 @@ export async function createTrattamentoCampoFromLavoro(opts) {
     tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(lavoro.tipoLavoro || ''),
     prodotti: [],
     operatore,
-    superficieTrattata: Number.isFinite(superficieTrattata) ? superficieTrattata : null,
-    superficieDaAnagrafeTerreno: Number.isFinite(superficieTrattata),
+    superficieTrattata: superficieTrattata != null ? superficieTrattata : null,
+    superficieDaAnagrafeTerreno: superficieTrattata != null,
     costoProdotto: 0,
     note: `Trattamento creato da lavoro: ${lavoro.nome || lavoroId}`
   };
@@ -255,9 +268,14 @@ export async function syncTrattamentoCampoFromLavoro(opts) {
 
   const { getTerreno } = await import('../../core/services/terreni-service.js');
   const terreno = lavoro.terrenoId ? await getTerreno(lavoro.terrenoId) : null;
-  const superficieTrattata = terreno && terreno.superficie ? parseFloat(terreno.superficie) : null;
-  if (found.trattamento.superficieDaAnagrafeTerreno && Number.isFinite(superficieTrattata)) {
+  const superficieTrattata = superficieTrattataDaTerreno(terreno);
+  if (found.trattamento.superficieDaAnagrafeTerreno && superficieTrattata != null) {
     updates.superficieTrattata = superficieTrattata;
+  } else if (found.trattamento.superficieTrattata != null) {
+    const arrot = arrotonda(found.trattamento.superficieTrattata, 2);
+    if (arrot != null && arrot !== Number(found.trattamento.superficieTrattata)) {
+      updates.superficieTrattata = arrot;
+    }
   }
   if (lavoro.terrenoId) updates.terrenoId = lavoro.terrenoId;
 
@@ -267,7 +285,7 @@ export async function syncTrattamentoCampoFromLavoro(opts) {
       : found.trattamento.superficieTrattata;
     const daMiscela = righeTrattamentoDaMiscela(
       lavoro.miscelaPrevista,
-      Number.isFinite(supRighe) ? supRighe : superficieTrattata
+      Number.isFinite(Number(supRighe)) ? Number(supRighe) : superficieTrattata
     );
     if (daMiscela.prodotti.length) {
       const conCosti = applicaCostiDaAnagrafica(daMiscela.prodotti, await caricaAnagraficaProdotti(logPrefix));

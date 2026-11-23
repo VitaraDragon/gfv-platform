@@ -167,6 +167,13 @@ export async function deleteTrattamentoSeminativo(id, opzioni = {}) {
     err.code = 'REGISTRO_CONSERVAZIONE';
     throw err;
   }
+  const idsScarico = existing && Array.isArray(existing.magazzinoMovimentoIds)
+    ? existing.magazzinoMovimentoIds.filter(Boolean)
+    : [];
+  if (idsScarico.length) {
+    const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
+    await rimuoviMovimentiTrattamento(idsScarico);
+  }
   await deleteDocument(COLLECTION_NAME, id, tenantId);
 }
 

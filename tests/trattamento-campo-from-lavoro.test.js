@@ -100,9 +100,16 @@ vi.mock('../modules/vigneto/services/vigneti-service.js', () => ({
   updateVigneto: vi.fn(async () => undefined)
 }));
 
+vi.mock('../modules/magazzino/services/trattamento-scarico-magazzino-service.js', () => ({
+  rimuoviMovimentiTrattamento: vi.fn(async () => undefined),
+  syncScarichiMagazzinoTrattamento: vi.fn(async () => ({ movimentoIds: [] }))
+}));
+
 import * as seminativo from '../modules/seminativo/services/trattamenti-service.js';
 import * as frutteto from '../modules/frutteto/services/trattamenti-frutteto-service.js';
+import { superficieTrattataDaTerreno } from '../shared/js/trattamento-campo-from-lavoro.js';
 import { createDocument, deleteDocument, getCollectionData } from '../core/services/firebase-service.js';
+import { rimuoviMovimentiTrattamento } from '../modules/magazzino/services/trattamento-scarico-magazzino-service.js';
 
 const MISCELA = {
   ettolitriPerEttaro: 3,
@@ -129,6 +136,16 @@ function lavoroGrano(overrides = {}) {
     ...overrides
   };
 }
+
+describe('superficieTrattataDaTerreno', () => {
+  it('arrotonda a 2 decimali (step 0.01 del form registro)', () => {
+    expect(superficieTrattataDaTerreno({ superficie: 1.4050816695097663 })).toBe(1.41);
+    expect(superficieTrattataDaTerreno({ superficie: '1.4050816695097663' })).toBe(1.41);
+    expect(superficieTrattataDaTerreno({ superficie: 3.04 })).toBe(3.04);
+    expect(superficieTrattataDaTerreno({ superficie: null })).toBeNull();
+    expect(superficieTrattataDaTerreno(null)).toBeNull();
+  });
+});
 
 describe('seminativo createTrattamentoFromLavoro', () => {
   beforeEach(() => {
@@ -157,6 +174,14 @@ describe('seminativo createTrattamentoFromLavoro', () => {
     expect(createDocument).toHaveBeenCalledTimes(1);
   });
 
+  it('salva superficie arrotondata a 2 decimali (non blocca Salva con step 0.01)', async () => {
+    mocks.terreno = { id: 'ter-grano', coltura: 'Grano', superficie: 1.4050816695097663 };
+    const id = await seminativo.createTrattamentoFromLavoro('lav-grano');
+    const doc = store.docs.get('trattamentiSeminativo/' + id);
+    expect(doc.superficieTrattata).toBe(1.41);
+    expect(doc.superficieDaAnagrafeTerreno).toBe(true);
+  });
+
   it('modifica senza doppione: secondo salvataggio sincronizza e non crea un altro doc', async () => {
     const id1 = await seminativo.createTrattamentoFromLavoro('lav-grano');
     mocks.lavoro = lavoroGrano({
@@ -179,6 +204,17 @@ describe('seminativo createTrattamentoFromLavoro', () => {
     await seminativo.deleteTrattamentoSeminativo(id, { exportConfermato: true });
     expect(deleteDocument).toHaveBeenCalledWith('trattamentiSeminativo', id, 't1');
     expect(await seminativo.findTrattamentoByLavoroId('lav-grano')).toBeNull();
+  });
+
+  it('in delete storna i movimenti di magazzino collegati al trattamento', async () => {
+    const id = await seminativo.createTrattamentoFromLavoro('lav-grano');
+    store.docs.set('trattamentiSeminativo/' + id, {
+      ...store.docs.get('trattamentiSeminativo/' + id),
+      magazzinoMovimentoIds: ['mov-uscita-1']
+    });
+    await seminativo.deleteTrattamentoSeminativo(id, { exportConfermato: true });
+    expect(rimuoviMovimentiTrattamento).toHaveBeenCalledWith(['mov-uscita-1']);
+    expect(deleteDocument).toHaveBeenCalledWith('trattamentiSeminativo', id, 't1');
   });
 
   it('senza campagna non crea nulla', async () => {

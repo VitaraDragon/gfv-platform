@@ -12,7 +12,9 @@ import {
     formatLavoroDeleteBlockedByRipreseMessage,
     assenzaCascadeAction,
     unlinkPreventivoPatch,
-    buildLavoroCascadePlan
+    buildLavoroCascadePlan,
+    collectMagazzinoMovimentoIdsFromTrattamenti,
+    mergeMovimentiForCascade
 } from '../../core/services/lavoro-delete-cascade-utils.js';
 import { comunicazioneVisibilePerOperaio } from '../../core/services/comunicazioni-squadra-utils.js';
 
@@ -48,6 +50,32 @@ describe('lavoro-delete-cascade-utils', () => {
         expect(plan.blocked).toBe(false);
         expect(plan.counts.trattamenti).toBe(1);
         expect(plan.confirmMessage).toContain('Verranno eliminati anche');
+        expect(plan.confirmMessage).toContain('1 trattamento');
+    });
+
+    it('collect + merge: scarico solo su trattamento (senza lavoroId) entra nel conteggio', () => {
+        const trattamenti = [{
+            id: 'ts-karate',
+            modulo: 'seminativo',
+            magazzinoMovimentoIds: ['mov-solo-trat']
+        }];
+        const ids = collectMagazzinoMovimentoIdsFromTrattamenti(trattamenti);
+        expect(ids).toEqual(['mov-solo-trat']);
+        const merged = mergeMovimentiForCascade(
+            [{ id: 'mov-con-lavoro', lavoroId: 'lav-grano' }],
+            [{ id: 'mov-solo-trat', lavoroId: null, tipo: 'uscita', quantita: 1.41 }]
+        );
+        expect(merged.map((m) => m.id).sort()).toEqual(['mov-con-lavoro', 'mov-solo-trat']);
+        const plan = buildLavoroCascadePlan({
+            lavoroId: 'lav-grano',
+            lavoroNome: 'Insetticida grano',
+            lavori: [{ id: 'lav-grano' }],
+            trattamenti,
+            movimenti: merged
+        });
+        expect(plan.counts.movimenti).toBe(2);
+        expect(plan.counts.trattamenti).toBe(1);
+        expect(plan.confirmMessage).toContain('2 movimenti magazzino');
         expect(plan.confirmMessage).toContain('1 trattamento');
     });
 
