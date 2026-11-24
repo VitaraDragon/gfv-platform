@@ -400,13 +400,11 @@
         if (a > b) { const x = a; a = b; b = x; }
         return { start: a, end: b, label: formatRangeIt(a, b) };
       }
-      const year = Number(selYear.value) || new Date().getFullYear();
+      const refY = parseInt(selYear.value, 10) || new Date().getFullYear();
       if (mode === 'solar') {
-        const b = getSolarYearBounds(year);
-        return { ...b, label: `Anno solare ${year}` };
+        return getSolarYearBounds(new Date(refY, 5, 15));
       }
-      const b = getAgrarianYearBounds(year);
-      return { ...b, label: `Annata agraria ${year}/${year + 1}` };
+      return getAgrarianYearBounds(new Date(refY, 10, 15));
     }
 
     function updatePeriodUi() {
@@ -415,7 +413,7 @@
       groupFrom.classList.toggle('hidden', !custom);
       groupTo.classList.toggle('hidden', !custom);
       const p = currentPeriodBounds();
-      periodLabel.textContent = p.label + ' · ' + formatRangeIt(p.start, p.end);
+      periodLabel.textContent = p.label || formatRangeIt(p.start, p.end);
     }
 
     function currentFilters() {
