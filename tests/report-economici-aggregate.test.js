@@ -18,6 +18,9 @@ import {
   TERRENO_NON_ATTRIBUITO_ID,
   vociForRow,
   assembleEconomiciReport,
+  mergeDocsById,
+  dataIsoInRange,
+  dataIsoFromAny,
   totalsByColtura
 } from '../modules/report/services/report-economici-aggregate.js';
 
@@ -427,5 +430,52 @@ describe('Report Economici — aggregazione', () => {
     const mano = voci.filter((v) => v.categoria === 'manodopera');
     expect(mano).toHaveLength(1);
     expect(mano[0].importo).toBe(60);
+  });
+
+  it('merge dual format: trattamento data stringa + Timestamp nello stesso periodo, contati una volta', () => {
+    const start = new Date(2025, 10, 11); // 11 nov 2025
+    const end = new Date(2026, 10, 10, 23, 59, 59, 999);
+    const isoDoc = {
+      id: 'trat-iso',
+      terrenoId: 't1',
+      data: '2026-03-15',
+      costoProdotto: 30,
+      prodotti: [{ prodotto: 'Rame', costo: 30, quantita: 1 }]
+    };
+    // Timestamp-like (Firestore) per 2026-04-01 locale ≈ seconds
+    const tsDate = new Date(2026, 3, 1, 12, 0, 0);
+    const tsDoc = {
+      id: 'trat-ts',
+      terrenoId: 't1',
+      data: { seconds: Math.floor(tsDate.getTime() / 1000), nanoseconds: 0 },
+      costoProdotto: 45,
+      prodotti: [{ prodotto: 'Zolfo', costo: 45, quantita: 2 }]
+    };
+    // Duplicato ISO già presente nella lista Timestamp (stesso id) → una sola volta
+    const tsDup = { ...isoDoc, data: { seconds: Math.floor(new Date('2026-03-15T12:00:00').getTime() / 1000), nanoseconds: 0 } };
+
+    expect(dataIsoInRange(isoDoc.data, start, end)).toBe(true);
+    expect(dataIsoInRange(tsDoc.data, start, end)).toBe(true);
+
+    const merged = mergeDocsById([isoDoc], [tsDoc, tsDup])
+      .filter((d) => dataIsoInRange(d.data, start, end));
+    expect(merged.map((d) => d.id).sort()).toEqual(['trat-iso', 'trat-ts']);
+    expect(merged).toHaveLength(2);
+
+    const prodottiCosti = merged.map((row) => ({
+      terrenoId: row.terrenoId,
+      dataIso: dataIsoFromAny(row.data),
+      ...prodottoCostFromTrattamento(row)
+    }));
+
+    const { rows } = assembleEconomiciReport({
+      terreni,
+      colturaContext,
+      lavoriCosti: [],
+      attivitaCosti: [],
+      prodottiCosti
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].costoProdotti).toBe(75);
   });
 });

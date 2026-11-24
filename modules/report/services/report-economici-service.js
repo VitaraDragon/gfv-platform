@@ -37,6 +37,7 @@ import {
   filterUsciteMagazzinoPerEconomici,
   formatLocalIsoDate,
   inRange,
+  mergeDocsById,
   prepareEconomiciExportData,
   prodottoCostFromMovimentoUscita,
   prodottoCostFromTrattamento,
@@ -389,6 +390,7 @@ function costiAttivitaDiario(att, ctx) {
 }
 
 async function loadAttivitaInRange(tenantId, start, end) {
+  // Formato salvato: sempre stringa YYYY-MM-DD (Attivita model / diario). Solo range ISO.
   const dataDaStr = dataIsoFromAny(start);
   const dataAStr = dataIsoFromAny(end);
   try {
@@ -419,6 +421,7 @@ async function loadAttivitaInRange(tenantId, start, end) {
 }
 
 async function loadLavoriInRange(tenantId, start, end) {
+  // Formato salvato: sempre Timestamp (Lavoro.toFirestore → dateToTimestamp(dataInizio)). Solo range Timestamp.
   const t0 = dateToTimestamp(start);
   const t1 = dateToTimestamp(end);
   try {
@@ -447,41 +450,19 @@ async function loadLavoriInRange(tenantId, start, end) {
   }
 }
 
-async function loadTrattamentiSubcol(tenantId, collectionPath, start, end) {
-  const t0 = dateToTimestamp(start);
-  const t1 = dateToTimestamp(end);
-  try {
-    const docs = await getCollectionData(collectionPath, {
-      tenantId,
-      where: [
-        ['data', '>=', t0],
-        ['data', '<=', t1]
-      ],
-      orderBy: 'data',
-      orderDirection: 'desc'
-    });
-    return docs || [];
-  } catch (e) {
-    try {
-      const docs = await getCollectionData(collectionPath, {
-        tenantId,
-        orderBy: 'data',
-        orderDirection: 'desc',
-        limit: 400
-      });
-      return (docs || []).filter((d) => inRange(d.data, start, end));
-    } catch (e2) {
-      return [];
-    }
-  }
-}
-
-async function loadTrattamentiFlatInRange(tenantId, collectionName, start, end) {
+/**
+ * Range duale ISO + Timestamp su `data`, merge per id.
+ * Serve dove il campo può essere stringa o Timestamp (trattamenti seminativo/orticole/subcol).
+ */
+async function loadDocsByDataDualFormat(tenantId, collectionPath, start, end, opts = {}) {
   const dataDaStr = formatLocalIsoDate(start);
   const dataAStr = formatLocalIsoDate(end);
-  // seminativo/orticole: data spesso ISO string
-  try {
-    const docs = await getCollectionData(collectionName, {
+  const t0 = dateToTimestamp(start);
+  const t1 = dateToTimestamp(end);
+  const limitFallback = opts.limitFallback;
+
+  const [isoRes, tsRes] = await Promise.all([
+    getCollectionData(collectionPath, {
       tenantId,
       where: [
         ['data', '>=', dataDaStr],
@@ -489,34 +470,56 @@ async function loadTrattamentiFlatInRange(tenantId, collectionName, start, end) 
       ],
       orderBy: 'data',
       orderDirection: 'desc'
+    }).then((docs) => ({ ok: true, docs: docs || [] })).catch((err) => ({ ok: false, err })),
+    getCollectionData(collectionPath, {
+      tenantId,
+      where: [
+        ['data', '>=', t0],
+        ['data', '<=', t1]
+      ],
+      orderBy: 'data',
+      orderDirection: 'desc'
+    }).then((docs) => ({ ok: true, docs: docs || [] })).catch((err) => ({ ok: false, err }))
+  ]);
+
+  if (isoRes.ok || tsRes.ok) {
+    return mergeDocsById(isoRes.ok ? isoRes.docs : [], tsRes.ok ? tsRes.docs : [])
+      .filter((d) => dataIsoInRange(d.data, start, end));
+  }
+
+  try {
+    const docs = await getCollectionData(collectionPath, {
+      tenantId,
+      orderBy: 'data',
+      orderDirection: 'desc',
+      ...(limitFallback != null ? { limit: limitFallback } : {})
     });
-    return docs || [];
-  } catch (e) {
-    try {
-      const t0 = dateToTimestamp(start);
-      const t1 = dateToTimestamp(end);
-      const docs = await getCollectionData(collectionName, {
-        tenantId,
-        where: [
-          ['data', '>=', t0],
-          ['data', '<=', t1]
-        ],
-        orderBy: 'data',
-        orderDirection: 'desc'
-      });
-      return docs || [];
-    } catch (e2) {
-      try {
-        const docs = await getCollectionData(collectionName, { tenantId });
-        return (docs || []).filter((d) => dataIsoInRange(d.data, start, end));
-      } catch (e3) {
-        return [];
-      }
+    return (docs || []).filter((d) => dataIsoInRange(d.data, start, end));
+  } catch (e3) {
+    if (!opts.silent) {
+      console.warn('[report-economici] dual data range', collectionPath, e3 && e3.message);
     }
+    return [];
   }
 }
 
+async function loadTrattamentiSubcol(tenantId, collectionPath, start, end) {
+  // Vigneto/frutteto: di solito Timestamp (Date → Firestore), ma toFirestore non forza il tipo:
+  // stessa dual query ISO+Timestamp per non perdere eventuali stringhe.
+  return loadDocsByDataDualFormat(tenantId, collectionPath, start, end, {
+    limitFallback: 400,
+    silent: true
+  });
+}
+
+async function loadTrattamentiFlatInRange(tenantId, collectionName, start, end) {
+  // seminativo/orticole: data può essere ISO string (toFirestore as-is / sync da lavoro)
+  // oppure Timestamp/Date (editingRow da lavoro/attività). Entrambe le query in parallelo.
+  return loadDocsByDataDualFormat(tenantId, collectionName, start, end, { silent: true });
+}
+
 async function loadUsciteMagazzinoInRange(start, end) {
+  // Formato salvato: sempre Timestamp (MovimentoMagazzino.toFirestore → dateToTimestamp(data)).
   const t0 = dateToTimestamp(start);
   const t1 = dateToTimestamp(end);
   try {
@@ -1162,5 +1165,6 @@ export {
   filterEconomiciVoci,
   prepareEconomiciExportData,
   prodottoCostFromMovimentoUscita,
-  filterUsciteMagazzinoPerEconomici
+  filterUsciteMagazzinoPerEconomici,
+  mergeDocsById
 } from './report-economici-aggregate.js';

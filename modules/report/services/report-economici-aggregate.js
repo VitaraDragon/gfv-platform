@@ -61,6 +61,26 @@ export function dataIsoFromAny(val) {
   return formatLocalIsoDate(toDate(val));
 }
 
+/**
+ * Unisce liste di documenti deduplicando per `id` (prima occorrenza vince).
+ * Usato quando si fanno due range query sullo stesso campo in formati diversi
+ * (stringa ISO vs Timestamp): Firestore non mescola i tipi in un solo range.
+ * @param {...Array<object>} lists
+ * @returns {Array<object>}
+ */
+export function mergeDocsById(...lists) {
+  /** @type {Map<string, object>} */
+  const map = new Map();
+  for (const list of lists) {
+    for (const doc of list || []) {
+      if (!doc || doc.id == null || doc.id === '') continue;
+      const key = String(doc.id);
+      if (!map.has(key)) map.set(key, doc);
+    }
+  }
+  return [...map.values()];
+}
+
 export function chiaveLavoroDiario(terrenoId, dataIso, tipoLavoro) {
   return `${String(terrenoId || '')}|${String(dataIso || '')}|${String(tipoLavoro || '').trim().toLowerCase()}`;
 }
