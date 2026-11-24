@@ -15,6 +15,9 @@ import {
   valoreEntrataFromMovimento,
   valoreGiacenzaProdotto,
   totaleUsciteComeEconomici,
+  quotaUsciteEscluseDaEconomici,
+  notesUsciteVsEconomici,
+  filterProdottiVisibiliTabella,
   aggregateProdottiUsciteForChart,
   prepareMagazzinoExportData,
   labelOrigineUscita
@@ -79,6 +82,66 @@ describe('Report Magazzino — aggregazione', () => {
     // solo m1 (manuale senza trattamento/carburante); m4 missing → partial
     expect(totEco.value).toBe(20);
     expect(totEco.partial).toBe(true);
+  });
+
+  it('totale uscite Magazzino = Economici + quota esclusa (pieni + trattamenti)', () => {
+    const movimenti = [
+      { id: 'm1', tipo: 'uscita', quantita: 2, prezzoUnitario: 10, prodottoId: 'p1' }, // 20 eco
+      { id: 'm2', tipo: 'uscita', quantita: 3, prezzoUnitario: 4, prodottoId: 'p1', origineTrattamentoId: 'tr1' }, // 12
+      { id: 'm3', tipo: 'uscita', quantita: 5, prezzoUnitario: 1.5, prodottoId: 'p2', origineCarburante: 'pieno' } // 7.5
+    ];
+    const prodottiById = new Map(prodotti.map((p) => [p.id, p]));
+    const report = assembleMagazzinoReport({ prodotti, movimenti });
+    const eco = totaleUsciteComeEconomici(movimenti, prodottiById, []);
+    const quota = quotaUsciteEscluseDaEconomici(movimenti, prodottiById);
+
+    expect(quota.carburante).toBe(7.5);
+    expect(quota.trattamento).toBe(12);
+    expect(eco.value).toBe(20);
+    expect(report.kpi.valoreUscite).toBe(euro(20 + 12 + 7.5));
+    expect(report.kpi.valoreUscite).toBe(
+      euro((eco.value || 0) + (quota.carburante || 0) + (quota.trattamento || 0))
+    );
+    expect(report.kpi.usciteEscluseEconomici).toEqual(quota);
+
+    const notes = notesUsciteVsEconomici(quota);
+    expect(notes.some((n) => /pieni carburante non conteggiati in Economici/.test(n))).toBe(true);
+    expect(notes.some((n) => /trattamenti conteggiati a parte in Economici/.test(n))).toBe(true);
+    expect(report.notes).toEqual(expect.arrayContaining(notes));
+  });
+
+  it('Excel Per prodotto: stesse righe della tabella pagina (niente solo-giacenza)', () => {
+    const prodottiExtra = [
+      ...prodotti,
+      // KARATE: giacenza > 0, non sotto scorta, zero movimenti → non in tabella
+      {
+        id: 'p-karate',
+        nome: 'KARATE',
+        categoria: 'fitofarmaci',
+        unitaMisura: 'L',
+        prezzoUnitario: 40,
+        giacenza: 3,
+        scortaMinima: 0,
+        attivo: true
+      }
+    ];
+    const report = assembleMagazzinoReport({
+      prodotti: prodottiExtra,
+      movimenti: [
+        { id: 'u1', tipo: 'uscita', data: '2026-02-01', quantita: 2, prezzoUnitario: 10, prodottoId: 'p1' }
+      ]
+    });
+    // byProdotto include KARATE (giacenza !== 0); la tabella no
+    expect(report.byProdotto.some((r) => r.nome === 'KARATE')).toBe(true);
+    const visible = filterProdottiVisibiliTabella(report.byProdotto);
+    expect(visible.some((r) => r.nome === 'KARATE')).toBe(false);
+    expect(visible.every((r) => r.nMovimenti > 0 || r.sottoScorta || r.giacenzaNegativa)).toBe(true);
+
+    const exp = prepareMagazzinoExportData(report);
+    expect(exp.perProdotto.map((r) => r.nome).sort()).toEqual(
+      visible.map((r) => r.nome).sort()
+    );
+    expect(exp.perProdotto.some((r) => r.nome === 'KARATE')).toBe(false);
   });
 
   it('giacenza: sotto scorta e prezzo mancante', () => {
