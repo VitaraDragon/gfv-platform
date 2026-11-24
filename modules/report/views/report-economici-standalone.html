@@ -326,6 +326,7 @@
       countVociIncomplete,
       isEconomiciDataReady
     } from '../services/report-economici-service.js';
+    import { setReportExportEnabled } from '../js/report-export-gate.js';
 
     // Colori categorie: unica fonte :root (--mano/--mac/--prod/--carb)
     const _cs = getComputedStyle(document.documentElement);
@@ -755,7 +756,7 @@
       partialBanner.classList.add('hidden');
       partialBanner.textContent = '';
       prodottiPending.classList.add('hidden');
-      btnExport.disabled = true;
+      setReportExportEnabled(btnExport, false);
     }
 
     function render(data) {
@@ -765,7 +766,6 @@
         return;
       }
       prodottiPending.classList.add('hidden');
-      btnExport.disabled = false;
       renderKpi(data);
       renderCharts(data);
 
@@ -776,6 +776,7 @@
         tableHost.innerHTML = '<div class="alert alert-info">Nessun costo nel periodo con i filtri scelti.</div>';
         mobileHost.innerHTML = '';
         notesBox.innerHTML = '';
+        setReportExportEnabled(btnExport, true);
         return;
       }
 
@@ -823,6 +824,8 @@
       } else {
         notesBox.innerHTML = '<span class="muted">* = parziale. «—» solo se non c’è alcun valore noto. Tocca una riga (o una colonna di costo) per il dettaglio.</span>';
       }
+      // Solo a DOM aggiornato (niente export mentre resta «Caricamento…»).
+      setReportExportEnabled(btnExport, true);
     }
 
     function openDetail(row, categoria) {
@@ -957,7 +960,7 @@
         mobileHost.innerHTML = '';
         kpiHost.innerHTML = '';
         prodottiPending.classList.add('hidden');
-        btnExport.disabled = true;
+        setReportExportEnabled(btnExport, false);
         alertBox.innerHTML = `<div class="alert alert-error">Errore report: ${escapeHtml(e.message || e)}</div>`;
       }
     }
