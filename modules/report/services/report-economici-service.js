@@ -3,7 +3,7 @@
  * I calcoli puri stanno in report-economici-aggregate.js (testabili / riusabili).
  *
  * Prestazioni (senza indici/functions/rules nuovi):
- * - lavori / attività / movimenti / trattamenti flat interrogati sul periodo quando possibile;
+ * - lavori / attività / movimenti / trattamenti flat / campagne / magazzino avviati in parallelo;
  * - cache in memoria del bundle grezzo per periodo (filtri terreno/coltura = solo ricalcolo);
  * - campagna/anagrafiche caricate una sola volta;
  * - fase manodopera/macchine prima, prodotti dopo (progressive UI).
@@ -40,8 +40,8 @@ import {
   mergeDocsById,
   prepareEconomiciExportData,
   prodottoCostFromMovimentoUscita,
-  prodottoCostFromTrattamento,
   prodottoVociFromTrattamento,
+  splitCostoProdottoCarburanteFromTrattamento,
   totalsByColtura,
   euro
 } from './report-economici-aggregate.js';
@@ -581,16 +581,101 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
   const timings = {};
   const tAll = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   const hasParco = mods.has('parcomacchine') || mods.has('parco-macchine');
+  const now = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
 
-  let t0 = performance.now();
-  const [terreniRaw, lavoriRaw, attivitaDocs, tariffe, macchinePack] = await Promise.all([
+  // Avvio parallelo di tutte le letture indipendenti (obiettivo console < 5 s)
+  const tCoreStart = now();
+  const pCore = Promise.all([
     getCollectionData('terreni', { tenantId }).catch(() => []),
     loadLavoriInRange(tenantId, start, end),
     loadAttivitaInRange(tenantId, start, end),
     loadTariffe(tenantId),
     loadMacchineMap(hasParco)
-  ]);
-  timePhase(timings, 'terreni_lavori_attivita_tariffe_macchine', performance.now() - t0);
+  ]).then((r) => {
+    timePhase(timings, 'terreni_lavori_attivita_tariffe_macchine', now() - tCoreStart);
+    return r;
+  });
+
+  const tCampStart = now();
+  const pCampagne = (async () => {
+    /** @type {Array<object>} */
+    let campagneSeminativo = [];
+    /** @type {Array<object>} */
+    let campagneOrticole = [];
+    /** @type {Array<object>} */
+    let vignetiList = [];
+    /** @type {Array<object>} */
+    let fruttetiList = [];
+    await Promise.all([
+      (async () => {
+        if (!mods.has('seminativo')) return;
+        try {
+          const { getAllSeminativi } = await import('../../seminativo/services/seminativi-service.js');
+          campagneSeminativo = await getAllSeminativi().catch(() => []) || [];
+        } catch (_) { /* ignore */ }
+      })(),
+      (async () => {
+        if (!mods.has('orticole')) return;
+        try {
+          const { getAllOrticole } = await import('../../orticole/services/orticole-service.js');
+          campagneOrticole = await getAllOrticole().catch(() => []) || [];
+        } catch (_) { /* ignore */ }
+      })(),
+      (async () => {
+        if (!mods.has('vigneto')) return;
+        vignetiList = await getCollectionData('vigneti', { tenantId }).catch(() => []) || [];
+      })(),
+      (async () => {
+        if (!mods.has('frutteto')) return;
+        fruttetiList = await getCollectionData('frutteti', { tenantId }).catch(() => []) || [];
+      })()
+    ]);
+    timePhase(timings, 'campagne_anagrafiche', now() - tCampStart);
+    return { campagneSeminativo, campagneOrticole, vignetiList, fruttetiList };
+  })();
+
+  const tMagStart = now();
+  const pMagazzino = mods.has('magazzino')
+    ? (async () => {
+      try {
+        const { getAllProdotti } = await import('../../magazzino/services/prodotti-service.js');
+        const [movimenti, prodotti] = await Promise.all([
+          loadUsciteMagazzinoInRange(start, end),
+          getAllProdotti().catch(() => [])
+        ]);
+        timePhase(timings, 'magazzino', now() - tMagStart);
+        return { movimenti: movimenti || [], prodotti: prodotti || [] };
+      } catch (e) {
+        console.warn('[report-economici] magazzino uscite', e && e.message);
+        timePhase(timings, 'magazzino', now() - tMagStart);
+        return { movimenti: [], prodotti: [] };
+      }
+    })()
+    : Promise.resolve({ movimenti: [], prodotti: [] }).then((r) => {
+      timePhase(timings, 'magazzino', 0);
+      return r;
+    });
+
+  const tFlatStart = now();
+  const pFlatTratt = (async () => {
+    const out = { seminativo: [], orticole: [] };
+    await Promise.all([
+      mods.has('seminativo')
+        ? loadTrattamentiFlatInRange(tenantId, 'trattamentiSeminativo', start, end)
+          .then((list) => { out.seminativo = list || []; })
+          .catch((e) => { console.warn('[report-economici] seminativo trattamenti', e && e.message); })
+        : Promise.resolve(),
+      mods.has('orticole')
+        ? loadTrattamentiFlatInRange(tenantId, 'trattamentiOrticole', start, end)
+          .then((list) => { out.orticole = list || []; })
+          .catch((e) => { console.warn('[report-economici] orticole trattamenti', e && e.message); })
+        : Promise.resolve()
+    ]);
+    timePhase(timings, 'trattamenti_flat', now() - tFlatStart);
+    return out;
+  })();
+
+  const [terreniRaw, lavoriRaw, attivitaDocs, tariffe, macchinePack] = await pCore;
 
   const terreni = (terreniRaw || []).filter((t) => !t.clienteId || String(t.clienteId).trim() === '');
   const terrenoById = new Map(terreni.map((t) => [String(t.id), t]));
@@ -610,7 +695,7 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
     data: () => l
   }));
 
-  t0 = performance.now();
+  let t0 = now();
   const oreByLavoroId = db
     ? await fetchOreOperaiForLavori(
       tenantId,
@@ -619,7 +704,7 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
       { statoFilter: 'validate' }
     )
     : new Map();
-  timePhase(timings, 'oreOperai', performance.now() - t0);
+  timePhase(timings, 'oreOperai', now() - t0);
 
   const operaioIds = [];
   oreByLavoroId.forEach((entry) => {
@@ -628,11 +713,11 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
       if (ora && ora.operaioId) operaioIds.push(ora.operaioId);
     }
   });
-  t0 = performance.now();
+  t0 = now();
   const usersById = db
     ? await fetchUsersByIds(operaioIds, { db, doc, getDoc })
     : new Map();
-  timePhase(timings, 'utenti_operai', performance.now() - t0);
+  timePhase(timings, 'utenti_operai', now() - t0);
 
   const costCtx = {
     usersById,
@@ -723,42 +808,59 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
       };
     });
 
-  /** @type {Array<object>} */
-  let campagneSeminativo = [];
-  /** @type {Array<object>} */
-  let campagneOrticole = [];
-  /** @type {Array<object>} */
-  let vignetiList = [];
-  /** @type {Array<object>} */
-  let fruttetiList = [];
+  // Campagne in parallelo al core: attendi e avvia subito i trattamenti subcol
+  const {
+    campagneSeminativo,
+    campagneOrticole,
+    vignetiList,
+    fruttetiList
+  } = await pCampagne;
 
-  // Anagrafiche coltura una sola volta (in parallelo), prima dei prodotti
-  t0 = performance.now();
-  await Promise.all([
-    (async () => {
-      if (!mods.has('seminativo')) return;
-      try {
-        const { getAllSeminativi } = await import('../../seminativo/services/seminativi-service.js');
-        campagneSeminativo = await getAllSeminativi().catch(() => []) || [];
-      } catch (_) { /* ignore */ }
-    })(),
-    (async () => {
-      if (!mods.has('orticole')) return;
-      try {
-        const { getAllOrticole } = await import('../../orticole/services/orticole-service.js');
-        campagneOrticole = await getAllOrticole().catch(() => []) || [];
-      } catch (_) { /* ignore */ }
-    })(),
-    (async () => {
-      if (!mods.has('vigneto')) return;
-      vignetiList = await getCollectionData('vigneti', { tenantId }).catch(() => []) || [];
-    })(),
-    (async () => {
-      if (!mods.has('frutteto')) return;
-      fruttetiList = await getCollectionData('frutteti', { tenantId }).catch(() => []) || [];
-    })()
-  ]);
-  timePhase(timings, 'campagne_anagrafiche', performance.now() - t0);
+  const tSubcolStart = now();
+  const pSubcol = (async () => {
+    /** @type {Array<object>} */
+    const rows = [];
+    await Promise.all([
+      mods.has('vigneto')
+        ? Promise.all((vignetiList || []).map(async (v) => {
+          if (!v || !v.id || !v.terrenoId || !terrenoById.has(String(v.terrenoId))) return;
+          try {
+            const docs = await loadTrattamentiSubcol(tenantId, `vigneti/${v.id}/trattamenti`, start, end);
+            for (const row of docs) {
+              rows.push({
+                row,
+                terrenoId: String(v.terrenoId),
+                coltura: (v.varieta && String(v.varieta).trim()) || 'Vite'
+              });
+            }
+          } catch (e) {
+            console.warn('[report-economici] vigneto trattamenti', e && e.message);
+          }
+        }))
+        : Promise.resolve(),
+      mods.has('frutteto')
+        ? Promise.all((fruttetiList || []).map(async (f) => {
+          if (!f || !f.id || !f.terrenoId || !terrenoById.has(String(f.terrenoId))) return;
+          try {
+            const docs = await loadTrattamentiSubcol(tenantId, `frutteti/${f.id}/trattamenti`, start, end);
+            for (const row of docs) {
+              rows.push({
+                row,
+                terrenoId: String(f.terrenoId),
+                coltura: (f.specie && String(f.specie).trim())
+                  || (f.varieta && String(f.varieta).trim())
+                  || 'Frutteto'
+              });
+            }
+          } catch (e) {
+            console.warn('[report-economici] frutteto trattamenti', e && e.message);
+          }
+        }))
+        : Promise.resolve()
+    ]);
+    timePhase(timings, 'trattamenti_subcol', now() - tSubcolStart);
+    return rows;
+  })();
 
   const colturaContext = {
     campagneSeminativo,
@@ -793,152 +895,66 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
     opts.onLabourReady(labourBundle);
   }
 
+  const [flatTratt, magRaw, subcolRows] = await Promise.all([pFlatTratt, pMagazzino, pSubcol]);
+  timePhase(timings, 'trattamenti', (timings.trattamenti_flat || 0) + (timings.trattamenti_subcol || 0));
+
+  const prodottiById = new Map((magRaw.prodotti || []).map((p) => [String(p.id), p]));
+
   /** @type {Array<object>} */
   const prodottiCosti = [];
   /** @type {Set<string>} */
   const magazzinoIdsDaTrattamenti = new Set();
 
-  const productLoaders = [];
+  const pushTrattamento = (row, meta) => {
+    if (!row) return;
+    for (const id of row.magazzinoMovimentoIds || []) {
+      if (id) magazzinoIdsDaTrattamenti.add(String(id));
+    }
+    const split = splitCostoProdottoCarburanteFromTrattamento(row, { prodottiById });
+    const voci = prodottoVociFromTrattamento(row, { prodottiById })
+      .map((v) => ({ ...v, origine: 'trattamento' }));
+    prodottiCosti.push({
+      id: row.id,
+      terrenoId: meta.terrenoId,
+      dataIso: dataIsoFromAny(row.data),
+      campagnaId: meta.campagnaId || row.campagnaId || null,
+      coltura: meta.coltura || null,
+      origine: 'trattamento',
+      voci,
+      costoProdotti: split.costoProdotti,
+      costoCarburante: split.costoCarburante,
+      missingProdotti: !!split.missingProdotti,
+      missingCarburante: !!split.missingCarburante,
+      notes: split.notes || []
+    });
+  };
 
-  if (mods.has('seminativo')) {
-    productLoaders.push((async () => {
-      const tP = performance.now();
-      try {
-        const list = await loadTrattamentiFlatInRange(tenantId, 'trattamentiSeminativo', start, end);
-        for (const row of list || []) {
-          if (!row || !dataIsoInRange(row.data, start, end)) continue;
-          const tid = row.terrenoId;
-          if (!tid || !terrenoById.has(String(tid))) continue;
-          for (const id of row.magazzinoMovimentoIds || []) {
-            if (id) magazzinoIdsDaTrattamenti.add(String(id));
-          }
-          const p = prodottoCostFromTrattamento(row);
-          const voci = prodottoVociFromTrattamento(row).map((v) => ({ ...v, origine: 'trattamento' }));
-          prodottiCosti.push({
-            id: row.id,
-            terrenoId: String(tid),
-            dataIso: dataIsoFromAny(row.data),
-            campagnaId: row.campagnaId || null,
-            coltura: row.colturaNome || null,
-            origine: 'trattamento',
-            voci,
-            ...p
-          });
-        }
-      } catch (e) {
-        console.warn('[report-economici] seminativo trattamenti', e && e.message);
-      }
-      timePhase(timings, 'trattamenti_seminativo', performance.now() - tP);
-    })());
+  for (const row of flatTratt.seminativo || []) {
+    if (!row || !dataIsoInRange(row.data, start, end)) continue;
+    const tid = row.terrenoId;
+    if (!tid || !terrenoById.has(String(tid))) continue;
+    pushTrattamento(row, {
+      terrenoId: String(tid),
+      campagnaId: row.campagnaId || null,
+      coltura: row.colturaNome || null
+    });
   }
-
-  if (mods.has('orticole')) {
-    productLoaders.push((async () => {
-      const tP = performance.now();
-      try {
-        const list = await loadTrattamentiFlatInRange(tenantId, 'trattamentiOrticole', start, end);
-        for (const row of list || []) {
-          if (!row || !dataIsoInRange(row.data, start, end)) continue;
-          const tid = row.terrenoId;
-          if (!tid || !terrenoById.has(String(tid))) continue;
-          for (const id of row.magazzinoMovimentoIds || []) {
-            if (id) magazzinoIdsDaTrattamenti.add(String(id));
-          }
-          const p = prodottoCostFromTrattamento(row);
-          const voci = prodottoVociFromTrattamento(row).map((v) => ({ ...v, origine: 'trattamento' }));
-          prodottiCosti.push({
-            id: row.id,
-            terrenoId: String(tid),
-            dataIso: dataIsoFromAny(row.data),
-            campagnaId: row.campagnaId || null,
-            coltura: row.colturaNome || null,
-            origine: 'trattamento',
-            voci,
-            ...p
-          });
-        }
-      } catch (e) {
-        console.warn('[report-economici] orticole trattamenti', e && e.message);
-      }
-      timePhase(timings, 'trattamenti_orticole', performance.now() - tP);
-    })());
+  for (const row of flatTratt.orticole || []) {
+    if (!row || !dataIsoInRange(row.data, start, end)) continue;
+    const tid = row.terrenoId;
+    if (!tid || !terrenoById.has(String(tid))) continue;
+    pushTrattamento(row, {
+      terrenoId: String(tid),
+      campagnaId: row.campagnaId || null,
+      coltura: row.colturaNome || null
+    });
   }
-
-  if (mods.has('vigneto')) {
-    productLoaders.push((async () => {
-      const tP = performance.now();
-      try {
-        await Promise.all((vignetiList || []).map(async (v) => {
-          if (!v || !v.id || !v.terrenoId || !terrenoById.has(String(v.terrenoId))) return;
-          const docs = await loadTrattamentiSubcol(tenantId, `vigneti/${v.id}/trattamenti`, start, end);
-          for (const row of docs) {
-            for (const id of row.magazzinoMovimentoIds || []) {
-              if (id) magazzinoIdsDaTrattamenti.add(String(id));
-            }
-            const p = prodottoCostFromTrattamento(row);
-            const voci = prodottoVociFromTrattamento(row).map((vx) => ({ ...vx, origine: 'trattamento' }));
-            prodottiCosti.push({
-              id: row.id,
-              terrenoId: String(v.terrenoId),
-              dataIso: dataIsoFromAny(row.data),
-              coltura: (v.varieta && String(v.varieta).trim()) || 'Vite',
-              origine: 'trattamento',
-              voci,
-              ...p
-            });
-          }
-        }));
-      } catch (e) {
-        console.warn('[report-economici] vigneto trattamenti', e && e.message);
-      }
-      timePhase(timings, 'trattamenti_vigneto', performance.now() - tP);
-    })());
+  for (const item of subcolRows || []) {
+    pushTrattamento(item.row, { terrenoId: item.terrenoId, coltura: item.coltura });
   }
-
-  if (mods.has('frutteto')) {
-    productLoaders.push((async () => {
-      const tP = performance.now();
-      try {
-        await Promise.all((fruttetiList || []).map(async (f) => {
-          if (!f || !f.id || !f.terrenoId || !terrenoById.has(String(f.terrenoId))) return;
-          const docs = await loadTrattamentiSubcol(tenantId, `frutteti/${f.id}/trattamenti`, start, end);
-          for (const row of docs) {
-            for (const id of row.magazzinoMovimentoIds || []) {
-              if (id) magazzinoIdsDaTrattamenti.add(String(id));
-            }
-            const p = prodottoCostFromTrattamento(row);
-            const voci = prodottoVociFromTrattamento(row).map((vx) => ({ ...vx, origine: 'trattamento' }));
-            prodottiCosti.push({
-              id: row.id,
-              terrenoId: String(f.terrenoId),
-              dataIso: dataIsoFromAny(row.data),
-              coltura: (f.specie && String(f.specie).trim())
-                || (f.varieta && String(f.varieta).trim())
-                || 'Frutteto',
-              origine: 'trattamento',
-              voci,
-              ...p
-            });
-          }
-        }));
-      } catch (e) {
-        console.warn('[report-economici] frutteto trattamenti', e && e.message);
-      }
-      timePhase(timings, 'trattamenti_frutteto', performance.now() - tP);
-    })());
-  }
-
-  await Promise.all(productLoaders);
 
   if (mods.has('magazzino')) {
-    const tP = performance.now();
     try {
-      const { getAllProdotti } = await import('../../magazzino/services/prodotti-service.js');
-      const [movimenti, prodotti] = await Promise.all([
-        loadUsciteMagazzinoInRange(start, end),
-        getAllProdotti().catch(() => [])
-      ]);
-      const prodottiById = new Map((prodotti || []).map((p) => [String(p.id), p]));
       const lavoriById = new Map((lavoriRaw || []).map((l) => [String(l.id), l]));
       const attivitaById = new Map((attivitaDocs || []).map((a) => [String(a.id), a]));
       const vignetoById = new Map((vignetiList || []).map((v) => [String(v.id), v]));
@@ -947,7 +963,7 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
       const campagnaOrtById = new Map((campagneOrticole || []).map((c) => [String(c.id), c]));
 
       const uscite = filterUsciteMagazzinoPerEconomici(
-        (movimenti || []).filter((m) => m && dataIsoInRange(m.data, start, end)),
+        (magRaw.movimenti || []).filter((m) => m && dataIsoInRange(m.data, start, end)),
         magazzinoIdsDaTrattamenti
       );
 
@@ -993,38 +1009,38 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
           || mov.prodottoNome
           || 'Prodotto';
         const qty = Number(mov.quantita) || 0;
+        const isCarb = (p.costoCarburante != null && p.costoCarburante !== 0) || p.missingCarburante;
         const voce = {
           origine: 'uscita_magazzino',
+          categoria: isCarb ? 'carburante' : 'prodotti',
           descrizione: `Uscita magazzino: ${nomeProd}${qty ? ` × ${qty}` : ''}`,
-          importo: p.missingProdotti ? null : p.costoProdotti,
-          prezzoMancante: !!p.missingProdotti
+          importo: isCarb
+            ? (p.missingCarburante ? null : p.costoCarburante)
+            : (p.missingProdotti ? null : p.costoProdotti),
+          prezzoMancante: isCarb ? !!p.missingCarburante : !!p.missingProdotti
+        };
+        const entry = {
+          id: mov.id,
+          dataIso: dataIsoFromAny(mov.data),
+          coltura: colturaHint,
+          campagnaId,
+          origine: 'uscita_magazzino',
+          voci: [voce],
+          costoProdotti: p.costoProdotti,
+          costoCarburante: p.costoCarburante,
+          missingProdotti: !!p.missingProdotti,
+          missingCarburante: !!p.missingCarburante,
+          notes: p.notes || []
         };
         if (terrenoId && terrenoById.has(String(terrenoId))) {
-          prodottiCosti.push({
-            id: mov.id,
-            terrenoId: String(terrenoId),
-            dataIso: dataIsoFromAny(mov.data),
-            coltura: colturaHint,
-            campagnaId,
-            origine: 'uscita_magazzino',
-            voci: [voce],
-            ...p
-          });
+          prodottiCosti.push({ ...entry, terrenoId: String(terrenoId) });
         } else {
-          prodottiCosti.push({
-            id: mov.id,
-            nonAttribuito: true,
-            dataIso: dataIsoFromAny(mov.data),
-            origine: 'uscita_magazzino',
-            voci: [voce],
-            ...p
-          });
+          prodottiCosti.push({ ...entry, nonAttribuito: true });
         }
       }
     } catch (e) {
-      console.warn('[report-economici] magazzino uscite', e && e.message);
+      console.warn('[report-economici] magazzino merge', e && e.message);
     }
-    timePhase(timings, 'magazzino', performance.now() - tP);
   }
 
   timePhase(timings, 'totale', (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()) - tAll);
@@ -1158,6 +1174,11 @@ export {
   companyTotal,
   prodottoCostFromTrattamento,
   prodottoVociFromTrattamento,
+  splitCostoProdottoCarburanteFromTrattamento,
+  isProdottoCarburante,
+  aggregateMonthlyFromVoci,
+  aggregateByTerrenoForChart,
+  countVociIncomplete,
   resolveColturaAtDate,
   sumNullable,
   sumVociImporti,

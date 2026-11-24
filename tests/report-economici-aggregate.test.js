@@ -21,7 +21,11 @@ import {
   mergeDocsById,
   dataIsoInRange,
   dataIsoFromAny,
-  totalsByColtura
+  totalsByColtura,
+  isProdottoCarburante,
+  splitCostoProdottoCarburanteFromTrattamento,
+  aggregateMonthlyFromVoci,
+  aggregateByTerrenoForChart
 } from '../modules/report/services/report-economici-aggregate.js';
 
 describe('Report Economici — aggregazione', () => {
@@ -430,6 +434,88 @@ describe('Report Economici — aggregazione', () => {
     const mano = voci.filter((v) => v.categoria === 'manodopera');
     expect(mano).toHaveLength(1);
     expect(mano[0].importo).toBe(60);
+  });
+
+  it('isProdottoCarburante: categoria anagrafica o nome (gasolio/benzina/carburante/GPL)', () => {
+    expect(isProdottoCarburante({ categoria: 'carburante', nome: 'X' })).toBe(true);
+    expect(isProdottoCarburante({ categoria: 'fitofarmaci', nome: 'Rame' })).toBe(false);
+    expect(isProdottoCarburante('Gasolio agricolo')).toBe(true);
+    expect(isProdottoCarburante('Benzina verde')).toBe(true);
+    expect(isProdottoCarburante('GPL autotrazione')).toBe(true);
+    expect(isProdottoCarburante('Carburante trakt')).toBe(true);
+    expect(isProdottoCarburante('Concime NPK')).toBe(false);
+  });
+
+  it('split carburante vs prodotti: somme 4 categorie e export colonna Carburante', () => {
+    const split = splitCostoProdottoCarburanteFromTrattamento({
+      prodotti: [
+        { prodotto: 'Rame', costo: 40, quantita: 1 },
+        { prodotto: 'Gasolio', costo: 60, quantita: 20 }
+      ]
+    });
+    expect(split.costoProdotti).toBe(40);
+    expect(split.costoCarburante).toBe(60);
+
+    const pFuel = prodottoCostFromMovimentoUscita(
+      { quantita: 10, prezzoUnitario: 1.5 },
+      { categoria: 'carburante', nome: 'Gasolio', prezzoUnitario: 1.5 }
+    );
+    expect(pFuel.costoCarburante).toBe(15);
+    expect(pFuel.costoProdotti).toBe(0);
+
+    const report = assembleEconomiciReport({
+      terreni,
+      colturaContext,
+      lavoriCosti: [
+        { terrenoId: 't1', dataIso: '2026-01-10', tipoLavoro: 'Aratura', ore: 2, costoManodopera: 30, costoMacchine: 20 }
+      ],
+      attivitaCosti: [],
+      prodottiCosti: [
+        {
+          terrenoId: 't1',
+          dataIso: '2026-01-11',
+          costoProdotti: 40,
+          costoCarburante: 60,
+          origine: 'trattamento',
+          voci: [
+            { descrizione: 'Rame', importo: 40, categoria: 'prodotti', origine: 'trattamento' },
+            { descrizione: 'Gasolio', importo: 60, categoria: 'carburante', origine: 'trattamento' }
+          ]
+        },
+        {
+          terrenoId: 't1',
+          dataIso: '2026-01-12',
+          costoProdotti: 0,
+          costoCarburante: 15,
+          origine: 'uscita_magazzino',
+          voci: [{ descrizione: 'Uscita magazzino: Gasolio × 10', importo: 15, categoria: 'carburante', origine: 'uscita_magazzino' }]
+        }
+      ]
+    });
+    expect(report.rows).toHaveLength(1);
+    const row = report.rows[0];
+    expect(row.costoManodopera).toBe(30);
+    expect(row.costoMacchine).toBe(20);
+    expect(row.costoProdotti).toBe(40);
+    expect(row.costoCarburante).toBe(75);
+    expect(row.totale).toBe(165);
+
+    const tot = companyTotal(report.rows);
+    expect(tot.costoCarburante).toBe(75);
+    expect(tot.totale).toBe(165);
+
+    const fuelVoci = vociForRow(report.voci, row, 'carburante');
+    expect(sumVociImporti(fuelVoci).value).toBe(75);
+
+    const exportData = prepareEconomiciExportData(report, { periodoLabel: 'Test' });
+    expect(exportData.dettaglio[0].costoCarburante).toBe(75);
+    expect(exportData.voci.some((v) => v.categoria === 'carburante')).toBe(true);
+
+    const monthly = aggregateMonthlyFromVoci(report.voci);
+    expect(monthly.some((m) => m.key === '2026-01' && m.totale >= 165)).toBe(true);
+
+    const byTerreno = aggregateByTerrenoForChart(report.rows, 8);
+    expect(byTerreno[0].costoCarburante).toBe(75);
   });
 
   it('merge dual format: trattamento data stringa + Timestamp nello stesso periodo, contati una volta', () => {

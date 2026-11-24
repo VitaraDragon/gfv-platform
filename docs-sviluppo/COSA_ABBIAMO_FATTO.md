@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — Report Economici: velocità, export filtrato, dettaglio voci.**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: layout grafici, Carburante, carichi paralleli.**
+
+## 2026-11-24 — Report Economici: layout con grafici, colonna Carburante, carichi in parallelo
+
+Su `feature/economici-layout-grafici-carburante` (PR verso develop). Nessun merge, nessun deploy.
+
+1) Prestazioni: letture indipendenti (terreni/lavori/attività/tariffe, campagne, magazzino, trattamenti) avviate in **parallelo** con `Promise.all`; resta il disegno progressivo manodopera/macchine → prodotti. Obiettivo timing console sotto 5 s senza indici/functions/rules nuovi. 2) Categoria **Carburante** (helper `isProdottoCarburante`: categoria anagrafica o nome gasolio/benzina/carburante/GPL) in tabella, totali, €/ha, dettaglio voci, export e Note; niente doppio conteggio magazzino/trattamento. 3) Layout da mockup approvato: KPI in alto (barretta quote), ciambella, barre per terreno, andamento mensile da voci in cache, tabella desktop (colonna fissa, ordinamento, mini-bar) e schede mobile ≤600px; Chart.js 4.4.0 CDN; avviso totale parziale in alto. Guide REPORT + test helper/somme/export aggiornati.
 
 ## 2026-11-23 — Report Economici: velocità, export filtrato, dettaglio per riga
 

@@ -19,6 +19,40 @@ export function euro(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
+/**
+ * Riconosce un prodotto carburante da anagrafica (categoria/tipo) o dal nome
+ * (gasolio / benzina / carburante / GPL). Un solo helper riusabile e testato.
+ * @param {object|string|null|undefined} prodottoOrNome
+ * @returns {boolean}
+ */
+export function isProdottoCarburante(prodottoOrNome) {
+  if (prodottoOrNome == null || prodottoOrNome === '') return false;
+  if (typeof prodottoOrNome === 'object') {
+    const cat = String(
+      prodottoOrNome.categoria
+      || prodottoOrNome.tipo
+      || prodottoOrNome.tipoProdotto
+      || ''
+    ).trim().toLowerCase();
+    if (cat === 'carburante' || cat === 'carburanti') return true;
+    const nome = String(
+      prodottoOrNome.nome
+      || prodottoOrNome.nomeCommerciale
+      || prodottoOrNome.prodotto
+      || ''
+    ).trim();
+    if (nome && isNomeCarburante(nome)) return true;
+    return false;
+  }
+  return isNomeCarburante(String(prodottoOrNome));
+}
+
+function isNomeCarburante(nome) {
+  const n = String(nome || '').trim().toLowerCase();
+  if (!n) return false;
+  return /(^|[^a-z0-9])(gasolio|benzina|carburante|carburanti|gpl)([^a-z0-9]|$)/i.test(n);
+}
+
 export function formatLocalIsoDate(d) {
   const x = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(x.getTime())) return '';
@@ -288,7 +322,8 @@ export function aggregateEconomiciRows(lines, filters = {}) {
         ore: 0,
         mano: emptyCostAcc(),
         mac: emptyCostAcc(),
-        prod: emptyCostAcc()
+        prod: emptyCostAcc(),
+        carb: emptyCostAcc()
       };
       map.set(key, row);
     }
@@ -318,6 +353,12 @@ export function aggregateEconomiciRows(lines, filters = {}) {
       !!line.missingProdotti,
       line.missingProdotti ? `prodotti (${label})` : null
     );
+    mergeCostAcc(
+      row.carb,
+      line.missingCarburante ? null : line.costoCarburante,
+      !!line.missingCarburante,
+      line.missingCarburante ? `carburante (${label})` : null
+    );
 
     for (const n of line.notes || []) {
       if (n) notes.add(String(n));
@@ -328,10 +369,12 @@ export function aggregateEconomiciRows(lines, filters = {}) {
     const mano = finalizeCostAcc(r.mano);
     const mac = finalizeCostAcc(r.mac);
     const prod = finalizeCostAcc(r.prod);
+    const carb = finalizeCostAcc(r.carb);
     const tot = combineColumnResults([
       { ...mano, missingActivity: r.mano.missing && !r.mano.known },
       { ...mac, missingActivity: r.mac.missing && !r.mac.known },
-      { ...prod, missingActivity: r.prod.missing && !r.prod.known }
+      { ...prod, missingActivity: r.prod.missing && !r.prod.known },
+      { ...carb, missingActivity: r.carb.missing && !r.carb.known }
     ]);
     const partialNotes = [];
     if (mano.partial || (mano.value == null && r.mano.missing)) {
@@ -342,6 +385,9 @@ export function aggregateEconomiciRows(lines, filters = {}) {
     }
     if (prod.partial || (prod.value == null && r.prod.missing)) {
       partialNotes.push(`parziale: manca il costo di prodotti (${r.terrenoNome} · ${r.coltura})`);
+    }
+    if (carb.partial || (carb.value == null && r.carb.missing)) {
+      partialNotes.push(`parziale: manca il costo di carburante (${r.terrenoNome} · ${r.coltura})`);
     }
     for (const n of partialNotes) notes.add(n);
 
@@ -355,11 +401,13 @@ export function aggregateEconomiciRows(lines, filters = {}) {
       costoManodopera: mano.value,
       costoMacchine: mac.value,
       costoProdotti: prod.value,
+      costoCarburante: carb.value,
       totale: tot.value,
       euroHa: euroPerHa(tot.value, r.ettari),
       partialManodopera: mano.partial,
       partialMacchine: mac.partial,
       partialProdotti: prod.partial,
+      partialCarburante: carb.partial,
       partialTotale: tot.partial,
       partialEuroHa: tot.partial && tot.value != null,
       noteParziale: partialNotes.join('; ')
@@ -411,6 +459,7 @@ function sumCostsFromRows(list) {
   const mano = emptyCostAcc();
   const mac = emptyCostAcc();
   const prod = emptyCostAcc();
+  const carb = emptyCostAcc();
   const hints = [];
   for (const r of list || []) {
     if (r.costoManodopera != null) mergeCostAcc(mano, r.costoManodopera, !!r.partialManodopera, null);
@@ -431,15 +480,23 @@ function sumCostsFromRows(list) {
     } else {
       mergeCostAcc(prod, 0, false, null);
     }
+    if (r.costoCarburante != null) mergeCostAcc(carb, r.costoCarburante, !!r.partialCarburante, null);
+    else if (r.partialCarburante || (r.noteParziale && /carburante/i.test(r.noteParziale))) {
+      mergeCostAcc(carb, null, true, null);
+    } else {
+      mergeCostAcc(carb, 0, false, null);
+    }
     if (r.noteParziale) hints.push(r.noteParziale);
   }
   const m = finalizeCostAcc(mano);
   const c = finalizeCostAcc(mac);
   const p = finalizeCostAcc(prod);
+  const f = finalizeCostAcc(carb);
   const tot = combineColumnResults([
     { ...m, missingActivity: !mano.known && mano.missing },
     { ...c, missingActivity: !mac.known && mac.missing },
-    { ...p, missingActivity: !prod.known && prod.missing }
+    { ...p, missingActivity: !prod.known && prod.missing },
+    { ...f, missingActivity: !carb.known && carb.missing }
   ]);
   let ettari = 0;
   for (const r of list || []) ettari += Number(r.ettari) || 0;
@@ -447,11 +504,13 @@ function sumCostsFromRows(list) {
     costoManodopera: m.value,
     costoMacchine: c.value,
     costoProdotti: p.value,
+    costoCarburante: f.value,
     totale: tot.value,
     euroHa: euroPerHa(tot.value, ettari),
     partialManodopera: m.partial,
     partialMacchine: c.partial,
     partialProdotti: p.partial,
+    partialCarburante: f.partial,
     partialTotale: tot.partial,
     partialEuroHa: tot.partial && tot.value != null,
     noteParziale: hints.join('; ')
@@ -527,6 +586,7 @@ export function buildEconomiciLines(input = {}) {
       costoManodopera: lav.missingManodopera ? null : (lav.costoManodopera != null ? Number(lav.costoManodopera) : 0),
       costoMacchine: lav.missingMacchine ? null : (lav.costoMacchine != null ? Number(lav.costoMacchine) : 0),
       costoProdotti: 0,
+      costoCarburante: 0,
       missingManodopera: !!lav.missingManodopera,
       missingMacchine: !!lav.missingMacchine,
       notes: lav.notes || []
@@ -550,6 +610,7 @@ export function buildEconomiciLines(input = {}) {
       costoManodopera: att.missingManodopera ? null : (att.costoManodopera != null ? Number(att.costoManodopera) : 0),
       costoMacchine: att.missingMacchine ? null : (att.costoMacchine != null ? Number(att.costoMacchine) : 0),
       costoProdotti: 0,
+      costoCarburante: 0,
       missingManodopera: !!att.missingManodopera,
       missingMacchine: !!att.missingMacchine,
       notes: att.notes || []
@@ -558,6 +619,8 @@ export function buildEconomiciLines(input = {}) {
 
   for (const prod of input.prodottiCosti || []) {
     if (!prod) continue;
+    const costoProdotti = prod.missingProdotti ? null : (prod.costoProdotti != null ? Number(prod.costoProdotti) : 0);
+    const costoCarburante = prod.missingCarburante ? null : (prod.costoCarburante != null ? Number(prod.costoCarburante) : 0);
     const nonAttribuito = !!prod.nonAttribuito || !prod.terrenoId;
     if (nonAttribuito) {
       lines.push({
@@ -569,8 +632,10 @@ export function buildEconomiciLines(input = {}) {
         ore: 0,
         costoManodopera: 0,
         costoMacchine: 0,
-        costoProdotti: prod.missingProdotti ? null : (prod.costoProdotti != null ? Number(prod.costoProdotti) : 0),
+        costoProdotti,
+        costoCarburante,
         missingProdotti: !!prod.missingProdotti,
+        missingCarburante: !!prod.missingCarburante,
         notes: prod.notes || []
       });
       continue;
@@ -586,8 +651,10 @@ export function buildEconomiciLines(input = {}) {
       ore: 0,
       costoManodopera: 0,
       costoMacchine: 0,
-      costoProdotti: prod.missingProdotti ? null : (prod.costoProdotti != null ? Number(prod.costoProdotti) : 0),
+      costoProdotti,
+      costoCarburante,
       missingProdotti: !!prod.missingProdotti,
+      missingCarburante: !!prod.missingCarburante,
       notes: prod.notes || []
     });
   }
@@ -596,55 +663,220 @@ export function buildEconomiciLines(input = {}) {
 }
 
 export function prodottoCostFromTrattamento(row) {
-  if (!row) return { costoProdotti: 0, missingProdotti: false, notes: [] };
-  const prodotti = Array.isArray(row.prodotti) ? row.prodotti : [];
-  const costoEsplicito = row.costoProdotto != null ? Number(row.costoProdotto) : null;
-  const sommaRighe = prodotti.reduce((s, p) => s + (Number(p && p.costo) || 0), 0);
-  const hasQty = prodotti.some((p) => {
-    const q = Number(p && (p.quantita != null ? p.quantita : p.dosaggio));
-    return !Number.isNaN(q) && q > 0;
-  }) || (Number(row.quantita) > 0);
-
-  if (costoEsplicito != null && !Number.isNaN(costoEsplicito) && costoEsplicito > 0) {
-    return { costoProdotti: euro(costoEsplicito), missingProdotti: false, notes: [] };
-  }
-  if (sommaRighe > 0) {
-    return { costoProdotti: euro(sommaRighe), missingProdotti: false, notes: [] };
-  }
-  if (hasQty || (prodotti.length > 0 && (costoEsplicito === 0 || costoEsplicito == null))) {
+  const split = splitCostoProdottoCarburanteFromTrattamento(row);
+  const known = (split.costoProdotti || 0) + (split.costoCarburante || 0);
+  const anyKnown = (split.costoProdotti != null && split.costoProdotti !== 0)
+    || (split.costoCarburante != null && split.costoCarburante !== 0)
+    || (split.costoProdotti === 0 && split.costoCarburante === 0 && !split.missingProdotti && !split.missingCarburante);
+  if (split.missingProdotti && split.missingCarburante && !anyKnown) {
     return {
       costoProdotti: null,
       missingProdotti: true,
+      notes: split.notes
+    };
+  }
+  // Retrocompat: totale prodotti+carburante nella sola chiave costoProdotti
+  // (i caller nuovi usano splitCostoProdottoCarburanteFromTrattamento).
+  if (split.missingProdotti && split.costoProdotti == null && split.costoCarburante == null && split.missingCarburante) {
+    return { costoProdotti: null, missingProdotti: true, notes: split.notes };
+  }
+  const tot = euro((Number(split.costoProdotti) || 0) + (Number(split.costoCarburante) || 0));
+  const missing = !!(split.missingProdotti || split.missingCarburante);
+  if (tot === 0 && missing && split.costoProdotti == null && split.costoCarburante == null) {
+    return { costoProdotti: null, missingProdotti: true, notes: split.notes };
+  }
+  return {
+    costoProdotti: (split.costoProdotti == null && split.costoCarburante == null && missing) ? null : tot,
+    missingProdotti: missing && tot != null,
+    notes: split.notes
+  };
+}
+
+/**
+ * Spezza il costo di un trattamento in Prodotti vs Carburante (per riga prodotto).
+ * @param {object} row
+ * @param {{ prodottiById?: Map<string, object> }} [opts]
+ */
+export function splitCostoProdottoCarburanteFromTrattamento(row, opts = {}) {
+  if (!row) {
+    return {
+      costoProdotti: 0,
+      costoCarburante: 0,
+      missingProdotti: false,
+      missingCarburante: false,
+      notes: []
+    };
+  }
+  const prodotti = Array.isArray(row.prodotti) ? row.prodotti : [];
+  const prodottiById = opts.prodottiById || null;
+  const notes = [];
+
+  if (prodotti.length > 0) {
+    let sumProd = 0;
+    let sumCarb = 0;
+    let knownProd = false;
+    let knownCarb = false;
+    let missingProd = false;
+    let missingCarb = false;
+    let anyQty = false;
+
+    for (const p of prodotti) {
+      if (!p) continue;
+      const anag = p.prodottoId && prodottiById
+        ? prodottiById.get(String(p.prodottoId))
+        : null;
+      const isCarb = isProdottoCarburante(anag || p);
+      const qty = Number(p.quantita != null ? p.quantita : p.dosaggio);
+      const hasQty = !Number.isNaN(qty) && qty > 0;
+      if (hasQty) anyQty = true;
+      const costo = p.costo != null ? Number(p.costo) : null;
+      if (costo != null && !Number.isNaN(costo) && costo > 0) {
+        if (isCarb) {
+          knownCarb = true;
+          sumCarb += costo;
+        } else {
+          knownProd = true;
+          sumProd += costo;
+        }
+      } else if (hasQty || (p.prodotto || p.nome)) {
+        if (isCarb) missingCarb = true;
+        else missingProd = true;
+      }
+    }
+
+    if (knownProd || knownCarb || missingProd || missingCarb) {
+      if ((missingProd || missingCarb) && !(knownProd || knownCarb)) {
+        notes.push('Prezzo prodotto non in anagrafica (o costo non registrato sul trattamento)');
+      }
+      return {
+        costoProdotti: knownProd ? euro(sumProd) : (missingProd ? null : 0),
+        costoCarburante: knownCarb ? euro(sumCarb) : (missingCarb ? null : 0),
+        missingProdotti: missingProd,
+        missingCarburante: missingCarb,
+        notes
+      };
+    }
+
+    // Righe senza costi: eventuale costo esplicito sul doc
+    const costoEsplicito = row.costoProdotto != null ? Number(row.costoProdotto) : null;
+    if (costoEsplicito != null && !Number.isNaN(costoEsplicito) && costoEsplicito > 0) {
+      const allCarb = prodotti.every((p) => isProdottoCarburante(
+        (p && p.prodottoId && prodottiById && prodottiById.get(String(p.prodottoId))) || p
+      ));
+      if (allCarb) {
+        return {
+          costoProdotti: 0,
+          costoCarburante: euro(costoEsplicito),
+          missingProdotti: false,
+          missingCarburante: false,
+          notes: []
+        };
+      }
+      return {
+        costoProdotti: euro(costoEsplicito),
+        costoCarburante: 0,
+        missingProdotti: false,
+        missingCarburante: false,
+        notes: []
+      };
+    }
+    if (anyQty || prodotti.length > 0) {
+      notes.push('Prezzo prodotto non in anagrafica (o costo non registrato sul trattamento)');
+      const allCarb = prodotti.every((p) => isProdottoCarburante(
+        (p && p.prodottoId && prodottiById && prodottiById.get(String(p.prodottoId))) || p
+      ));
+      return {
+        costoProdotti: allCarb ? 0 : null,
+        costoCarburante: allCarb ? null : 0,
+        missingProdotti: !allCarb,
+        missingCarburante: allCarb,
+        notes
+      };
+    }
+  }
+
+  const costoEsplicito = row.costoProdotto != null ? Number(row.costoProdotto) : null;
+  const hasQty = (Number(row.quantita) > 0);
+  if (costoEsplicito != null && !Number.isNaN(costoEsplicito) && costoEsplicito > 0) {
+    return {
+      costoProdotti: euro(costoEsplicito),
+      costoCarburante: 0,
+      missingProdotti: false,
+      missingCarburante: false,
+      notes: []
+    };
+  }
+  if (hasQty) {
+    return {
+      costoProdotti: null,
+      costoCarburante: 0,
+      missingProdotti: true,
+      missingCarburante: false,
       notes: ['Prezzo prodotto non in anagrafica (o costo non registrato sul trattamento)']
     };
   }
-  return { costoProdotti: 0, missingProdotti: false, notes: [] };
+  return {
+    costoProdotti: 0,
+    costoCarburante: 0,
+    missingProdotti: false,
+    missingCarburante: false,
+    notes: []
+  };
 }
 
 /**
  * Costo di un’uscita magazzino (non scarico trattamento).
+ * Se il prodotto è carburante, valorizza `costoCarburante` (e `costoProdotti` = 0).
  * @param {object} mov
- * @param {{ prezzoUnitario?: number|null }|null} [prodottoAnag]
+ * @param {{ prezzoUnitario?: number|null, categoria?: string, nome?: string }|null} [prodottoAnag]
  */
 export function prodottoCostFromMovimentoUscita(mov, prodottoAnag = null) {
-  if (!mov) return { costoProdotti: 0, missingProdotti: false, notes: [] };
+  const empty = {
+    costoProdotti: 0,
+    costoCarburante: 0,
+    missingProdotti: false,
+    missingCarburante: false,
+    notes: []
+  };
+  if (!mov) return empty;
   const qty = Number(mov.quantita) || 0;
-  if (qty <= 0) return { costoProdotti: 0, missingProdotti: false, notes: [] };
+  if (qty <= 0) return empty;
+
+  const isCarb = isProdottoCarburante(prodottoAnag)
+    || isProdottoCarburante(mov.prodottoNome)
+    || isProdottoCarburante(mov);
 
   let prezzo = mov.prezzoUnitario;
   if (prezzo == null || !(Number(prezzo) > 0)) {
     prezzo = prodottoAnag && prodottoAnag.prezzoUnitario;
   }
   if (prezzo == null || !(Number(prezzo) > 0)) {
+    const note = isCarb
+      ? ['Prezzo carburante non in anagrafica (uscita magazzino)']
+      : ['Prezzo prodotto non in anagrafica (uscita magazzino)'];
     return {
-      costoProdotti: null,
-      missingProdotti: true,
-      notes: ['Prezzo prodotto non in anagrafica (uscita magazzino)']
+      costoProdotti: isCarb ? 0 : null,
+      costoCarburante: isCarb ? null : 0,
+      missingProdotti: !isCarb,
+      missingCarburante: isCarb,
+      notes: note
+    };
+  }
+  const importo = euro(qty * Number(prezzo));
+  if (isCarb) {
+    return {
+      costoProdotti: 0,
+      costoCarburante: importo,
+      missingProdotti: false,
+      missingCarburante: false,
+      notes: []
     };
   }
   return {
-    costoProdotti: euro(qty * Number(prezzo)),
+    costoProdotti: importo,
+    costoCarburante: 0,
     missingProdotti: false,
+    missingCarburante: false,
     notes: []
   };
 }
@@ -717,7 +949,7 @@ export function filterEconomiciVoci(voci, filters = {}) {
  * Voci che compongono una riga (o una colonna di costo della riga).
  * @param {Array<object>} voci
  * @param {{ terrenoId: string, coltura: string }} row
- * @param {'manodopera'|'macchine'|'prodotti'|null} [categoria]
+ * @param {'manodopera'|'macchine'|'prodotti'|'carburante'|null} [categoria]
  */
 export function vociForRow(voci, row, categoria = null) {
   if (!row) return [];
@@ -739,25 +971,29 @@ export function vociForRow(voci, row, categoria = null) {
 /**
  * Dettaglio prodotti da un trattamento (una voce per prodotto, o una aggregata).
  * @param {object} row
- * @returns {Array<{ descrizione: string, importo: number|null, prezzoMancante: boolean, quantita?: number|null, unita?: string|null }>}
+ * @param {{ prodottiById?: Map<string, object> }} [opts]
+ * @returns {Array<{ descrizione: string, importo: number|null, prezzoMancante: boolean, categoria?: string, quantita?: number|null, unita?: string|null }>}
  */
-export function prodottoVociFromTrattamento(row) {
+export function prodottoVociFromTrattamento(row, opts = {}) {
   if (!row) return [];
   const prodotti = Array.isArray(row.prodotti) ? row.prodotti : [];
+  const prodottiById = opts.prodottiById || null;
   const costoEsplicito = row.costoProdotto != null ? Number(row.costoProdotto) : null;
   const tipo = (row.tipoTrattamento || row.tipoLavoro || 'Trattamento').toString().trim() || 'Trattamento';
 
   if (prodotti.length > 0) {
     const voci = [];
     let sommaRighe = 0;
-    let anyQty = false;
     let anyMissing = false;
     for (const p of prodotti) {
       if (!p) continue;
       const nome = (p.prodotto && String(p.prodotto).trim()) || 'Prodotto';
+      const anag = p.prodottoId && prodottiById
+        ? prodottiById.get(String(p.prodottoId))
+        : null;
+      const cat = isProdottoCarburante(anag || p) ? 'carburante' : 'prodotti';
       const qty = Number(p.quantita != null ? p.quantita : p.dosaggio);
       const hasQty = !Number.isNaN(qty) && qty > 0;
-      if (hasQty) anyQty = true;
       const costo = p.costo != null ? Number(p.costo) : null;
       if (costo != null && !Number.isNaN(costo) && costo > 0) {
         sommaRighe += costo;
@@ -765,6 +1001,7 @@ export function prodottoVociFromTrattamento(row) {
           descrizione: `${tipo}: ${nome}${hasQty ? ` × ${qty}${p.unitaDosaggio ? ` ${p.unitaDosaggio}` : ''}` : ''}`,
           importo: euro(costo),
           prezzoMancante: false,
+          categoria: cat,
           quantita: hasQty ? qty : null,
           unita: p.unitaDosaggio || null
         });
@@ -774,33 +1011,45 @@ export function prodottoVociFromTrattamento(row) {
           descrizione: `${tipo}: ${nome}${hasQty ? ` × ${qty}${p.unitaDosaggio ? ` ${p.unitaDosaggio}` : ''}` : ''}`,
           importo: null,
           prezzoMancante: true,
+          categoria: cat,
           quantita: hasQty ? qty : null,
           unita: p.unitaDosaggio || null
         });
       }
     }
     if (voci.length) {
-      // Se c’è un costo esplicito sul doc e le righe non lo spiegano, tieni le voci riga
-      // (regola aggregato invariata: costo esplicito vince sul totale riga).
       if (costoEsplicito != null && !Number.isNaN(costoEsplicito) && costoEsplicito > 0
         && Math.abs(costoEsplicito - sommaRighe) > 0.02 && !anyMissing) {
         return [{
           descrizione: `${tipo} (costo registrato)`,
           importo: euro(costoEsplicito),
-          prezzoMancante: false
+          prezzoMancante: false,
+          categoria: 'prodotti'
         }];
       }
       return voci;
     }
   }
 
-  const agg = prodottoCostFromTrattamento(row);
-  if ((agg.costoProdotti == null || agg.costoProdotti === 0) && !agg.missingProdotti) return [];
-  return [{
-    descrizione: tipo,
-    importo: agg.missingProdotti ? null : agg.costoProdotti,
-    prezzoMancante: !!agg.missingProdotti
-  }];
+  const split = splitCostoProdottoCarburanteFromTrattamento(row, opts);
+  const out = [];
+  if ((split.costoProdotti != null && split.costoProdotti !== 0) || split.missingProdotti) {
+    out.push({
+      descrizione: tipo,
+      importo: split.missingProdotti && split.costoProdotti == null ? null : split.costoProdotti,
+      prezzoMancante: !!split.missingProdotti && split.costoProdotti == null,
+      categoria: 'prodotti'
+    });
+  }
+  if ((split.costoCarburante != null && split.costoCarburante !== 0) || split.missingCarburante) {
+    out.push({
+      descrizione: `${tipo} (carburante)`,
+      importo: split.missingCarburante && split.costoCarburante == null ? null : split.costoCarburante,
+      prezzoMancante: !!split.missingCarburante && split.costoCarburante == null,
+      categoria: 'carburante'
+    });
+  }
+  return out;
 }
 
 /**
@@ -970,17 +1219,43 @@ export function buildEconomiciVoci(input = {}) {
 
   for (const prod of input.prodottiCosti || []) {
     if (!prod) continue;
-    const detail = Array.isArray(prod.voci) && prod.voci.length
-      ? prod.voci
-      : [{
-        descrizione: prod.descrizione || 'Prodotto',
-        importo: prod.missingProdotti ? null : prod.costoProdotti,
-        prezzoMancante: !!prod.missingProdotti,
-        origine: prod.origine || 'trattamento'
-      }];
+    let detail = Array.isArray(prod.voci) && prod.voci.length ? prod.voci : null;
+    if (!detail) {
+      detail = [];
+      if ((prod.costoProdotti != null && prod.costoProdotti !== 0) || prod.missingProdotti) {
+        detail.push({
+          descrizione: prod.descrizione || 'Prodotto',
+          importo: prod.missingProdotti ? null : prod.costoProdotti,
+          prezzoMancante: !!prod.missingProdotti,
+          categoria: 'prodotti',
+          origine: prod.origine || 'trattamento'
+        });
+      }
+      if ((prod.costoCarburante != null && prod.costoCarburante !== 0) || prod.missingCarburante) {
+        detail.push({
+          descrizione: prod.descrizione || 'Carburante',
+          importo: prod.missingCarburante ? null : prod.costoCarburante,
+          prezzoMancante: !!prod.missingCarburante,
+          categoria: 'carburante',
+          origine: prod.origine || 'trattamento'
+        });
+      }
+      if (!detail.length) {
+        detail.push({
+          descrizione: prod.descrizione || 'Prodotto',
+          importo: 0,
+          prezzoMancante: false,
+          categoria: 'prodotti',
+          origine: prod.origine || 'trattamento'
+        });
+      }
+    }
     const nonAttribuito = !!prod.nonAttribuito || !prod.terrenoId;
     if (nonAttribuito) {
       for (const d of detail) {
+        const cat = (d.categoria === 'carburante' || d.categoria === 'prodotti')
+          ? d.categoria
+          : (isProdottoCarburante(d.descrizione) ? 'carburante' : 'prodotti');
         pushVoce({
           terrenoId: TERRENO_NON_ATTRIBUITO_ID,
           terrenoNome: TERRENO_NON_ATTRIBUITO_NOME,
@@ -988,8 +1263,8 @@ export function buildEconomiciVoci(input = {}) {
           nonAttribuito: true,
           dataIso: prod.dataIso || d.dataIso || '',
           origine: d.origine || prod.origine || 'uscita_magazzino',
-          categoria: 'prodotti',
-          descrizione: d.descrizione || 'Uscita magazzino',
+          categoria: cat,
+          descrizione: d.descrizione || (cat === 'carburante' ? 'Uscita carburante' : 'Uscita magazzino'),
           importo: d.importo,
           prezzoMancante: !!d.prezzoMancante,
           sourceId: prod.id || null
@@ -1003,14 +1278,17 @@ export function buildEconomiciVoci(input = {}) {
     const coltura = resolve(prod.terrenoId, dataIso, prod);
     const terrenoNome = terreno.nome || terreno.podere || prod.terrenoId;
     for (const d of detail) {
+      const cat = (d.categoria === 'carburante' || d.categoria === 'prodotti')
+        ? d.categoria
+        : (isProdottoCarburante(d.descrizione) ? 'carburante' : 'prodotti');
       pushVoce({
         terrenoId: String(prod.terrenoId),
         terrenoNome,
         coltura,
         dataIso: d.dataIso || dataIso,
         origine: d.origine || prod.origine || 'trattamento',
-        categoria: 'prodotti',
-        descrizione: d.descrizione || 'Prodotto',
+        categoria: cat,
+        descrizione: d.descrizione || (cat === 'carburante' ? 'Carburante' : 'Prodotto'),
         importo: d.importo,
         prezzoMancante: !!d.prezzoMancante,
         sourceId: prod.id || null
@@ -1025,6 +1303,129 @@ export function buildEconomiciVoci(input = {}) {
     return String(a.descrizione || '').localeCompare(String(b.descrizione || ''), 'it');
   });
   return voci;
+}
+
+/**
+ * Andamento mensile dai soli importi già in cache (date delle voci). Nessuna lettura nuova.
+ * @param {Array<{ dataIso?: string, importo?: number|null, prezzoMancante?: boolean }>} voci
+ * @returns {Array<{ key: string, label: string, totale: number }>}
+ */
+export function aggregateMonthlyFromVoci(voci) {
+  /** @type {Map<string, number>} */
+  const map = new Map();
+  for (const v of voci || []) {
+    if (!v || v.prezzoMancante || v.importo == null || Number.isNaN(Number(v.importo))) continue;
+    const iso = String(v.dataIso || '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(iso)) continue;
+    map.set(iso, (map.get(iso) || 0) + Number(v.importo));
+  }
+  const keys = [...map.keys()].sort();
+  const mesi = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+  return keys.map((key) => {
+    const m = Number(key.slice(5, 7)) - 1;
+    const label = `${mesi[m] || key} ${key.slice(0, 4)}`;
+    return { key, label, totale: euro(map.get(key)) || 0 };
+  });
+}
+
+/**
+ * Barre per terreno: primi `topN`, poi «Altri»; «Non attribuito» sempre a sé.
+ * @param {Array<object>} rows
+ * @param {number} [topN=8]
+ */
+export function aggregateByTerrenoForChart(rows, topN = 8) {
+  /** @type {Map<string, object>} */
+  const map = new Map();
+  for (const r of rows || []) {
+    const nonAttr = !!r.nonAttribuito || r.terrenoId === TERRENO_NON_ATTRIBUITO_ID;
+    const id = nonAttr ? TERRENO_NON_ATTRIBUITO_ID : String(r.terrenoId || '');
+    if (!id) continue;
+    let acc = map.get(id);
+    if (!acc) {
+      acc = {
+        terrenoId: id,
+        terrenoNome: nonAttr ? TERRENO_NON_ATTRIBUITO_NOME : (r.terrenoNome || id),
+        nonAttribuito: nonAttr,
+        costoManodopera: 0,
+        costoMacchine: 0,
+        costoProdotti: 0,
+        costoCarburante: 0,
+        totale: 0
+      };
+      map.set(id, acc);
+    }
+    acc.costoManodopera += Number(r.costoManodopera) || 0;
+    acc.costoMacchine += Number(r.costoMacchine) || 0;
+    acc.costoProdotti += Number(r.costoProdotti) || 0;
+    acc.costoCarburante += Number(r.costoCarburante) || 0;
+    acc.totale += Number(r.totale) || 0;
+  }
+
+  const attributed = [...map.values()]
+    .filter((x) => !x.nonAttribuito)
+    .sort((a, b) => (b.totale || 0) - (a.totale || 0));
+  const nonAttrRow = map.get(TERRENO_NON_ATTRIBUITO_ID) || null;
+
+  const top = attributed.slice(0, Math.max(0, topN));
+  const rest = attributed.slice(Math.max(0, topN));
+  const out = top.map((x) => ({
+    ...x,
+    costoManodopera: euro(x.costoManodopera),
+    costoMacchine: euro(x.costoMacchine),
+    costoProdotti: euro(x.costoProdotti),
+    costoCarburante: euro(x.costoCarburante),
+    totale: euro(x.totale)
+  }));
+  if (rest.length) {
+    const altri = rest.reduce((a, x) => {
+      a.costoManodopera += Number(x.costoManodopera) || 0;
+      a.costoMacchine += Number(x.costoMacchine) || 0;
+      a.costoProdotti += Number(x.costoProdotti) || 0;
+      a.costoCarburante += Number(x.costoCarburante) || 0;
+      a.totale += Number(x.totale) || 0;
+      return a;
+    }, {
+      terrenoId: '__altri__',
+      terrenoNome: 'Altri',
+      nonAttribuito: false,
+      costoManodopera: 0,
+      costoMacchine: 0,
+      costoProdotti: 0,
+      costoCarburante: 0,
+      totale: 0
+    });
+    out.push({
+      ...altri,
+      costoManodopera: euro(altri.costoManodopera),
+      costoMacchine: euro(altri.costoMacchine),
+      costoProdotti: euro(altri.costoProdotti),
+      costoCarburante: euro(altri.costoCarburante),
+      totale: euro(altri.totale)
+    });
+  }
+  if (nonAttrRow && (nonAttrRow.totale || 0) > 0) {
+    out.push({
+      ...nonAttrRow,
+      costoManodopera: euro(nonAttrRow.costoManodopera),
+      costoMacchine: euro(nonAttrRow.costoMacchine),
+      costoProdotti: euro(nonAttrRow.costoProdotti),
+      costoCarburante: euro(nonAttrRow.costoCarburante),
+      totale: euro(nonAttrRow.totale)
+    });
+  }
+  return out;
+}
+
+/**
+ * Conteggio voci incomplete (prezzo mancante) già in cache.
+ * @param {Array<{ prezzoMancante?: boolean }>} voci
+ */
+export function countVociIncomplete(voci) {
+  let n = 0;
+  for (const v of voci || []) {
+    if (v && v.prezzoMancante) n += 1;
+  }
+  return n;
 }
 
 /**
