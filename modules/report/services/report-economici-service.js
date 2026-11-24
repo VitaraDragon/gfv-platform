@@ -46,15 +46,12 @@ import {
   totalsByColtura,
   euro
 } from './report-economici-aggregate.js';
-
-const TARIFFE_OPERAI_DEFAULT = {
-  semplice: 10.0,
-  specializzato: 12.0,
-  trattorista: 15.0,
-  meccanico: 14.0,
-  elettricista: 14.0,
-  altro: 10.0
-};
+import {
+  loadAttivitaInRange,
+  loadLavoriInRange,
+  loadTariffe,
+  resolveTariffaOperaio
+} from './report-labour-shared.js';
 
 /** @type {{ key: string, data: object }|null} */
 let periodBundleCache = null;
@@ -65,47 +62,6 @@ function modsSet(activeModules) {
 
 function periodKey(start, end, mods) {
   return `${formatLocalIsoDate(start)}|${formatLocalIsoDate(end)}|${[...mods].sort().join(',')}`;
-}
-
-function resolveTariffaOperaio(tariffeOperai, operaio) {
-  if (operaio && operaio.tariffaPersonalizzata != null && operaio.tariffaPersonalizzata !== '') {
-    return { tariffa: Number(operaio.tariffaPersonalizzata), fromConfig: true };
-  }
-  const tipo = (operaio && operaio.tipoOperaio) || null;
-  if (tariffeOperai && tipo && tariffeOperai[tipo] != null) {
-    return { tariffa: Number(tariffeOperai[tipo]), fromConfig: true };
-  }
-  if (tipo && TARIFFE_OPERAI_DEFAULT[tipo] != null) {
-    return { tariffa: TARIFFE_OPERAI_DEFAULT[tipo], fromConfig: false };
-  }
-  return { tariffa: 10.0, fromConfig: false };
-}
-
-async function loadTariffe(tenantId) {
-  const db = getDb();
-  let tariffeOperai = null;
-  let tariffaProprietario = null;
-  let tariffaProprietarioConfigurata = false;
-  if (!db || !tenantId) {
-    return { tariffeOperai, tariffaProprietario: 15, tariffaProprietarioConfigurata: false };
-  }
-  try {
-    const snap = await getDoc(doc(db, `tenants/${tenantId}/tariffe`, 'operai'));
-    if (snap.exists()) tariffeOperai = snap.data() || null;
-  } catch (_) { /* ignore */ }
-  try {
-    const snap = await getDoc(doc(db, `tenants/${tenantId}/tariffe`, 'proprietario'));
-    if (snap.exists()) {
-      const data = snap.data() || {};
-      const t = data.tariffaOraria != null ? data.tariffaOraria : data.tariffa;
-      if (t != null && t !== '') {
-        tariffaProprietario = Number(t);
-        tariffaProprietarioConfigurata = true;
-      }
-    }
-  } catch (_) { /* ignore */ }
-  if (tariffaProprietario == null) tariffaProprietario = 15;
-  return { tariffeOperai, tariffaProprietario, tariffaProprietarioConfigurata };
 }
 
 async function loadMacchineMap(hasParco) {
@@ -390,67 +346,6 @@ function costiAttivitaDiario(att, ctx) {
   };
 }
 
-async function loadAttivitaInRange(tenantId, start, end) {
-  // Formato salvato: sempre stringa YYYY-MM-DD (Attivita model / diario). Solo range ISO.
-  const dataDaStr = dataIsoFromAny(start);
-  const dataAStr = dataIsoFromAny(end);
-  try {
-    const docs = await getCollectionData('attivita', {
-      tenantId,
-      where: [
-        ['data', '>=', dataDaStr],
-        ['data', '<=', dataAStr]
-      ],
-      orderBy: 'data',
-      orderDirection: 'desc'
-    });
-    return docs || [];
-  } catch (e) {
-    try {
-      const raw = await getCollectionData('attivita', {
-        tenantId,
-        orderBy: 'data',
-        orderDirection: 'desc',
-        limit: 2000
-      });
-      return (raw || []).filter((a) => dataIsoInRange(a.data, start, end));
-    } catch (e2) {
-      console.warn('[report-economici] attività', e2 && e2.message);
-      return [];
-    }
-  }
-}
-
-async function loadLavoriInRange(tenantId, start, end) {
-  // Formato salvato: sempre Timestamp (Lavoro.toFirestore → dateToTimestamp(dataInizio)). Solo range Timestamp.
-  const t0 = dateToTimestamp(start);
-  const t1 = dateToTimestamp(end);
-  try {
-    const docs = await getCollectionData('lavori', {
-      tenantId,
-      where: [
-        ['dataInizio', '>=', t0],
-        ['dataInizio', '<=', t1]
-      ],
-      orderBy: 'dataInizio',
-      orderDirection: 'desc'
-    });
-    return docs || [];
-  } catch (e) {
-    try {
-      const docs = await getCollectionData('lavori', {
-        tenantId,
-        orderBy: 'dataInizio',
-        orderDirection: 'desc'
-      });
-      return (docs || []).filter((l) => inRange(l.dataInizio || l.data, start, end));
-    } catch (e2) {
-      console.warn('[report-economici] lavori', e2 && e2.message);
-      return [];
-    }
-  }
-}
-
 /**
  * Range duale ISO + Timestamp su `data`, merge per id.
  * Serve dove il campo può essere stringa o Timestamp (trattamenti seminativo/orticole/subcol).
@@ -588,8 +483,8 @@ export async function loadEconomiciPeriodBundle(start, end, opts = {}) {
   const tCoreStart = now();
   const pCore = Promise.all([
     getCollectionData('terreni', { tenantId }).catch(() => []),
-    loadLavoriInRange(tenantId, start, end),
-    loadAttivitaInRange(tenantId, start, end),
+    loadLavoriInRange(tenantId, start, end, { logPrefix: '[report-economici]' }),
+    loadAttivitaInRange(tenantId, start, end, { logPrefix: '[report-economici]' }),
     loadTariffe(tenantId),
     loadMacchineMap(hasParco)
   ]).then((r) => {

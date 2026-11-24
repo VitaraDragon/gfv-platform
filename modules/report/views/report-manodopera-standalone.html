@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Report — Manodopera GFV</title>
+  <meta name="theme-color" content="#1c1917" />
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <style>
+    :root {
+      --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
+      --mano: #2563eb; --warn: #c2410c; --accent: #1d4ed8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .container { max-width: 1440px; margin: 0 auto; }
+    .header {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .nav-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid var(--line);
+      background: #f5f5f4;
+      color: var(--ink);
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: #e7e5e4; }
+    .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-accent:hover { background: #1e40af; }
+    .btn:disabled, .btn-accent:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+    .panel {
+      margin-top: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+    .filter-group label { font-size: 12px; font-weight: 700; color: #374151; }
+    select, input[type="date"] {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 14px;
+      background: white;
+    }
+    .period-hint {
+      font-size: 13px;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .alert { padding: 12px 14px; border-radius: 12px; border: 1px solid; margin-top: 10px; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .alert-warn { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .loading-box { padding: 20px; text-align: center; color: var(--muted); font-size: 14px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+    .kpi .value { font-size: 26px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
+    .kpi.warn .value { color: var(--warn); }
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    table.data th, table.data td {
+      border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; white-space: nowrap; background: var(--panel);
+    }
+    table.data th {
+      background: #fafaf9; color: #44403c; font-weight: 700; cursor: pointer; user-select: none;
+      position: sticky; top: 0; z-index: 2;
+    }
+    table.data th.sorted-asc::after { content: ' ▲'; font-size: 10px; }
+    table.data th.sorted-desc::after { content: ' ▼'; font-size: 10px; }
+    table.data td.num, table.data th.num { text-align: right; }
+    table.data tfoot td { font-weight: 700; background: #f5f5f4; }
+    .notes { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .notes ul { margin: 6px 0 0 18px; }
+    h2.section { font-size: 16px; color: #44403c; margin: 16px 0 8px; }
+    h2.section:first-child { margin-top: 0; }
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi .value { font-size: 20px; }
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .filter-group {
+        min-width: 0;
+        width: 100%;
+      }
+      .filter-group select,
+      .filter-group input[type="date"] {
+        width: 100%;
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>👷 Report — Manodopera</h1>
+        <p>Ore e costi per operaio, squadra (caposquadra) e terreno. Solo ore validate; utile a paghe e controllo squadre.</p>
+      </div>
+      <div class="nav-row">
+        <a class="btn" href="./report-dashboard-standalone.html">← Dashboard</a>
+        <a class="btn" href="../../../core/dashboard-standalone.html">Home</a>
+        <button type="button" class="btn btn-accent" id="btn-export" disabled>Esporta Excel</button>
+      </div>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden"><div class="alert alert-error" id="gate-message"></div></div>
+
+    <div id="main-content" class="hidden">
+      <div class="panel">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="sel-mode">Tipo periodo</label>
+            <select id="sel-mode">
+              <option value="agrarian">Annata agraria (11 nov – 10 nov)</option>
+              <option value="solar">Anno solare</option>
+              <option value="custom">Intervallo personalizzato</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-year">
+            <label for="sel-year">Anno di riferimento</label>
+            <select id="sel-year"></select>
+          </div>
+          <div class="filter-group hidden" id="group-from">
+            <label for="date-from">Da</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div class="filter-group hidden" id="group-to">
+            <label for="date-to">A</label>
+            <input type="date" id="date-to" />
+          </div>
+          <div class="filter-group">
+            <label for="sel-terreno">Terreno</label>
+            <select id="sel-terreno"><option value="">Tutti</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-operaio">Operaio</label>
+            <select id="sel-operaio"><option value="">Tutti</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-capo">Squadra / caposquadra</label>
+            <select id="sel-capo"><option value="">Tutti</option></select>
+          </div>
+        </div>
+        <div class="period-hint" id="period-label"></div>
+        <p class="muted" style="margin-top:10px;">
+          Contano solo le ore <strong>validate</strong>. Il filtro squadra usa il campo <code>caposquadraId</code> sul lavoro.
+        </p>
+      </div>
+
+      <div id="partial-banner" class="alert alert-warn hidden" role="status"></div>
+      <div id="alert-box"></div>
+      <div id="kpi-host" class="kpi-grid"></div>
+
+      <div class="panel" style="margin-top:12px;">
+        <div id="tables-host" class="loading-box">Caricamento…</div>
+        <div class="notes" id="notes-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+  <script type="module">
+    import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[report-manodopera] Bootstrap failed:', err);
+      throw err;
+    }
+
+    import {
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } from '../../../core/services/firebase-service.js';
+    import { initializeTenantService, setCurrentTenantId } from '../../../core/services/tenant-service.js';
+    import { hasReportModuleAccess } from '../services/report-service.js';
+    import { canAccessStrategicReports } from '../js/report-access.js';
+    import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
+    import {
+      buildReportManodopera,
+      loadManodoperaPeriodBundle,
+      assembleManodoperaFromBundle,
+      prepareManodoperaExportData,
+      isManodoperaDataReady,
+      getManodoperaFilterOptions
+    } from '../services/report-manodopera-service.js';
+
+    const auth = getAuthInstance();
+    initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const gateMessage = document.getElementById('gate-message');
+    const mainContent = document.getElementById('main-content');
+    const selMode = document.getElementById('sel-mode');
+    const selYear = document.getElementById('sel-year');
+    const groupYear = document.getElementById('group-year');
+    const groupFrom = document.getElementById('group-from');
+    const groupTo = document.getElementById('group-to');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+    const periodLabel = document.getElementById('period-label');
+    const selTerreno = document.getElementById('sel-terreno');
+    const selOperaio = document.getElementById('sel-operaio');
+    const selCapo = document.getElementById('sel-capo');
+    const tablesHost = document.getElementById('tables-host');
+    const kpiHost = document.getElementById('kpi-host');
+    const alertBox = document.getElementById('alert-box');
+    const partialBanner = document.getElementById('partial-banner');
+    const notesBox = document.getElementById('notes-box');
+    const btnExport = document.getElementById('btn-export');
+
+    let tenantId = null;
+    /** @type {object|null} */
+    let cached = null;
+    /** @type {object|null} */
+    let periodBundle = null;
+    /** @type {string} */
+    let periodBundleKey = '';
+    let refreshSeq = 0;
+    /** @type {Array<{id:string,nome:string}>} */
+    let terrenoOptions = [];
+    /** @type {{ key: string, dir: 'asc'|'desc', table: string }} */
+    let sortState = { key: 'nome', dir: 'asc', table: 'operaio' };
+
+    function showGate(msg) {
+      gateMessage.textContent = msg;
+      gateBlocked.classList.remove('hidden');
+      mainContent.classList.add('hidden');
+    }
+
+    function fillYearSelect() {
+      const y = new Date().getFullYear();
+      selYear.innerHTML = '';
+      for (let i = 0; i < 8; i++) {
+        const yy = y - i;
+        const o = document.createElement('option');
+        o.value = String(yy);
+        o.textContent = String(yy);
+        selYear.appendChild(o);
+      }
+      selYear.value = String(y);
+    }
+
+    function currentPeriodBounds() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        let a = dateFrom.value ? new Date(dateFrom.value + 'T00:00:00') : new Date();
+        let b = dateTo.value ? new Date(dateTo.value + 'T23:59:59.999') : new Date();
+        if (a > b) {
+          const x = a;
+          a = b;
+          b = x;
+        }
+        return { start: a, end: b, label: formatRangeIt(a, b) };
+      }
+      const refY = parseInt(selYear.value, 10) || new Date().getFullYear();
+      if (mode === 'solar') {
+        return getSolarYearBounds(new Date(refY, 5, 15));
+      }
+      return getAgrarianYearBounds(new Date(refY, 10, 15));
+    }
+
+    function updatePeriodLabel() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        groupYear.classList.add('hidden');
+        groupFrom.classList.remove('hidden');
+        groupTo.classList.remove('hidden');
+        if (!dateFrom.value) {
+          const t = new Date();
+          t.setMonth(t.getMonth() - 3);
+          dateFrom.value = t.toISOString().slice(0, 10);
+        }
+        if (!dateTo.value) {
+          dateTo.value = new Date().toISOString().slice(0, 10);
+        }
+      } else {
+        groupYear.classList.remove('hidden');
+        groupFrom.classList.add('hidden');
+        groupTo.classList.add('hidden');
+      }
+      const p = currentPeriodBounds();
+      periodLabel.textContent = p.label || formatRangeIt(p.start, p.end);
+    }
+
+    function fmtEuro(v, partial) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      const n = Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return partial ? `${n}*` : n;
+    }
+
+    function fmtNum(v, digits = 2) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      return Number(v).toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+
+    function currentFilters() {
+      return {
+        terrenoId: selTerreno.value || null,
+        operaioId: selOperaio.value || null,
+        caposquadraId: selCapo.value || null
+      };
+    }
+
+    function periodoCacheKey(p) {
+      return `${p.start.toISOString()}|${p.end.toISOString()}`;
+    }
+
+    function enterLoadingState() {
+      cached = null;
+      kpiHost.innerHTML = '';
+      tablesHost.innerHTML = '<div class="loading-box">Caricamento ore e costi manodopera…</div>';
+      notesBox.innerHTML = '';
+      partialBanner.classList.add('hidden');
+      partialBanner.textContent = '';
+      btnExport.disabled = true;
+    }
+
+    function sortRows(rows, key, dir) {
+      const list = [...(rows || [])];
+      list.sort((a, b) => {
+        const va = a[key];
+        const vb = b[key];
+        let cmp = 0;
+        if (typeof va === 'string' || typeof vb === 'string') {
+          cmp = String(va || '').localeCompare(String(vb || ''), 'it');
+        } else {
+          const na = va == null ? -Infinity : Number(va);
+          const nb = vb == null ? -Infinity : Number(vb);
+          cmp = na - nb;
+        }
+        return dir === 'asc' ? cmp : -cmp;
+      });
+      return list;
+    }
+
+    function thSort(table, key, label, num) {
+      const active = sortState.table === table && sortState.key === key;
+      const cls = `${num ? 'num ' : ''}${active ? (`sorted-${sortState.dir}`) : ''}`.trim();
+      return `<th class="${cls}" data-sort="${key}" data-table="${table}">${label}</th>`;
+    }
+
+    function renderKpi(data) {
+      const kpi = data.kpi || {};
+      const partial = !!kpi.partialCosto;
+      if (partial) {
+        partialBanner.classList.remove('hidden');
+        partialBanner.textContent = 'Totale parziale: manca almeno una tariffa. Le cifre con * sommano solo i valori noti.';
+      } else {
+        partialBanner.classList.add('hidden');
+        partialBanner.textContent = '';
+      }
+
+      kpiHost.innerHTML = `
+        <div class="kpi">
+          <div class="label">Ore totali</div>
+          <div class="value">${escapeHtml(fmtNum(kpi.oreTotali, 1))}</div>
+        </div>
+        <div class="kpi${partial ? ' warn' : ''}">
+          <div class="label">Costo manodopera</div>
+          <div class="value">${escapeHtml(fmtEuro(kpi.costoTotale, partial))} €</div>
+        </div>
+        <div class="kpi">
+          <div class="label">N. operai</div>
+          <div class="value">${escapeHtml(String(kpi.nOperai || 0))}</div>
+          <div class="muted" style="margin-top:8px;">escluso proprietario diario</div>
+        </div>
+        <div class="kpi">
+          <div class="label">€ / ora medio</div>
+          <div class="value">${escapeHtml(fmtEuro(kpi.euroOraMedio, kpi.partialEuroOra))}</div>
+        </div>
+      `;
+    }
+
+    function renderTables(data) {
+      const byOp = sortState.table === 'operaio'
+        ? sortRows(data.byOperaio, sortState.key, sortState.dir)
+        : (data.byOperaio || []);
+      const byCapo = sortState.table === 'capo'
+        ? sortRows(data.byCaposquadra, sortState.key, sortState.dir)
+        : (data.byCaposquadra || []);
+      const byTerr = sortState.table === 'terreno'
+        ? sortRows(data.byTerreno, sortState.key, sortState.dir)
+        : (data.byTerreno || []);
+
+      if (!byOp.length && !byTerr.length) {
+        tablesHost.innerHTML = '<div class="alert alert-info">Nessuna ora validata nel periodo con i filtri scelti.</div>';
+        return;
+      }
+
+      let html = '<h2 class="section">Per operaio</h2>';
+      html += '<div class="table-wrap"><table class="data"><thead><tr>';
+      html += thSort('operaio', 'nome', 'Nome', false);
+      html += thSort('operaio', 'tipo', 'Tipo', false);
+      html += thSort('operaio', 'ore', 'Ore validate', true);
+      html += thSort('operaio', 'tariffa', 'Tariffa €/h', true);
+      html += thSort('operaio', 'costo', 'Costo €', true);
+      html += thSort('operaio', 'nLavori', 'N. lavori', true);
+      html += thSort('operaio', 'nTerreni', 'Terreni', true);
+      html += '</tr></thead><tbody>';
+      for (const r of byOp) {
+        html += `<tr>
+          <td>${escapeHtml(r.nome)}${r.isProprietario ? ' <span class="muted">(diario)</span>' : ''}</td>
+          <td>${escapeHtml(r.tipo || '—')}</td>
+          <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
+          <td class="num">${escapeHtml(fmtEuro(r.tariffa, false))}</td>
+          <td class="num">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))}</td>
+          <td class="num">${r.nLavori}</td>
+          <td class="num">${r.nTerreni}</td>
+        </tr>`;
+      }
+      html += '</tbody></table></div>';
+
+      if (byCapo.length) {
+        html += '<h2 class="section">Per squadra / caposquadra</h2>';
+        html += '<div class="table-wrap"><table class="data"><thead><tr>';
+        html += thSort('capo', 'nome', 'Caposquadra', false);
+        html += thSort('capo', 'ore', 'Ore', true);
+        html += thSort('capo', 'costo', 'Costo €', true);
+        html += thSort('capo', 'nOperai', 'Operai', true);
+        html += thSort('capo', 'nLavori', 'Lavori', true);
+        html += '</tr></thead><tbody>';
+        for (const r of byCapo) {
+          html += `<tr>
+            <td>${escapeHtml(r.nome)}</td>
+            <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
+            <td class="num">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.costo == null))}</td>
+            <td class="num">${r.nOperai}</td>
+            <td class="num">${r.nLavori}</td>
+          </tr>`;
+        }
+        html += '</tbody></table></div>';
+      } else {
+        html += '<h2 class="section">Per squadra / caposquadra</h2>';
+        html += '<p class="muted">Nessun lavoro con <code>caposquadraId</code> nel periodo filtrato.</p>';
+      }
+
+      html += '<h2 class="section">Per terreno</h2>';
+      if (!byTerr.length) {
+        html += '<p class="muted">Nessun terreno con ore validate.</p>';
+      } else {
+        html += '<div class="table-wrap"><table class="data"><thead><tr>';
+        html += thSort('terreno', 'terrenoNome', 'Terreno', false);
+        html += thSort('terreno', 'ettari', 'ha', true);
+        html += thSort('terreno', 'ore', 'Ore', true);
+        html += thSort('terreno', 'costo', 'Costo €', true);
+        html += thSort('terreno', 'euroHa', '€/ha', true);
+        html += '</tr></thead><tbody>';
+        for (const r of byTerr) {
+          html += `<tr>
+            <td>${escapeHtml(r.terrenoNome)}</td>
+            <td class="num">${escapeHtml(fmtNum(r.ettari, 2))}</td>
+            <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
+            <td class="num">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.costo == null))}</td>
+            <td class="num">${escapeHtml(fmtEuro(r.euroHa, r.partialCosto))}</td>
+          </tr>`;
+        }
+        html += '</tbody></table></div>';
+      }
+
+      tablesHost.innerHTML = html;
+    }
+
+    function render(data) {
+      if (!isManodoperaDataReady(data)) {
+        enterLoadingState();
+        return;
+      }
+      btnExport.disabled = false;
+      cached = data;
+      renderKpi(data);
+      renderTables(data);
+
+      const notes = data.notes || [];
+      if (notes.length) {
+        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno una tariffa). «—» = nessun valore noto.<ul>${
+          notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
+        }</ul>`;
+      } else {
+        notesBox.innerHTML = '<span class="muted">* = parziale. Contano solo ore validate.</span>';
+      }
+    }
+
+    function fillSelect(sel, options, keepValue) {
+      const cur = keepValue != null ? keepValue : sel.value;
+      sel.innerHTML = '<option value="">Tutti</option>';
+      for (const o of options || []) {
+        const el = document.createElement('option');
+        el.value = o.id;
+        el.textContent = o.nome;
+        sel.appendChild(el);
+      }
+      if (cur) sel.value = cur;
+    }
+
+    async function fillFiltersFromBundle(bundle) {
+      const opts = await getManodoperaFilterOptions();
+      terrenoOptions = (bundle && bundle.terreni) || opts.terreni || [];
+      fillSelect(selTerreno, terrenoOptions, selTerreno.value);
+      fillSelect(selOperaio, (bundle && bundle.operaiOptions) || [], selOperaio.value);
+      fillSelect(selCapo, (bundle && bundle.caposquadraOptions) || [], selCapo.value);
+    }
+
+    function applyLocalFilters() {
+      if (!periodBundle) return;
+      render(assembleManodoperaFromBundle(periodBundle, currentFilters()));
+    }
+
+    async function refreshReport({ forceReload = false } = {}) {
+      if (!tenantId) return;
+      const seq = ++refreshSeq;
+      const p = currentPeriodBounds();
+      const key = periodoCacheKey(p);
+      alertBox.innerHTML = '';
+
+      if (!forceReload && periodBundle && periodBundleKey === key && periodBundle.ready) {
+        applyLocalFilters();
+        return;
+      }
+
+      const needReload = forceReload || periodBundleKey !== key;
+      if (needReload) {
+        periodBundle = null;
+        periodBundleKey = '';
+      }
+
+      enterLoadingState();
+      const t0 = performance.now();
+      try {
+        await buildReportManodopera(p.start, p.end, {
+          ...currentFilters(),
+          forceReload: needReload
+        });
+        if (seq !== refreshSeq) return;
+        periodBundle = await loadManodoperaPeriodBundle(p.start, p.end, { forceReload: false });
+        periodBundleKey = key;
+        await fillFiltersFromBundle(periodBundle);
+        const ms = Math.round(performance.now() - t0);
+        if (periodBundle && periodBundle.timings) {
+          console.info('[report-manodopera] timings', periodBundle.timings, 'ui', ms, 'ms');
+        }
+        render(assembleManodoperaFromBundle(periodBundle, currentFilters()));
+      } catch (e) {
+        console.error(e);
+        if (seq !== refreshSeq) return;
+        cached = null;
+        periodBundle = null;
+        periodBundleKey = '';
+        kpiHost.innerHTML = '';
+        tablesHost.innerHTML = '';
+        btnExport.disabled = true;
+        alertBox.innerHTML = `<div class="alert alert-error">Errore report: ${escapeHtml(e.message || e)}</div>`;
+      }
+    }
+
+    async function exportExcel() {
+      if (typeof ExcelJS === 'undefined') {
+        alertBox.innerHTML = '<div class="alert alert-error">Libreria Excel non caricata. Ricarica la pagina.</div>';
+        return;
+      }
+      if (!cached || !isManodoperaDataReady(cached)) {
+        alertBox.innerHTML = '<div class="alert alert-info">Nessun dato da esportare. Carica prima il report.</div>';
+        return;
+      }
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'GFV Platform';
+      wb.created = new Date();
+      const p = currentPeriodBounds();
+      const filters = currentFilters();
+      const terrenoNome = filters.terrenoId
+        ? ((terrenoOptions.find((t) => String(t.id) === String(filters.terrenoId)) || {}).nome || filters.terrenoId)
+        : null;
+      const operaioNome = filters.operaioId
+        ? ((periodBundle && (periodBundle.operaiOptions || []).find((o) => String(o.id) === String(filters.operaioId)) || {}).nome || filters.operaioId)
+        : null;
+      const capoNome = filters.caposquadraId
+        ? ((periodBundle && (periodBundle.caposquadraOptions || []).find((o) => String(o.id) === String(filters.caposquadraId)) || {}).nome || filters.caposquadraId)
+        : null;
+
+      const exportData = prepareManodoperaExportData(cached, {
+        periodoLabel: p.label || formatRangeIt(p.start, p.end),
+        terrenoId: filters.terrenoId,
+        terrenoNome,
+        operaioId: filters.operaioId,
+        operaioNome,
+        caposquadraId: filters.caposquadraId,
+        caposquadraNome: capoNome
+      });
+
+      function addMeta(ws) {
+        ws.addRow(['Periodo', exportData.periodoLabel]);
+        ws.addRow(['Filtro terreno', exportData.filtroTerreno]);
+        ws.addRow(['Filtro operaio', exportData.filtroOperaio]);
+        ws.addRow(['Filtro caposquadra', exportData.filtroCapo]);
+        ws.addRow([]);
+      }
+
+      const wsKpi = wb.addWorksheet('KPI');
+      addMeta(wsKpi);
+      wsKpi.addRow(['Ore totali', exportData.kpi.oreTotali]);
+      wsKpi.addRow(['Costo manodopera €', exportData.kpi.costoTotale]);
+      wsKpi.addRow(['N. operai', exportData.kpi.nOperai]);
+      wsKpi.addRow(['€/ora medio', exportData.kpi.euroOraMedio]);
+      wsKpi.columns = [{ width: 28 }, { width: 16 }];
+
+      const wsOp = wb.addWorksheet('Per operaio');
+      addMeta(wsOp);
+      wsOp.addRow(['Nome', 'Tipo', 'Ore', 'Tariffa €/h', 'Costo €', 'N. lavori', 'Terreni', 'Note']);
+      for (const r of exportData.perOperaio) {
+        wsOp.addRow([r.nome, r.tipo, r.ore, r.tariffa, r.costo, r.nLavori, r.nTerreni, r.noteParziale || '']);
+      }
+      wsOp.columns = [
+        { width: 28 }, { width: 14 }, { width: 10 }, { width: 12 },
+        { width: 12 }, { width: 10 }, { width: 10 }, { width: 36 }
+      ];
+
+      const wsCapo = wb.addWorksheet('Per caposquadra');
+      addMeta(wsCapo);
+      wsCapo.addRow(['Caposquadra', 'Ore', 'Costo €', 'Operai', 'Lavori', 'Note']);
+      for (const r of exportData.perCaposquadra) {
+        wsCapo.addRow([r.nome, r.ore, r.costo, r.nOperai, r.nLavori, r.noteParziale || '']);
+      }
+      wsCapo.columns = [
+        { width: 28 }, { width: 10 }, { width: 12 }, { width: 10 }, { width: 10 }, { width: 36 }
+      ];
+
+      const wsTerr = wb.addWorksheet('Per terreno');
+      addMeta(wsTerr);
+      wsTerr.addRow(['Terreno', 'ha', 'Ore', 'Costo €', '€/ha', 'Note']);
+      for (const r of exportData.perTerreno) {
+        wsTerr.addRow([r.terrenoNome, r.ettari, r.ore, r.costo, r.euroHa, r.noteParziale || '']);
+      }
+      wsTerr.columns = [
+        { width: 28 }, { width: 10 }, { width: 10 }, { width: 12 }, { width: 10 }, { width: 36 }
+      ];
+
+      const wsNote = wb.addWorksheet('Note');
+      wsNote.addRow(['Note e filtri applicati']);
+      for (const n of exportData.noteRows) wsNote.addRow([n]);
+      wsNote.getColumn(1).width = 80;
+
+      const dataStr = new Date().toISOString().split('T')[0];
+      const fileName = `report-manodopera-${dataStr}.xlsx`;
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      alertBox.innerHTML = `<div class="alert alert-info">Export completato: ${escapeHtml(fileName)} (filtri applicati)</div>`;
+    }
+
+    function onPeriodChange() {
+      updatePeriodLabel();
+      if (mainContent && !mainContent.classList.contains('hidden') && tenantId) {
+        refreshReport({ forceReload: true });
+      }
+    }
+
+    tablesHost.addEventListener('click', (ev) => {
+      const th = ev.target.closest('th[data-sort]');
+      if (!th || !cached) return;
+      const key = th.getAttribute('data-sort');
+      const table = th.getAttribute('data-table') || 'operaio';
+      if (sortState.table === table && sortState.key === key) {
+        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.table = table;
+        sortState.key = key;
+        sortState.dir = key === 'nome' || key === 'terrenoNome' || key === 'tipo' ? 'asc' : 'desc';
+      }
+      render(cached);
+    });
+
+    selMode.addEventListener('change', onPeriodChange);
+    selYear.addEventListener('change', onPeriodChange);
+    dateFrom.addEventListener('change', onPeriodChange);
+    dateTo.addEventListener('change', onPeriodChange);
+    selTerreno.addEventListener('change', () => applyLocalFilters());
+    selOperaio.addEventListener('change', () => applyLocalFilters());
+    selCapo.addEventListener('change', () => applyLocalFilters());
+    btnExport.addEventListener('click', () => { exportExcel().catch((e) => console.error(e)); });
+
+    fillYearSelect();
+    updatePeriodLabel();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
+      if (!user) {
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+        return;
+      }
+      const userData = await getDocumentData('users', user.uid);
+      if (!userData) {
+        showGate('Profilo utente non trovato.');
+        return;
+      }
+      if (userData.tenantId) {
+        setCurrentTenantId(userData.tenantId);
+        tenantId = userData.tenantId;
+      }
+      const okReport = await hasReportModuleAccess();
+      if (!okReport) {
+        showGate('Il modulo Report non è attivo per questo account.');
+        return;
+      }
+      if (!canAccessStrategicReports(userData)) {
+        showGate('Questa area è riservata a Manager e Amministratore.');
+        return;
+      }
+      gateBlocked.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+      await refreshReport({ forceReload: true });
+    });
+  </script>
+  <script type="module">
+    import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+    const swPath = window.location.pathname.includes('/gfv-platform/')
+      ? '/gfv-platform/service-worker.js'
+      : '../../../service-worker.js';
+    registraServiceWorker(swPath);
+  </script>
+</body>
+</html>
