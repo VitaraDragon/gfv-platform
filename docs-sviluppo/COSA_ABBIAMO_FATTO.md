@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Macchine + rifiniture Manodopera.**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Magazzino + palette colori Report.**
+
+## 2026-11-24 — Report Magazzino (nuova sezione) + regola colori Report + rifiniture Macchine/Manodopera
+
+Su `feature/report-magazzino` (PR verso develop). Nessun merge, nessun deploy. Solo lettura.
+
+**Magazzino:** card hub attiva se modulo Magazzino → `report-magazzino-standalone.html`; service + aggregate puri; valore uscite = `prodottoCostFromMovimentoUscita` (stesso Economici, test di uguaglianza sul sottoinsieme `filterUsciteMagazzinoPerEconomici`). KPI entrate/uscite/valore magazzino/sotto scorta; grafici uscite per categoria, top prodotti (+ Altri), mensile entrate vs uscite; filtri categoria/prodotto/tipo/origine; dettaglio movimenti; Excel KPI/Per prodotto/Movimenti/Note. Prezzo mancante → «—» (mai 0 silenzioso); badge Prezzo in attesa / Sotto scorta / Giacenza negativa.
+
+**Palette Report (Pier):** `report-chart-palette.css` + `chartColorsForItems` — N voci ≤ palette tutte distinte; overflow e sempre «Altri» in grigio. Economici allineato alla palette comune. Test `report-chart-colors.test.js`.
+
+**Rifiniture:** header «Costo €» nel drawer Macchine leggibile; `chart.resize()` al resize viewport su Economici/Manodopera/Macchine/Magazzino (niente scroll orizzontale fisso ~686 px).
 
 ## 2026-11-24 — Report Macchine (nuova sezione) + rifiniture Manodopera
 
