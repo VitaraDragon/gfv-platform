@@ -13,7 +13,8 @@
   <style>
     :root {
       --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
-      --mano: #2563eb; --mac: #d97706; --prod: #16a34a; --carb: #b45309; --warn: #c2410c; --accent: #1d4ed8;
+      /* Palette categorie: un solo punto (--carb); Chart.js legge da qui. Macchine=ambra/arancio, Carburante=giallo ambra. */
+      --mano: #2563eb; --mac: #d97706; --prod: #16a34a; --carb: #E0A800; --warn: #c2410c; --accent: #1d4ed8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -308,11 +309,13 @@
       countVociIncomplete
     } from '../services/report-economici-service.js';
 
+    // Colori categorie: unica fonte :root (--mano/--mac/--prod/--carb)
+    const _cs = getComputedStyle(document.documentElement);
     const COLORS = {
-      manodopera: '#2563eb',
-      macchine: '#d97706',
-      prodotti: '#16a34a',
-      carburante: '#b45309'
+      manodopera: (_cs.getPropertyValue('--mano').trim() || '#2563eb'),
+      macchine: (_cs.getPropertyValue('--mac').trim() || '#d97706'),
+      prodotti: (_cs.getPropertyValue('--prod').trim() || '#16a34a'),
+      carburante: (_cs.getPropertyValue('--carb').trim() || '#E0A800')
     };
 
     const auth = getAuthInstance();

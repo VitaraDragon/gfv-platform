@@ -185,12 +185,18 @@ export function sumNullable(values, opts = {}) {
   return { value: euro(sum), partial: missing };
 }
 
+/**
+ * €/ha: divisione su valori grezzi, arrotondamento solo alla fine.
+ * Stessa funzione per riga, totale azienda (riquadro), export.
+ * @param {number|null|undefined} totale
+ * @param {number|null|undefined} ettari
+ * @returns {number|null}
+ */
 export function euroPerHa(totale, ettari) {
-  const t = euro(totale);
+  if (totale == null || Number.isNaN(Number(totale))) return null;
   const ha = Number(ettari);
-  if (t == null) return null;
   if (!ha || ha <= 0 || Number.isNaN(ha)) return null;
-  return euro(t / ha);
+  return euro(Number(totale) / ha);
 }
 
 function emptyCostAcc() {
@@ -550,24 +556,38 @@ function sumCostsFromRows(list) {
 }
 
 /**
- * Totale azienda (include non attribuiti).
+ * Totale azienda (include non attribuiti nei costi).
+ * €/ha solo sui terreni attribuiti (stesso criterio del riquadro KPI),
+ * così riquadro / riga tabella / export coincidono anche senza filtri.
  * @param {Array<object>} rows
  */
 export function companyTotal(rows) {
   const list = rows || [];
-  let ettari = 0;
+  const attributed = list.filter(
+    (r) => !r.nonAttribuito && r.terrenoId !== TERRENO_NON_ATTRIBUITO_ID
+  );
+  let ettariAll = 0;
+  let ettariAttr = 0;
   let ore = 0;
   for (const r of list) {
-    ettari += Number(r.ettari) || 0;
+    ettariAll += Number(r.ettari) || 0;
     ore += Number(r.ore) || 0;
   }
+  for (const r of attributed) {
+    ettariAttr += Number(r.ettari) || 0;
+  }
   const costs = sumCostsFromRows(list);
+  const costsAttr = attributed.length === list.length
+    ? costs
+    : sumCostsFromRows(attributed);
   return {
     label: 'Totale azienda',
-    // ettari grezzi: stesso divisore di euroHa in sumCostsFromRows
-    ettari: ettari || 0,
+    // ettari grezzi (tutti); €/ha su soli attribuiti
+    ettari: ettariAll || 0,
     ore: euro(ore) || 0,
-    ...costs
+    ...costs,
+    euroHa: euroPerHa(costsAttr.totale, ettariAttr),
+    partialEuroHa: !!(costsAttr.partialTotale && costsAttr.totale != null)
   };
 }
 

@@ -6,7 +6,7 @@ Modulo: **`report`**. Hub: `modules/report/views/report-dashboard-standalone.htm
 |------|------|
 | Hub | `report-dashboard-standalone.html` |
 | Terreni | `report-terreni-standalone.html` |
-| Economici | `report-economici-standalone.html` (+ aggregate: `allocatePercentages`, mensile impilato, €/ha su ha grezzi, Carburante/`isProdottoCarburante`, cache periodo, Chart.js, `prepareEconomiciExportData`; UI riapplica filtri attuali a fine load periodo) |
+| Economici | `report-economici-standalone.html` (+ aggregate: `allocatePercentages`, mensile impilato, €/ha su ha grezzi **solo terreni attribuiti**, Carburante/`isProdottoCarburante` colore `--carb` `#E0A800`, cache periodo, Chart.js, `prepareEconomiciExportData`; UI riapplica filtri attuali a fine load periodo) |
 | Vigneto MVP | `report-standalone.html` (solo se `vigneto` in modules) |
 
 Card «soon» (frutteto, magazzino, manodopera, contoTerzi, sintesi): `href: '#'` + badge In sviluppo — **non** navigare come pagine reali.
