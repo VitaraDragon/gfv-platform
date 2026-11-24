@@ -56,6 +56,7 @@
     .btn:hover { background: #e7e5e4; }
     .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
     .btn-accent:hover { background: #1e40af; }
+    .btn:disabled, .btn-accent:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
     .panel {
       margin-top: 12px;
       background: var(--panel);
@@ -175,6 +176,22 @@
       .desktop-only { display: none !important; }
       .mobile-cards { display: grid; }
       .chart-wrap { height: 220px; }
+      /* Filtri a tutta larghezza: lo stile pagina (align-items:flex-end) sovrascrive
+         responsive-standalone; senza width:100% i select restano stretti a sinistra. */
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .filter-group {
+        min-width: 0;
+        width: 100%;
+      }
+      .filter-group select,
+      .filter-group input[type="date"] {
+        width: 100%;
+        min-width: 0;
+      }
     }
     @media (min-width: 601px) { .mobile-only { display: none !important; } }
   </style>
@@ -306,7 +323,8 @@
       allocatePercentages,
       aggregateMonthlyFromVoci,
       aggregateByTerrenoForChart,
-      countVociIncomplete
+      countVociIncomplete,
+      isEconomiciDataReady
     } from '../services/report-economici-service.js';
 
     // Colori categorie: unica fonte :root (--mano/--mac/--prod/--carb)
@@ -727,9 +745,27 @@
       `).join('');
     }
 
+    function enterLoadingState() {
+      cached = null;
+      destroyCharts();
+      kpiHost.innerHTML = '';
+      tableHost.innerHTML = '<div class="loading-box">Caricamento costi nel periodo…</div>';
+      mobileHost.innerHTML = '';
+      notesBox.innerHTML = '';
+      partialBanner.classList.add('hidden');
+      partialBanner.textContent = '';
+      prodottiPending.classList.add('hidden');
+      btnExport.disabled = true;
+    }
+
     function render(data) {
-      const prodottiReady = !(data.meta && data.meta.prodottiReady === false);
-      prodottiPending.classList.toggle('hidden', prodottiReady);
+      // Nessuna cifra/grafico finché prodotti+carburante non sono pronti (stessa fase).
+      if (!isEconomiciDataReady(data)) {
+        enterLoadingState();
+        return;
+      }
+      prodottiPending.classList.add('hidden');
+      btnExport.disabled = false;
       renderKpi(data);
       renderCharts(data);
 
@@ -892,22 +928,14 @@
         periodBundleKey = '';
       }
 
-      tableHost.innerHTML = '<div class="loading-box">Caricamento costi nel periodo…</div>';
-      mobileHost.innerHTML = '';
-      notesBox.innerHTML = '';
-      prodottiPending.classList.add('hidden');
+      // Niente mix vecchio/nuovo né cifre parziali: loading finché tutte le categorie sono pronte.
+      enterLoadingState();
       const t0 = performance.now();
       try {
+        // Nessun onLabourReady: evita render con soli manodopera/macchine (~6 s di totali sbagliati).
         await buildReportEconomici(p.start, p.end, {
           ...currentFilters(),
-          forceReload: needReload,
-          onLabourReady: (labourBundle) => {
-            if (seq !== refreshSeq) return;
-            // Manodopera/macchine subito; prodotti ancora in caricamento.
-            // Filtri UI attuali (non quelli di inizio load): cambio terreno/coltura durante il fetch.
-            prodottiPending.classList.remove('hidden');
-            render(assembleEconomiciFromBundle(labourBundle, currentFilters()));
-          }
+          forceReload: needReload
         });
         if (seq !== refreshSeq) return;
         periodBundle = await loadEconomiciPeriodBundle(p.start, p.end, { forceReload: false });
@@ -929,6 +957,7 @@
         mobileHost.innerHTML = '';
         kpiHost.innerHTML = '';
         prodottiPending.classList.add('hidden');
+        btnExport.disabled = true;
         alertBox.innerHTML = `<div class="alert alert-error">Errore report: ${escapeHtml(e.message || e)}</div>`;
       }
     }

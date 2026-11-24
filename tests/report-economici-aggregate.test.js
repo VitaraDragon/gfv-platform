@@ -26,7 +26,8 @@ import {
   splitCostoProdottoCarburanteFromTrattamento,
   allocatePercentages,
   aggregateMonthlyFromVoci,
-  aggregateByTerrenoForChart
+  aggregateByTerrenoForChart,
+  isEconomiciDataReady
 } from '../modules/report/services/report-economici-aggregate.js';
 
 describe('Report Economici — aggregazione', () => {
@@ -692,5 +693,13 @@ describe('Report Economici — aggregazione', () => {
     });
     expect(rows).toHaveLength(1);
     expect(rows[0].costoProdotti).toBe(75);
+  });
+
+  it('isEconomiciDataReady: false finché prodotti/carburante non sono pronti (gate caricamento UI)', () => {
+    expect(isEconomiciDataReady(null)).toBe(false);
+    expect(isEconomiciDataReady({})).toBe(false);
+    expect(isEconomiciDataReady({ meta: { labourReady: true, prodottiReady: false } })).toBe(false);
+    expect(isEconomiciDataReady({ meta: { labourReady: true } })).toBe(false);
+    expect(isEconomiciDataReady({ meta: { labourReady: true, prodottiReady: true } })).toBe(true);
   });
 });

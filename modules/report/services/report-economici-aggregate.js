@@ -1560,3 +1560,15 @@ export function prepareEconomiciExportData(report, meta = {}) {
     voci
   };
 }
+
+/**
+ * Gate UI: numeri/grafici/export solo quando tutte le categorie sono caricate
+ * (manodopera, macchine, prodotti, carburante — prodottiReady copre l’ultima fase).
+ * @param {{ meta?: { prodottiReady?: boolean, labourReady?: boolean } }|null|undefined} data
+ * @returns {boolean}
+ */
+export function isEconomiciDataReady(data) {
+  const meta = data && data.meta;
+  if (!meta) return false;
+  return meta.prodottiReady === true;
+}
