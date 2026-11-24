@@ -183,8 +183,11 @@ function testoIntervallo(voci) {
   return voci.map((voce) => {
     const unita = voce.unita ? ' ' + voce.unita : '';
     let intervallo;
-    if (voce.min != null && voce.max != null) intervallo = formattaNumeroIt(voce.min) + '–' + formattaNumeroIt(voce.max) + unita;
-    else if (voce.max != null) intervallo = 'fino a ' + formattaNumeroIt(voce.max) + unita;
+    if (voce.min != null && voce.max != null) {
+      intervallo = Number(voce.min) === Number(voce.max)
+        ? formattaNumeroIt(voce.min) + unita
+        : formattaNumeroIt(voce.min) + '–' + formattaNumeroIt(voce.max) + unita;
+    } else if (voce.max != null) intervallo = 'fino a ' + formattaNumeroIt(voce.max) + unita;
     else intervallo = 'almeno ' + formattaNumeroIt(voce.min) + unita;
     if (voce.condizione) intervallo += ' (' + String(voce.condizione).trim() + ')';
     return intervallo;
