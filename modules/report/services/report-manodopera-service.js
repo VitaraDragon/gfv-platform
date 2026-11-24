@@ -465,7 +465,7 @@ export {
   sumCostoManodoperaLines,
   PROPRIETARIO_ID,
   PROPRIETARIO_NOME
-};
+} from './report-manodopera-aggregate.js';
 
 export {
   resolveTariffaOperaio,

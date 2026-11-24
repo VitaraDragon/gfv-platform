@@ -1,0 +1,88 @@
+/**
+ * @vitest-environment node
+ *
+ * Guarda il caricamento del modulo service (non solo aggregate):
+ * un `export { X }` senza import/from di X rompe la pagina in produzione.
+ */
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../core/services/firebase-service.js', () => ({
+  getCollectionData: vi.fn(async () => []),
+  getDb: vi.fn(() => ({})),
+  collection: vi.fn(),
+  getDocs: vi.fn(async () => ({ docs: [] })),
+  doc: vi.fn(),
+  getDoc: vi.fn(async () => ({ exists: () => false, data: () => ({}) })),
+  query: vi.fn(),
+  where: vi.fn()
+}));
+
+vi.mock('../core/services/tenant-service.js', () => ({
+  getCurrentTenantId: vi.fn(() => null)
+}));
+
+vi.mock('../core/services/manodopera-lavori-ore-loader.js', () => ({
+  fetchOreOperaiForLavori: vi.fn(async () => ({})),
+  fetchUsersByIds: vi.fn(async () => new Map())
+}));
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const SERVICE_PATH = join(__dirname, '../modules/report/services/report-manodopera-service.js');
+
+/** Nomi in `export { a, b }` senza `from '...'` (binding locali obbligatori). */
+function localReexportNames(source) {
+  const names = [];
+  const re = /export\s*\{([^}]+)\}\s*;/g;
+  let m;
+  while ((m = re.exec(source))) {
+    const body = m[1];
+    const after = source.slice(m.index + m[0].length, m.index + m[0].length + 80);
+    // salta blocchi già corretti: export { ... } from '...'
+    if (/^\s*from\s+['"]/.test(after) || /\}\s*from\s+['"]/.test(m[0])) continue;
+    for (const part of body.split(',')) {
+      const name = part.trim().split(/\s+as\s+/).pop()?.trim();
+      if (name) names.push(name);
+    }
+  }
+  return names;
+}
+
+function importedBindingNames(source) {
+  const names = new Set();
+  const re = /import\s*\{([^}]+)\}\s*from\s*['"][^'"]+['"]/g;
+  let m;
+  while ((m = re.exec(source))) {
+    for (const part of m[1].split(',')) {
+      const name = part.trim().split(/\s+as\s+/).pop()?.trim();
+      if (name) names.add(name);
+    }
+  }
+  return names;
+}
+
+describe('report-manodopera-service — caricamento modulo', () => {
+  it('non riesporta binding locali mancanti (bug PR 482)', () => {
+    const source = readFileSync(SERVICE_PATH, 'utf8');
+    const localExports = localReexportNames(source);
+    const imported = importedBindingNames(source);
+    const missing = localExports.filter((n) => !imported.has(n));
+    // Con il bug: export { aggregateByTipoOperaio, ... } senza import/from → missing non vuoto.
+    // Con il fix: export { ... } from './report-manodopera-aggregate.js' → nessun local re-export.
+    expect(missing, `binding riesportati senza import: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('importa il service intero e espone gli helper UI', async () => {
+    const mod = await import('../modules/report/services/report-manodopera-service.js');
+    expect(typeof mod.aggregateByTipoOperaio).toBe('function');
+    expect(typeof mod.aggregateManodoperaTerrenoForChart).toBe('function');
+    expect(typeof mod.aggregateMonthlyOreValidateDaValidare).toBe('function');
+    expect(typeof mod.buildOperaioDetailRows).toBe('function');
+    expect(typeof mod.formatEuroPrefixCompact).toBe('function');
+    expect(typeof mod.labelTipoOperaio).toBe('function');
+    expect(typeof mod.assembleManodoperaReport).toBe('function');
+    expect(typeof mod.buildReportManodopera).toBe('function');
+  });
+});
