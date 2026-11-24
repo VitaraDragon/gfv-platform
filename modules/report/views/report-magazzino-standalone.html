@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Report — Magazzino GFV</title>
+  <meta name="theme-color" content="#1c1917" />
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <link rel="stylesheet" href="../styles/report-chart-palette.css">
+  <style>
+    :root {
+      --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
+      --warn: #c2410c; --accent: #1d4ed8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; padding: 16px;
+    }
+    .container { max-width: 1440px; margin: 0 auto; }
+    .header {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      padding: 18px 20px; display: flex; flex-wrap: wrap; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .nav-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid var(--line); background: #f5f5f4; color: var(--ink);
+      padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
+      font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: #e7e5e4; }
+    .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-accent:hover { background: #1e40af; }
+    .btn:disabled, .btn-accent:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+    .panel {
+      margin-top: 12px; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+    .filter-group label { font-size: 12px; font-weight: 700; color: #374151; }
+    select, input[type="date"] {
+      border: 1px solid #e5e7eb; border-radius: 10px; padding: 9px 11px; font-size: 14px; background: white;
+    }
+    .period-hint {
+      font-size: 13px; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe;
+      padding: 10px 12px; border-radius: 10px; margin-top: 12px;
+    }
+    .alert { padding: 12px 14px; border-radius: 12px; border: 1px solid; margin-top: 10px; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .alert-warn { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .loading-box { padding: 20px; text-align: center; color: var(--muted); font-size: 14px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+    .kpi .value { font-size: 26px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
+    .kpi.warn .value { color: var(--warn); }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; margin-top: 12px; }
+    .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .chart-card h3 { font-size: 14px; margin-bottom: 8px; color: #44403c; }
+    .chart-wrap { position: relative; height: 240px; width: 100%; max-width: 100%; overflow: hidden; }
+    .chart-wrap.tall { height: 280px; }
+    .chart-full { margin-top: 12px; }
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    table.data th, table.data td {
+      border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; background: var(--panel);
+    }
+    .detail-drawer .detail-table-desktop { overflow-x: hidden; }
+    .detail-drawer table.data { table-layout: fixed; width: 100%; font-size: 12px; }
+    .detail-drawer table.data th,
+    .detail-drawer table.data td {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      padding: 8px 6px;
+      vertical-align: top;
+    }
+    .detail-drawer table.data th.num,
+    .detail-drawer table.data td.num {
+      white-space: nowrap;
+      overflow-wrap: normal;
+      word-break: normal;
+      text-align: right;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+    table.data th {
+      background: #fafaf9; color: #44403c; font-weight: 700; cursor: pointer; user-select: none;
+      position: sticky; top: 0; z-index: 2; white-space: nowrap;
+    }
+    table.data th.sorted-asc::after { content: ' ▲'; font-size: 10px; }
+    table.data th.sorted-desc::after { content: ' ▼'; font-size: 10px; }
+    table.data td.num, table.data th.num { text-align: right; white-space: nowrap; }
+    table.data tbody tr.row-click { cursor: pointer; }
+    table.data tbody tr.row-click:hover { background: #f5f5f4; }
+    table.data tbody tr.row-selected td { background: #eff6ff; }
+    .warn-text { color: var(--warn); font-weight: 700; }
+    .warn-badge {
+      display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+      background: #fff7ed; color: var(--warn); border: 1px solid #fed7aa; margin: 2px 4px 2px 0;
+    }
+    .notes { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .notes ul { margin: 6px 0 0 18px; }
+    h2.section { font-size: 16px; color: #44403c; margin: 16px 0 8px; }
+    h2.section:first-child { margin-top: 0; }
+    .mobile-cards { display: none; gap: 10px; margin-top: 8px; }
+    .m-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); cursor: pointer; }
+    .m-card.selected { outline: 2px solid #93c5fd; }
+    .m-card .title { font-weight: 700; font-size: 15px; }
+    .m-card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .m-card .tot { font-size: 18px; font-weight: 700; margin-top: 8px; }
+    .detail-cards { display: none; gap: 8px; margin-top: 8px; }
+    .d-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fafaf9; }
+    .d-card .top { font-weight: 700; font-size: 13px; }
+    .d-card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .d-card .bottom { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 14px; }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(28, 25, 23, 0.45);
+      display: flex; align-items: flex-end; justify-content: center; z-index: 80; padding: 12px;
+    }
+    .modal-panel {
+      background: var(--panel); border-radius: 14px; max-width: 860px; width: 100%;
+      max-height: min(88vh, 720px); overflow: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); padding: 18px;
+    }
+    .modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+    .modal-head h2 { font-size: 17px; }
+    .modal-nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .modal-close, .modal-nav-btn {
+      border: 1px solid var(--line); background: #fafaf9; border-radius: 8px; padding: 6px 10px;
+      cursor: pointer; font-weight: 600;
+    }
+    .detail-drawer {
+      display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(390px, 42vw);
+      background: var(--panel); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+      z-index: 70; overflow: auto; padding: 18px;
+    }
+    .detail-drawer.open { display: block; }
+    body.drawer-open .container { padding-right: min(406px, calc(42vw + 16px)); }
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts-grid { grid-template-columns: 1fr; }
+      body.drawer-open .container { padding-right: 16px; }
+      .detail-drawer { display: none !important; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi .value { font-size: 20px; }
+      .desktop-only { display: none !important; }
+      .mobile-cards { display: grid; }
+      .detail-cards { display: grid; }
+      .detail-table-desktop { display: none !important; }
+      .chart-wrap { height: 220px; }
+      .filters { flex-direction: column; align-items: stretch; gap: 12px; }
+      .filter-group { min-width: 0; width: 100%; }
+      .filter-group select, .filter-group input[type="date"] { width: 100%; min-width: 0; }
+    }
+    @media (min-width: 601px) {
+      .mobile-only { display: none !important; }
+      .detail-cards { display: none !important; }
+    }
+    @media (min-width: 1101px) {
+      .modal-backdrop.desktop-side { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>📦 Report — Magazzino</h1>
+        <p>Entrate, uscite e giacenze per prodotto nel periodo. Valori allineati al report Economici; prezzi mancanti mostrati come — e totali con * se parziali.</p>
+      </div>
+      <div class="nav-row">
+        <a class="btn" href="./report-dashboard-standalone.html">← Dashboard</a>
+        <a class="btn" href="../../../core/dashboard-standalone.html">Home</a>
+        <button type="button" class="btn btn-accent" id="btn-export" disabled>Esporta Excel</button>
+      </div>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden"><div class="alert alert-error" id="gate-message"></div></div>
+
+    <div id="main-content" class="hidden">
+      <div class="panel">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="sel-mode">Tipo periodo</label>
+            <select id="sel-mode">
+              <option value="agrarian">Annata agraria (11 nov – 10 nov)</option>
+              <option value="solar">Anno solare</option>
+              <option value="custom">Intervallo personalizzato</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-year">
+            <label for="sel-year">Anno di riferimento</label>
+            <select id="sel-year"></select>
+          </div>
+          <div class="filter-group hidden" id="group-from">
+            <label for="date-from">Da</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div class="filter-group hidden" id="group-to">
+            <label for="date-to">A</label>
+            <input type="date" id="date-to" />
+          </div>
+          <div class="filter-group">
+            <label for="sel-categoria">Categoria</label>
+            <select id="sel-categoria"><option value="">Tutte</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-prodotto">Prodotto</label>
+            <select id="sel-prodotto"><option value="">Tutti</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-tipo">Tipo movimento</label>
+            <select id="sel-tipo">
+              <option value="">Tutti</option>
+              <option value="entrata">Entrata</option>
+              <option value="uscita">Uscita</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-origine">
+            <label for="sel-origine">Origine uscita</label>
+            <select id="sel-origine">
+              <option value="">Tutte</option>
+              <option value="trattamento">Scarico trattamento</option>
+              <option value="carburante">Pieno / carburante</option>
+              <option value="manuale">Uscita manuale</option>
+            </select>
+          </div>
+        </div>
+        <div class="period-hint" id="period-label"></div>
+        <p class="muted" style="margin-top:10px;">
+          Il valore di magazzino usa la <strong>giacenza attuale</strong> in anagrafica (non storica al periodo).
+        </p>
+      </div>
+
+      <div id="partial-banner" class="alert alert-warn hidden" role="status"></div>
+      <div id="alert-box"></div>
+      <div id="kpi-host" class="kpi-grid"></div>
+      <div class="charts-grid" id="charts-row">
+        <div class="chart-card" id="card-donut">
+          <h3>Valore uscite per categoria</h3>
+          <div class="chart-wrap" id="wrap-donut"><canvas id="chart-donut"></canvas></div>
+        </div>
+        <div class="chart-card" id="card-top">
+          <h3>Top prodotti per valore uscito</h3>
+          <div class="chart-wrap tall" id="wrap-top"><canvas id="chart-top"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card chart-full">
+        <h3>Entrate vs uscite mensili (valore)</h3>
+        <div class="chart-wrap"><canvas id="chart-mensile"></canvas></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px;">
+        <div id="tables-host" class="loading-box">Caricamento…</div>
+        <div id="mobile-host" class="mobile-cards mobile-only"></div>
+        <div class="notes" id="notes-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside id="detail-drawer" class="detail-drawer" aria-labelledby="drawer-title">
+    <div class="modal-head">
+      <div>
+        <h2 id="drawer-title">Dettaglio prodotto</h2>
+        <p class="muted" id="drawer-sub"></p>
+      </div>
+      <div class="modal-nav">
+        <button type="button" class="modal-nav-btn" id="drawer-prev" title="Prodotto precedente">←</button>
+        <button type="button" class="modal-nav-btn" id="drawer-next" title="Prodotto successivo">→</button>
+        <button type="button" class="modal-close" id="drawer-close">Chiudi</button>
+      </div>
+    </div>
+    <div id="drawer-body"></div>
+  </aside>
+
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="detail-title">Dettaglio prodotto</h2>
+          <p class="muted" id="detail-sub"></p>
+        </div>
+        <div class="modal-nav">
+          <button type="button" class="modal-nav-btn" id="detail-prev" title="Prodotto precedente">←</button>
+          <button type="button" class="modal-nav-btn" id="detail-next" title="Prodotto successivo">→</button>
+          <button type="button" class="modal-close" id="detail-close">Chiudi</button>
+        </div>
+      </div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+  <script type="module">
+    import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[report-magazzino] Bootstrap failed:', err);
+      throw err;
+    }
+
+    import {
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } from '../../../core/services/firebase-service.js';
+    import { initializeTenantService, setCurrentTenantId } from '../../../core/services/tenant-service.js';
+    import { hasReportModuleAccess } from '../services/report-service.js';
+    import { canAccessStrategicReports } from '../js/report-access.js';
+    import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
+    import {
+      loadMagazzinoPeriodBundle,
+      assembleMagazzinoFromBundle,
+      prepareMagazzinoExportData,
+      isMagazzinoDataReady,
+      buildProdottoDetailRows,
+      formatEuroPrefixCompact,
+      labelCategoria,
+      labelOrigineUscita,
+      getMagazzinoFilterOptions
+    } from '../services/report-magazzino-service.js';
+    import { setReportExportEnabled } from '../js/report-export-gate.js';
+    import { readReportChartColors, chartColorsForItems } from '../js/report-chart-colors.js';
+
+    const LOG = '[report-magazzino]';
+    const COLORS = readReportChartColors();
+    const USCITE_COLOR = COLORS.mac || (COLORS.series && COLORS.series[1]) || '#ea580c';
+
+    const auth = getAuthInstance();
+    initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const gateMessage = document.getElementById('gate-message');
+    const mainContent = document.getElementById('main-content');
+    const selMode = document.getElementById('sel-mode');
+    const selYear = document.getElementById('sel-year');
+    const groupYear = document.getElementById('group-year');
+    const groupFrom = document.getElementById('group-from');
+    const groupTo = document.getElementById('group-to');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+    const periodLabel = document.getElementById('period-label');
+    const selCategoria = document.getElementById('sel-categoria');
+    const selProdotto = document.getElementById('sel-prodotto');
+    const selTipo = document.getElementById('sel-tipo');
+    const selOrigine = document.getElementById('sel-origine');
+    const groupOrigine = document.getElementById('group-origine');
+    const tablesHost = document.getElementById('tables-host');
+    const mobileHost = document.getElementById('mobile-host');
+    const kpiHost = document.getElementById('kpi-host');
+    const alertBox = document.getElementById('alert-box');
+    const partialBanner = document.getElementById('partial-banner');
+    const notesBox = document.getElementById('notes-box');
+    const btnExport = document.getElementById('btn-export');
+    const detailModal = document.getElementById('detail-modal');
+    const detailTitle = document.getElementById('detail-title');
+    const detailSub = document.getElementById('detail-sub');
+    const detailBody = document.getElementById('detail-body');
+    const detailClose = document.getElementById('detail-close');
+    const detailDrawer = document.getElementById('detail-drawer');
+    const drawerTitle = document.getElementById('drawer-title');
+    const drawerSub = document.getElementById('drawer-sub');
+    const drawerBody = document.getElementById('drawer-body');
+    const drawerClose = document.getElementById('drawer-close');
+
+    let tenantId = null;
+    let cached = null;
+    let periodBundle = null;
+    let periodBundleKey = '';
+    let refreshSeq = 0;
+    let sortState = { key: 'nome', dir: 'asc' };
+    let selectedProdottoId = null;
+    const charts = { donut: null, top: null, mensile: null };
+
+    function showGate(msg) {
+      gateMessage.textContent = msg;
+      gateBlocked.classList.remove('hidden');
+      mainContent.classList.add('hidden');
+    }
+
+    function fillYearSelect() {
+      const y = new Date().getFullYear();
+      selYear.innerHTML = '';
+      for (let i = 0; i < 8; i++) {
+        const yy = y - i;
+        const o = document.createElement('option');
+        o.value = String(yy);
+        o.textContent = String(yy);
+        selYear.appendChild(o);
+      }
+      selYear.value = String(y);
+    }
+
+    function currentPeriodBounds() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        let a = dateFrom.value ? new Date(dateFrom.value + 'T00:00:00') : new Date();
+        let b = dateTo.value ? new Date(dateTo.value + 'T23:59:59.999') : new Date();
+        if (a > b) { const x = a; a = b; b = x; }
+        return { start: a, end: b, label: formatRangeIt(a, b) };
+      }
+      const refY = parseInt(selYear.value, 10) || new Date().getFullYear();
+      if (mode === 'solar') {
+        return getSolarYearBounds(new Date(refY, 5, 15));
+      }
+      return getAgrarianYearBounds(new Date(refY, 10, 15));
+    }
+
+    function updatePeriodUi() {
+      const custom = selMode.value === 'custom';
+      groupYear.classList.toggle('hidden', custom);
+      groupFrom.classList.toggle('hidden', !custom);
+      groupTo.classList.toggle('hidden', !custom);
+      const p = currentPeriodBounds();
+      periodLabel.textContent = p.label || formatRangeIt(p.start, p.end);
+    }
+
+    function syncOrigineUi() {
+      const entrataOnly = selTipo.value === 'entrata';
+      groupOrigine.classList.toggle('hidden', entrataOnly);
+      if (entrataOnly && selOrigine.value) {
+        selOrigine.value = '';
+      }
+    }
+
+    function currentFilters() {
+      return {
+        categoria: selCategoria.value || null,
+        prodottoId: selProdotto.value || null,
+        tipo: selTipo.value || null,
+        origineUscita: selOrigine.value || null
+      };
+    }
+
+    function fmtNum(v, dig = 1) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      return Number(v).toLocaleString('it-IT', { maximumFractionDigits: dig, minimumFractionDigits: 0 });
+    }
+
+    function fmtEuro(v, partial) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      const s = Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return partial ? s + '*' : s;
+    }
+
+    function fmtQty(v, unit) {
+      const q = fmtNum(v, 2);
+      const u = unit ? ` ${unit}` : '';
+      return q === '—' ? '—' : q + u;
+    }
+
+    function labelTipoMovimento(tipo) {
+      const t = String(tipo || '').toLowerCase();
+      if (t === 'entrata') return 'Entrata';
+      if (t === 'uscita') return 'Uscita';
+      return tipo || '—';
+    }
+
+    function prodottoBadges(r) {
+      let html = '';
+      if (r.prezzoInAttesa) html += '<span class="warn-badge">Prezzo in attesa</span>';
+      if (r.sottoScorta) html += '<span class="warn-badge">Sotto scorta</span>';
+      if (r.giacenzaNegativa) html += '<span class="warn-badge">Giacenza negativa</span>';
+      return html;
+    }
+
+    function destroyCharts() {
+      for (const k of Object.keys(charts)) {
+        if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+      }
+    }
+
+    function resizeCharts() {
+      for (const k of Object.keys(charts)) {
+        if (charts[k]) charts[k].resize();
+      }
+    }
+
+    function renderKpi(data) {
+      const k = data.kpi || {};
+      const warn = !!(k.partialEntrate || k.partialUscite || k.partialMagazzino
+        || k.valoreEntrate == null || k.valoreUscite == null || k.valoreMagazzino == null);
+      kpiHost.innerHTML = `
+        <div class="kpi${k.partialEntrate || k.valoreEntrate == null ? ' warn' : ''}">
+          <div class="label">Valore entrate</div>
+          <div class="value">${escapeHtml(fmtEuro(k.valoreEntrate, k.partialEntrate))} €</div>
+        </div>
+        <div class="kpi${k.partialUscite || k.valoreUscite == null ? ' warn' : ''}">
+          <div class="label">Valore uscite</div>
+          <div class="value">${escapeHtml(fmtEuro(k.valoreUscite, k.partialUscite))} €</div>
+        </div>
+        <div class="kpi${k.partialMagazzino || k.valoreMagazzino == null ? ' warn' : ''}">
+          <div class="label">Valore in magazzino</div>
+          <div class="value">${escapeHtml(fmtEuro(k.valoreMagazzino, k.partialMagazzino))} €</div>
+        </div>
+        <div class="kpi${k.prodottiSottoScorta > 0 ? ' warn' : ''}">
+          <div class="label">Prodotti sotto scorta</div>
+          <div class="value">${escapeHtml(String(k.prodottiSottoScorta || 0))}</div>
+        </div>
+      `;
+      if (warn) {
+        partialBanner.textContent = 'Alcuni importi sono incompleti (prezzo mancante). I valori con * sono parziali; — indica dato non calcolabile.';
+        partialBanner.classList.remove('hidden');
+      } else {
+        partialBanner.classList.add('hidden');
+      }
+    }
+
+    function renderCharts(data) {
+      if (typeof Chart === 'undefined') return;
+      destroyCharts();
+
+      const byCat = (data.chartUsciteCategoria || []).filter((r) => r.valore != null && Number(r.valore) > 0);
+      const catLabels = byCat.map((r) => r.label || labelCategoria(r.categoria));
+      const catVals = byCat.map((r) => Number(r.valore) || 0);
+      const catSum = catVals.reduce((a, b) => a + b, 0);
+      const donutCtx = document.getElementById('chart-donut');
+      if (donutCtx) {
+        charts.donut = new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: catLabels,
+            datasets: [{
+              data: catVals.length ? catVals : [1],
+              backgroundColor: catVals.length
+                ? chartColorsForItems(catLabels, COLORS)
+                : [COLORS.nonClassificato || '#e7e5e4'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+              tooltip: {
+                enabled: catVals.length > 0,
+                callbacks: {
+                  label(ctx) {
+                    const euroVal = Number(ctx.raw) || 0;
+                    return ` ${ctx.label}: ${euroVal.toLocaleString('it-IT', { maximumFractionDigits: 2 })} €`;
+                  }
+                }
+              }
+            }
+          },
+          plugins: catSum > 0 ? [{
+            id: 'centerTextMag',
+            afterDraw(chart) {
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return;
+              ctx.save();
+              ctx.fillStyle = '#1c1917';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.font = '700 16px Segoe UI, sans-serif';
+              ctx.fillText(
+                formatEuroPrefixCompact(catSum),
+                (chartArea.left + chartArea.right) / 2,
+                (chartArea.top + chartArea.bottom) / 2
+              );
+              ctx.restore();
+            }
+          }] : []
+        });
+      }
+
+      const top = (data.chartTopProdotti || []).filter((r) => r.valore != null && Number(r.valore) > 0);
+      const topLabels = (data.chartTopProdotti || []).map((r) => r.nome || '—');
+      const topVals = (data.chartTopProdotti || []).map((r) => (r.valore == null ? 0 : Number(r.valore) || 0));
+      const topCtx = document.getElementById('chart-top');
+      if (topCtx && topLabels.length) {
+        charts.top = new Chart(topCtx, {
+          type: 'bar',
+          data: {
+            labels: topLabels,
+            datasets: [{
+              label: 'Uscite €',
+              data: topVals,
+              backgroundColor: chartColorsForItems(topLabels, COLORS),
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } },
+              y: { ticks: { font: { size: 11 } } }
+            }
+          }
+        });
+      }
+
+      const monthly = data.chartMensile || [];
+      const mCtx = document.getElementById('chart-mensile');
+      if (mCtx) {
+        charts.mensile = new Chart(mCtx, {
+          type: 'bar',
+          data: {
+            labels: monthly.map((m) => m.label),
+            datasets: [
+              {
+                label: 'Entrate',
+                data: monthly.map((m) => (m.entrate == null ? null : Number(m.entrate) || 0)),
+                backgroundColor: COLORS.prod,
+                borderRadius: 4
+              },
+              {
+                label: 'Uscite',
+                data: monthly.map((m) => (m.uscite == null ? null : Number(m.uscite) || 0)),
+                backgroundColor: USCITE_COLOR,
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+            scales: {
+              x: { stacked: false },
+              y: {
+                stacked: false,
+                ticks: { callback: (v) => Number(v).toLocaleString('it-IT') }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function sortRows(rows, key, dir) {
+      const mul = dir === 'desc' ? -1 : 1;
+      return [...(rows || [])].sort((a, b) => {
+        const va = a[key];
+        const vb = b[key];
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * mul;
+        return String(va).localeCompare(String(vb), 'it') * mul;
+      });
+    }
+
+    function thSort(key, label, num) {
+      const cls = (num ? 'num ' : '')
+        + (sortState.key === key ? (sortState.dir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '');
+      return `<th class="${cls}" data-sort="${escapeHtml(key)}">${escapeHtml(label)}</th>`;
+    }
+
+    function emptyPeriodMessage() {
+      return '<div class="alert alert-info">Nessun movimento di magazzino nel periodo selezionato. Prova ad allargare l’intervallo o a togliere i filtri.</div>';
+    }
+
+    function renderMobileCards(byProdotto) {
+      if (!mobileHost) return;
+      const rows = byProdotto.filter((r) => r.nMovimenti > 0 || r.sottoScorta || r.giacenzaNegativa);
+      if (!rows.length) { mobileHost.innerHTML = ''; return; }
+      mobileHost.innerHTML = '<h2 class="section" style="margin-top:0;">Per prodotto</h2>'
+        + rows.map((r) => {
+          const id = r.prodottoId || '';
+          return `
+        <div class="m-card${selectedProdottoId === id ? ' selected' : ''}" data-prodotto-id="${escapeHtml(id)}">
+          <div class="title">${escapeHtml(r.nome)}${prodottoBadges(r)}</div>
+          <div class="meta">${escapeHtml(labelCategoria(r.categoria))} · giacenza ${escapeHtml(fmtQty(r.giacenza, r.unitaMisura))}</div>
+          <div class="tot${r.partialUscite ? ' warn-text' : ''}">Uscite ${escapeHtml(fmtEuro(r.valoreUscite, r.partialUscite))} €</div>
+        </div>
+      `;
+        }).join('');
+    }
+
+    function isDesktopWide() {
+      return window.matchMedia('(min-width: 1101px)').matches;
+    }
+
+    function prodottoListIds() {
+      const rows = cached && cached.byProdotto ? cached.byProdotto : [];
+      return rows
+        .filter((r) => r.prodottoId && r.nMovimenti > 0)
+        .map((r) => String(r.prodottoId));
+    }
+
+    function navigateProdotto(delta) {
+      const ids = prodottoListIds();
+      if (!ids.length || !selectedProdottoId) return;
+      const idx = ids.indexOf(String(selectedProdottoId));
+      if (idx < 0) return;
+      const next = ids[(idx + delta + ids.length) % ids.length];
+      openProdottoDetail(next);
+    }
+
+    function buildDetailHtml(prodottoId) {
+      const row = (cached.byProdotto || []).find((r) => String(r.prodottoId) === String(prodottoId));
+      const detail = buildProdottoDetailRows(cached.movimenti || [], prodottoId);
+
+      let html = '';
+      if (!detail.length) {
+        html = '<div class="alert alert-info">Nessun movimento per questo prodotto nel periodo con i filtri attuali.</div>';
+      } else {
+        html += `<div class="table-wrap detail-table-desktop"><table class="data"><thead><tr>
+          <th>Data</th><th>Tipo</th><th class="num">Qtà</th><th class="num">Prezzo</th><th class="num">Valore</th><th>Origine</th><th>Riferimenti</th>
+        </tr></thead><tbody>`;
+        for (const d of detail) {
+          const refs = [];
+          if (d.lavoroId) refs.push(`Lavoro ${d.lavoroId}`);
+          if (d.macchinaId) refs.push(`Mezzo ${d.macchinaId}`);
+          if (d.origineTrattamentoId) refs.push(`Tratt. ${d.origineTrattamentoId}`);
+          html += `<tr>
+            <td>${escapeHtml(d.dataIso || '—')}</td>
+            <td>${escapeHtml(labelTipoMovimento(d.tipo))}${d.prezzoInAttesa ? ' <span class="warn-badge">Attesa</span>' : ''}</td>
+            <td class="num">${escapeHtml(fmtQty(d.quantita, d.unitaMisura))}</td>
+            <td class="num${d.missingPrezzo ? ' warn-text' : ''}">${escapeHtml(d.missingPrezzo ? '—' : fmtEuro(d.prezzo, false))}</td>
+            <td class="num${d.missingPrezzo ? ' warn-text' : ''}">${escapeHtml(fmtEuro(d.valore, d.missingPrezzo))}</td>
+            <td>${escapeHtml(d.origineLabel || '—')}</td>
+            <td>${escapeHtml(refs.length ? refs.join(' · ') : '—')}</td>
+          </tr>`;
+        }
+        html += '</tbody></table></div>';
+
+        html += '<div class="detail-cards">';
+        for (const d of detail) {
+          const refs = [];
+          if (d.lavoroId) refs.push(`Lavoro ${d.lavoroId}`);
+          if (d.macchinaId) refs.push(`Mezzo ${d.macchinaId}`);
+          html += `<div class="d-card">
+            <div class="top">${escapeHtml(d.dataIso || '—')} · ${escapeHtml(labelTipoMovimento(d.tipo))}</div>
+            <div class="sub">${escapeHtml(d.origineLabel || '—')}${refs.length ? ' · ' + escapeHtml(refs.join(' · ')) : ''}</div>
+            <div class="bottom">
+              <span>${escapeHtml(fmtQty(d.quantita, d.unitaMisura))} × ${escapeHtml(d.missingPrezzo ? '—' : fmtEuro(d.prezzo, false))}</span>
+              <strong class="${d.missingPrezzo ? 'warn-text' : ''}">${escapeHtml(fmtEuro(d.valore, d.missingPrezzo))} €</strong>
+            </div>
+          </div>`;
+        }
+        html += '</div>';
+      }
+
+      html += '<p class="muted" style="margin-top:10px;">Usa ← → oppure seleziona un altro prodotto dalla tabella.</p>';
+      return {
+        title: row ? row.nome : 'Dettaglio prodotto',
+        sub: row
+          ? `${labelCategoria(row.categoria)} · giacenza ${fmtQty(row.giacenza, row.unitaMisura)} · magazzino ${fmtEuro(row.valoreMagazzino, row.missingGiacenza)} €`
+          : '',
+        html
+      };
+    }
+
+    function openProdottoDetail(prodottoId) {
+      if (!cached || !prodottoId) return;
+      selectedProdottoId = String(prodottoId);
+      const built = buildDetailHtml(prodottoId);
+
+      if (isDesktopWide()) {
+        drawerTitle.textContent = built.title;
+        drawerSub.textContent = built.sub;
+        drawerBody.innerHTML = built.html;
+        detailDrawer.classList.add('open');
+        document.body.classList.add('drawer-open');
+        detailModal.classList.add('hidden');
+        detailModal.classList.add('desktop-side');
+      } else {
+        detailTitle.textContent = built.title;
+        detailSub.textContent = built.sub;
+        detailBody.innerHTML = built.html;
+        detailModal.classList.remove('hidden');
+        detailModal.classList.remove('desktop-side');
+        detailDrawer.classList.remove('open');
+        document.body.classList.remove('drawer-open');
+      }
+      if (cached) renderTables(cached);
+    }
+
+    function closeDetail() {
+      detailModal.classList.add('hidden');
+      detailDrawer.classList.remove('open');
+      document.body.classList.remove('drawer-open');
+      selectedProdottoId = null;
+      if (cached) renderTables(cached);
+    }
+
+    function renderTables(data) {
+      const byProdotto = sortRows(data.byProdotto, sortState.key, sortState.dir);
+      const visible = byProdotto.filter((r) => r.nMovimenti > 0 || r.sottoScorta || r.giacenzaNegativa);
+      if (!visible.length) {
+        tablesHost.innerHTML = data.empty ? emptyPeriodMessage() : '<div class="alert alert-info">Nessun prodotto corrisponde ai filtri.</div>';
+        if (mobileHost) mobileHost.innerHTML = '';
+        return;
+      }
+
+      let html = '<h2 class="section desktop-only">Per prodotto</h2>';
+      html += '<p class="muted desktop-only" style="margin-bottom:8px;">Clicca una riga con movimenti per vedere il dettaglio (pannello laterale su desktop).</p>';
+      html += '<div class="table-wrap desktop-only"><table class="data" id="tbl-prodotto"><thead><tr>';
+      html += thSort('nome', 'Prodotto', false);
+      html += thSort('categoria', 'Categoria', false);
+      html += thSort('qtyEntrate', 'Entrate (qtà)', true);
+      html += thSort('valoreEntrate', 'Entrate €', true);
+      html += thSort('qtyUscite', 'Uscite (qtà)', true);
+      html += thSort('valoreUscite', 'Uscite €', true);
+      html += thSort('giacenza', 'Giacenza', true);
+      html += thSort('valoreMagazzino', 'Valore mag.', true);
+      html += '<th>Stato</th>';
+      html += '</tr></thead><tbody>';
+      for (const r of visible) {
+        const id = r.prodottoId || '';
+        const clickable = r.nMovimenti > 0 && id;
+        const sel = selectedProdottoId === id ? ' row-selected' : '';
+        html += `<tr class="${clickable ? 'row-click' : ''}${sel}"${clickable ? ` data-prodotto-id="${escapeHtml(id)}"` : ''}>
+          <td>${escapeHtml(r.nome)}</td>
+          <td>${escapeHtml(labelCategoria(r.categoria))}</td>
+          <td class="num">${escapeHtml(fmtQty(r.qtyEntrate, r.unitaMisura))}</td>
+          <td class="num${r.partialEntrate ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.valoreEntrate, r.partialEntrate))}</td>
+          <td class="num">${escapeHtml(fmtQty(r.qtyUscite, r.unitaMisura))}</td>
+          <td class="num${r.partialUscite ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.valoreUscite, r.partialUscite))}</td>
+          <td class="num${r.giacenzaNegativa ? ' warn-text' : ''}">${escapeHtml(fmtQty(r.giacenza, r.unitaMisura))}</td>
+          <td class="num${r.missingGiacenza ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.valoreMagazzino, r.missingGiacenza))}</td>
+          <td>${prodottoBadges(r)}</td>
+        </tr>`;
+      }
+      html += '</tbody></table></div>';
+      tablesHost.innerHTML = html;
+      renderMobileCards(byProdotto);
+    }
+
+    function syncOpenDetailAfterRender(data) {
+      if (!selectedProdottoId) return;
+      if (!data || data.empty) {
+        closeDetail();
+        return;
+      }
+      const stillThere = (data.byProdotto || []).some(
+        (r) => String(r.prodottoId) === String(selectedProdottoId) && r.nMovimenti > 0
+      );
+      if (!stillThere) {
+        closeDetail();
+        return;
+      }
+      const built = buildDetailHtml(selectedProdottoId);
+      if (isDesktopWide()) {
+        drawerTitle.textContent = built.title;
+        drawerSub.textContent = built.sub;
+        drawerBody.innerHTML = built.html;
+        detailDrawer.classList.add('open');
+        document.body.classList.add('drawer-open');
+        detailModal.classList.add('hidden');
+        detailModal.classList.add('desktop-side');
+      } else if (!detailModal.classList.contains('hidden')) {
+        detailTitle.textContent = built.title;
+        detailSub.textContent = built.sub;
+        detailBody.innerHTML = built.html;
+      }
+    }
+
+    function render(data) {
+      cached = data;
+      const ready = isMagazzinoDataReady(data);
+      setReportExportEnabled(btnExport, ready && !data.empty);
+
+      if (data.empty) {
+        destroyCharts();
+        kpiHost.innerHTML = '';
+        tablesHost.innerHTML = emptyPeriodMessage();
+        if (mobileHost) mobileHost.innerHTML = '';
+        notesBox.innerHTML = '';
+        partialBanner.classList.add('hidden');
+        document.getElementById('charts-row')?.classList.add('hidden');
+        document.querySelector('.chart-full')?.classList.add('hidden');
+        syncOpenDetailAfterRender(data);
+        return;
+      }
+
+      document.getElementById('charts-row')?.classList.remove('hidden');
+      document.querySelector('.chart-full')?.classList.remove('hidden');
+      renderKpi(data);
+      renderCharts(data);
+      renderTables(data);
+      syncOpenDetailAfterRender(data);
+
+      notesBox.innerHTML = data.notes && data.notes.length
+        ? `<strong>Note:</strong><ul>${data.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+        : '';
+    }
+
+    function fillFilterOptions(bundle) {
+      const opts = getMagazzinoFilterOptions(bundle || {});
+      const keepC = selCategoria.value;
+      selCategoria.innerHTML = '<option value="">Tutte</option>';
+      for (const c of opts.categorie || []) {
+        const o = document.createElement('option');
+        o.value = c.id;
+        o.textContent = c.nome;
+        selCategoria.appendChild(o);
+      }
+      if (keepC) selCategoria.value = keepC;
+
+      const keepP = selProdotto.value;
+      selProdotto.innerHTML = '<option value="">Tutti</option>';
+      for (const p of opts.prodotti || []) {
+        const o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.nome;
+        selProdotto.appendChild(o);
+      }
+      if (keepP) selProdotto.value = keepP;
+    }
+
+    function filterLabels() {
+      const f = currentFilters();
+      const cat = f.categoria ? (selCategoria.selectedOptions[0]?.text || f.categoria) : 'Tutte';
+      const prod = f.prodottoId ? (selProdotto.selectedOptions[0]?.text || f.prodottoId) : 'Tutti';
+      const tipo = f.tipo ? labelTipoMovimento(f.tipo) : 'Tutti';
+      const orig = f.origineUscita ? labelOrigineUscita(f.origineUscita) : 'Tutte';
+      return { cat, prod, tipo, orig };
+    }
+
+    function applyLocalFilters() {
+      syncOrigineUi();
+      if (!periodBundle) return;
+      const data = assembleMagazzinoFromBundle(periodBundle, currentFilters());
+      render(data);
+    }
+
+    async function refreshReport({ forceReload = false } = {}) {
+      const seq = ++refreshSeq;
+      const p = currentPeriodBounds();
+      const key = `${p.start.toISOString()}|${p.end.toISOString()}`;
+      setReportExportEnabled(btnExport, false);
+      tablesHost.innerHTML = '<div class="loading-box">Caricamento movimenti e prodotti magazzino…</div>';
+      console.info(`${LOG} refresh period ${key}`);
+      try {
+        if (forceReload || periodBundleKey !== key || !periodBundle) {
+          periodBundle = await loadMagazzinoPeriodBundle(p.start, p.end, { forceReload: true });
+          periodBundleKey = key;
+          fillFilterOptions(periodBundle);
+        }
+        if (seq !== refreshSeq) return;
+        const data = assembleMagazzinoFromBundle(periodBundle, currentFilters());
+        render(data);
+      } catch (e) {
+        console.error(LOG, e);
+        tablesHost.innerHTML = `<div class="alert alert-error">${escapeHtml(e && e.message ? e.message : 'Errore caricamento')}</div>`;
+      }
+    }
+
+    async function exportExcel() {
+      if (!cached || typeof ExcelJS === 'undefined') return;
+      const p = currentPeriodBounds();
+      const fl = filterLabels();
+      const exportData = prepareMagazzinoExportData(cached);
+
+      const wb = new ExcelJS.Workbook();
+      function addMeta(ws) {
+        ws.addRow(['Periodo', p.label || formatRangeIt(p.start, p.end)]);
+        ws.addRow(['Categoria', fl.cat]);
+        ws.addRow(['Prodotto', fl.prod]);
+        ws.addRow(['Tipo movimento', fl.tipo]);
+        ws.addRow(['Origine uscita', fl.orig]);
+        ws.addRow([]);
+      }
+
+      const wsKpi = wb.addWorksheet('KPI');
+      addMeta(wsKpi);
+      wsKpi.addRow(['Valore entrate €', exportData.kpi.valoreEntrate]);
+      wsKpi.addRow(['Valore uscite €', exportData.kpi.valoreUscite]);
+      wsKpi.addRow(['Valore magazzino €', exportData.kpi.valoreMagazzino]);
+      wsKpi.addRow(['Prodotti sotto scorta', exportData.kpi.prodottiSottoScorta]);
+      wsKpi.addRow(['N. prodotti', exportData.kpi.nProdotti]);
+
+      const wsProd = wb.addWorksheet('Per prodotto');
+      addMeta(wsProd);
+      wsProd.addRow(['Prodotto', 'Categoria', 'Qty entrate', 'Valore entrate', 'Qty uscite', 'Valore uscite', 'Giacenza', 'Valore magazzino', 'Sotto scorta', 'Giacenza negativa', 'Prezzo in attesa']);
+      for (const r of exportData.perProdotto) {
+        wsProd.addRow([
+          r.nome, r.categoria, r.qtyEntrate, r.valoreEntrate, r.qtyUscite, r.valoreUscite,
+          r.giacenza, r.valoreMagazzino, r.sottoScorta ? 'sì' : '', r.giacenzaNegativa ? 'sì' : '', r.prezzoInAttesa ? 'sì' : ''
+        ]);
+      }
+
+      const wsMov = wb.addWorksheet('Movimenti');
+      addMeta(wsMov);
+      wsMov.addRow(['Data', 'Prodotto', 'Categoria', 'Tipo', 'Quantità', 'Unità', 'Prezzo', 'Valore', 'Origine', 'Lavoro', 'Mezzo', 'Prezzo in attesa', 'Prezzo mancante']);
+      for (const m of exportData.movimenti) {
+        wsMov.addRow([
+          m.data, m.prodotto, m.categoria, m.tipo, m.quantita, m.unita, m.prezzo, m.valore,
+          m.origine, m.lavoroId, m.macchinaId, m.prezzoInAttesa ? 'sì' : '', m.prezzoMancante ? 'sì' : ''
+        ]);
+      }
+
+      const wsNote = wb.addWorksheet('Note');
+      addMeta(wsNote);
+      for (const n of exportData.notes || []) wsNote.addRow([n]);
+
+      const fileName = `report-magazzino-${new Date().toISOString().split('T')[0]}.xlsx`;
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      console.info(`${LOG} export ${fileName}`);
+      alertBox.innerHTML = `<div class="alert alert-info">Export completato: ${escapeHtml(fileName)}</div>`;
+    }
+
+    tablesHost.addEventListener('click', (ev) => {
+      const th = ev.target.closest('th[data-sort]');
+      if (th && cached) {
+        const key = th.getAttribute('data-sort');
+        if (sortState.key === key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        else { sortState.key = key; sortState.dir = key === 'nome' || key === 'categoria' ? 'asc' : 'desc'; }
+        render(cached);
+        return;
+      }
+      const tr = ev.target.closest('tr.row-click[data-prodotto-id]');
+      if (tr && cached) openProdottoDetail(tr.getAttribute('data-prodotto-id'));
+    });
+    if (mobileHost) {
+      mobileHost.addEventListener('click', (ev) => {
+        const card = ev.target.closest('.m-card[data-prodotto-id]');
+        if (card && cached) openProdottoDetail(card.getAttribute('data-prodotto-id'));
+      });
+    }
+
+    detailClose?.addEventListener('click', closeDetail);
+    drawerClose?.addEventListener('click', closeDetail);
+    document.getElementById('detail-prev')?.addEventListener('click', () => navigateProdotto(-1));
+    document.getElementById('detail-next')?.addEventListener('click', () => navigateProdotto(1));
+    document.getElementById('drawer-prev')?.addEventListener('click', () => navigateProdotto(-1));
+    document.getElementById('drawer-next')?.addEventListener('click', () => navigateProdotto(1));
+    detailModal?.addEventListener('click', (ev) => { if (ev.target === detailModal) closeDetail(); });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') closeDetail();
+      if (ev.key === 'ArrowLeft' && selectedProdottoId) navigateProdotto(-1);
+      if (ev.key === 'ArrowRight' && selectedProdottoId) navigateProdotto(1);
+    });
+    window.addEventListener('resize', () => {
+      resizeCharts();
+      if (selectedProdottoId) openProdottoDetail(selectedProdottoId);
+    });
+
+    function onPeriodChange() {
+      updatePeriodUi();
+      refreshReport({ forceReload: true });
+    }
+    selMode.addEventListener('change', onPeriodChange);
+    selYear.addEventListener('change', onPeriodChange);
+    dateFrom.addEventListener('change', onPeriodChange);
+    dateTo.addEventListener('change', onPeriodChange);
+    selCategoria.addEventListener('change', () => applyLocalFilters());
+    selProdotto.addEventListener('change', () => applyLocalFilters());
+    selTipo.addEventListener('change', () => applyLocalFilters());
+    selOrigine.addEventListener('change', () => applyLocalFilters());
+    btnExport.addEventListener('click', () => { exportExcel().catch((e) => console.error(LOG, e)); });
+
+    fillYearSelect();
+    updatePeriodUi();
+    syncOrigineUi();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
+      if (!user) {
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+        return;
+      }
+      const userData = await getDocumentData('users', user.uid);
+      if (!userData) { showGate('Profilo utente non trovato.'); return; }
+      if (userData.tenantId) {
+        setCurrentTenantId(userData.tenantId);
+        tenantId = userData.tenantId;
+      }
+      const okReport = await hasReportModuleAccess();
+      if (!okReport) { showGate('Il modulo Report non è attivo per questo account.'); return; }
+      if (!canAccessStrategicReports(userData)) {
+        showGate('Questa area è riservata a Manager e Amministratore.');
+        return;
+      }
+      gateBlocked.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+      console.info(`${LOG} access ok tenant=${tenantId || ''}`);
+      await refreshReport({ forceReload: true });
+    });
+  </script>
+  <script type="module">
+    import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+    const swPath = window.location.pathname.includes('/gfv-platform/')
+      ? '/gfv-platform/service-worker.js'
+      : '../../../service-worker.js';
+    registraServiceWorker(swPath);
+  </script>
+</body>
+</html>

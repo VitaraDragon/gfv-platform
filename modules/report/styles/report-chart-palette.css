@@ -1,17 +1,22 @@
 /**
- * Palette grafici Report (Macchine / Manodopera) — linguaggio Economici + serie vivaci.
+ * Palette grafici Report (Economici / Manodopera / Macchine / Magazzino).
+ * Regola Pier: mai due voci con lo stesso colore nello stesso grafico;
+ * oltre la palette (e sempre «Altri») → grigio.
  * Condivisa: non duplicare tinte nelle pagine standalone.
  */
 :root {
-  /* Serie distinte (barre, ciambelle, stack) */
+  /* Serie contrastanti (ordine: tinte lontane, non sfumature) */
   --report-chart-1: #16a34a; /* verde */
   --report-chart-2: #ea580c; /* arancio */
   --report-chart-3: #2563eb; /* blu */
   --report-chart-4: #7c3aed; /* viola */
-  --report-chart-5: #ca8a04; /* giallo ocra */
-  --report-chart-6: #b91c1c; /* rosso mattone */
-  --report-chart-7: #0d9488; /* turchese */
+  --report-chart-5: #b91c1c; /* rosso mattone */
+  --report-chart-6: #0d9488; /* turchese */
+  --report-chart-7: #ca8a04; /* giallo ocra */
   --report-chart-8: #db2777; /* magenta */
+
+  /* Overflow / «Altri» */
+  --report-chart-altri: #94a3b8; /* grigio slate */
 
   /* Significati fissi */
   --report-chart-validate: #2563eb;
@@ -19,7 +24,7 @@
   --report-chart-proprietario: #059669; /* non blu */
   --report-chart-non-classificato: #78716c;
 
-  /* Alias semantici riusati dalle pagine */
+  /* Alias semantici riusati dalle pagine (Economici incluso) */
   --mano: #2563eb;
   --mac: #ea580c;
   --prod: #16a34a;
@@ -31,4 +36,5 @@
   --specializzato: #7c3aed;
   --trattorista: #0d9488;
   --altro-tipo: #ca8a04;
+  --warn: #c2410c;
 }
