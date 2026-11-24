@@ -10,11 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <link rel="stylesheet" href="../styles/report-chart-palette.css">
   <style>
     :root {
       --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
-      --mano: #2563eb; --mano-soft: #93c5fd; --warn: #c2410c; --accent: #1d4ed8;
-      --proprietario: #059669; --non-classificato: #78716c; --attrezzo: #d97706; --validate: #2563eb;
+      --mano-soft: #93c5fd; --warn: #c2410c; --accent: #1d4ed8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -75,6 +75,39 @@
     table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
     table.data th, table.data td {
       border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; white-space: nowrap; background: var(--panel);
+    }
+    /* Dettaglio mezzo nel drawer: testo a capo, numeri sempre visibili (come Manodopera) */
+    .detail-drawer .detail-table-desktop { overflow-x: hidden; }
+    .detail-drawer table.data { table-layout: fixed; width: 100%; font-size: 12px; }
+    .detail-drawer table.data th,
+    .detail-drawer table.data td {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      padding: 8px 6px;
+      vertical-align: top;
+    }
+    .detail-drawer table.data th:nth-child(1),
+    .detail-drawer table.data td:nth-child(1) { width: 16%; }
+    .detail-drawer table.data th:nth-child(2),
+    .detail-drawer table.data td:nth-child(2) { width: 18%; }
+    .detail-drawer table.data th:nth-child(3),
+    .detail-drawer table.data td:nth-child(3) { width: 18%; }
+    .detail-drawer table.data th:nth-child(4),
+    .detail-drawer table.data td:nth-child(4) { width: 16%; }
+    .detail-drawer table.data th.num,
+    .detail-drawer table.data td.num {
+      white-space: nowrap;
+      overflow-wrap: normal;
+      word-break: normal;
+      width: 10%;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+    .chart-empty {
+      display: flex; align-items: center; justify-content: center; min-height: 180px;
+      text-align: center; padding: 16px; color: #9a3412; background: #fff7ed;
+      border: 1px dashed #fed7aa; border-radius: 12px; font-size: 14px; font-weight: 600; line-height: 1.4;
     }
     table.data th {
       background: #fafaf9; color: #44403c; font-weight: 700; cursor: pointer; user-select: none;
@@ -223,13 +256,15 @@
       <div id="alert-box"></div>
       <div id="kpi-host" class="kpi-grid"></div>
       <div class="charts-grid" id="charts-row">
-        <div class="chart-card">
+        <div class="chart-card" id="card-donut">
           <h3>Costo per tipo (trattori / attrezzi)</h3>
-          <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
+          <div class="chart-wrap" id="wrap-donut"><canvas id="chart-donut"></canvas></div>
+          <div class="chart-empty hidden" id="empty-donut">Costi non disponibili: imposta il costo orario dei mezzi.</div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card" id="card-costo">
           <h3>Costo per mezzo</h3>
-          <div class="chart-wrap tall"><canvas id="chart-costo"></canvas></div>
+          <div class="chart-wrap tall" id="wrap-costo"><canvas id="chart-costo"></canvas></div>
+          <div class="chart-empty hidden" id="empty-costo">Costi non disponibili: imposta il costo orario dei mezzi.</div>
         </div>
       </div>
       <div class="chart-card chart-full">
@@ -305,27 +340,19 @@
       isMacchineDataReady,
       buildMezzoDetailRows,
       formatEuroPrefixCompact,
+      hasMacchineCostiDisponibili,
       labelTipoMezzo
     } from '../services/report-macchine-service.js';
     import { setReportExportEnabled } from '../js/report-export-gate.js';
+    import {
+      readReportChartColors,
+      seriesColorAt,
+      colorForTipoMezzo as colorForTipoMezzoShared
+    } from '../js/report-chart-colors.js';
 
-    const _cs = getComputedStyle(document.documentElement);
-    const COLORS = {
-      validate: (_cs.getPropertyValue('--validate').trim() || '#2563eb'),
-      daValidare: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
-      trattore: (_cs.getPropertyValue('--mano').trim() || '#2563eb'),
-      attrezzo: (_cs.getPropertyValue('--attrezzo').trim() || '#d97706'),
-      nonClassificato: (_cs.getPropertyValue('--non-classificato').trim() || '#78716c'),
-      warn: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
-      bar: (_cs.getPropertyValue('--mano').trim() || '#2563eb')
-    };
-
+    const COLORS = readReportChartColors();
     function colorForTipoMezzo(tipo) {
-      const t = String(tipo || '').toLowerCase();
-      if (t === 'trattore') return COLORS.trattore;
-      if (t === 'attrezzo') return COLORS.attrezzo;
-      if (!t) return COLORS.nonClassificato;
-      return COLORS.bar;
+      return colorForTipoMezzoShared(tipo, COLORS);
     }
 
     const auth = getAuthInstance();
@@ -461,87 +488,116 @@
       `;
     }
 
+    function setCostiChartsEmpty(empty) {
+      const wrapDonut = document.getElementById('wrap-donut');
+      const wrapCosto = document.getElementById('wrap-costo');
+      const emptyDonut = document.getElementById('empty-donut');
+      const emptyCosto = document.getElementById('empty-costo');
+      if (wrapDonut) wrapDonut.classList.toggle('hidden', empty);
+      if (wrapCosto) wrapCosto.classList.toggle('hidden', empty);
+      if (emptyDonut) emptyDonut.classList.toggle('hidden', !empty);
+      if (emptyCosto) emptyCosto.classList.toggle('hidden', !empty);
+    }
+
+    function ensureCanvas(wrapId, canvasId) {
+      const wrap = document.getElementById(wrapId);
+      if (!wrap) return null;
+      let canvas = document.getElementById(canvasId);
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = canvasId;
+        wrap.innerHTML = '';
+        wrap.appendChild(canvas);
+      }
+      return canvas;
+    }
+
     function renderCharts(data) {
       if (typeof Chart === 'undefined') return;
       destroyCharts();
 
-      const byTipo = data.byTipo || [];
-      const donutVals = byTipo.map((r) => Number(r.costo) || 0);
-      const donutSum = donutVals.reduce((a, b) => a + b, 0);
-      const donutCtx = document.getElementById('chart-donut');
-      if (donutCtx) {
-        charts.donut = new Chart(donutCtx, {
-          type: 'doughnut',
-          data: {
-            labels: byTipo.map((r) => r.label || labelTipoMezzo(r.tipo)),
-            datasets: [{
-              data: donutVals,
-              backgroundColor: byTipo.map((r) => colorForTipoMezzo(r.tipo)),
-              borderWidth: 0
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '62%',
-            plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
-              tooltip: {
-                callbacks: {
-                  label(ctx) {
-                    const euroVal = Number(ctx.raw) || 0;
-                    return ` ${ctx.label}: ${euroVal.toLocaleString('it-IT', { maximumFractionDigits: 2 })} €`;
+      const hasCosti = hasMacchineCostiDisponibili(data);
+      setCostiChartsEmpty(!hasCosti);
+
+      if (hasCosti) {
+        const byTipo = (data.byTipo || []).filter((r) => r.costo != null && Number(r.costo) > 0);
+        const donutVals = byTipo.map((r) => Number(r.costo) || 0);
+        const donutSum = donutVals.reduce((a, b) => a + b, 0);
+        const donutCtx = ensureCanvas('wrap-donut', 'chart-donut');
+        if (donutCtx) {
+          charts.donut = new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+              labels: byTipo.map((r) => r.label || labelTipoMezzo(r.tipo)),
+              datasets: [{
+                data: donutVals,
+                backgroundColor: byTipo.map((r) => colorForTipoMezzo(r.tipo)),
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '62%',
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+                tooltip: {
+                  callbacks: {
+                    label(ctx) {
+                      const euroVal = Number(ctx.raw) || 0;
+                      return ` ${ctx.label}: ${euroVal.toLocaleString('it-IT', { maximumFractionDigits: 2 })} €`;
+                    }
                   }
                 }
               }
-            }
-          },
-          plugins: [{
-            id: 'centerText',
-            afterDraw(chart) {
-              const { ctx, chartArea } = chart;
-              if (!chartArea) return;
-              ctx.save();
-              ctx.fillStyle = '#1c1917';
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.font = '700 16px Segoe UI, sans-serif';
-              ctx.fillText(
-                formatEuroPrefixCompact(donutSum),
-                (chartArea.left + chartArea.right) / 2,
-                (chartArea.top + chartArea.bottom) / 2
-              );
-              ctx.restore();
-            }
-          }]
-        });
-      }
-
-      const byCosto = data.chartCosto || [];
-      const cCtx = document.getElementById('chart-costo');
-      if (cCtx) {
-        charts.costo = new Chart(cCtx, {
-          type: 'bar',
-          data: {
-            labels: byCosto.map((r) => r.nome),
-            datasets: [{
-              label: 'Costo €',
-              data: byCosto.map((r) => Number(r.costo) || 0),
-              backgroundColor: COLORS.bar,
-              borderRadius: 4
+            },
+            plugins: [{
+              id: 'centerText',
+              afterDraw(chart) {
+                const { ctx, chartArea } = chart;
+                if (!chartArea) return;
+                ctx.save();
+                ctx.fillStyle = '#1c1917';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '700 16px Segoe UI, sans-serif';
+                ctx.fillText(
+                  formatEuroPrefixCompact(donutSum),
+                  (chartArea.left + chartArea.right) / 2,
+                  (chartArea.top + chartArea.bottom) / 2
+                );
+                ctx.restore();
+              }
             }]
-          },
-          options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } },
-              y: { ticks: { font: { size: 11 } } }
+          });
+        }
+
+        const byCosto = (data.chartCosto || []).filter((r) => r.costo != null && Number(r.costo) > 0);
+        const cCtx = ensureCanvas('wrap-costo', 'chart-costo');
+        if (cCtx) {
+          charts.costo = new Chart(cCtx, {
+            type: 'bar',
+            data: {
+              labels: byCosto.map((r) => r.nome),
+              datasets: [{
+                label: 'Costo €',
+                data: byCosto.map((r) => Number(r.costo) || 0),
+                backgroundColor: byCosto.map((_, i) => seriesColorAt(i, COLORS)),
+                borderRadius: 4
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } },
+                y: { ticks: { font: { size: 11 } } }
+              }
             }
-          }
-        });
+          });
+        }
       }
 
       const monthly = data.chartMensile || [];
@@ -690,16 +746,23 @@
         }
       }
 
-      html += '<h3 class="section">Guasti</h3>';
-      const gItems = (guasti.items || []).filter((g) => g.inPeriodo || g.attivo);
-      if (!gItems.length) {
-        html += '<p class="muted">Nessun guasto nel periodo / aperto.</p>';
+      html += '<h3 class="section">Guasti nel periodo</h3>';
+      const gPeriodo = (guasti.items || []).filter((g) => g.inPeriodo);
+      if (!gPeriodo.length) {
+        html += '<p class="muted">Nessun guasto segnalato nel periodo.</p>';
       } else {
         html += '<ul style="margin:6px 0 0 18px;font-size:13px;">';
-        for (const g of gItems) {
-          html += `<li>${escapeHtml(g.dataIso || '—')}: ${escapeHtml(g.dettagli || g.stato || 'guasto')}${g.attivo ? ' <span class="warn-badge">aperto</span>' : ''}</li>`;
+        for (const g of gPeriodo) {
+          const desc = String(g.dettagli || '').trim() || '—';
+          const short = desc.length > 80 ? desc.slice(0, 77) + '…' : desc;
+          const stato = String(g.stato || '').trim() || (g.attivo ? 'aperto' : '—');
+          html += `<li>${escapeHtml(g.dataIso || '—')}: ${escapeHtml(short)} · ${escapeHtml(stato)}${g.attivo ? ' <span class="warn-badge">aperto</span>' : ''}</li>`;
         }
         html += '</ul>';
+      }
+      const gApertiExtra = (guasti.items || []).filter((g) => g.attivo && !g.inPeriodo);
+      if (gApertiExtra.length) {
+        html += `<p class="muted" style="margin-top:8px;">Aperti fuori periodo: ${gApertiExtra.length}</p>`;
       }
 
       if (row && (row.oreAttuali != null || row.oreProssimaManutenzione != null)) {
@@ -767,7 +830,8 @@
       html += thSort('costo', 'Costo €', true);
       html += thSort('euroHa', '€/ha', true);
       html += thSort('litri', 'Litri', true);
-      html += thSort('guastiAperti', 'Guasti aperti', true);
+      html += thSort('guastiSegnalati', 'Guasti periodo', true);
+      html += thSort('guastiAperti', 'Aperti', true);
       html += '</tr></thead><tbody>';
       for (const r of byMezzo) {
         const sel = selectedMezzoId === r.macchinaId ? ' row-selected' : '';
@@ -779,12 +843,42 @@
           ${costoCell(r)}
           <td class="num">${escapeHtml(r.euroHa == null ? '—' : fmtEuro(r.euroHa, false))}</td>
           <td class="num">${escapeHtml(fmtNum(r.litri, 1))}${r.litriOra != null ? ` <span class="muted">(${escapeHtml(fmtNum(r.litriOra, 2))}/h)</span>` : ''}</td>
-          <td class="num">${r.guastiAperti}</td>
+          <td class="num">${r.guastiSegnalati || 0}</td>
+          <td class="num">${r.guastiAperti || 0}</td>
         </tr>`;
       }
       html += '</tbody></table></div>';
       tablesHost.innerHTML = html;
       renderMobileCards(byMezzo);
+    }
+
+    function syncOpenDetailAfterRender(data) {
+      if (!selectedMezzoId) return;
+      if (!data || data.empty) {
+        closeDetail();
+        return;
+      }
+      const stillThere = (data.byMezzo || []).some(
+        (r) => String(r.macchinaId) === String(selectedMezzoId)
+      );
+      if (!stillThere) {
+        closeDetail();
+        return;
+      }
+      const built = buildDetailHtml(selectedMezzoId);
+      if (isDesktopWide()) {
+        drawerTitle.textContent = built.title;
+        drawerSub.textContent = built.sub;
+        drawerBody.innerHTML = built.html;
+        detailDrawer.classList.add('open');
+        document.body.classList.add('drawer-open');
+        detailModal.classList.add('hidden');
+        detailModal.classList.add('desktop-side');
+      } else if (!detailModal.classList.contains('hidden')) {
+        detailTitle.textContent = built.title;
+        detailSub.textContent = built.sub;
+        detailBody.innerHTML = built.html;
+      }
     }
 
     function render(data) {
@@ -802,6 +896,8 @@
         daValidareBanner.classList.add('hidden');
         document.getElementById('charts-row')?.classList.add('hidden');
         document.querySelector('.chart-full')?.classList.add('hidden');
+        setCostiChartsEmpty(false);
+        syncOpenDetailAfterRender(data);
         return;
       }
 
@@ -810,6 +906,7 @@
       renderKpi(data);
       renderCharts(data);
       renderTables(data);
+      syncOpenDetailAfterRender(data);
 
       if (data.kpi && (data.kpi.partialCosto || data.kpi.costoTotale == null)) {
         partialBanner.textContent = 'Alcuni costi macchina mancano (costo orario non impostato). I totali con * sono parziali.';

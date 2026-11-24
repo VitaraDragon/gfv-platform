@@ -12,6 +12,7 @@ import {
   assembleMacchineReport,
   buildMezzoDetailRows,
   ettariLavoratiFromLines,
+  hasMacchineCostiDisponibili,
   labelTipoMezzo,
   prepareMacchineExportData,
   sumCostoMacchineLikeEconomici
@@ -200,6 +201,70 @@ describe('Report Macchine — aggregazione', () => {
     const row = map.get('t1');
     expect(row.segnalati).toBe(2);
     expect(row.aperti).toBe(2); // g1 + g3
+  });
+
+  it('assemble: guasti periodo arrivano nella tabella per mezzo', () => {
+    const start = new Date('2026-03-01T00:00:00');
+    const end = new Date('2026-03-31T23:59:59');
+    const guastiByMacchinaId = aggregateGuastiByMacchina(
+      [
+        {
+          id: 'g1',
+          macchinaId: 't1',
+          componenteGuasto: 'trattore',
+          stato: 'risolto',
+          segnalatoIl: '2026-03-10',
+          dettagli: 'Olio'
+        },
+        {
+          id: 'g2',
+          macchinaId: 't1',
+          componenteGuasto: 'trattore',
+          stato: 'in-attesa',
+          segnalatoIl: '2026-03-20',
+          dettagli: 'Filtro'
+        },
+        {
+          id: 'g3',
+          macchinaId: 'a1',
+          componenteGuasto: 'attrezzo',
+          stato: 'risolto',
+          segnalatoIl: '2026-03-05',
+          dettagli: 'Dente'
+        }
+      ],
+      { start, end }
+    );
+    const report = assembleMacchineReport({
+      lines: linesBase,
+      linesDaValidare: [],
+      guastiByMacchinaId
+    });
+    const fiat = report.byMezzo.find((r) => r.macchinaId === 't1');
+    const erpice = report.byMezzo.find((r) => r.macchinaId === 'a1');
+    expect(fiat.guastiSegnalati).toBe(2);
+    expect(fiat.guastiAperti).toBe(1);
+    expect(erpice.guastiSegnalati).toBe(1);
+    expect(erpice.guastiAperti).toBe(0);
+    const exp = prepareMacchineExportData(report, { periodoLabel: '2026-03' });
+    expect(exp.perMezzo.find((r) => r.nome === 'Fiat 80').guastiSegnalati).toBe(2);
+  });
+
+  it('hasMacchineCostiDisponibili: nessun costo → false (niente grafici a zero)', () => {
+    const noCost = linesBase.map((l) => ({
+      ...l,
+      costoOra: null,
+      costoOraMissing: true,
+      costo: null
+    }));
+    const report = assembleMacchineReport({ lines: noCost, linesDaValidare: [] });
+    expect(hasMacchineCostiDisponibili(report)).toBe(false);
+    expect(hasMacchineCostiDisponibili(report.byMezzo)).toBe(false);
+  });
+
+  it('hasMacchineCostiDisponibili: costi parziali → true (grafici restano)', () => {
+    const report = assembleMacchineReport({ lines: linesBase, linesDaValidare: [] });
+    expect(hasMacchineCostiDisponibili(report)).toBe(true);
   });
 
   it('assemble: periodo vuoto e export tipo etichettato', () => {

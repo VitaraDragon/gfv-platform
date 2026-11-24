@@ -1,0 +1,34 @@
+/**
+ * Palette grafici Report (Macchine / Manodopera) — linguaggio Economici + serie vivaci.
+ * Condivisa: non duplicare tinte nelle pagine standalone.
+ */
+:root {
+  /* Serie distinte (barre, ciambelle, stack) */
+  --report-chart-1: #16a34a; /* verde */
+  --report-chart-2: #ea580c; /* arancio */
+  --report-chart-3: #2563eb; /* blu */
+  --report-chart-4: #7c3aed; /* viola */
+  --report-chart-5: #ca8a04; /* giallo ocra */
+  --report-chart-6: #b91c1c; /* rosso mattone */
+  --report-chart-7: #0d9488; /* turchese */
+  --report-chart-8: #db2777; /* magenta */
+
+  /* Significati fissi */
+  --report-chart-validate: #2563eb;
+  --report-chart-da-validare: #c2410c; /* = --warn */
+  --report-chart-proprietario: #059669; /* non blu */
+  --report-chart-non-classificato: #78716c;
+
+  /* Alias semantici riusati dalle pagine */
+  --mano: #2563eb;
+  --mac: #ea580c;
+  --prod: #16a34a;
+  --carb: #ca8a04;
+  --attrezzo: #ea580c;
+  --validate: #2563eb;
+  --proprietario: #059669;
+  --non-classificato: #78716c;
+  --specializzato: #7c3aed;
+  --trattorista: #0d9488;
+  --altro-tipo: #ca8a04;
+}
