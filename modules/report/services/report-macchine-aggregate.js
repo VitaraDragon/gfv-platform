@@ -300,6 +300,19 @@ export function aggregateByTipoMezzo(lines) {
 }
 
 /**
+ * True se almeno un mezzo ha un costo calcolabile (> 0).
+ * Usato per non mostrare ciambella/barre a zero quando manca costoOra.
+ * @param {{ byMezzo?: Array<{ costo?: number|null }> }|Array<{ costo?: number|null }>} reportOrRows
+ * @returns {boolean}
+ */
+export function hasMacchineCostiDisponibili(reportOrRows) {
+  const rows = Array.isArray(reportOrRows)
+    ? reportOrRows
+    : ((reportOrRows && reportOrRows.byMezzo) || []);
+  return rows.some((r) => r && r.costo != null && Number(r.costo) > 0);
+}
+
+/**
  * Barre costo: top N + Altri.
  * @param {Array<object>} byMezzo
  * @param {number} [topN=8]

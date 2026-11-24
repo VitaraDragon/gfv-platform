@@ -10,12 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <link rel="stylesheet" href="../styles/report-chart-palette.css">
   <style>
     :root {
       --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
-      --mano: #2563eb; --mano-soft: #93c5fd; --warn: #c2410c; --accent: #1d4ed8;
-      --proprietario: #059669; --non-classificato: #78716c; --validate: #2563eb;
-      --specializzato: #7c3aed; --trattorista: #0f766e; --altro-tipo: #b45309;
+      --mano-soft: #93c5fd; --warn: #c2410c; --accent: #1d4ed8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -385,29 +384,15 @@
       labelTipoOperaio
     } from '../services/report-manodopera-service.js';
     import { setReportExportEnabled } from '../js/report-export-gate.js';
+    import {
+      readReportChartColors,
+      seriesColorAt,
+      colorForTipoOperaio as colorForTipoOperaioShared
+    } from '../js/report-chart-colors.js';
 
-    const _cs = getComputedStyle(document.documentElement);
-    const COLORS = {
-      mano: (_cs.getPropertyValue('--mano').trim() || '#2563eb'),
-      manoSoft: (_cs.getPropertyValue('--mano-soft').trim() || '#93c5fd'),
-      warn: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
-      validate: (_cs.getPropertyValue('--validate').trim() || '#2563eb'),
-      daValidare: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
-      proprietario: (_cs.getPropertyValue('--proprietario').trim() || '#059669'),
-      nonClassificato: (_cs.getPropertyValue('--non-classificato').trim() || '#78716c'),
-      specializzato: (_cs.getPropertyValue('--specializzato').trim() || '#7c3aed'),
-      trattorista: (_cs.getPropertyValue('--trattorista').trim() || '#0f766e'),
-      altroTipo: (_cs.getPropertyValue('--altro-tipo').trim() || '#b45309')
-    };
-
+    const COLORS = readReportChartColors();
     function colorForTipoOperaio(tipo) {
-      const t = String(tipo || '').trim().toLowerCase();
-      if (!t) return COLORS.nonClassificato;
-      if (t === 'proprietario') return COLORS.proprietario;
-      if (t === 'semplice') return COLORS.mano;
-      if (t === 'specializzato') return COLORS.specializzato;
-      if (t === 'trattorista') return COLORS.trattorista;
-      return COLORS.altroTipo;
+      return colorForTipoOperaioShared(tipo, COLORS);
     }
 
     const auth = getAuthInstance();
@@ -713,7 +698,7 @@
             datasets: [{
               label: 'Ore',
               data: byTerr.map((r) => Number(r.ore) || 0),
-              backgroundColor: COLORS.mano,
+              backgroundColor: byTerr.map((_, i) => seriesColorAt(i, COLORS)),
               borderRadius: 4
             }]
           },
