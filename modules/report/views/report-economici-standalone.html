@@ -6,38 +6,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Report — Economici GFV</title>
-  <meta name="theme-color" content="#1F2937" />
+  <meta name="theme-color" content="#1c1917" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
   <style>
+    :root {
+      --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
+      --mano: #2563eb; --mac: #d97706; --prod: #16a34a; --carb: #b45309; --warn: #c2410c; --accent: #1d4ed8;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #111827 0%, #374151 100%);
-      color: #111827;
+      background: var(--bg);
+      color: var(--ink);
       min-height: 100vh;
-      padding: 20px;
+      padding: 16px;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1440px; margin: 0 auto; }
     .header {
-      background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
-      color: white;
-      padding: 22px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px 20px;
       display: flex;
       flex-wrap: wrap;
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
     }
-    .header h1 { font-size: 22px; }
-    .header p { opacity: .9; font-size: 13px; margin-top: 6px; }
-    .nav-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .nav-row { display: flex; gap: 8px; flex-wrap: wrap; }
     .btn {
-      border: 1px solid rgba(255,255,255,0.25);
-      background: rgba(255,255,255,0.12);
-      color: white;
+      border: 1px solid var(--line);
+      background: #f5f5f4;
+      color: var(--ink);
       padding: 8px 12px;
       border-radius: 10px;
       cursor: pointer;
@@ -48,18 +52,15 @@
       align-items: center;
       gap: 6px;
     }
-    .btn:hover { background: rgba(255,255,255,0.18); }
-    .btn-accent {
-      background: #2563eb;
-      border-color: #1d4ed8;
-    }
-    .btn-accent:hover { background: #1d4ed8; }
+    .btn:hover { background: #e7e5e4; }
+    .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-accent:hover { background: #1e40af; }
     .panel {
-      margin-top: 14px;
-      background: white;
-      border-radius: 12px;
-      padding: 18px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      margin-top: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
     }
     .filters {
       display: flex;
@@ -88,78 +89,100 @@
     .alert { padding: 12px 14px; border-radius: 12px; border: 1px solid; margin-top: 10px; }
     .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
     .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .alert-warn { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
     .hidden { display: none !important; }
-    .muted { color: #6b7280; font-size: 13px; }
-    .loading-box { padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .loading-box { padding: 20px; text-align: center; color: var(--muted); font-size: 14px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+    .kpi .value { font-size: 26px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
+    .kpi.warn .value { color: var(--warn); }
+    .kpi .stack { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: #f5f5f4; margin-top: 10px; }
+    .kpi .stack span { display: block; height: 100%; }
+    .kpi .legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+    .kpi .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-right: 4px; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; margin-top: 12px; }
+    .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .chart-card h3 { font-size: 14px; margin-bottom: 8px; color: #44403c; }
+    .chart-wrap { position: relative; height: 240px; }
+    .chart-wrap.tall { height: 280px; }
+    .chart-full { margin-top: 12px; }
     .table-wrap { overflow-x: auto; margin-top: 8px; }
-    table.data {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+    table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
     table.data th, table.data td {
-      border-bottom: 1px solid #e5e7eb;
-      padding: 8px 10px;
-      text-align: left;
-      white-space: nowrap;
+      border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; white-space: nowrap; background: var(--panel);
     }
-    table.data th { background: #f9fafb; color: #374151; font-weight: 700; }
+    table.data th {
+      background: #fafaf9; color: #44403c; font-weight: 700; cursor: pointer; user-select: none;
+      position: sticky; top: 0; z-index: 2;
+    }
+    table.data th.sorted-asc::after { content: ' ▲'; font-size: 10px; }
+    table.data th.sorted-desc::after { content: ' ▼'; font-size: 10px; }
     table.data td.num, table.data th.num { text-align: right; }
-    table.data tfoot td { font-weight: 700; background: #f3f4f6; }
-    .notes {
-      margin-top: 12px;
-      font-size: 12px;
-      color: #6b7280;
-      line-height: 1.5;
-    }
-    .notes ul { margin: 6px 0 0 18px; }
-    h2.section { font-size: 16px; color: #374151; margin-bottom: 8px; }
-    h3.section { font-size: 14px; color: #4b5563; margin: 16px 0 8px; }
+    table.data tfoot td { font-weight: 700; background: #f5f5f4; }
     table.data tbody tr.row-click { cursor: pointer; }
-    table.data tbody tr.row-click:hover { background: #f3f4f6; }
+    table.data tbody tr.row-click:hover { background: #f5f5f4; }
+    table.data tbody tr.row-selected td { background: #eff6ff; }
     table.data td.cell-click { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+    table.data th.sticky-col, table.data td.sticky-col { position: sticky; left: 0; z-index: 1; box-shadow: 1px 0 0 var(--line); }
+    table.data th.sticky-col { z-index: 3; }
+    .mini-bar { display: flex; height: 5px; border-radius: 999px; overflow: hidden; background: #f5f5f4; margin-top: 6px; max-width: 120px; margin-left: auto; }
+    .mini-bar span { display: block; height: 100%; }
+    .notes { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .notes ul { margin: 6px 0 0 18px; }
+    h2.section { font-size: 16px; color: #44403c; margin-bottom: 8px; }
+    h3.section { font-size: 14px; color: #57534e; margin: 16px 0 8px; }
     .prodotti-pending {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #1e40af;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      padding: 8px 12px;
-      border-radius: 10px;
+      margin-top: 10px; font-size: 13px; color: #1e40af; background: #eff6ff;
+      border: 1px solid #bfdbfe; padding: 8px 12px; border-radius: 10px;
     }
+    .mobile-cards { display: none; gap: 10px; }
+    .m-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); cursor: pointer; }
+    .m-card.selected { outline: 2px solid #93c5fd; }
+    .m-card .title { font-weight: 700; font-size: 15px; }
+    .m-card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .m-card .tot { font-size: 22px; font-weight: 700; margin-top: 8px; }
+    .m-card .amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 10px; font-size: 12px; }
+    .m-card .amounts span { color: var(--muted); }
+    .dot-mano { background: var(--mano); } .dot-mac { background: var(--mac); }
+    .dot-prod { background: var(--prod); } .dot-carb { background: var(--carb); }
     .modal-backdrop {
-      position: fixed; inset: 0; background: rgba(17, 24, 39, 0.55);
-      display: flex; align-items: flex-end; justify-content: center;
-      z-index: 80; padding: 12px;
+      position: fixed; inset: 0; background: rgba(28, 25, 23, 0.45);
+      display: flex; align-items: flex-end; justify-content: center; z-index: 80; padding: 12px;
     }
-    @media (min-width: 720px) {
-      .modal-backdrop { align-items: center; }
-    }
+    @media (min-width: 720px) { .modal-backdrop { align-items: center; } }
     .modal-panel {
-      background: white; border-radius: 14px; max-width: 860px; width: 100%;
-      max-height: min(88vh, 720px); overflow: auto;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.25); padding: 18px;
+      background: var(--panel); border-radius: 14px; max-width: 860px; width: 100%;
+      max-height: min(88vh, 720px); overflow: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); padding: 18px;
     }
-    .modal-head {
-      display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;
-      margin-bottom: 12px;
-    }
-    .modal-head h2 { font-size: 17px; color: #111827; }
-    .modal-close {
-      border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 8px;
-      padding: 6px 10px; cursor: pointer; font-weight: 600;
-    }
+    .modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+    .modal-head h2 { font-size: 17px; }
+    .modal-close { border: 1px solid var(--line); background: #fafaf9; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: 600; }
     .origine-pill {
       display: inline-block; font-size: 11px; font-weight: 700;
-      padding: 2px 7px; border-radius: 999px; background: #e5e7eb; color: #374151;
+      padding: 2px 7px; border-radius: 999px; background: #e7e5e4; color: #44403c;
     }
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi .value { font-size: 20px; }
+      .desktop-only { display: none !important; }
+      .mobile-cards { display: grid; }
+      .chart-wrap { height: 220px; }
+    }
+    @media (min-width: 601px) { .mobile-only { display: none !important; } }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div>
-        <h1>💶 Report — Economici</h1>
+        <h1>📊 Report — Economici</h1>
         <p>Costi per terreno e coltura nell’annata. Solo spese (niente ricavi/margine in questa vista).</p>
       </div>
       <div class="nav-row">
@@ -205,15 +228,33 @@
         </div>
         <div class="period-hint" id="period-label"></div>
         <p class="muted" style="margin-top:10px;">
-          Manodopera e macchine da lavori completati e diario; prodotti (fitofarmaci, concimi, …) dal costo prodotto dei registri trattamenti dei moduli attivi. Un trattamento collegato a un lavoro non raddoppia manodopera/macchine. Tocca una riga per vedere da dove arrivano le cifre.
+          Manodopera e macchine da lavori completati e diario; prodotti e carburante dai registri trattamenti e dalle uscite magazzino (senza doppio conteggio). Tocca una riga per il dettaglio voci.
         </p>
       </div>
 
-      <div class="panel">
+      <div id="partial-banner" class="alert alert-warn hidden" role="status"></div>
+      <div id="alert-box"></div>
+      <div id="prodotti-pending" class="prodotti-pending hidden">Sto caricando i prodotti…</div>
+      <div id="kpi-host" class="kpi-grid"></div>
+      <div class="charts-grid" id="charts-row">
+        <div class="chart-card">
+          <h3>Ripartizione per categoria</h3>
+          <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Costi per terreno</h3>
+          <div class="chart-wrap tall"><canvas id="chart-terreni"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card chart-full">
+        <h3>Andamento mensile dei costi</h3>
+        <div class="chart-wrap"><canvas id="chart-mensile"></canvas></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px;">
         <h2 class="section">Costi per terreno × coltura</h2>
-        <div id="alert-box"></div>
-        <div id="prodotti-pending" class="prodotti-pending hidden">Sto caricando i prodotti…</div>
         <div id="table-host" class="loading-box">Caricamento…</div>
+        <div id="mobile-host" class="mobile-cards mobile-only"></div>
         <div class="notes" id="notes-box"></div>
       </div>
     </div>
@@ -260,8 +301,18 @@
       loadEconomiciPeriodBundle,
       prepareEconomiciExportData,
       vociForRow,
-      sumVociImporti
+      sumVociImporti,
+      aggregateMonthlyFromVoci,
+      aggregateByTerrenoForChart,
+      countVociIncomplete
     } from '../services/report-economici-service.js';
+
+    const COLORS = {
+      manodopera: '#2563eb',
+      macchine: '#d97706',
+      prodotti: '#16a34a',
+      carburante: '#b45309'
+    };
 
     const auth = getAuthInstance();
     initializeTenantService();
@@ -280,7 +331,10 @@
     const selTerreno = document.getElementById('sel-terreno');
     const selColtura = document.getElementById('sel-coltura');
     const tableHost = document.getElementById('table-host');
+    const mobileHost = document.getElementById('mobile-host');
+    const kpiHost = document.getElementById('kpi-host');
     const alertBox = document.getElementById('alert-box');
+    const partialBanner = document.getElementById('partial-banner');
     const notesBox = document.getElementById('notes-box');
     const btnExport = document.getElementById('btn-export');
     const prodottiPending = document.getElementById('prodotti-pending');
@@ -300,6 +354,11 @@
     let refreshSeq = 0;
     /** @type {Array<{id:string,nome:string}>} */
     let terrenoOptions = [];
+    /** @type {{ key: string, dir: 'asc'|'desc' }} */
+    let sortState = { key: 'terreno', dir: 'asc' };
+    let selectedRowIdx = null;
+    /** @type {Record<string, any>} */
+    const charts = { donut: null, terreni: null, mensile: null };
 
     function showGate(msg) {
       gateMessage.textContent = msg;
@@ -394,80 +453,319 @@
       return map[o] || o || '—';
     }
 
+    function pct(part, tot) {
+      if (!tot || part == null) return 0;
+      return Math.round((Number(part) / Number(tot)) * 100);
+    }
+
+    function stackHtml(tot, mano, mac, prod, carb) {
+      const t = Number(tot) || 0;
+      if (!t) return '<div class="stack"></div>';
+      return '<div class="stack">' + [
+        ['dot-mano', Number(mano) || 0],
+        ['dot-mac', Number(mac) || 0],
+        ['dot-prod', Number(prod) || 0],
+        ['dot-carb', Number(carb) || 0]
+      ].map(([cls, v]) => {
+        const w = Math.max(0, (v / t) * 100);
+        return w > 0 ? `<span class="${cls}" style="width:${w}%"></span>` : '';
+      }).join('') + '</div>';
+    }
+
+    function destroyCharts() {
+      for (const k of Object.keys(charts)) {
+        if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+      }
+    }
+
+    function renderKpi(data) {
+      const tot = data.totaleAzienda || {};
+      const totale = tot.totale;
+      const partial = !!tot.partialTotale;
+      const star = partial ? '*' : '';
+      const incomplete = countVociIncomplete(data.voci || []);
+      const attributedHa = (data.rows || [])
+        .filter((r) => !r.nonAttribuito)
+        .reduce((s, r) => s + (Number(r.ettari) || 0), 0);
+      const mano = Number(tot.costoManodopera) || 0;
+      const mac = Number(tot.costoMacchine) || 0;
+      const prod = Number(tot.costoProdotti) || 0;
+      const carb = Number(tot.costoCarburante) || 0;
+      const tNum = Number(totale) || (mano + mac + prod + carb);
+
+      if (partial) {
+        partialBanner.classList.remove('hidden');
+        partialBanner.textContent = 'Totale parziale: manca almeno un prezzo o una tariffa. Le cifre con * sommano solo i valori noti.';
+      } else {
+        partialBanner.classList.add('hidden');
+        partialBanner.textContent = '';
+      }
+
+      kpiHost.innerHTML = `
+        <div class="kpi">
+          <div class="label">Totale costi</div>
+          <div class="value">${escapeHtml(fmtEuro(totale, false))}${star} €</div>
+          ${stackHtml(tNum, mano, mac, prod, carb)}
+          <div class="legend">
+            <span><i class="dot-mano"></i>Manodopera ${pct(mano, tNum)}%</span>
+            <span><i class="dot-mac"></i>Macchine ${pct(mac, tNum)}%</span>
+            <span><i class="dot-prod"></i>Prodotti ${pct(prod, tNum)}%</span>
+            <span><i class="dot-carb"></i>Carburante ${pct(carb, tNum)}%</span>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="label">Costo per ettaro</div>
+          <div class="value">${escapeHtml(fmtEuro(tot.euroHa, tot.partialEuroHa))} €</div>
+          <div class="muted" style="margin-top:8px;">su ${fmtNum(attributedHa || tot.ettari, 2)} ha attribuiti</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Ore di lavoro</div>
+          <div class="value">${escapeHtml(fmtNum(tot.ore, 1))}</div>
+        </div>
+        <div class="kpi${incomplete ? ' warn' : ''}">
+          <div class="label">Voci incomplete</div>
+          <div class="value">${incomplete}</div>
+          <div class="muted" style="margin-top:8px;">prezzi o tariffe mancanti</div>
+        </div>
+      `;
+    }
+
+    function renderCharts(data) {
+      if (typeof Chart === 'undefined') return;
+      const tot = data.totaleAzienda || {};
+      const vals = [
+        Number(tot.costoManodopera) || 0,
+        Number(tot.costoMacchine) || 0,
+        Number(tot.costoProdotti) || 0,
+        Number(tot.costoCarburante) || 0
+      ];
+      destroyCharts();
+      const donutCtx = document.getElementById('chart-donut');
+      if (donutCtx) {
+        charts.donut = new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Manodopera', 'Macchine', 'Prodotti', 'Carburante'],
+            datasets: [{
+              data: vals,
+              backgroundColor: [COLORS.manodopera, COLORS.macchine, COLORS.prodotti, COLORS.carburante],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
+            }
+          },
+          plugins: [{
+            id: 'centerText',
+            afterDraw(chart) {
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return;
+              const sum = vals.reduce((a, b) => a + b, 0);
+              ctx.save();
+              ctx.fillStyle = '#1c1917';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.font = '700 16px Segoe UI, sans-serif';
+              ctx.fillText(
+                sum.toLocaleString('it-IT', { maximumFractionDigits: 0 }) + ' €',
+                (chartArea.left + chartArea.right) / 2,
+                (chartArea.top + chartArea.bottom) / 2
+              );
+              ctx.restore();
+            }
+          }]
+        });
+      }
+
+      const byTerr = aggregateByTerrenoForChart(data.rows || [], 8);
+      const terrCtx = document.getElementById('chart-terreni');
+      if (terrCtx) {
+        charts.terreni = new Chart(terrCtx, {
+          type: 'bar',
+          data: {
+            labels: byTerr.map((r) => r.terrenoNome),
+            datasets: [
+              { label: 'Manodopera', data: byTerr.map((r) => r.costoManodopera || 0), backgroundColor: COLORS.manodopera, stack: 'c' },
+              { label: 'Macchine', data: byTerr.map((r) => r.costoMacchine || 0), backgroundColor: COLORS.macchine, stack: 'c' },
+              { label: 'Prodotti', data: byTerr.map((r) => r.costoProdotti || 0), backgroundColor: COLORS.prodotti, stack: 'c' },
+              { label: 'Carburante', data: byTerr.map((r) => r.costoCarburante || 0), backgroundColor: COLORS.carburante, stack: 'c' }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+            scales: {
+              x: { stacked: true, ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } },
+              y: { stacked: true, ticks: { font: { size: 11 } } }
+            }
+          }
+        });
+      }
+
+      const monthly = aggregateMonthlyFromVoci(data.voci || []);
+      const mCtx = document.getElementById('chart-mensile');
+      if (mCtx) {
+        charts.mensile = new Chart(mCtx, {
+          type: 'bar',
+          data: {
+            labels: monthly.map((m) => m.label),
+            datasets: [{
+              label: 'Costi €',
+              data: monthly.map((m) => m.totale),
+              backgroundColor: '#57534e',
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } } }
+          }
+        });
+      }
+    }
+
+    function sortRows(rows) {
+      const list = [...(rows || [])];
+      const key = sortState.key;
+      const dir = sortState.dir === 'asc' ? 1 : -1;
+      list.sort((a, b) => {
+        if (a.nonAttribuito !== b.nonAttribuito) return a.nonAttribuito ? 1 : -1;
+        if (key === 'terreno') {
+          const va = `${a.terrenoNome} ${a.coltura}`.toLowerCase();
+          const vb = `${b.terrenoNome} ${b.coltura}`.toLowerCase();
+          return va.localeCompare(vb, 'it') * dir;
+        }
+        const va = a[key];
+        const vb = b[key];
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        return (Number(va) - Number(vb)) * dir;
+      });
+      return list;
+    }
+
+    function miniBar(r) {
+      const t = Number(r.totale) || 0;
+      if (!t) return '';
+      return '<div class="mini-bar">' + [
+        ['dot-mano', r.costoManodopera],
+        ['dot-mac', r.costoMacchine],
+        ['dot-prod', r.costoProdotti],
+        ['dot-carb', r.costoCarburante]
+      ].map(([cls, v]) => {
+        const w = ((Number(v) || 0) / t) * 100;
+        return w > 0 ? `<span class="${cls}" style="width:${w}%"></span>` : '';
+      }).join('') + '</div>';
+    }
+
     function rowCells(r, name, opts = {}) {
       const clickable = !!opts.clickable;
       const idx = opts.idx;
-      const manoCls = clickable ? 'num cell-click' : 'num';
-      const macCls = clickable ? 'num cell-click' : 'num';
-      const prodCls = clickable ? 'num cell-click' : 'num';
-      const dataAttrs = clickable
-        ? ` data-row-idx="${idx}"`
-        : '';
+      const cls = clickable ? 'num cell-click' : 'num';
+      const dataAttrs = clickable ? ` data-row-idx="${idx}"` : '';
       return `
-        <td${dataAttrs}>${escapeHtml(name)}</td>
+        <td class="sticky-col"${dataAttrs}>${escapeHtml(name)}</td>
         <td class="num">${fmtNum(r.ettari)}</td>
         <td class="num">${fmtNum(r.ore)}</td>
-        <td class="${manoCls}" data-cat="manodopera"${dataAttrs}>${fmtEuro(r.costoManodopera, r.partialManodopera)}</td>
-        <td class="${macCls}" data-cat="macchine"${dataAttrs}>${fmtEuro(r.costoMacchine, r.partialMacchine)}</td>
-        <td class="${prodCls}" data-cat="prodotti"${dataAttrs}>${fmtEuro(r.costoProdotti, r.partialProdotti)}</td>
-        <td class="num"${dataAttrs}>${fmtEuro(r.totale, r.partialTotale)}</td>
+        <td class="${cls}" data-cat="manodopera"${dataAttrs}>${fmtEuro(r.costoManodopera, r.partialManodopera)}</td>
+        <td class="${cls}" data-cat="macchine"${dataAttrs}>${fmtEuro(r.costoMacchine, r.partialMacchine)}</td>
+        <td class="${cls}" data-cat="prodotti"${dataAttrs}>${fmtEuro(r.costoProdotti, r.partialProdotti)}</td>
+        <td class="${cls}" data-cat="carburante"${dataAttrs}>${fmtEuro(r.costoCarburante, r.partialCarburante)}</td>
+        <td class="num"${dataAttrs}>${fmtEuro(r.totale, r.partialTotale)}${clickable ? miniBar(r) : ''}</td>
         <td class="num">${fmtEuro(r.euroHa, r.partialEuroHa)}</td>
       `;
     }
 
+    function thSort(key, label, num) {
+      const cls = `${num ? 'num ' : ''}${key === 'terreno' ? 'sticky-col ' : ''}${
+        sortState.key === key ? (`sorted-${sortState.dir}`) : ''
+      }`.trim();
+      return `<th class="${cls}" data-sort="${key}">${label}</th>`;
+    }
+
+    function renderMobileCards(rows) {
+      if (!rows.length) {
+        mobileHost.innerHTML = '';
+        return;
+      }
+      mobileHost.innerHTML = rows.map((r, idx) => `
+        <div class="m-card${selectedRowIdx === idx ? ' selected' : ''}" data-row-idx="${idx}">
+          <div class="title">${escapeHtml(r.terrenoNome)} · ${escapeHtml(r.coltura)}</div>
+          <div class="meta">${fmtNum(r.ettari)} ha · ${fmtNum(r.ore, 1)} ore</div>
+          <div class="tot">${fmtEuro(r.totale, r.partialTotale)} €</div>
+          <div class="muted">${fmtEuro(r.euroHa, r.partialEuroHa)} €/ha</div>
+          ${miniBar(r)}
+          <div class="amounts">
+            <div><span>Manodopera</span><br>${fmtEuro(r.costoManodopera, r.partialManodopera)}</div>
+            <div><span>Macchine</span><br>${fmtEuro(r.costoMacchine, r.partialMacchine)}</div>
+            <div><span>Prodotti</span><br>${fmtEuro(r.costoProdotti, r.partialProdotti)}</div>
+            <div><span>Carburante</span><br>${fmtEuro(r.costoCarburante, r.partialCarburante)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function render(data) {
-      cached = data;
-      const rows = data.rows || [];
       const prodottiReady = !(data.meta && data.meta.prodottiReady === false);
       prodottiPending.classList.toggle('hidden', prodottiReady);
+      renderKpi(data);
+      renderCharts(data);
+
+      const rows = sortRows(data.rows || []);
+      cached = { ...data, rows };
 
       if (!rows.length) {
         tableHost.innerHTML = '<div class="alert alert-info">Nessun costo nel periodo con i filtri scelti.</div>';
+        mobileHost.innerHTML = '';
         notesBox.innerHTML = '';
         return;
       }
 
-      let html = `
-        <div class="table-wrap">
-          <table class="data" id="tbl-economici">
-            <thead>
-              <tr>
-                <th>Terreno / coltura</th>
-                <th class="num">ha</th>
-                <th class="num">Ore</th>
-                <th class="num">Manodopera €</th>
-                <th class="num">Macchine €</th>
-                <th class="num">Prodotti €</th>
-                <th class="num">Totale €</th>
-                <th class="num">€/ha</th>
-              </tr>
-            </thead>
-            <tbody>
-      `;
+      let html = '<div class="table-wrap desktop-only"><table class="data" id="tbl-economici"><thead><tr>';
+      html += thSort('terreno', 'Terreno / coltura', false);
+      html += thSort('ettari', 'ha', true);
+      html += thSort('ore', 'Ore', true);
+      html += thSort('costoManodopera', 'Manodopera €', true);
+      html += thSort('costoMacchine', 'Macchine €', true);
+      html += thSort('costoProdotti', 'Prodotti €', true);
+      html += thSort('costoCarburante', 'Carburante €', true);
+      html += thSort('totale', 'Totale €', true);
+      html += thSort('euroHa', '€/ha', true);
+      html += '</tr></thead><tbody>';
       rows.forEach((r, idx) => {
-        html += `<tr class="row-click" data-row-idx="${idx}">${rowCells(r, `${r.terrenoNome} · ${r.coltura}`, { clickable: true, idx })}</tr>`;
+        const sel = selectedRowIdx === idx ? ' row-selected' : '';
+        html += `<tr class="row-click${sel}" data-row-idx="${idx}">${rowCells(r, `${r.terrenoNome} · ${r.coltura}`, { clickable: true, idx })}</tr>`;
       });
       html += '</tbody></table></div>';
 
       const byColtura = data.byColtura || [];
       if (byColtura.length) {
-        html += '<h3 class="section">Totali per coltura</h3><div class="table-wrap"><table class="data"><thead><tr>';
-        html += '<th>Coltura</th><th class="num">ha</th><th class="num">Ore</th><th class="num">Manodopera €</th><th class="num">Macchine €</th><th class="num">Prodotti €</th><th class="num">Totale €</th><th class="num">€/ha</th>';
+        html += '<h3 class="section desktop-only">Totali per coltura</h3><div class="table-wrap desktop-only"><table class="data"><thead><tr>';
+        html += '<th>Coltura</th><th class="num">ha</th><th class="num">Ore</th><th class="num">Manodopera €</th><th class="num">Macchine €</th><th class="num">Prodotti €</th><th class="num">Carburante €</th><th class="num">Totale €</th><th class="num">€/ha</th>';
         html += '</tr></thead><tbody>';
-        for (const r of byColtura) {
-          html += `<tr>${rowCells(r, r.coltura)}</tr>`;
-        }
+        for (const r of byColtura) html += `<tr>${rowCells(r, r.coltura)}</tr>`;
         html += '</tbody></table></div>';
       }
 
       const tot = data.totaleAzienda;
       if (tot) {
-        html += '<h3 class="section">Totale azienda</h3><div class="table-wrap"><table class="data"><tfoot>';
+        html += '<h3 class="section desktop-only">Totale azienda</h3><div class="table-wrap desktop-only"><table class="data"><tfoot>';
         html += `<tr>${rowCells(tot, tot.label || 'Totale azienda')}</tr>`;
         html += '</tfoot></table></div>';
       }
 
       tableHost.innerHTML = html;
+      renderMobileCards(rows);
 
       const notes = data.notes || [];
       if (notes.length) {
@@ -475,7 +773,7 @@
           notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
         }</ul>`;
       } else {
-        notesBox.innerHTML = '<span class="muted">* = parziale. «—» solo se non c’è alcun valore noto. Tocca una riga (o Manodopera/Macchine/Prodotti) per il dettaglio.</span>';
+        notesBox.innerHTML = '<span class="muted">* = parziale. «—» solo se non c’è alcun valore noto. Tocca una riga (o una colonna di costo) per il dettaglio.</span>';
       }
     }
 
@@ -483,7 +781,7 @@
       if (!row || !cached) return;
       const voci = vociForRow(cached.voci || [], row, categoria || null);
       const titleBit = categoria
-        ? ({ manodopera: 'Manodopera', macchine: 'Macchine', prodotti: 'Prodotti' }[categoria] || categoria)
+        ? ({ manodopera: 'Manodopera', macchine: 'Macchine', prodotti: 'Prodotti', carburante: 'Carburante' }[categoria] || categoria)
         : 'Tutte le voci';
       detailTitle.textContent = `${row.terrenoNome} · ${row.coltura}`;
       detailSub.textContent = titleBit;
@@ -493,6 +791,7 @@
       if (categoria === 'manodopera') expected = row.costoManodopera;
       else if (categoria === 'macchine') expected = row.costoMacchine;
       else if (categoria === 'prodotti') expected = row.costoProdotti;
+      else if (categoria === 'carburante') expected = row.costoCarburante;
       else expected = row.totale;
 
       let html = '';
@@ -556,8 +855,8 @@
 
     function applyLocalFilters() {
       if (!periodBundle) return;
-      const data = assembleEconomiciFromBundle(periodBundle, currentFilters());
-      render(data);
+      selectedRowIdx = null;
+      render(assembleEconomiciFromBundle(periodBundle, currentFilters()));
     }
 
     async function refreshReport({ forceReload = false } = {}) {
@@ -567,6 +866,7 @@
       const key = periodoCacheKey(p);
       const filters = currentFilters();
       alertBox.innerHTML = '';
+      selectedRowIdx = null;
 
       // Cambio solo filtri terreno/coltura: ricalcolo senza letture
       if (!forceReload && periodBundle && periodBundleKey === key && periodBundle.prodottiReady) {
@@ -575,6 +875,7 @@
       }
 
       tableHost.innerHTML = '<div class="loading-box">Caricamento costi nel periodo…</div>';
+      mobileHost.innerHTML = '';
       notesBox.innerHTML = '';
       prodottiPending.classList.add('hidden');
       const t0 = performance.now();
@@ -604,7 +905,10 @@
         cached = null;
         periodBundle = null;
         periodBundleKey = '';
+        destroyCharts();
         tableHost.innerHTML = '';
+        mobileHost.innerHTML = '';
+        kpiHost.innerHTML = '';
         prodottiPending.classList.add('hidden');
         alertBox.innerHTML = `<div class="alert alert-error">Errore report: ${escapeHtml(e.message || e)}</div>`;
       }
@@ -640,12 +944,13 @@
         ws.addRow(['Filtro terreno', exportData.filtroTerreno]);
         ws.addRow(['Filtro coltura', exportData.filtroColtura]);
         ws.addRow([]);
-        ws.addRow([headerLabel, 'ha', 'Ore', 'Manodopera €', 'Macchine €', 'Prodotti €', 'Totale €', '€/ha', 'Note/parziale']);
+        ws.addRow([headerLabel, 'ha', 'Ore', 'Manodopera €', 'Macchine €', 'Prodotti €', 'Carburante €', 'Totale €', '€/ha', 'Note/parziale']);
         for (const r of list) {
           const partialBits = [];
           if (r.partialManodopera) partialBits.push('manodopera');
           if (r.partialMacchine) partialBits.push('macchine');
           if (r.partialProdotti) partialBits.push('prodotti');
+          if (r.partialCarburante) partialBits.push('carburante');
           if (r.partialTotale) partialBits.push('totale');
           ws.addRow([
             name === 'Dettaglio' ? `${r.terrenoNome} · ${r.coltura}` : (r.coltura || r.label || ''),
@@ -654,6 +959,7 @@
             r.costoManodopera,
             r.costoMacchine,
             r.costoProdotti,
+            r.costoCarburante,
             r.totale,
             r.euroHa,
             r.noteParziale || (partialBits.length ? `parziale: ${partialBits.join(', ')}` : '')
@@ -666,11 +972,12 @@
           { width: 14 },
           { width: 12 },
           { width: 12 },
+          { width: 14 },
           { width: 12 },
           { width: 10 },
           { width: 40 }
         ];
-        for (let c = 2; c <= 8; c++) ws.getColumn(c).numFmt = '#,##0.00';
+        for (let c = 2; c <= 9; c++) ws.getColumn(c).numFmt = '#,##0.00';
       }
 
       addSheet('Dettaglio', 'Terreno · coltura', exportData.dettaglio);
@@ -731,13 +1038,38 @@
     }
 
     tableHost.addEventListener('click', (ev) => {
+      const th = ev.target.closest('th[data-sort]');
+      if (th) {
+        const key = th.getAttribute('data-sort');
+        if (sortState.key === key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        else {
+          sortState.key = key;
+          sortState.dir = key === 'terreno' ? 'asc' : 'desc';
+        }
+        if (cached) render(cached);
+        return;
+      }
       const cell = ev.target.closest('[data-row-idx]');
       if (!cell || !cached) return;
       const idx = Number(cell.getAttribute('data-row-idx'));
       const row = (cached.rows || [])[idx];
       if (!row) return;
-      const cat = cell.getAttribute('data-cat') || null;
-      openDetail(row, cat);
+      selectedRowIdx = idx;
+      tableHost.querySelectorAll('tr.row-selected').forEach((tr) => tr.classList.remove('row-selected'));
+      const tr = tableHost.querySelector(`tr[data-row-idx="${idx}"]`);
+      if (tr) tr.classList.add('row-selected');
+      openDetail(row, cell.getAttribute('data-cat') || null);
+    });
+    mobileHost.addEventListener('click', (ev) => {
+      const card = ev.target.closest('[data-row-idx]');
+      if (!card || !cached) return;
+      const idx = Number(card.getAttribute('data-row-idx'));
+      const row = (cached.rows || [])[idx];
+      if (!row) return;
+      selectedRowIdx = idx;
+      mobileHost.querySelectorAll('.m-card.selected').forEach((el) => el.classList.remove('selected'));
+      card.classList.add('selected');
+      openDetail(row, null);
     });
     detailClose.addEventListener('click', closeDetail);
     detailModal.addEventListener('click', (ev) => {

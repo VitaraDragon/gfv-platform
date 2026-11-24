@@ -6,7 +6,7 @@ Modulo: **`report`**. Hub: `modules/report/views/report-dashboard-standalone.htm
 |------|------|
 | Hub | `report-dashboard-standalone.html` |
 | Terreni | `report-terreni-standalone.html` |
-| Economici | `report-economici-standalone.html` (+ service/aggregate: coltura alla data, parziali, magazzino, cache periodo, dettaglio `voci`, export filtrato `prepareEconomiciExportData`) |
+| Economici | `report-economici-standalone.html` (+ service/aggregate: coltura alla data, 4 categorie con Carburante/`isProdottoCarburante`, parziali, magazzino, carichi in parallelo, cache periodo, Chart.js KPI/grafici, dettaglio `voci`, export filtrato `prepareEconomiciExportData`) |
 | Vigneto MVP | `report-standalone.html` (solo se `vigneto` in modules) |
 
 Card «soon» (frutteto, magazzino, manodopera, contoTerzi, sintesi): `href: '#'` + badge In sviluppo — **non** navigare come pagine reali.
