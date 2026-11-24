@@ -24,6 +24,7 @@ import {
   totalsByColtura,
   isProdottoCarburante,
   splitCostoProdottoCarburanteFromTrattamento,
+  allocatePercentages,
   aggregateMonthlyFromVoci,
   aggregateByTerrenoForChart
 } from '../modules/report/services/report-economici-aggregate.js';
@@ -513,9 +514,94 @@ describe('Report Economici — aggregazione', () => {
 
     const monthly = aggregateMonthlyFromVoci(report.voci);
     expect(monthly.some((m) => m.key === '2026-01' && m.totale >= 165)).toBe(true);
+    const gen = monthly.find((m) => m.key === '2026-01');
+    expect(gen.costoManodopera).toBe(30);
+    expect(gen.costoMacchine).toBe(20);
+    expect(gen.costoProdotti).toBe(40);
+    expect(gen.costoCarburante).toBe(75);
 
     const byTerreno = aggregateByTerrenoForChart(report.rows, 8);
     expect(byTerreno[0].costoCarburante).toBe(75);
+  });
+
+  it('allocatePercentages: quote intere sulla stessa base, somma 100', () => {
+    const parts = [100, 100, 100, 5.5];
+    const tot = parts.reduce((a, b) => a + b, 0);
+    const pct = allocatePercentages(parts, tot);
+    expect(pct.reduce((a, b) => a + b, 0)).toBe(100);
+    // Arrotondamento indipendente darebbe 33+33+33+2=101 o 33+33+33+1=100 con 5% vs 6%
+    expect(pct[3]).toBeGreaterThanOrEqual(1);
+    expect(pct[3]).toBeLessThanOrEqual(2);
+    expect(allocatePercentages([0, 0, 0, 0], 0)).toEqual([0, 0, 0, 0]);
+    expect(allocatePercentages([10, 0, 0, 0]).reduce((a, b) => a + b, 0)).toBe(100);
+  });
+
+  it('€/ha: stesso valore su riga, totale azienda ed export (ettari non arrotondati)', () => {
+    const superficie = 10.123; // euro() → 10.12: senza fix KPI e tabella divergevano
+    const lines = buildEconomiciLines({
+      terreni: [{ id: 't1', nome: 'Campo della strada', coltura: 'Orzo', superficie }],
+      colturaContext: { campagneSeminativo: [], campagneOrticole: [], vigneti: [], frutteti: [] },
+      lavoriCosti: [
+        { terrenoId: 't1', dataIso: '2026-01-10', tipoLavoro: 'Aratura', ore: 2, costoManodopera: 1500, costoMacchine: 280 }
+      ],
+      attivitaCosti: [],
+      prodottiCosti: []
+    });
+    const { rows } = aggregateEconomiciRows(lines);
+    expect(rows).toHaveLength(1);
+    const row = rows[0];
+    expect(row.ettari).toBe(superficie);
+    const expected = euroPerHa(row.totale, superficie);
+    expect(row.euroHa).toBe(expected);
+    expect(row.euroHa).not.toBe(euroPerHa(row.totale, Math.round(superficie * 100) / 100));
+
+    const tot = companyTotal(rows);
+    expect(tot.euroHa).toBe(expected);
+    expect(tot.ettari).toBe(superficie);
+
+    const exportData = prepareEconomiciExportData(
+      { rows, byColtura: totalsByColtura(rows), totaleAzienda: tot, notes: [], voci: [] },
+      { periodoLabel: 'Test', terrenoId: 't1', terrenoNome: 'Campo della strada', coltura: 'Orzo' }
+    );
+    expect(exportData.dettaglio[0].euroHa).toBe(expected);
+    expect(exportData.totaleAzienda[0].euroHa).toBe(expected);
+  });
+
+  it('dopo “cambio periodo”: riassemblaggio con filtri terreno+coltura attivi (no leak altre righe)', () => {
+    const input = {
+      terreni: [
+        { id: 'strada', nome: 'Campo della strada', coltura: 'Orzo', superficie: 8 },
+        { id: 'orzo', nome: "Campo dell'orzo", coltura: 'Orzo', superficie: 12 },
+        { id: 'mais', nome: 'Campo mais', coltura: 'Mais', superficie: 5 }
+      ],
+      colturaContext: { campagneSeminativo: [], campagneOrticole: [], vigneti: [], frutteti: [] },
+      lavoriCosti: [
+        { terrenoId: 'strada', dataIso: '2026-02-01', tipoLavoro: 'A', ore: 1, costoManodopera: 10, costoMacchine: 0 },
+        { terrenoId: 'orzo', dataIso: '2026-02-02', tipoLavoro: 'B', ore: 1, costoManodopera: 20, costoMacchine: 0 },
+        { terrenoId: 'mais', dataIso: '2026-02-03', tipoLavoro: 'C', ore: 1, costoManodopera: 30, costoMacchine: 0 }
+      ],
+      attivitaCosti: [],
+      prodottiCosti: []
+    };
+    // Simula: filtri Orzo già attivi, poi (dopo reload periodo) si applica anche terreno
+    const onlyColtura = assembleEconomiciReport(input, { coltura: 'Orzo' });
+    expect(onlyColtura.rows).toHaveLength(2);
+    const filtered = assembleEconomiciReport(input, { terrenoId: 'strada', coltura: 'Orzo' });
+    expect(filtered.rows).toHaveLength(1);
+    expect(filtered.rows[0].terrenoId).toBe('strada');
+    expect(filtered.rows.every((r) => r.coltura === 'Orzo')).toBe(true);
+    expect(filtered.voci.every((v) => v.terrenoId === 'strada' && v.coltura === 'Orzo')).toBe(true);
+
+    const exportData = prepareEconomiciExportData(filtered, {
+      periodoLabel: 'Anno solare 2026',
+      terrenoId: 'strada',
+      terrenoNome: 'Campo della strada',
+      coltura: 'Orzo'
+    });
+    expect(exportData.dettaglio).toHaveLength(1);
+    expect(exportData.filtroTerreno).toBe('Campo della strada');
+    expect(exportData.filtroColtura).toBe('Orzo');
+    expect(exportData.voci.every((v) => v.terrenoId === 'strada')).toBe(true);
   });
 
   it('merge dual format: trattamento data stringa + Timestamp nello stesso periodo, contati una volta', () => {

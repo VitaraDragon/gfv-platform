@@ -20,6 +20,36 @@ export function euro(value) {
 }
 
 /**
+ * Quote intere (0–100) che sommano a 100 con largest remainder.
+ * Stessa base `total` (o somma di `parts`) per legenda, barretta e tooltip.
+ * @param {Array<number|null|undefined>} parts
+ * @param {number} [total]
+ * @returns {number[]}
+ */
+export function allocatePercentages(parts, total) {
+  const vals = (parts || []).map((p) => {
+    const n = Number(p);
+    return !n || Number.isNaN(n) || n < 0 ? 0 : n;
+  });
+  const tot = total != null && !Number.isNaN(Number(total))
+    ? Number(total)
+    : vals.reduce((a, b) => a + b, 0);
+  if (!tot || tot <= 0) return vals.map(() => 0);
+  const raw = vals.map((v) => (v / tot) * 100);
+  const floored = raw.map((x) => Math.floor(x));
+  let rem = 100 - floored.reduce((a, b) => a + b, 0);
+  const order = raw
+    .map((x, i) => ({ i, frac: x - Math.floor(x) }))
+    .sort((a, b) => (b.frac - a.frac) || (a.i - b.i));
+  const out = [...floored];
+  for (let k = 0; k < order.length && rem > 0; k += 1) {
+    out[order[k].i] += 1;
+    rem -= 1;
+  }
+  return out;
+}
+
+/**
  * Riconosce un prodotto carburante da anagrafica (categoria/tipo) o dal nome
  * (gasolio / benzina / carburante / GPL). Un solo helper riusabile e testato.
  * @param {object|string|null|undefined} prodottoOrNome
@@ -391,12 +421,13 @@ export function aggregateEconomiciRows(lines, filters = {}) {
     }
     for (const n of partialNotes) notes.add(n);
 
+    // ettari non arrotondati: €/ha riquadro/tabella/export devono coincidere
     return {
       terrenoId: r.terrenoId,
       terrenoNome: r.terrenoNome,
       coltura: r.coltura,
       nonAttribuito: !!r.nonAttribuito,
-      ettari: r.ettari != null ? euro(r.ettari) : null,
+      ettari: r.ettari != null && !Number.isNaN(Number(r.ettari)) ? Number(r.ettari) : null,
       ore: euro(r.ore) || 0,
       costoManodopera: mano.value,
       costoMacchine: mac.value,
@@ -448,7 +479,8 @@ export function totalsByColtura(rows) {
     const simple = sumCostsFromRows(list);
     return {
       coltura,
-      ettari: euro(ettari),
+      // ettari grezzi (fmtNum in UI); €/ha già su somma non arrotondato in sumCostsFromRows
+      ettari: ettari || 0,
       ore: euro(ore) || 0,
       ...simple
     };
@@ -532,7 +564,8 @@ export function companyTotal(rows) {
   const costs = sumCostsFromRows(list);
   return {
     label: 'Totale azienda',
-    ettari: euro(ettari),
+    // ettari grezzi: stesso divisore di euroHa in sumCostsFromRows
+    ettari: ettari || 0,
     ore: euro(ore) || 0,
     ...costs
   };
@@ -1307,24 +1340,49 @@ export function buildEconomiciVoci(input = {}) {
 
 /**
  * Andamento mensile dai soli importi già in cache (date delle voci). Nessuna lettura nuova.
- * @param {Array<{ dataIso?: string, importo?: number|null, prezzoMancante?: boolean }>} voci
- * @returns {Array<{ key: string, label: string, totale: number }>}
+ * Barre impilate per categoria (stessi colori della ciambella).
+ * @param {Array<{ dataIso?: string, importo?: number|null, prezzoMancante?: boolean, categoria?: string }>} voci
+ * @returns {Array<{ key: string, label: string, totale: number, costoManodopera: number, costoMacchine: number, costoProdotti: number, costoCarburante: number }>}
  */
 export function aggregateMonthlyFromVoci(voci) {
-  /** @type {Map<string, number>} */
+  /** @type {Map<string, { manodopera: number, macchine: number, prodotti: number, carburante: number }>} */
   const map = new Map();
+  const empty = () => ({ manodopera: 0, macchine: 0, prodotti: 0, carburante: 0 });
   for (const v of voci || []) {
     if (!v || v.prezzoMancante || v.importo == null || Number.isNaN(Number(v.importo))) continue;
     const iso = String(v.dataIso || '').slice(0, 7);
     if (!/^\d{4}-\d{2}$/.test(iso)) continue;
-    map.set(iso, (map.get(iso) || 0) + Number(v.importo));
+    let bucket = map.get(iso);
+    if (!bucket) {
+      bucket = empty();
+      map.set(iso, bucket);
+    }
+    const cat = String(v.categoria || '').toLowerCase();
+    const amt = Number(v.importo) || 0;
+    if (cat === 'manodopera') bucket.manodopera += amt;
+    else if (cat === 'macchine') bucket.macchine += amt;
+    else if (cat === 'carburante') bucket.carburante += amt;
+    else bucket.prodotti += amt;
   }
   const keys = [...map.keys()].sort();
   const mesi = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
   return keys.map((key) => {
     const m = Number(key.slice(5, 7)) - 1;
     const label = `${mesi[m] || key} ${key.slice(0, 4)}`;
-    return { key, label, totale: euro(map.get(key)) || 0 };
+    const b = map.get(key) || empty();
+    const costoManodopera = euro(b.manodopera) || 0;
+    const costoMacchine = euro(b.macchine) || 0;
+    const costoProdotti = euro(b.prodotti) || 0;
+    const costoCarburante = euro(b.carburante) || 0;
+    return {
+      key,
+      label,
+      costoManodopera,
+      costoMacchine,
+      costoProdotti,
+      costoCarburante,
+      totale: euro(costoManodopera + costoMacchine + costoProdotti + costoCarburante) || 0
+    };
   });
 }
 
