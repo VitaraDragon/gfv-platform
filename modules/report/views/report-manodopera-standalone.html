@@ -14,6 +14,8 @@
     :root {
       --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
       --mano: #2563eb; --mano-soft: #93c5fd; --warn: #c2410c; --accent: #1d4ed8;
+      --proprietario: #059669; --non-classificato: #78716c; --validate: #2563eb;
+      --specializzato: #7c3aed; --trattorista: #0f766e; --altro-tipo: #b45309;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -140,6 +142,11 @@
     .m-card .tot { font-size: 20px; font-weight: 700; margin-top: 8px; }
     .m-card .amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 10px; font-size: 12px; }
     .m-card .amounts span { color: var(--muted); }
+    .detail-cards { display: none; gap: 8px; margin-top: 8px; }
+    .d-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fafaf9; }
+    .d-card .top { font-weight: 700; font-size: 13px; }
+    .d-card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .d-card .bottom { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 14px; }
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(28, 25, 23, 0.45);
       display: flex; align-items: flex-end; justify-content: center; z-index: 80; padding: 12px;
@@ -151,10 +158,23 @@
     }
     .modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
     .modal-head h2 { font-size: 17px; }
-    .modal-close { border: 1px solid var(--line); background: #fafaf9; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: 600; }
+    .modal-nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .modal-close, .modal-nav-btn {
+      border: 1px solid var(--line); background: #fafaf9; border-radius: 8px; padding: 6px 10px;
+      cursor: pointer; font-weight: 600;
+    }
+    .detail-drawer {
+      display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 42vw);
+      background: var(--panel); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+      z-index: 70; overflow: auto; padding: 18px;
+    }
+    .detail-drawer.open { display: block; }
+    body.drawer-open .container { padding-right: min(456px, calc(42vw + 16px)); }
     @media (max-width: 1100px) {
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .charts-grid { grid-template-columns: 1fr; }
+      body.drawer-open .container { padding-right: 16px; }
+      .detail-drawer { display: none !important; }
     }
     @media (max-width: 600px) {
       body { padding: 10px; }
@@ -162,6 +182,8 @@
       .kpi .value { font-size: 20px; }
       .desktop-only { display: none !important; }
       .mobile-cards { display: grid; }
+      .detail-cards { display: grid; }
+      .detail-table-desktop { display: none !important; }
       .chart-wrap { height: 220px; }
       .filters {
         flex-direction: column;
@@ -178,7 +200,13 @@
         min-width: 0;
       }
     }
-    @media (min-width: 601px) { .mobile-only { display: none !important; } }
+    @media (min-width: 601px) {
+      .mobile-only { display: none !important; }
+      .detail-cards { display: none !important; }
+    }
+    @media (min-width: 1101px) {
+      .modal-backdrop.desktop-side { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -266,6 +294,21 @@
     </div>
   </div>
 
+  <aside id="detail-drawer" class="detail-drawer" aria-labelledby="drawer-title">
+    <div class="modal-head">
+      <div>
+        <h2 id="drawer-title">Dettaglio ore</h2>
+        <p class="muted" id="drawer-sub"></p>
+      </div>
+      <div class="modal-nav">
+        <button type="button" class="modal-nav-btn" id="drawer-prev" title="Operaio precedente">←</button>
+        <button type="button" class="modal-nav-btn" id="drawer-next" title="Operaio successivo">→</button>
+        <button type="button" class="modal-close" id="drawer-close">Chiudi</button>
+      </div>
+    </div>
+    <div id="drawer-body"></div>
+  </aside>
+
   <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-title">
     <div class="modal-panel">
       <div class="modal-head">
@@ -273,7 +316,11 @@
           <h2 id="detail-title">Dettaglio ore</h2>
           <p class="muted" id="detail-sub"></p>
         </div>
-        <button type="button" class="modal-close" id="detail-close">Chiudi</button>
+        <div class="modal-nav">
+          <button type="button" class="modal-nav-btn" id="detail-prev" title="Operaio precedente">←</button>
+          <button type="button" class="modal-nav-btn" id="detail-next" title="Operaio successivo">→</button>
+          <button type="button" class="modal-close" id="detail-close">Chiudi</button>
+        </div>
       </div>
       <div id="detail-body"></div>
     </div>
@@ -317,8 +364,25 @@
     const COLORS = {
       mano: (_cs.getPropertyValue('--mano').trim() || '#2563eb'),
       manoSoft: (_cs.getPropertyValue('--mano-soft').trim() || '#93c5fd'),
-      warn: (_cs.getPropertyValue('--warn').trim() || '#c2410c')
+      warn: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
+      validate: (_cs.getPropertyValue('--validate').trim() || '#2563eb'),
+      daValidare: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
+      proprietario: (_cs.getPropertyValue('--proprietario').trim() || '#059669'),
+      nonClassificato: (_cs.getPropertyValue('--non-classificato').trim() || '#78716c'),
+      specializzato: (_cs.getPropertyValue('--specializzato').trim() || '#7c3aed'),
+      trattorista: (_cs.getPropertyValue('--trattorista').trim() || '#0f766e'),
+      altroTipo: (_cs.getPropertyValue('--altro-tipo').trim() || '#b45309')
     };
+
+    function colorForTipoOperaio(tipo) {
+      const t = String(tipo || '').trim().toLowerCase();
+      if (!t) return COLORS.nonClassificato;
+      if (t === 'proprietario') return COLORS.proprietario;
+      if (t === 'semplice') return COLORS.mano;
+      if (t === 'specializzato') return COLORS.specializzato;
+      if (t === 'trattorista') return COLORS.trattorista;
+      return COLORS.altroTipo;
+    }
 
     const auth = getAuthInstance();
     initializeTenantService();
@@ -350,6 +414,11 @@
     const detailSub = document.getElementById('detail-sub');
     const detailBody = document.getElementById('detail-body');
     const detailClose = document.getElementById('detail-close');
+    const detailDrawer = document.getElementById('detail-drawer');
+    const drawerTitle = document.getElementById('drawer-title');
+    const drawerSub = document.getElementById('drawer-sub');
+    const drawerBody = document.getElementById('drawer-body');
+    const drawerClose = document.getElementById('drawer-close');
 
     let tenantId = null;
     /** @type {object|null} */
@@ -561,22 +630,13 @@
       const donutSum = donutVals.reduce((a, b) => a + b, 0);
       const donutCtx = document.getElementById('chart-donut');
       if (donutCtx) {
-        const palette = [
-          COLORS.mano,
-          '#1d4ed8',
-          '#0ea5e9',
-          '#6366f1',
-          '#0891b2',
-          '#64748b',
-          COLORS.warn
-        ];
         charts.donut = new Chart(donutCtx, {
           type: 'doughnut',
           data: {
             labels: byTipo.map((r) => r.label || labelTipoOperaio(r.tipo)),
             datasets: [{
               data: donutVals,
-              backgroundColor: byTipo.map((_, i) => palette[i % palette.length]),
+              backgroundColor: byTipo.map((r) => colorForTipoOperaio(r.tipo)),
               borderWidth: 0
             }]
           },
@@ -655,14 +715,14 @@
               {
                 label: 'Validate',
                 data: monthly.map((m) => Number(m.oreValidate) || 0),
-                backgroundColor: COLORS.mano,
+                backgroundColor: COLORS.validate,
                 stack: 'm',
                 borderRadius: 0
               },
               {
                 label: 'Da validare',
                 data: monthly.map((m) => Number(m.oreDaValidare) || 0),
-                backgroundColor: COLORS.manoSoft,
+                backgroundColor: COLORS.daValidare,
                 stack: 'm',
                 borderRadius: 4
               }
@@ -701,21 +761,30 @@
       `).join('');
     }
 
-    function openOperaioDetail(operaioId) {
-      if (!cached || !operaioId) return;
+    function isDesktopWide() {
+      return window.matchMedia('(min-width: 1101px)').matches;
+    }
+
+    function operaioListIds() {
+      return (cached && cached.byOperaio ? cached.byOperaio : []).map((r) => String(r.operaioId));
+    }
+
+    function navigateOperaio(delta) {
+      const ids = operaioListIds();
+      if (!ids.length || !selectedOperaioId) return;
+      const idx = ids.indexOf(String(selectedOperaioId));
+      if (idx < 0) return;
+      openOperaioDetail(ids[(idx + delta + ids.length) % ids.length]);
+    }
+
+    function buildOperaioDetailHtml(operaioId) {
       const row = (cached.byOperaio || []).find((r) => String(r.operaioId) === String(operaioId));
       const detail = buildOperaioDetailRows(cached.lines || [], operaioId);
-      selectedOperaioId = String(operaioId);
-      detailTitle.textContent = row ? row.nome : 'Dettaglio ore';
-      detailSub.textContent = row
-        ? `${labelTipoOperaio(row.tipo)} · ${fmtNum(row.ore, 1)} h · ${fmtEuro(row.costo, row.partialCosto || row.tariffaMissing)} €`
-        : 'Lavori e giorni nel periodo filtrato';
-
       let html = '';
       if (!detail.length) {
         html = '<div class="alert alert-info">Nessuna riga di dettaglio per questa selezione.</div>';
       } else {
-        html = `<div class="table-wrap"><table class="data"><thead><tr>
+        html = `<div class="table-wrap detail-table-desktop"><table class="data"><thead><tr>
           <th>Data</th><th>Terreno</th><th>Lavoro</th><th class="num">Ore</th><th class="num">Tariffa €/h</th><th class="num">Costo €</th>
         </tr></thead><tbody>`;
         for (const d of detail) {
@@ -730,15 +799,59 @@
           </tr>`;
         }
         html += '</tbody></table></div>';
-        html += '<p class="muted" style="margin-top:8px;">Tocca un’altra riga operaio per cambiare il dettaglio. Solo ore validate.</p>';
+        html += '<div class="detail-cards">';
+        for (const d of detail) {
+          const missing = !!d.tariffaMissing;
+          html += `<div class="d-card">
+            <div class="top">${escapeHtml(d.dataIso || '—')} · ${escapeHtml(d.terrenoNome || '—')}</div>
+            <div class="sub">${escapeHtml(d.lavoro || '—')}</div>
+            <div class="bottom">
+              <span>${escapeHtml(fmtNum(d.ore, 1))} h × ${escapeHtml(missing ? '—' : fmtEuro(d.tariffa, false))} €/h</span>
+              <strong class="${missing ? 'warn-text' : ''}">${escapeHtml(missing ? '—' : fmtEuro(d.costo, false))} €</strong>
+            </div>
+          </div>`;
+        }
+        html += '</div>';
+        html += '<p class="muted" style="margin-top:8px;">Usa ← → oppure seleziona un altro operaio dalla tabella senza chiudere. Solo ore validate.</p>';
       }
-      detailBody.innerHTML = html;
-      detailModal.classList.remove('hidden');
+      return {
+        title: row ? row.nome : 'Dettaglio ore',
+        sub: row
+          ? `${labelTipoOperaio(row.tipo)} · ${fmtNum(row.ore, 1)} h · ${fmtEuro(row.costo, row.partialCosto || row.tariffaMissing)} €`
+          : 'Lavori e giorni nel periodo filtrato',
+        html
+      };
+    }
+
+    function openOperaioDetail(operaioId) {
+      if (!cached || !operaioId) return;
+      selectedOperaioId = String(operaioId);
+      const built = buildOperaioDetailHtml(operaioId);
+
+      if (isDesktopWide()) {
+        drawerTitle.textContent = built.title;
+        drawerSub.textContent = built.sub;
+        drawerBody.innerHTML = built.html;
+        detailDrawer.classList.add('open');
+        document.body.classList.add('drawer-open');
+        detailModal.classList.add('hidden');
+        detailModal.classList.add('desktop-side');
+      } else {
+        detailTitle.textContent = built.title;
+        detailSub.textContent = built.sub;
+        detailBody.innerHTML = built.html;
+        detailModal.classList.remove('hidden');
+        detailModal.classList.remove('desktop-side');
+        detailDrawer.classList.remove('open');
+        document.body.classList.remove('drawer-open');
+      }
       if (cached) renderTables(cached);
     }
 
     function closeDetail() {
       detailModal.classList.add('hidden');
+      detailDrawer.classList.remove('open');
+      document.body.classList.remove('drawer-open');
       selectedOperaioId = null;
       if (cached) renderTables(cached);
     }
@@ -1104,15 +1217,23 @@
     }
 
     if (detailClose) detailClose.addEventListener('click', closeDetail);
+    if (drawerClose) drawerClose.addEventListener('click', closeDetail);
+    document.getElementById('detail-prev')?.addEventListener('click', () => navigateOperaio(-1));
+    document.getElementById('detail-next')?.addEventListener('click', () => navigateOperaio(1));
+    document.getElementById('drawer-prev')?.addEventListener('click', () => navigateOperaio(-1));
+    document.getElementById('drawer-next')?.addEventListener('click', () => navigateOperaio(1));
     if (detailModal) {
       detailModal.addEventListener('click', (ev) => {
         if (ev.target === detailModal) closeDetail();
       });
     }
     document.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && detailModal && !detailModal.classList.contains('hidden')) {
-        closeDetail();
-      }
+      if (ev.key === 'Escape') closeDetail();
+      if (ev.key === 'ArrowLeft' && selectedOperaioId) navigateOperaio(-1);
+      if (ev.key === 'ArrowRight' && selectedOperaioId) navigateOperaio(1);
+    });
+    window.addEventListener('resize', () => {
+      if (selectedOperaioId) openOperaioDetail(selectedOperaioId);
     });
 
     selMode.addEventListener('change', onPeriodChange);

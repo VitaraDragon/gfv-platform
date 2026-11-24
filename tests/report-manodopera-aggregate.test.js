@@ -242,6 +242,7 @@ describe('Report Manodopera — aggregazione', () => {
       terrenoNome: 'Tutti'
     });
     expect(exp.perOperaio.length).toBe(3);
+    expect(exp.perOperaio.find((r) => r.nome === 'Mario Rossi')?.tipo).toBe('Semplice');
     expect(exp.perCaposquadra.length).toBe(1);
     expect(exp.perTerreno.length).toBe(2);
     expect(exp.kpi.nOperai).toBe(2);
@@ -357,6 +358,28 @@ describe('Report Manodopera — aggregazione', () => {
     expect(prop.costo).toBe(45);
     expect(labelTipoOperaio('semplice')).toBe('Semplice');
     expect(labelTipoOperaio('')).toBe('Non classificato');
+    const expTipo = prepareManodoperaExportData(
+      assembleManodoperaReport({
+        lines: [{
+          operaioId: 'ox',
+          nome: 'Senza tipo',
+          tipo: '',
+          isProprietario: false,
+          ore: 2,
+          tariffa: 10,
+          tariffaMissing: false,
+          costo: 20,
+          terrenoId: 't1',
+          terrenoNome: 'A',
+          ettari: 1,
+          lavoroId: 'lx',
+          caposquadraId: null,
+          caposquadraNome: null
+        }]
+      }),
+      {}
+    );
+    expect(expTipo.perOperaio[0].tipo).toBe('Non classificato');
     expect(formatEuroPrefixCompact(6074)).toMatch(/€\s*6\.074/);
   });
 
