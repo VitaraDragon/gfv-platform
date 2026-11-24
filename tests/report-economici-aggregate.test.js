@@ -567,6 +567,49 @@ describe('Report Economici — aggregazione', () => {
     expect(exportData.totaleAzienda[0].euroHa).toBe(expected);
   });
 
+  it('€/ha senza filtri: riquadro = riga attribuita = export (ignora costi Non attribuito)', () => {
+    // Caso ritest post-470: senza filtri KPI e tabella divergevano di 1 centesimo
+    // perché il totale azienda includeva costi «Non attribuito» nel €/ha.
+    const superficie = 72.15;
+    const input = {
+      terreni: [{ id: 't1', nome: 'Campo Vite', coltura: 'Vite', superficie }],
+      colturaContext: { campagneSeminativo: [], campagneOrticole: [], vigneti: [], frutteti: [] },
+      lavoriCosti: [
+        { terrenoId: 't1', dataIso: '2026-03-01', tipoLavoro: 'Potatura', ore: 8, costoManodopera: 12345.67, costoMacchine: 0 }
+      ],
+      attivitaCosti: [],
+      prodottiCosti: [
+        { nonAttribuito: true, dataIso: '2026-03-02', costoProdotti: 0.72 }
+      ]
+    };
+    // Nessun filtro (come «Tutti» in UI)
+    const report = assembleEconomiciReport(input, {});
+    expect(report.rows.some((r) => r.nonAttribuito)).toBe(true);
+    const attributed = report.rows.filter((r) => !r.nonAttribuito);
+    expect(attributed).toHaveLength(1);
+    const row = attributed[0];
+    const tot = report.totaleAzienda;
+    const expected = euroPerHa(row.totale, superficie);
+    expect(row.euroHa).toBe(expected);
+    expect(tot.euroHa).toBe(expected);
+    // Il totale costi include il non attribuito, ma €/ha no
+    expect(tot.totale).toBeGreaterThan(row.totale);
+    expect(tot.euroHa).not.toBe(euroPerHa(tot.totale, superficie));
+
+    const exportData = prepareEconomiciExportData(report, {
+      periodoLabel: 'Test senza filtri',
+      terrenoId: null,
+      coltura: null
+    });
+    expect(exportData.dettaglio.find((r) => !r.nonAttribuito).euroHa).toBe(expected);
+    expect(exportData.totaleAzienda[0].euroHa).toBe(expected);
+
+    // Con filtro terreno: stesso €/ha (non attribuito escluso dal filtro)
+    const filtered = assembleEconomiciReport(input, { terrenoId: 't1' });
+    expect(filtered.totaleAzienda.euroHa).toBe(expected);
+    expect(filtered.rows.every((r) => !r.nonAttribuito)).toBe(true);
+  });
+
   it('dopo “cambio periodo”: riassemblaggio con filtri terreno+coltura attivi (no leak altre righe)', () => {
     const input = {
       terreni: [

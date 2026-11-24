@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: ritocchi post-PR 468 (mensile, %, €/ha, filtri).**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: colore Carburante + €/ha senza filtri.**
+
+## 2026-11-24 — Report Economici: colore Carburante ambra + €/ha allineato senza filtri
+
+Su `fix/report-economici-colore-carburante` (PR verso develop). Nessun merge, nessun deploy.
+
+1) Colore **Carburante** da `#b45309` (troppo vicino a Macchine `#d97706`) a **`#E0A800`** (giallo ambra): unica fonte `:root --carb`, Chart.js/legende/pallini leggono da lì. 2) €/ha del totale azienda / riquadro / export calcolato **solo sui terreni attribuiti** (i costi «Non attribuito» restano nel totale € ma non spostano il €/ha); `euroPerHa` arrotonda solo a fine divisione. Senza filtri riquadro = riga = export (caso ritest 171,46 vs 171,47). Test dedicato. Guide REPORT (tecnica) aggiornate.
 
 ## 2026-11-24 — Report Economici: ritocchi post-layout (mensile impilato, %, €/ha, filtri periodo)
 
