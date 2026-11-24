@@ -7,13 +7,17 @@ import {
   aggregateByOperaio,
   aggregateByTerreno,
   assembleManodoperaReport,
+  buildChiaviLavoroDiario,
   buildManodoperaKpi,
+  buildProprietarioLines,
   filterManodoperaLines,
   isManodoperaDataReady,
   prepareManodoperaExportData,
+  sumCostoManodoperaLines,
   PROPRIETARIO_ID,
   PROPRIETARIO_NOME
 } from '../modules/report/services/report-manodopera-aggregate.js';
+import { chiaveLavoroDiario, euro } from '../modules/report/services/report-economici-aggregate.js';
 
 describe('Report Manodopera — aggregazione', () => {
   const linesBase = [
@@ -94,6 +98,7 @@ describe('Report Manodopera — aggregazione', () => {
     const prop = rows.find((r) => r.isProprietario);
     expect(prop.nome).toBe(PROPRIETARIO_NOME);
     expect(prop.ore).toBe(3);
+    expect(prop.nLavori).toBeNull(); // «—» in UI, non «0 lavori»
   });
 
   it('ignora ore non validate a monte (solo linee validate in input)', () => {
@@ -224,7 +229,7 @@ describe('Report Manodopera — aggregazione', () => {
       hasCaposquadraData: true
     }, {});
     expect(isManodoperaDataReady(report)).toBe(true);
-    expect(report.notes.some((n) => /7[,.]?5|7\.5/.test(n) && /validare/.test(n))).toBe(true);
+    expect(report.notes.some((n) => n.includes('7,5') && n.includes('da validare') && n.includes('non incluse'))).toBe(true);
 
     const exp = prepareManodoperaExportData(report, {
       periodoLabel: '2025',
@@ -234,6 +239,79 @@ describe('Report Manodopera — aggregazione', () => {
     expect(exp.perCaposquadra.length).toBe(1);
     expect(exp.perTerreno.length).toBe(2);
     expect(exp.kpi.nOperai).toBe(2);
+  });
+
+  it('periodo vuoto → empty + messaggio', () => {
+    const report = assembleManodoperaReport({ lines: [], oreDaValidare: 0 }, {});
+    expect(report.empty).toBe(true);
+    expect(report.kpi.oreTotali).toBe(0);
+  });
+
+  it('dedup diario vs lavoro (chiave Economici): toglie i 120 € di doppio conteggio', () => {
+    // Scenario ritest: 8 h diario proprietario (15 €/h = 120 €) stesso terreno|data|tipo di un lavoro già contato.
+    const lavori = [
+      { id: 'l1', terrenoId: 't1', dataInizio: '2025-12-10', tipoLavoro: 'Aratura', stato: 'completato' }
+    ];
+    const chiavi = buildChiaviLavoroDiario(lavori);
+    expect(chiavi.has(chiaveLavoroDiario('t1', '2025-12-10', 'Aratura'))).toBe(true);
+
+    const terrenoById = new Map([['t1', { id: 't1', nome: 'Campo A', superficie: 10 }]]);
+    const tariffe = { tariffaProprietario: 15, tariffaProprietarioConfigurata: true };
+    const attivita = [
+      { id: 'a-dup', terrenoId: 't1', data: '2025-12-10', tipoLavoro: 'Aratura', oreNette: 8 },
+      { id: 'a-ok', terrenoId: 't1', data: '2025-12-11', tipoLavoro: 'Aratura', oreNette: 2 }
+    ];
+    const prop = buildProprietarioLines(attivita, terrenoById, tariffe, chiavi);
+    expect(prop).toHaveLength(1);
+    expect(prop[0].attivitaId).toBe('a-ok');
+    expect(prop[0].costo).toBe(30);
+
+    const oreLines = [
+      {
+        operaioId: 'o1',
+        nome: 'Mario',
+        tipo: 'semplice',
+        isProprietario: false,
+        ore: 10,
+        tariffa: 10,
+        tariffaMissing: false,
+        costo: 100,
+        terrenoId: 't1',
+        terrenoNome: 'Campo A',
+        ettari: 10,
+        dataIso: '2025-12-10',
+        tipoLavoro: 'Aratura',
+        lavoroId: 'l1',
+        caposquadraId: null,
+        caposquadraNome: null
+      }
+    ];
+    const withoutDedup = sumCostoManodoperaLines([
+      ...oreLines,
+      {
+        operaioId: PROPRIETARIO_ID,
+        nome: PROPRIETARIO_NOME,
+        tipo: 'proprietario',
+        isProprietario: true,
+        ore: 8,
+        tariffa: 15,
+        tariffaMissing: false,
+        costo: 120,
+        terrenoId: 't1',
+        terrenoNome: 'Campo A',
+        ettari: 10,
+        dataIso: '2025-12-10',
+        tipoLavoro: 'Aratura',
+        lavoroId: null,
+        caposquadraId: null,
+        caposquadraNome: null
+      },
+      ...prop
+    ]);
+    const withDedup = sumCostoManodoperaLines([...oreLines, ...prop]);
+    expect(withoutDedup.value).toBe(euro(100 + 120 + 30));
+    expect(withDedup.value).toBe(euro(100 + 30));
+    expect(withoutDedup.value - withDedup.value).toBe(120);
   });
 
   it('proprietario con tariffa non configurata → costo null', () => {

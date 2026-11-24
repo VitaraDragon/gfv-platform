@@ -115,6 +115,13 @@
     .notes ul { margin: 6px 0 0 18px; }
     h2.section { font-size: 16px; color: #44403c; margin: 16px 0 8px; }
     h2.section:first-child { margin-top: 0; }
+    .mobile-cards { display: none; gap: 10px; margin-top: 8px; }
+    .m-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); }
+    .m-card .title { font-weight: 700; font-size: 15px; }
+    .m-card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .m-card .tot { font-size: 20px; font-weight: 700; margin-top: 8px; }
+    .m-card .amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 10px; font-size: 12px; }
+    .m-card .amounts span { color: var(--muted); }
     @media (max-width: 1100px) {
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
@@ -122,6 +129,8 @@
       body { padding: 10px; }
       .kpi-grid { grid-template-columns: 1fr 1fr; }
       .kpi .value { font-size: 20px; }
+      .desktop-only { display: none !important; }
+      .mobile-cards { display: grid; }
       .filters {
         flex-direction: column;
         align-items: stretch;
@@ -137,6 +146,7 @@
         min-width: 0;
       }
     }
+    @media (min-width: 601px) { .mobile-only { display: none !important; } }
   </style>
 </head>
 <body>
@@ -198,11 +208,13 @@
       </div>
 
       <div id="partial-banner" class="alert alert-warn hidden" role="status"></div>
+      <div id="da-validare-banner" class="alert alert-info hidden" role="status"></div>
       <div id="alert-box"></div>
       <div id="kpi-host" class="kpi-grid"></div>
 
       <div class="panel" style="margin-top:12px;">
         <div id="tables-host" class="loading-box">Caricamento…</div>
+        <div id="mobile-host" class="mobile-cards mobile-only"></div>
         <div class="notes" id="notes-box"></div>
       </div>
     </div>
@@ -237,6 +249,7 @@
       isManodoperaDataReady,
       getManodoperaFilterOptions
     } from '../services/report-manodopera-service.js';
+    import { setReportExportEnabled } from '../js/report-export-gate.js';
 
     const auth = getAuthInstance();
     initializeTenantService();
@@ -256,9 +269,11 @@
     const selOperaio = document.getElementById('sel-operaio');
     const selCapo = document.getElementById('sel-capo');
     const tablesHost = document.getElementById('tables-host');
+    const mobileHost = document.getElementById('mobile-host');
     const kpiHost = document.getElementById('kpi-host');
     const alertBox = document.getElementById('alert-box');
     const partialBanner = document.getElementById('partial-banner');
+    const daValidareBanner = document.getElementById('da-validare-banner');
     const notesBox = document.getElementById('notes-box');
     const btnExport = document.getElementById('btn-export');
 
@@ -363,10 +378,15 @@
       cached = null;
       kpiHost.innerHTML = '';
       tablesHost.innerHTML = '<div class="loading-box">Caricamento ore e costi manodopera…</div>';
+      if (mobileHost) mobileHost.innerHTML = '';
       notesBox.innerHTML = '';
       partialBanner.classList.add('hidden');
       partialBanner.textContent = '';
-      btnExport.disabled = true;
+      if (daValidareBanner) {
+        daValidareBanner.classList.add('hidden');
+        daValidareBanner.textContent = '';
+      }
+      setReportExportEnabled(btnExport, false);
     }
 
     function sortRows(rows, key, dir) {
@@ -425,6 +445,30 @@
       `;
     }
 
+    function fmtLavoriCell(r) {
+      if (r.isProprietario || r.nLavori == null) return '—';
+      return String(r.nLavori);
+    }
+
+    function renderMobileCards(byOp) {
+      if (!mobileHost) return;
+      if (!byOp.length) {
+        mobileHost.innerHTML = '';
+        return;
+      }
+      mobileHost.innerHTML = byOp.map((r) => `
+        <div class="m-card">
+          <div class="title">${escapeHtml(r.nome)}</div>
+          <div class="meta">${escapeHtml(r.tipo || '—')} · ${escapeHtml(fmtNum(r.ore, 1))} h · lavori ${escapeHtml(fmtLavoriCell(r))} · terreni ${r.nTerreni}</div>
+          <div class="tot">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))} €</div>
+          <div class="amounts">
+            <div><span>Tariffa</span><br>${escapeHtml(fmtEuro(r.tariffa, false))} €/h</div>
+            <div><span>Costo</span><br>${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function renderTables(data) {
       const byOp = sortState.table === 'operaio'
         ? sortRows(data.byOperaio, sortState.key, sortState.dir)
@@ -437,12 +481,13 @@
         : (data.byTerreno || []);
 
       if (!byOp.length && !byTerr.length) {
-        tablesHost.innerHTML = '<div class="alert alert-info">Nessuna ora validata nel periodo con i filtri scelti.</div>';
+        tablesHost.innerHTML = '<div class="alert alert-info">Nessuna ora nel periodo selezionato</div>';
+        if (mobileHost) mobileHost.innerHTML = '';
         return;
       }
 
-      let html = '<h2 class="section">Per operaio</h2>';
-      html += '<div class="table-wrap"><table class="data"><thead><tr>';
+      let html = '<h2 class="section desktop-only">Per operaio</h2>';
+      html += '<div class="table-wrap desktop-only"><table class="data"><thead><tr>';
       html += thSort('operaio', 'nome', 'Nome', false);
       html += thSort('operaio', 'tipo', 'Tipo', false);
       html += thSort('operaio', 'ore', 'Ore validate', true);
@@ -453,20 +498,20 @@
       html += '</tr></thead><tbody>';
       for (const r of byOp) {
         html += `<tr>
-          <td>${escapeHtml(r.nome)}${r.isProprietario ? ' <span class="muted">(diario)</span>' : ''}</td>
+          <td>${escapeHtml(r.nome)}</td>
           <td>${escapeHtml(r.tipo || '—')}</td>
           <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
           <td class="num">${escapeHtml(fmtEuro(r.tariffa, false))}</td>
           <td class="num">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))}</td>
-          <td class="num">${r.nLavori}</td>
+          <td class="num">${escapeHtml(fmtLavoriCell(r))}</td>
           <td class="num">${r.nTerreni}</td>
         </tr>`;
       }
       html += '</tbody></table></div>';
 
       if (byCapo.length) {
-        html += '<h2 class="section">Per squadra / caposquadra</h2>';
-        html += '<div class="table-wrap"><table class="data"><thead><tr>';
+        html += '<h2 class="section desktop-only">Per squadra / caposquadra</h2>';
+        html += '<div class="table-wrap desktop-only"><table class="data"><thead><tr>';
         html += thSort('capo', 'nome', 'Caposquadra', false);
         html += thSort('capo', 'ore', 'Ore', true);
         html += thSort('capo', 'costo', 'Costo €', true);
@@ -484,15 +529,15 @@
         }
         html += '</tbody></table></div>';
       } else {
-        html += '<h2 class="section">Per squadra / caposquadra</h2>';
-        html += '<p class="muted">Nessun lavoro con <code>caposquadraId</code> nel periodo filtrato.</p>';
+        html += '<h2 class="section desktop-only">Per squadra / caposquadra</h2>';
+        html += '<p class="muted desktop-only">Nessun lavoro con <code>caposquadraId</code> nel periodo filtrato.</p>';
       }
 
-      html += '<h2 class="section">Per terreno</h2>';
+      html += '<h2 class="section desktop-only">Per terreno</h2>';
       if (!byTerr.length) {
-        html += '<p class="muted">Nessun terreno con ore validate.</p>';
+        html += '<p class="muted desktop-only">Nessun terreno con ore validate.</p>';
       } else {
-        html += '<div class="table-wrap"><table class="data"><thead><tr>';
+        html += '<div class="table-wrap desktop-only"><table class="data"><thead><tr>';
         html += thSort('terreno', 'terrenoNome', 'Terreno', false);
         html += thSort('terreno', 'ettari', 'ha', true);
         html += thSort('terreno', 'ore', 'Ore', true);
@@ -512,6 +557,7 @@
       }
 
       tablesHost.innerHTML = html;
+      renderMobileCards(byOp);
     }
 
     function render(data) {
@@ -519,19 +565,45 @@
         enterLoadingState();
         return;
       }
-      btnExport.disabled = false;
       cached = data;
+
+      const oreDaVal = Number(data.oreDaValidare) || 0;
+      if (daValidareBanner) {
+        if (oreDaVal > 0) {
+          const note = (data.notes || []).find((n) => /da validare/.test(n))
+            || `${String(oreDaVal).replace('.', ',')} ore ancora da validare nel periodo (non incluse)`;
+          daValidareBanner.textContent = note;
+          daValidareBanner.classList.remove('hidden');
+        } else {
+          daValidareBanner.classList.add('hidden');
+          daValidareBanner.textContent = '';
+        }
+      }
+
+      if (data.empty) {
+        kpiHost.innerHTML = '';
+        partialBanner.classList.add('hidden');
+        tablesHost.innerHTML = '<div class="alert alert-info">Nessuna ora nel periodo selezionato</div>';
+        if (mobileHost) mobileHost.innerHTML = '';
+        notesBox.innerHTML = oreDaVal > 0
+          ? `<span class="muted">${escapeHtml((data.notes || [])[0] || '')}</span>`
+          : '';
+        setReportExportEnabled(btnExport, false);
+        return;
+      }
+
       renderKpi(data);
       renderTables(data);
 
       const notes = data.notes || [];
       if (notes.length) {
-        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno una tariffa). «—» = nessun valore noto.<ul>${
+        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno una tariffa). «—» = nessun valore noto. Per il proprietario la colonna lavori è «—» (diario, non lavori di squadra).<ul>${
           notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
         }</ul>`;
       } else {
-        notesBox.innerHTML = '<span class="muted">* = parziale. Contano solo ore validate.</span>';
+        notesBox.innerHTML = '<span class="muted">* = parziale. Contano solo ore validate. Proprietario: lavori = «—».</span>';
       }
+      setReportExportEnabled(btnExport, true);
     }
 
     function fillSelect(sel, options, keepValue) {
@@ -601,7 +673,8 @@
         periodBundleKey = '';
         kpiHost.innerHTML = '';
         tablesHost.innerHTML = '';
-        btnExport.disabled = true;
+        if (mobileHost) mobileHost.innerHTML = '';
+        setReportExportEnabled(btnExport, false);
         alertBox.innerHTML = `<div class="alert alert-error">Errore report: ${escapeHtml(e.message || e)}</div>`;
       }
     }

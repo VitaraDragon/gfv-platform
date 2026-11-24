@@ -8,11 +8,84 @@
  * @module modules/report/services/report-manodopera-aggregate
  */
 
-import { euro, euroPerHa } from './report-economici-aggregate.js';
+import {
+  chiaveLavoroDiario,
+  dataIsoFromAny,
+  euro,
+  euroPerHa
+} from './report-economici-aggregate.js';
 
 export const PROPRIETARIO_ID = '__proprietario__';
 export const PROPRIETARIO_NOME = 'Proprietario (diario)';
 export const PROPRIETARIO_TIPO = 'proprietario';
+
+/**
+ * Chiavi lavoro→diario come Economici (`terreno|data|tipo`).
+ * @param {Array<{ terrenoId?: string, dataInizio?: *, data?: *, tipoLavoro?: string }>} lavori
+ * @returns {Set<string>}
+ */
+export function buildChiaviLavoroDiario(lavori) {
+  const set = new Set();
+  for (const lav of lavori || []) {
+    if (!lav || !lav.terrenoId) continue;
+    set.add(chiaveLavoroDiario(
+      lav.terrenoId,
+      dataIsoFromAny(lav.dataInizio || lav.data),
+      lav.tipoLavoro || ''
+    ));
+  }
+  return set;
+}
+
+/**
+ * Diario proprietario (attività senza lavoroId), allineato a Economici:
+ * salta attività già coperte da un lavoro (stessa chiave terreno|data|tipo).
+ *
+ * @param {object[]} attivitaDocs
+ * @param {Map<string, object>} terrenoById
+ * @param {{ tariffaProprietario?: number, tariffaProprietarioConfigurata?: boolean }} tariffe
+ * @param {Set<string>} [chiaviLavoro]
+ * @returns {ManodoperaLine[]}
+ */
+export function buildProprietarioLines(attivitaDocs, terrenoById, tariffe, chiaviLavoro) {
+  /** @type {ManodoperaLine[]} */
+  const lines = [];
+  const configured = !!(tariffe && tariffe.tariffaProprietarioConfigurata);
+  const tariffa = Number(tariffe && tariffe.tariffaProprietario) || 0;
+  const keys = chiaviLavoro instanceof Set ? chiaviLavoro : new Set();
+
+  for (const a of attivitaDocs || []) {
+    if (!a || a.lavoroId || a.clienteId) continue;
+    if (!a.terrenoId || !terrenoById.has(String(a.terrenoId))) continue;
+    const ore = Number(a.oreNette) || 0;
+    if (ore <= 0) continue;
+    const dataIso = dataIsoFromAny(a.data);
+    const tipoLavoro = a.tipoLavoro || '';
+    if (keys.has(chiaveLavoroDiario(a.terrenoId, dataIso, tipoLavoro))) continue;
+    const t = terrenoById.get(String(a.terrenoId));
+    const missing = !configured;
+    lines.push({
+      operaioId: PROPRIETARIO_ID,
+      nome: PROPRIETARIO_NOME,
+      tipo: PROPRIETARIO_TIPO,
+      isProprietario: true,
+      ore,
+      tariffa: missing ? null : tariffa,
+      tariffaMissing: missing,
+      costo: missing ? null : euro(ore * tariffa),
+      terrenoId: String(a.terrenoId),
+      terrenoNome: t ? (t.nome || t.podere || a.terrenoId) : String(a.terrenoId),
+      ettari: t && t.superficie != null ? Number(t.superficie) : null,
+      dataIso,
+      tipoLavoro,
+      lavoroId: null,
+      attivitaId: a.id ? String(a.id) : null,
+      caposquadraId: null,
+      caposquadraNome: null
+    });
+  }
+  return lines;
+}
 
 /**
  * Somma nullable: null se tutti mancanti; partial se mix.
@@ -80,6 +153,7 @@ export function aggregateByOperaio(lines) {
         costoKnown: 0,
         costoMissing: false,
         lavoriIds: new Set(),
+        attivitaIds: new Set(),
         terreniIds: new Set()
       });
     }
@@ -94,6 +168,7 @@ export function aggregateByOperaio(lines) {
       if (row.tariffa == null && line.tariffa != null) row.tariffa = Number(line.tariffa);
     }
     if (line.lavoroId) row.lavoriIds.add(String(line.lavoroId));
+    if (line.attivitaId) row.attivitaIds.add(String(line.attivitaId));
     if (line.terrenoId) row.terreniIds.add(String(line.terrenoId));
   }
 
@@ -101,6 +176,9 @@ export function aggregateByOperaio(lines) {
     const costo = r.costoMissing
       ? (r.costoKnown > 0 ? euro(r.costoKnown) : null)
       : euro(r.costoKnown);
+    // Proprietario: niente «0 lavori» fuorviante — in colonna lavori mostriamo «—»
+    // (le attività diario restano in nAttivita per eventuale dettaglio).
+    const nLavori = r.isProprietario ? null : r.lavoriIds.size;
     return {
       operaioId: r.operaioId,
       nome: r.nome,
@@ -111,7 +189,8 @@ export function aggregateByOperaio(lines) {
       tariffaMissing: r.tariffaMissing,
       costo: r.costoMissing && !(r.costoKnown > 0) ? null : costo,
       partialCosto: r.costoMissing && r.costoKnown > 0,
-      nLavori: r.lavoriIds.size,
+      nLavori,
+      nAttivita: r.isProprietario ? r.attivitaIds.size : null,
       nTerreni: r.terreniIds.size,
       note: r.tariffaMissing ? 'Tariffa oraria non impostata' : ''
     };
@@ -323,9 +402,10 @@ export function assembleManodoperaReport(input, filters = {}) {
   const notes = [];
   const oreDaValidare = Number(input.oreDaValidare) || 0;
   if (oreDaValidare > 0) {
-    notes.push(
-      `Nel periodo ci sono ancora ${euro(oreDaValidare)} ore da validare (non incluse nei totali).`
-    );
+    const nLabel = Number.isInteger(oreDaValidare)
+      ? String(oreDaValidare)
+      : String(oreDaValidare).replace('.', ',');
+    notes.push(`${nLabel} ore ancora da validare nel periodo (non incluse)`);
   }
   if (byOperaio.some((r) => r.tariffaMissing) || byTerreno.some((r) => r.note)) {
     notes.push('Tariffa oraria non impostata: i costi con * sono parziali o mancanti (mai zero silenzioso).');
@@ -333,6 +413,8 @@ export function assembleManodoperaReport(input, filters = {}) {
   if (input.hasCaposquadraData === false) {
     notes.push('Nessun lavoro con caposquadra nel periodo filtrato.');
   }
+
+  const empty = (kpi.oreTotali || 0) === 0 && byOperaio.length === 0;
 
   return {
     byOperaio,
@@ -342,8 +424,21 @@ export function assembleManodoperaReport(input, filters = {}) {
     notes,
     oreDaValidare,
     hasCaposquadraData: byCaposquadra.length > 0,
+    empty,
     ready: true
   };
+}
+
+/**
+ * Somma costo manodopera dalle linee (stessa regola partial dei KPI).
+ * @param {ManodoperaLine[]} lines
+ * @returns {{ value: number|null, partial: boolean }}
+ */
+export function sumCostoManodoperaLines(lines) {
+  return sumNullableCosts(
+    (lines || []).map((l) => (l && l.costo != null ? l.costo : null)),
+    (lines || []).some((l) => l && (l.tariffaMissing || l.costo == null) && (Number(l.ore) > 0))
+  );
 }
 
 /**

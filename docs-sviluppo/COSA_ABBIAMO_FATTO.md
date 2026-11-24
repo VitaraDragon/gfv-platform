@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Manodopera (ore/costi per operaio, squadra, terreno).**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Manodopera ritest (allineamento Economici −120 €).**
+
+## 2026-11-24 — Report Manodopera: ritest allineamento Economici e UX
+
+Su `fix/report-manodopera-ritest-478` (PR verso develop; follow-up della 478 già su develop). Nessun merge, nessun deploy.
+
+Causa +120 € vs Economici: diario proprietario contato anche quando stesso `terreno|data|tipo` di un lavoro già in totale — mancava il dedup `chiaveLavoroDiario` di Economici (~8 h × 15 €). Fix + test. Nota «N ore ancora da validare…» in banner (conteggio anche su lavori non completati). Etichetta proprietario senza doppio «(diario)»; colonna lavori = «—»; empty state senza KPI a zero; export abilitato solo a fine render (`report-export-gate.js`, anche Economici); schede mobile.
 
 ## 2026-11-24 — Report: scheda Manodopera (ore e costi, export Excel)
 
