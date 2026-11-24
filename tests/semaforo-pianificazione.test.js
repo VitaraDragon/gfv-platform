@@ -16,12 +16,14 @@ import {
 import {
   avvisoCarenzaRaccolta,
   htmlAvvisoCarenza,
+  testoDoseDaEtichetta,
   tipoLavoroRaccolta,
   valutaTrattamentoPianificato
 } from '../shared/js/semaforo-etichetta-pianificazione.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const folpan = JSON.parse(readFileSync(path.join(root, 'shared/data/fitofarmaci-etichette/per-registrazione/008601.json'), 'utf8'));
+const karate = JSON.parse(readFileSync(path.join(root, 'shared/data/fitofarmaci-etichette/per-registrazione/012940.json'), 'utf8'));
 const vocabolario = JSON.parse(readFileSync(path.join(root, 'shared/data/fitofarmaci-etichette/colture-vocabolario.json'), 'utf8'));
 
 function giorno(iso) {
@@ -629,5 +631,39 @@ describe('righeTrattamentoDaMiscela', () => {
       data: '2026-08-01',
       prodotti: [confermata]
     }, { ora: new Date('2026-11-22'), exportConfermato: false }).consentita).toBe(false);
+  });
+});
+
+describe('testoDoseDaEtichetta dose fissa vs intervallo', () => {
+  it('KARATE ZEON 1.5 su vite/tignola mostra 1,7 l/ha senza ripetere il minimo', () => {
+    expect(testoDoseDaEtichetta(karate, 'vite da vino', 'Tignola e tignoletta'))
+      .toBe('Da etichetta: 1,7 l/ha');
+  });
+
+  it('su frumento resta l\'intervallo 0,7–1,3 l/ha', () => {
+    expect(testoDoseDaEtichetta(karate, 'frumento', 'Afidi'))
+      .toBe('Da etichetta: 0,7–1,3 l/ha');
+  });
+
+  it('1 l/ha su vite/tignola resta rosso fuori intervallo', () => {
+    const esito = valutaTrattamentoPianificato({
+      miscela: {
+        prodotti: [{
+          nome: 'KARATE ZEON 1.5',
+          dosePerEttaro: 1,
+          unita: 'l',
+          avversitaPianificata: 'Tignola e tignoletta'
+        }]
+      },
+      data: giorno('2026-08-01'),
+      terrenoId: 't1',
+      specie: 'vite da vino',
+      lavoroId: '',
+      precedenti: [],
+      legami: legami(karate),
+      oggi: giorno('2026-08-01')
+    });
+    expect(esito.colore).toBe('rosso');
+    expect(esito.motivi.some((m) => /fuori dall'intervallo/.test(m.testo) && /1,7 l\/ha/.test(m.testo) && !/1,7–1,7/.test(m.testo))).toBe(true);
   });
 });
