@@ -5,15 +5,15 @@
  * Condivisa: non duplicare tinte nelle pagine standalone.
  */
 :root {
-  /* Serie contrastanti (ordine: tinte lontane, non sfumature) */
+  /* Serie contrastanti (ordine: tinte lontane; rosso/marrone solo in fondo) */
   --report-chart-1: #16a34a; /* verde */
   --report-chart-2: #ea580c; /* arancio */
   --report-chart-3: #2563eb; /* blu */
-  --report-chart-4: #7c3aed; /* viola */
-  --report-chart-5: #b91c1c; /* rosso mattone */
-  --report-chart-6: #0d9488; /* turchese */
+  --report-chart-4: #db2777; /* magenta */
+  --report-chart-5: #0d9488; /* turchese */
+  --report-chart-6: #7c3aed; /* viola */
   --report-chart-7: #ca8a04; /* giallo ocra */
-  --report-chart-8: #db2777; /* magenta */
+  --report-chart-8: #78350f; /* marrone */
 
   /* Overflow / «Altri» */
   --report-chart-altri: #94a3b8; /* grigio slate */

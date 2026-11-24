@@ -160,6 +160,94 @@ export function totaleUsciteComeEconomici(movimenti, prodottiById = null, exclud
 }
 
 /**
+ * Quota uscite che Magazzino conta e Economici no (pieni carburante + trattamenti).
+ * Stessa regola di prezzo di `prodottoCostFromMovimentoUscita` / `valoreUscitaFromMovimento`.
+ *
+ * Accetta movimenti grezzi o già arricchiti (`origineUscita` + `valore`).
+ *
+ * @param {Array<object>} movimenti
+ * @param {Map<string, object>|null} [prodottiById]
+ * @returns {{
+ *   carburante: number|null,
+ *   partialCarburante: boolean,
+ *   trattamento: number|null,
+ *   partialTrattamento: boolean
+ * }}
+ */
+export function quotaUsciteEscluseDaEconomici(movimenti, prodottiById = null) {
+  const carbVals = [];
+  const trattVals = [];
+  for (const mov of movimenti || []) {
+    if (!mov) continue;
+    if (String(mov.tipo || '').toLowerCase() !== 'uscita') continue;
+    const origine = mov.origineUscita
+      ? String(mov.origineUscita)
+      : classifyUscitaOrigine(mov);
+    if (origine !== 'carburante' && origine !== 'trattamento') continue;
+
+    let valore;
+    if (mov.origineUscita != null || mov.missingPrezzo != null || Object.prototype.hasOwnProperty.call(mov, 'valore')) {
+      valore = (mov.missingPrezzo || mov.valore == null) ? null : mov.valore;
+    } else {
+      const anag = prodottiById && mov.prodottoId
+        ? prodottiById.get(String(mov.prodottoId))
+        : null;
+      valore = valoreUscitaFromMovimento(mov, anag).valore;
+    }
+    if (origine === 'carburante') carbVals.push(valore);
+    else trattVals.push(valore);
+  }
+  const carb = sumNullable(carbVals);
+  const tratt = sumNullable(trattVals);
+  return {
+    carburante: carb.value,
+    partialCarburante: carb.partial,
+    trattamento: tratt.value,
+    partialTrattamento: tratt.partial
+  };
+}
+
+/**
+ * Note leggibili sulla differenza Magazzino vs Economici (KPI + foglio Note Excel).
+ * Solo se la quota nota è > 0; * se parziale.
+ *
+ * @param {{ carburante?: number|null, partialCarburante?: boolean, trattamento?: number|null, partialTrattamento?: boolean }} quota
+ * @returns {string[]}
+ */
+export function notesUsciteVsEconomici(quota) {
+  if (!quota) return [];
+  const out = [];
+  const fmt = (v, partial) => {
+    const s = Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return partial ? `${s}*` : s;
+  };
+  if (quota.carburante != null && Number(quota.carburante) > 0) {
+    out.push(
+      `di cui ${fmt(quota.carburante, !!quota.partialCarburante)} € pieni carburante non conteggiati in Economici`
+    );
+  }
+  if (quota.trattamento != null && Number(quota.trattamento) > 0) {
+    out.push(
+      `di cui ${fmt(quota.trattamento, !!quota.partialTrattamento)} € trattamenti conteggiati a parte in Economici`
+    );
+  }
+  return out;
+}
+
+/**
+ * Stesso filtro della tabella «Per prodotto» in pagina (e foglio Excel).
+ * Esclude prodotti solo con giacenza > 0 senza movimenti / alert scorta.
+ *
+ * @param {Array<object>} byProdotto
+ * @returns {Array<object>}
+ */
+export function filterProdottiVisibiliTabella(byProdotto) {
+  return (byProdotto || []).filter(
+    (r) => r && (r.nMovimenti > 0 || r.sottoScorta || r.giacenzaNegativa)
+  );
+}
+
+/**
  * Arricchisce un movimento con quantità/valore/origine per il report.
  * @param {object} mov
  * @param {Map<string, object>|null} prodottiById
@@ -666,7 +754,7 @@ export function buildProdottoDetailRows(enriched, prodottoId) {
  */
 export function prepareMagazzinoExportData(data) {
   const kpi = data.kpi || {};
-  const byProdotto = data.byProdotto || [];
+  const byProdotto = filterProdottiVisibiliTabella(data.byProdotto || []);
   const movimenti = data.movimenti || [];
   const notes = data.notes || [];
   return {
@@ -675,7 +763,8 @@ export function prepareMagazzinoExportData(data) {
       valoreUscite: kpi.valoreUscite,
       valoreMagazzino: kpi.valoreMagazzino,
       prodottiSottoScorta: kpi.prodottiSottoScorta,
-      nProdotti: kpi.nProdotti
+      nProdotti: kpi.nProdotti,
+      usciteEscluseEconomici: kpi.usciteEscluseEconomici || null
     },
     perProdotto: byProdotto.map((r) => ({
       nome: r.nome,
@@ -752,7 +841,9 @@ export function assembleMagazzinoReport(input, filters = {}) {
     }
   }
   const byCategoria = aggregateByCategoria(rows);
-  const kpi = buildMagazzinoKpi(rows);
+  const kpiBase = buildMagazzinoKpi(rows);
+  const usciteEscluseEconomici = quotaUsciteEscluseDaEconomici(enriched);
+  const kpi = { ...kpiBase, usciteEscluseEconomici };
   const chartUsciteCategoria = byCategoria
     .filter((c) => c.valoreUscite != null && Number(c.valoreUscite) > 0)
     .map((c) => ({
@@ -778,6 +869,7 @@ export function assembleMagazzinoReport(input, filters = {}) {
   if (anyPrezzoInAttesa) {
     notes.push('Ci sono movimenti con «Prezzo in attesa» (bolla senza fattura).');
   }
+  for (const n of notesUsciteVsEconomici(usciteEscluseEconomici)) notes.push(n);
 
   const empty = !(enriched.length) && !(rows.some((r) => r.nMovimenti > 0));
 

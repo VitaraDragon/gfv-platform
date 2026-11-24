@@ -8,14 +8,14 @@
 
 /** @type {string[]} */
 export const REPORT_CHART_SERIES_FALLBACK = [
-  '#16a34a',
-  '#ea580c',
-  '#2563eb',
-  '#7c3aed',
-  '#b91c1c',
-  '#0d9488',
-  '#ca8a04',
-  '#db2777'
+  '#16a34a', /* verde */
+  '#ea580c', /* arancio */
+  '#2563eb', /* blu */
+  '#db2777', /* magenta */
+  '#0d9488', /* turchese */
+  '#7c3aed', /* viola */
+  '#ca8a04', /* giallo ocra */
+  '#78350f'  /* marrone */
 ];
 
 export const REPORT_CHART_ALTRI_FALLBACK = '#94a3b8';

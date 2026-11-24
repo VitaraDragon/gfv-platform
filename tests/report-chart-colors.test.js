@@ -19,6 +19,17 @@ describe('report-chart-colors — regola Pier', () => {
     expect(set.size).toBe(REPORT_CHART_SERIES_FALLBACK.length);
   });
 
+  it('palette: arancio e rosso/marrone non sono adiacenti; grigio solo per Altri', () => {
+    const series = REPORT_CHART_SERIES_FALLBACK.map((c) => c.toLowerCase());
+    expect(series[0]).toBe('#16a34a'); // verde
+    expect(series[1]).toBe('#ea580c'); // arancio
+    expect(series[2]).toBe('#2563eb'); // blu
+    expect(series[3]).toBe('#db2777'); // magenta (lontano da arancio)
+    expect(series[series.length - 1]).toBe('#78350f'); // marrone in fondo
+    expect(series).not.toContain('#b91c1c');
+    expect(series).not.toContain(REPORT_CHART_ALTRI_FALLBACK.toLowerCase());
+  });
+
   it('per N voci fino alla lunghezza palette i colori sono distinti', () => {
     const n = colors.series.length;
     const labels = Array.from({ length: n }, (_, i) => `Voce ${i + 1}`);
