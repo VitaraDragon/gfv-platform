@@ -32,8 +32,11 @@ import {
 } from './report-labour-shared.js';
 import {
   assembleManodoperaReport,
+  buildChiaviLavoroDiario,
+  buildProprietarioLines,
   isManodoperaDataReady,
   prepareManodoperaExportData,
+  sumCostoManodoperaLines,
   PROPRIETARIO_ID,
   PROPRIETARIO_NOME,
   PROPRIETARIO_TIPO
@@ -67,7 +70,8 @@ function terrenoMeta(terrenoById, terrenoId) {
 }
 
 /**
- * Costruisce linee validate + conteggio ore da_validare dal bundle ore grezzo.
+ * Solo ore validate → linee di costo. Il conteggio da_validare è separato
+ * (può includere lavori non ancora completati).
  */
 function buildLinesFromOre(lavoriInRange, oreByLavoroId, ctx) {
   const {
@@ -78,7 +82,6 @@ function buildLinesFromOre(lavoriInRange, oreByLavoroId, ctx) {
 
   /** @type {import('./report-manodopera-aggregate.js').ManodoperaLine[]} */
   const lines = [];
-  let oreDaValidare = 0;
 
   for (const lav of lavoriInRange || []) {
     const entry = oreByLavoroId.get(lav.id) || { oreDocs: [] };
@@ -88,17 +91,14 @@ function buildLinesFromOre(lavoriInRange, oreByLavoroId, ctx) {
     const caposquadraNome = caposquadraId
       ? displayNameUser(capoUser, caposquadraId)
       : null;
+    const dataIso = dataIsoFromAny(lav.dataInizio || lav.data);
+    const tipoLavoro = lav.tipoLavoro || '';
 
     for (const oraDoc of entry.oreDocs || []) {
       const ora = typeof oraDoc.data === 'function' ? oraDoc.data() : oraDoc;
       if (!ora) continue;
       const oreNette = Number(ora.oreNette) || 0;
       if (oreNette <= 0) continue;
-
-      if (ora.stato === 'da_validare') {
-        oreDaValidare += oreNette;
-        continue;
-      }
       if (ora.stato !== 'validate') continue;
 
       const operaioId = ora.operaioId ? String(ora.operaioId) : '';
@@ -118,6 +118,8 @@ function buildLinesFromOre(lavoriInRange, oreByLavoroId, ctx) {
         tariffaMissing: missing,
         costo,
         ...metaT,
+        dataIso,
+        tipoLavoro,
         lavoroId: lav.id ? String(lav.id) : null,
         caposquadraId,
         caposquadraNome
@@ -125,41 +127,24 @@ function buildLinesFromOre(lavoriInRange, oreByLavoroId, ctx) {
     }
   }
 
-  return { lines, oreDaValidare: euro(oreDaValidare) || 0 };
+  return lines;
 }
 
 /**
- * Diario proprietario (attività senza lavoroId), come Economici.
+ * Ore ancora da validare nel periodo (lavori in range, anche non completati).
  */
-function buildProprietarioLines(attivitaDocs, terrenoById, tariffe) {
-  /** @type {import('./report-manodopera-aggregate.js').ManodoperaLine[]} */
-  const lines = [];
-  const configured = !!tariffe.tariffaProprietarioConfigurata;
-  const tariffa = Number(tariffe.tariffaProprietario) || 0;
-
-  for (const a of attivitaDocs || []) {
-    if (!a || a.lavoroId || a.clienteId) continue;
-    if (!a.terrenoId || !terrenoById.has(String(a.terrenoId))) continue;
-    const ore = Number(a.oreNette) || 0;
-    if (ore <= 0) continue;
-    const metaT = terrenoMeta(terrenoById, a.terrenoId);
-    const missing = !configured;
-    lines.push({
-      operaioId: PROPRIETARIO_ID,
-      nome: PROPRIETARIO_NOME,
-      tipo: PROPRIETARIO_TIPO,
-      isProprietario: true,
-      ore,
-      tariffa: missing ? null : tariffa,
-      tariffaMissing: missing,
-      costo: missing ? null : euro(ore * tariffa),
-      ...metaT,
-      lavoroId: null,
-      caposquadraId: null,
-      caposquadraNome: null
-    });
+function countOreDaValidare(lavoriDocs, oreByLavoroId) {
+  let oreDaValidare = 0;
+  for (const lav of lavoriDocs || []) {
+    const id = lav && lav.id;
+    const entry = id ? (oreByLavoroId.get(id) || { oreDocs: [] }) : { oreDocs: [] };
+    for (const oraDoc of entry.oreDocs || []) {
+      const ora = typeof oraDoc.data === 'function' ? oraDoc.data() : oraDoc;
+      if (!ora || ora.stato !== 'da_validare') continue;
+      oreDaValidare += Number(ora.oreNette) || 0;
+    }
   }
-  return lines;
+  return euro(oreDaValidare) || 0;
 }
 
 /**
@@ -197,7 +182,10 @@ function buildProprietarioFromLinkedAttivita(lavoriInRange, oreByLavoroId, attiv
       tariffaMissing: missing,
       costo: missing ? null : euro(ore * tariffa),
       ...metaT,
+      dataIso: dataIsoFromAny(lav.dataInizio || lav.data),
+      tipoLavoro: lav.tipoLavoro || '',
       lavoroId: lav.id ? String(lav.id) : null,
+      attivitaId: null,
       caposquadraId: lav.caposquadraId ? String(lav.caposquadraId) : null,
       caposquadraNome: null,
       fromLinkedAttivita: true
@@ -243,18 +231,29 @@ export async function loadManodoperaPeriodBundle(start, end, opts = {}) {
     return inRange(l.dataInizio || l.data, start, end);
   });
 
+  // Per la nota «ore da validare»: anche lavori non completati nel periodo (stesso range data).
+  const lavoriPerDaValidare = (lavoriRaw || []).filter((l) => {
+    if (!l) return false;
+    if (l.clienteId && String(l.clienteId).trim()) return false;
+    return inRange(l.dataInizio || l.data, start, end);
+  });
+
   const db = getDb();
-  const lavoriDocs = lavoriInRange.map((l) => ({
+  const lavoriDocsCompletati = lavoriInRange.map((l) => ({
     id: l.id,
     data: () => l
   }));
+  const lavoriDocsDaValidareExtra = lavoriPerDaValidare
+    .filter((l) => !lavoriInRange.some((c) => String(c.id) === String(l.id)))
+    .map((l) => ({ id: l.id, data: () => l }));
+  const lavoriDocsOre = [...lavoriDocsCompletati, ...lavoriDocsDaValidareExtra];
 
-  // Stesso loader di Economici. Senza statoFilter: validate → costi; da_validare → solo conteggio nota.
+  // Stesso loader di Economici. Senza statoFilter: validate → costi; da_validare → nota.
   t0 = now();
   const oreByLavoroId = db
     ? await fetchOreOperaiForLavori(
       tenantId,
-      lavoriDocs,
+      lavoriDocsOre,
       { db, collection, getDocs, query, where },
       { statoFilter: null }
     )
@@ -279,13 +278,16 @@ export async function loadManodoperaPeriodBundle(start, end, opts = {}) {
     : new Map();
   timePhase(timings, 'utenti', now() - t0);
 
-  const { lines: oreLines, oreDaValidare } = buildLinesFromOre(lavoriInRange, oreByLavoroId, {
+  const oreLines = buildLinesFromOre(lavoriInRange, oreByLavoroId, {
     usersById,
     tariffeOperai: tariffe.tariffeOperai,
     terrenoById
   });
+  const oreDaValidare = countOreDaValidare(lavoriDocsOre, oreByLavoroId);
 
-  const propLines = buildProprietarioLines(attivitaDocs, terrenoById, tariffe);
+  // Stesso anti-doppio di Economici: diario diretto se già coperto da un lavoro completato.
+  const chiaviLavoro = buildChiaviLavoroDiario(lavoriInRange);
+  const propLines = buildProprietarioLines(attivitaDocs, terrenoById, tariffe, chiaviLavoro);
   const linkedProp = buildProprietarioFromLinkedAttivita(
     lavoriInRange,
     oreByLavoroId,
@@ -296,6 +298,7 @@ export async function loadManodoperaPeriodBundle(start, end, opts = {}) {
 
   const lines = [...oreLines, ...propLines, ...linkedProp];
   const hasCaposquadraData = lines.some((l) => l && l.caposquadraId);
+  const costoManodoperaTotale = sumCostoManodoperaLines(lines);
 
   /** Opzioni filtro UI derivate dal periodo */
   const operaiOptsMap = new Map();
@@ -319,6 +322,7 @@ export async function loadManodoperaPeriodBundle(start, end, opts = {}) {
     lines,
     oreDaValidare,
     hasCaposquadraData,
+    costoManodoperaTotale,
     terreni: terreni.map((t) => ({
       id: t.id,
       nome: t.nome || t.podere || t.id
@@ -357,6 +361,7 @@ export function assembleManodoperaFromBundle(bundle, filters = {}) {
       notes: [],
       oreDaValidare: 0,
       hasCaposquadraData: false,
+      empty: true,
       ready: false
     };
   }
@@ -399,8 +404,11 @@ export async function getManodoperaFilterOptions() {
 
 export {
   assembleManodoperaReport,
+  buildChiaviLavoroDiario,
+  buildProprietarioLines,
   isManodoperaDataReady,
   prepareManodoperaExportData,
+  sumCostoManodoperaLines,
   PROPRIETARIO_ID,
   PROPRIETARIO_NOME
 };
