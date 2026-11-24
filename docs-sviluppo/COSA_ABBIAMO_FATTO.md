@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Manodopera ritest (allineamento Economici −120 €).**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Macchine + rifiniture Manodopera.**
+
+## 2026-11-24 — Report Macchine (nuova sezione) + rifiniture Manodopera
+
+Su `feature/report-macchine-manodopera-rifiniture` (PR verso develop). Nessun merge, nessun deploy.
+
+**Macchine:** card hub attiva → `report-macchine-standalone.html`; service + aggregate puri (`report-macchine-service.js` / `report-macchine-aggregate.js`); costi ore×costoOra estratti in `report-macchine-shared.js` e riusati da Economici (totale allineabile, test). KPI ore/costo/litri/guasti aperti; grafici costo per mezzo, mensile validate/da validare, ciambella trattori/attrezzi; tabella/dettaglio per mezzo; filtri mezzo/terreno/tipo; export Excel; carburante solo pieni (`origineCarburante=pieno`, Economici li esclude già — niente doppio conteggio); guasti con `isGuastoAttivo`; manutenzione badge se superata. Costo orario / €/ha / prezzo carburante mancanti → «—».
+
+**Manodopera (ritest UX):** colori ciambella/mensile distinguibili (Proprietario verde, Non classificato grigio, Da validare `--warn`); Excel colonna Tipo = «Non classificato» come in pagina; dettaglio desktop a pannello laterale non bloccante + frecce prev/next; dettaglio mobile a schede senza scroll orizzontale. Totali Manodopera/Economici invariati.
 
 ## 2026-11-24 — Report Manodopera: ritest allineamento Economici e UX
 

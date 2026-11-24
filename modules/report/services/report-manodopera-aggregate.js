@@ -669,7 +669,7 @@ export function prepareManodoperaExportData(report, meta = {}) {
 
   const perOperaio = (report.byOperaio || []).map((r) => ({
     nome: r.nome,
-    tipo: r.tipo,
+    tipo: labelTipoOperaio(r.tipo),
     ore: r.ore,
     tariffa: r.tariffa,
     costo: r.costo,
