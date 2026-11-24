@@ -115,6 +115,44 @@
     .notes ul { margin: 6px 0 0 18px; }
     h2.section { font-size: 16px; color: #374151; margin-bottom: 8px; }
     h3.section { font-size: 14px; color: #4b5563; margin: 16px 0 8px; }
+    table.data tbody tr.row-click { cursor: pointer; }
+    table.data tbody tr.row-click:hover { background: #f3f4f6; }
+    table.data td.cell-click { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+    .prodotti-pending {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 8px 12px;
+      border-radius: 10px;
+    }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(17, 24, 39, 0.55);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 80; padding: 12px;
+    }
+    @media (min-width: 720px) {
+      .modal-backdrop { align-items: center; }
+    }
+    .modal-panel {
+      background: white; border-radius: 14px; max-width: 860px; width: 100%;
+      max-height: min(88vh, 720px); overflow: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25); padding: 18px;
+    }
+    .modal-head {
+      display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .modal-head h2 { font-size: 17px; color: #111827; }
+    .modal-close {
+      border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 8px;
+      padding: 6px 10px; cursor: pointer; font-weight: 600;
+    }
+    .origine-pill {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 999px; background: #e5e7eb; color: #374151;
+    }
   </style>
 </head>
 <body>
@@ -167,16 +205,30 @@
         </div>
         <div class="period-hint" id="period-label"></div>
         <p class="muted" style="margin-top:10px;">
-          Manodopera e macchine da lavori completati e diario; prodotti (fitofarmaci, concimi, …) dal costo prodotto dei registri trattamenti dei moduli attivi. Un trattamento collegato a un lavoro non raddoppia manodopera/macchine.
+          Manodopera e macchine da lavori completati e diario; prodotti (fitofarmaci, concimi, …) dal costo prodotto dei registri trattamenti dei moduli attivi. Un trattamento collegato a un lavoro non raddoppia manodopera/macchine. Tocca una riga per vedere da dove arrivano le cifre.
         </p>
       </div>
 
       <div class="panel">
         <h2 class="section">Costi per terreno × coltura</h2>
         <div id="alert-box"></div>
+        <div id="prodotti-pending" class="prodotti-pending hidden">Sto caricando i prodotti…</div>
         <div id="table-host" class="loading-box">Caricamento…</div>
         <div class="notes" id="notes-box"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="detail-title">Dettaglio costi</h2>
+          <p class="muted" id="detail-sub"></p>
+        </div>
+        <button type="button" class="modal-close" id="detail-close">Chiudi</button>
+      </div>
+      <div id="detail-body"></div>
     </div>
   </div>
 
@@ -201,7 +253,15 @@
     import { hasReportModuleAccess } from '../services/report-service.js';
     import { canAccessStrategicReports } from '../js/report-access.js';
     import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
-    import { buildReportEconomici, getEconomiciFilterOptions } from '../services/report-economici-service.js';
+    import {
+      buildReportEconomici,
+      getEconomiciFilterOptions,
+      assembleEconomiciFromBundle,
+      loadEconomiciPeriodBundle,
+      prepareEconomiciExportData,
+      vociForRow,
+      sumVociImporti
+    } from '../services/report-economici-service.js';
 
     const auth = getAuthInstance();
     initializeTenantService();
@@ -223,10 +283,23 @@
     const alertBox = document.getElementById('alert-box');
     const notesBox = document.getElementById('notes-box');
     const btnExport = document.getElementById('btn-export');
+    const prodottiPending = document.getElementById('prodotti-pending');
+    const detailModal = document.getElementById('detail-modal');
+    const detailTitle = document.getElementById('detail-title');
+    const detailSub = document.getElementById('detail-sub');
+    const detailBody = document.getElementById('detail-body');
+    const detailClose = document.getElementById('detail-close');
 
     let tenantId = null;
     /** @type {object|null} */
     let cached = null;
+    /** @type {object|null} */
+    let periodBundle = null;
+    /** @type {string} */
+    let periodBundleKey = '';
+    let refreshSeq = 0;
+    /** @type {Array<{id:string,nome:string}>} */
+    let terrenoOptions = [];
 
     function showGate(msg) {
       gateMessage.textContent = msg;
@@ -300,15 +373,44 @@
       return Number(v).toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
     }
 
-    function rowCells(r, name) {
+    function currentFilters() {
+      return {
+        terrenoId: selTerreno.value || null,
+        coltura: selColtura.value || null
+      };
+    }
+
+    function periodoCacheKey(p) {
+      return `${p.start.toISOString()}|${p.end.toISOString()}`;
+    }
+
+    function origineLabel(o) {
+      const map = {
+        lavoro: 'Lavoro',
+        diario: 'Diario',
+        trattamento: 'Trattamento',
+        uscita_magazzino: 'Uscita magazzino'
+      };
+      return map[o] || o || '—';
+    }
+
+    function rowCells(r, name, opts = {}) {
+      const clickable = !!opts.clickable;
+      const idx = opts.idx;
+      const manoCls = clickable ? 'num cell-click' : 'num';
+      const macCls = clickable ? 'num cell-click' : 'num';
+      const prodCls = clickable ? 'num cell-click' : 'num';
+      const dataAttrs = clickable
+        ? ` data-row-idx="${idx}"`
+        : '';
       return `
-        <td>${escapeHtml(name)}</td>
+        <td${dataAttrs}>${escapeHtml(name)}</td>
         <td class="num">${fmtNum(r.ettari)}</td>
         <td class="num">${fmtNum(r.ore)}</td>
-        <td class="num">${fmtEuro(r.costoManodopera, r.partialManodopera)}</td>
-        <td class="num">${fmtEuro(r.costoMacchine, r.partialMacchine)}</td>
-        <td class="num">${fmtEuro(r.costoProdotti, r.partialProdotti)}</td>
-        <td class="num">${fmtEuro(r.totale, r.partialTotale)}</td>
+        <td class="${manoCls}" data-cat="manodopera"${dataAttrs}>${fmtEuro(r.costoManodopera, r.partialManodopera)}</td>
+        <td class="${macCls}" data-cat="macchine"${dataAttrs}>${fmtEuro(r.costoMacchine, r.partialMacchine)}</td>
+        <td class="${prodCls}" data-cat="prodotti"${dataAttrs}>${fmtEuro(r.costoProdotti, r.partialProdotti)}</td>
+        <td class="num"${dataAttrs}>${fmtEuro(r.totale, r.partialTotale)}</td>
         <td class="num">${fmtEuro(r.euroHa, r.partialEuroHa)}</td>
       `;
     }
@@ -316,6 +418,9 @@
     function render(data) {
       cached = data;
       const rows = data.rows || [];
+      const prodottiReady = !(data.meta && data.meta.prodottiReady === false);
+      prodottiPending.classList.toggle('hidden', prodottiReady);
+
       if (!rows.length) {
         tableHost.innerHTML = '<div class="alert alert-info">Nessun costo nel periodo con i filtri scelti.</div>';
         notesBox.innerHTML = '';
@@ -324,7 +429,7 @@
 
       let html = `
         <div class="table-wrap">
-          <table class="data">
+          <table class="data" id="tbl-economici">
             <thead>
               <tr>
                 <th>Terreno / coltura</th>
@@ -339,9 +444,9 @@
             </thead>
             <tbody>
       `;
-      for (const r of rows) {
-        html += `<tr>${rowCells(r, `${r.terrenoNome} · ${r.coltura}`)}</tr>`;
-      }
+      rows.forEach((r, idx) => {
+        html += `<tr class="row-click" data-row-idx="${idx}">${rowCells(r, `${r.terrenoNome} · ${r.coltura}`, { clickable: true, idx })}</tr>`;
+      });
       html += '</tbody></table></div>';
 
       const byColtura = data.byColtura || [];
@@ -366,20 +471,73 @@
 
       const notes = data.notes || [];
       if (notes.length) {
-        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno un costo). «—» = nessun valore noto.<ul>${
+        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno un costo). «—» = nessun valore noto. Tocca una riga per il dettaglio voci.<ul>${
           notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
         }</ul>`;
       } else {
-        notesBox.innerHTML = '<span class="muted">* = parziale. «—» solo se non c’è alcun valore noto per quella voce.</span>';
+        notesBox.innerHTML = '<span class="muted">* = parziale. «—» solo se non c’è alcun valore noto. Tocca una riga (o Manodopera/Macchine/Prodotti) per il dettaglio.</span>';
       }
+    }
+
+    function openDetail(row, categoria) {
+      if (!row || !cached) return;
+      const voci = vociForRow(cached.voci || [], row, categoria || null);
+      const titleBit = categoria
+        ? ({ manodopera: 'Manodopera', macchine: 'Macchine', prodotti: 'Prodotti' }[categoria] || categoria)
+        : 'Tutte le voci';
+      detailTitle.textContent = `${row.terrenoNome} · ${row.coltura}`;
+      detailSub.textContent = titleBit;
+
+      const sum = sumVociImporti(voci);
+      let expected = null;
+      if (categoria === 'manodopera') expected = row.costoManodopera;
+      else if (categoria === 'macchine') expected = row.costoMacchine;
+      else if (categoria === 'prodotti') expected = row.costoProdotti;
+      else expected = row.totale;
+
+      let html = '';
+      if (!voci.length) {
+        html = '<div class="alert alert-info">Nessuna voce di dettaglio per questa selezione.</div>';
+      } else {
+        html = `<div class="table-wrap"><table class="data"><thead><tr>
+          <th>Data</th><th>Origine</th><th>Descrizione</th><th class="num">Importo €</th>
+        </tr></thead><tbody>`;
+        for (const v of voci) {
+          const imp = v.prezzoMancante || v.importo == null
+            ? 'prezzo mancante'
+            : fmtEuro(v.importo, false);
+          html += `<tr>
+            <td>${escapeHtml(v.dataIso || '—')}</td>
+            <td><span class="origine-pill">${escapeHtml(origineLabel(v.origine))}</span></td>
+            <td>${escapeHtml(v.descrizione || '')}</td>
+            <td class="num">${escapeHtml(imp)}</td>
+          </tr>`;
+        }
+        html += '</tbody><tfoot><tr>';
+        html += `<td colspan="3">Totale voci (noti)${sum.partial ? ' *' : ''}</td>`;
+        html += `<td class="num">${fmtEuro(sum.value, sum.partial)}</td>`;
+        html += '</tr></tfoot></table></div>';
+        if (expected != null && sum.value != null && Math.abs(Number(expected) - Number(sum.value)) > 0.02) {
+          html += `<p class="muted" style="margin-top:8px;">Cella tabella: ${fmtEuro(expected, false)}. Differenza possibile se la colonna include voci di altre categorie.</p>`;
+        } else if (expected != null) {
+          html += `<p class="muted" style="margin-top:8px;">Allineato alla cella: ${fmtEuro(expected, false)}.</p>`;
+        }
+      }
+      detailBody.innerHTML = html;
+      detailModal.classList.remove('hidden');
+    }
+
+    function closeDetail() {
+      detailModal.classList.add('hidden');
     }
 
     async function fillFilters() {
       const opts = await getEconomiciFilterOptions();
+      terrenoOptions = opts.terreni || [];
       const curT = selTerreno.value;
       const curC = selColtura.value;
       selTerreno.innerHTML = '<option value="">Tutti</option>';
-      for (const t of opts.terreni || []) {
+      for (const t of terrenoOptions) {
         const o = document.createElement('option');
         o.value = t.id;
         o.textContent = t.nome;
@@ -396,27 +554,58 @@
       if (curC) selColtura.value = curC;
     }
 
-    async function refreshReport() {
+    function applyLocalFilters() {
+      if (!periodBundle) return;
+      const data = assembleEconomiciFromBundle(periodBundle, currentFilters());
+      render(data);
+    }
+
+    async function refreshReport({ forceReload = false } = {}) {
       if (!tenantId) return;
-      tableHost.innerHTML = '<div class="loading-box">Caricamento costi nel periodo…</div>';
+      const seq = ++refreshSeq;
+      const p = currentPeriodBounds();
+      const key = periodoCacheKey(p);
+      const filters = currentFilters();
       alertBox.innerHTML = '';
+
+      // Cambio solo filtri terreno/coltura: ricalcolo senza letture
+      if (!forceReload && periodBundle && periodBundleKey === key && periodBundle.prodottiReady) {
+        applyLocalFilters();
+        return;
+      }
+
+      tableHost.innerHTML = '<div class="loading-box">Caricamento costi nel periodo…</div>';
       notesBox.innerHTML = '';
+      prodottiPending.classList.add('hidden');
       const t0 = performance.now();
       try {
-        const p = currentPeriodBounds();
-        const data = await buildReportEconomici(p.start, p.end, {
-          terrenoId: selTerreno.value || null,
-          coltura: selColtura.value || null
+        const needReload = forceReload || periodBundleKey !== key;
+        await buildReportEconomici(p.start, p.end, {
+          ...filters,
+          forceReload: needReload,
+          onLabourReady: (partial) => {
+            if (seq !== refreshSeq) return;
+            // Manodopera/macchine subito; prodotti ancora in caricamento
+            prodottiPending.classList.remove('hidden');
+            render(partial);
+          }
         });
+        if (seq !== refreshSeq) return;
+        periodBundle = await loadEconomiciPeriodBundle(p.start, p.end, { forceReload: false });
+        periodBundleKey = key;
         const ms = Math.round(performance.now() - t0);
-        if (ms > 3000 && data.meta && data.meta.lavoriCount >= 50) {
-          console.warn('[report-economici] caricamento lento', ms, 'ms con', data.meta.lavoriCount, 'lavori');
+        if (periodBundle && periodBundle.timings) {
+          console.info('[report-economici] timings', periodBundle.timings, 'ui', ms, 'ms');
         }
-        render(data);
+        render(assembleEconomiciFromBundle(periodBundle, filters));
       } catch (e) {
         console.error(e);
+        if (seq !== refreshSeq) return;
         cached = null;
+        periodBundle = null;
+        periodBundleKey = '';
         tableHost.innerHTML = '';
+        prodottiPending.classList.add('hidden');
         alertBox.innerHTML = `<div class="alert alert-error">Errore report: ${escapeHtml(e.message || e)}</div>`;
       }
     }
@@ -434,10 +623,22 @@
       wb.creator = 'GFV Platform';
       wb.created = new Date();
       const p = currentPeriodBounds();
+      const filters = currentFilters();
+      const terrenoNome = filters.terrenoId
+        ? ((terrenoOptions.find((t) => String(t.id) === String(filters.terrenoId)) || {}).nome || filters.terrenoId)
+        : null;
+      const exportData = prepareEconomiciExportData(cached, {
+        periodoLabel: p.label || formatRangeIt(p.start, p.end),
+        terrenoId: filters.terrenoId,
+        terrenoNome,
+        coltura: filters.coltura
+      });
 
       function addSheet(name, headerLabel, list) {
         const ws = wb.addWorksheet(name);
-        ws.addRow(['Periodo', p.label || formatRangeIt(p.start, p.end)]);
+        ws.addRow(['Periodo', exportData.periodoLabel]);
+        ws.addRow(['Filtro terreno', exportData.filtroTerreno]);
+        ws.addRow(['Filtro coltura', exportData.filtroColtura]);
         ws.addRow([]);
         ws.addRow([headerLabel, 'ha', 'Ore', 'Manodopera €', 'Macchine €', 'Prodotti €', 'Totale €', '€/ha', 'Note/parziale']);
         for (const r of list) {
@@ -472,17 +673,39 @@
         for (let c = 2; c <= 8; c++) ws.getColumn(c).numFmt = '#,##0.00';
       }
 
-      addSheet('Dettaglio', 'Terreno · coltura', cached.rows);
-      addSheet('Per coltura', 'Coltura', cached.byColtura || []);
-      if (cached.totaleAzienda) {
-        addSheet('Totale azienda', 'Voce', [cached.totaleAzienda]);
+      addSheet('Dettaglio', 'Terreno · coltura', exportData.dettaglio);
+      addSheet('Per coltura', 'Coltura', exportData.perColtura);
+      if (exportData.totaleAzienda.length) {
+        addSheet('Totale azienda', 'Voce', exportData.totaleAzienda);
       }
-      if ((cached.notes || []).length) {
-        const ws = wb.addWorksheet('Note');
-        ws.addRow(['Note costi mancanti']);
-        for (const n of cached.notes) ws.addRow([n]);
-        ws.getColumn(1).width = 80;
+      const wsVoci = wb.addWorksheet('Voci');
+      wsVoci.addRow(['Periodo', exportData.periodoLabel]);
+      wsVoci.addRow(['Filtro terreno', exportData.filtroTerreno]);
+      wsVoci.addRow(['Filtro coltura', exportData.filtroColtura]);
+      wsVoci.addRow([]);
+      wsVoci.addRow(['Data', 'Terreno', 'Coltura', 'Origine', 'Categoria', 'Descrizione', 'Importo €', 'Prezzo mancante']);
+      for (const v of exportData.voci) {
+        wsVoci.addRow([
+          v.dataIso || '',
+          v.terrenoNome || '',
+          v.coltura || '',
+          origineLabel(v.origine),
+          v.categoria || '',
+          v.descrizione || '',
+          v.prezzoMancante ? null : v.importo,
+          v.prezzoMancante ? 'sì' : ''
+        ]);
       }
+      wsVoci.columns = [
+        { width: 12 }, { width: 22 }, { width: 16 }, { width: 16 },
+        { width: 12 }, { width: 48 }, { width: 12 }, { width: 14 }
+      ];
+      wsVoci.getColumn(7).numFmt = '#,##0.00';
+
+      const wsNote = wb.addWorksheet('Note');
+      wsNote.addRow(['Note e filtri applicati']);
+      for (const n of exportData.noteRows) wsNote.addRow([n]);
+      wsNote.getColumn(1).width = 80;
 
       const dataStr = new Date().toISOString().split('T')[0];
       const fileName = `report-economici-${dataStr}.xlsx`;
@@ -497,22 +720,45 @@
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      alertBox.innerHTML = `<div class="alert alert-info">Export completato: ${escapeHtml(fileName)}</div>`;
+      alertBox.innerHTML = `<div class="alert alert-info">Export completato: ${escapeHtml(fileName)} (filtri applicati)</div>`;
     }
 
     function onPeriodChange() {
       updatePeriodLabel();
       if (mainContent && !mainContent.classList.contains('hidden') && tenantId) {
-        refreshReport();
+        refreshReport({ forceReload: true });
       }
     }
+
+    tableHost.addEventListener('click', (ev) => {
+      const cell = ev.target.closest('[data-row-idx]');
+      if (!cell || !cached) return;
+      const idx = Number(cell.getAttribute('data-row-idx'));
+      const row = (cached.rows || [])[idx];
+      if (!row) return;
+      const cat = cell.getAttribute('data-cat') || null;
+      openDetail(row, cat);
+    });
+    detailClose.addEventListener('click', closeDetail);
+    detailModal.addEventListener('click', (ev) => {
+      if (ev.target === detailModal) closeDetail();
+    });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && !detailModal.classList.contains('hidden')) closeDetail();
+    });
 
     selMode.addEventListener('change', onPeriodChange);
     selYear.addEventListener('change', onPeriodChange);
     dateFrom.addEventListener('change', onPeriodChange);
     dateTo.addEventListener('change', onPeriodChange);
-    selTerreno.addEventListener('change', () => refreshReport());
-    selColtura.addEventListener('change', () => refreshReport());
+    selTerreno.addEventListener('change', () => {
+      if (periodBundle && periodBundle.prodottiReady) applyLocalFilters();
+      else refreshReport();
+    });
+    selColtura.addEventListener('change', () => {
+      if (periodBundle && periodBundle.prodottiReady) applyLocalFilters();
+      else refreshReport();
+    });
     btnExport.addEventListener('click', exportExcel);
 
     fillYearSelect();

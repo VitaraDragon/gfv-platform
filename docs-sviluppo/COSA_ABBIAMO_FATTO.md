@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-23 — Report Economici: coltura storica, parziali, magazzino.**
+**Ultimo aggiornamento documentazione: 2026-11-23 — Report Economici: velocità, export filtrato, dettaglio voci.**
+
+## 2026-11-23 — Report Economici: velocità, export filtrato, dettaglio per riga
+
+Su `fix/report-economici-velocita-dettaglio` (PR verso develop). Nessun merge, nessun deploy.
+
+1) Prestazioni: letture lavori/attività/movimenti/trattamenti flat sul **periodo** (indici già esistenti); anagrafiche campagna una sola volta; **cache in memoria** del bundle periodo (filtri terreno/coltura = solo ricalcolo); UI progressiva (manodopera/macchine subito, prodotti dopo). Timing per fase in console. Limite noto senza indici nuovi: `oreOperai` resta 1 lettura/lavoro; trattamenti vigneto/frutteto 1 lettura/impianto. 2) Export Excel = **ciò che si vede** + foglio Note (periodo/filtri) + foglio **Voci**. 3) Click riga/cella → pannello dettaglio voci (dati già caricati; somma = cella). Test su export e somma voci. Guide REPORT aggiornate. Niente rules/functions/indici nuovi, niente ricavi.
 
 ## 2026-11-23 — Report Economici: correzione coltura storica, totali parziali, magazzino
 
