@@ -64,6 +64,10 @@
     .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
     .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
     .kpi .value { font-size: 26px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
+    .kpi .kpi-sub {
+      margin-top: 6px; font-size: 11px; line-height: 1.35; color: var(--muted); font-weight: 500;
+      text-transform: none; letter-spacing: 0;
+    }
     .kpi.warn .value { color: var(--warn); }
     .charts-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; margin-top: 12px; }
     .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
@@ -81,8 +85,8 @@
     .detail-drawer table.data th,
     .detail-drawer table.data td {
       white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: break-word;
+      overflow-wrap: break-word;
+      word-break: normal;
       padding: 8px 6px;
       vertical-align: top;
     }
@@ -123,7 +127,10 @@
     .detail-cards { display: none; gap: 8px; margin-top: 8px; }
     .d-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fafaf9; }
     .d-card .top { font-weight: 700; font-size: 13px; }
-    .d-card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .d-card .sub {
+      color: var(--muted); font-size: 12px; margin-top: 2px;
+      overflow-wrap: break-word; word-break: normal;
+    }
     .d-card .bottom { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 14px; }
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(28, 25, 23, 0.45);
@@ -334,7 +341,9 @@
       formatEuroPrefixCompact,
       labelCategoria,
       labelOrigineUscita,
-      getMagazzinoFilterOptions
+      getMagazzinoFilterOptions,
+      notesUsciteVsEconomici,
+      filterProdottiVisibiliTabella
     } from '../services/report-magazzino-service.js';
     import { setReportExportEnabled } from '../js/report-export-gate.js';
     import { readReportChartColors, chartColorsForItems } from '../js/report-chart-colors.js';
@@ -497,6 +506,10 @@
       const k = data.kpi || {};
       const warn = !!(k.partialEntrate || k.partialUscite || k.partialMagazzino
         || k.valoreEntrate == null || k.valoreUscite == null || k.valoreMagazzino == null);
+      const ecoNotes = notesUsciteVsEconomici(k.usciteEscluseEconomici || {});
+      const ecoSub = ecoNotes.length
+        ? `<div class="kpi-sub">${ecoNotes.map((n) => escapeHtml(n)).join('<br>')}</div>`
+        : '';
       kpiHost.innerHTML = `
         <div class="kpi${k.partialEntrate || k.valoreEntrate == null ? ' warn' : ''}">
           <div class="label">Valore entrate</div>
@@ -505,6 +518,7 @@
         <div class="kpi${k.partialUscite || k.valoreUscite == null ? ' warn' : ''}">
           <div class="label">Valore uscite</div>
           <div class="value">${escapeHtml(fmtEuro(k.valoreUscite, k.partialUscite))} €</div>
+          ${ecoSub}
         </div>
         <div class="kpi${k.partialMagazzino || k.valoreMagazzino == null ? ' warn' : ''}">
           <div class="label">Valore in magazzino</div>
@@ -673,9 +687,9 @@
       return '<div class="alert alert-info">Nessun movimento di magazzino nel periodo selezionato. Prova ad allargare l’intervallo o a togliere i filtri.</div>';
     }
 
-    function renderMobileCards(byProdotto) {
+    function renderMobileCards(byProdottoRaw) {
       if (!mobileHost) return;
-      const rows = byProdotto.filter((r) => r.nMovimenti > 0 || r.sottoScorta || r.giacenzaNegativa);
+      const rows = filterProdottiVisibiliTabella(byProdottoRaw);
       if (!rows.length) { mobileHost.innerHTML = ''; return; }
       mobileHost.innerHTML = '<h2 class="section" style="margin-top:0;">Per prodotto</h2>'
         + rows.map((r) => {
@@ -800,7 +814,7 @@
 
     function renderTables(data) {
       const byProdotto = sortRows(data.byProdotto, sortState.key, sortState.dir);
-      const visible = byProdotto.filter((r) => r.nMovimenti > 0 || r.sottoScorta || r.giacenzaNegativa);
+      const visible = filterProdottiVisibiliTabella(byProdotto);
       if (!visible.length) {
         tablesHost.innerHTML = data.empty ? emptyPeriodMessage() : '<div class="alert alert-info">Nessun prodotto corrisponde ai filtri.</div>';
         if (mobileHost) mobileHost.innerHTML = '';
