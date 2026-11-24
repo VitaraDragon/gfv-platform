@@ -1129,19 +1129,22 @@ export function assembleEconomiciFromBundle(bundle, filters = {}) {
  * @param {Date} start
  * @param {Date} end
  * @param {{ terrenoId?: string|null, coltura?: string|null, activeModules?: string[], forceReload?: boolean, onLabourReady?: Function }} [filters]
+ * `onLabourReady` riceve il **bundle grezzo** (labourReady): il caller assembla con i filtri UI attuali
+ * (evita filtri stale se terreno/coltura cambiano durante il fetch).
  */
 export async function buildReportEconomici(start, end, filters = {}) {
+  const filterOpts = {
+    terrenoId: filters.terrenoId,
+    coltura: filters.coltura
+  };
   const bundle = await loadEconomiciPeriodBundle(start, end, {
     activeModules: filters.activeModules,
     forceReload: filters.forceReload,
     onLabourReady: typeof filters.onLabourReady === 'function'
-      ? (labourBundle) => {
-        const partial = assembleEconomiciFromBundle(labourBundle, filters);
-        filters.onLabourReady(partial);
-      }
+      ? (labourBundle) => { filters.onLabourReady(labourBundle); }
       : undefined
   });
-  return assembleEconomiciFromBundle(bundle, filters);
+  return assembleEconomiciFromBundle(bundle, filterOpts);
 }
 
 /**
@@ -1176,6 +1179,7 @@ export {
   prodottoVociFromTrattamento,
   splitCostoProdottoCarburanteFromTrattamento,
   isProdottoCarburante,
+  allocatePercentages,
   aggregateMonthlyFromVoci,
   aggregateByTerrenoForChart,
   countVociIncomplete,
