@@ -302,6 +302,7 @@
       prepareEconomiciExportData,
       vociForRow,
       sumVociImporti,
+      allocatePercentages,
       aggregateMonthlyFromVoci,
       aggregateByTerrenoForChart,
       countVociIncomplete
@@ -453,23 +454,16 @@
       return map[o] || o || '—';
     }
 
-    function pct(part, tot) {
-      if (!tot || part == null) return 0;
-      return Math.round((Number(part) / Number(tot)) * 100);
-    }
-
     function stackHtml(tot, mano, mac, prod, carb) {
       const t = Number(tot) || 0;
       if (!t) return '<div class="stack"></div>';
+      const [pMano, pMac, pProd, pCarb] = allocatePercentages([mano, mac, prod, carb], t);
       return '<div class="stack">' + [
-        ['dot-mano', Number(mano) || 0],
-        ['dot-mac', Number(mac) || 0],
-        ['dot-prod', Number(prod) || 0],
-        ['dot-carb', Number(carb) || 0]
-      ].map(([cls, v]) => {
-        const w = Math.max(0, (v / t) * 100);
-        return w > 0 ? `<span class="${cls}" style="width:${w}%"></span>` : '';
-      }).join('') + '</div>';
+        ['dot-mano', pMano],
+        ['dot-mac', pMac],
+        ['dot-prod', pProd],
+        ['dot-carb', pCarb]
+      ].map(([cls, w]) => (w > 0 ? `<span class="${cls}" style="width:${w}%"></span>` : '')).join('') + '</div>';
     }
 
     function destroyCharts() {
@@ -492,6 +486,7 @@
       const prod = Number(tot.costoProdotti) || 0;
       const carb = Number(tot.costoCarburante) || 0;
       const tNum = Number(totale) || (mano + mac + prod + carb);
+      const [pctMano, pctMac, pctProd, pctCarb] = allocatePercentages([mano, mac, prod, carb], tNum);
 
       if (partial) {
         partialBanner.classList.remove('hidden');
@@ -507,10 +502,10 @@
           <div class="value">${escapeHtml(fmtEuro(totale, false))}${star} €</div>
           ${stackHtml(tNum, mano, mac, prod, carb)}
           <div class="legend">
-            <span><i class="dot-mano"></i>Manodopera ${pct(mano, tNum)}%</span>
-            <span><i class="dot-mac"></i>Macchine ${pct(mac, tNum)}%</span>
-            <span><i class="dot-prod"></i>Prodotti ${pct(prod, tNum)}%</span>
-            <span><i class="dot-carb"></i>Carburante ${pct(carb, tNum)}%</span>
+            <span><i class="dot-mano"></i>Manodopera ${pctMano}%</span>
+            <span><i class="dot-mac"></i>Macchine ${pctMac}%</span>
+            <span><i class="dot-prod"></i>Prodotti ${pctProd}%</span>
+            <span><i class="dot-carb"></i>Carburante ${pctCarb}%</span>
           </div>
         </div>
         <div class="kpi">
@@ -539,6 +534,8 @@
         Number(tot.costoProdotti) || 0,
         Number(tot.costoCarburante) || 0
       ];
+      const valsSum = vals.reduce((a, b) => a + b, 0);
+      const pctVals = allocatePercentages(vals, valsSum);
       destroyCharts();
       const donutCtx = document.getElementById('chart-donut');
       if (donutCtx) {
@@ -557,7 +554,17 @@
             maintainAspectRatio: false,
             cutout: '62%',
             plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    const i = ctx.dataIndex;
+                    const euroVal = Number(ctx.raw) || 0;
+                    const pct = pctVals[i] || 0;
+                    return ` ${ctx.label}: ${euroVal.toLocaleString('it-IT', { maximumFractionDigits: 2 })} € (${pct}%)`;
+                  }
+                }
+              }
             }
           },
           plugins: [{
@@ -565,14 +572,13 @@
             afterDraw(chart) {
               const { ctx, chartArea } = chart;
               if (!chartArea) return;
-              const sum = vals.reduce((a, b) => a + b, 0);
               ctx.save();
               ctx.fillStyle = '#1c1917';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.font = '700 16px Segoe UI, sans-serif';
               ctx.fillText(
-                sum.toLocaleString('it-IT', { maximumFractionDigits: 0 }) + ' €',
+                valsSum.toLocaleString('it-IT', { maximumFractionDigits: 0 }) + ' €',
                 (chartArea.left + chartArea.right) / 2,
                 (chartArea.top + chartArea.bottom) / 2
               );
@@ -616,18 +622,21 @@
           type: 'bar',
           data: {
             labels: monthly.map((m) => m.label),
-            datasets: [{
-              label: 'Costi €',
-              data: monthly.map((m) => m.totale),
-              backgroundColor: '#57534e',
-              borderRadius: 4
-            }]
+            datasets: [
+              { label: 'Manodopera', data: monthly.map((m) => m.costoManodopera || 0), backgroundColor: COLORS.manodopera, stack: 'm', borderRadius: 0 },
+              { label: 'Macchine', data: monthly.map((m) => m.costoMacchine || 0), backgroundColor: COLORS.macchine, stack: 'm', borderRadius: 0 },
+              { label: 'Prodotti', data: monthly.map((m) => m.costoProdotti || 0), backgroundColor: COLORS.prodotti, stack: 'm', borderRadius: 0 },
+              { label: 'Carburante', data: monthly.map((m) => m.costoCarburante || 0), backgroundColor: COLORS.carburante, stack: 'm', borderRadius: 4 }
+            ]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } } }
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } }
+            }
           }
         });
       }
@@ -864,7 +873,6 @@
       const seq = ++refreshSeq;
       const p = currentPeriodBounds();
       const key = periodoCacheKey(p);
-      const filters = currentFilters();
       alertBox.innerHTML = '';
       selectedRowIdx = null;
 
@@ -874,21 +882,28 @@
         return;
       }
 
+      const needReload = forceReload || periodBundleKey !== key;
+      // Evita applyLocalFilters sul bundle del periodo precedente mentre ricarichiamo
+      if (needReload) {
+        periodBundle = null;
+        periodBundleKey = '';
+      }
+
       tableHost.innerHTML = '<div class="loading-box">Caricamento costi nel periodo…</div>';
       mobileHost.innerHTML = '';
       notesBox.innerHTML = '';
       prodottiPending.classList.add('hidden');
       const t0 = performance.now();
       try {
-        const needReload = forceReload || periodBundleKey !== key;
         await buildReportEconomici(p.start, p.end, {
-          ...filters,
+          ...currentFilters(),
           forceReload: needReload,
-          onLabourReady: (partial) => {
+          onLabourReady: (labourBundle) => {
             if (seq !== refreshSeq) return;
-            // Manodopera/macchine subito; prodotti ancora in caricamento
+            // Manodopera/macchine subito; prodotti ancora in caricamento.
+            // Filtri UI attuali (non quelli di inizio load): cambio terreno/coltura durante il fetch.
             prodottiPending.classList.remove('hidden');
-            render(partial);
+            render(assembleEconomiciFromBundle(labourBundle, currentFilters()));
           }
         });
         if (seq !== refreshSeq) return;
@@ -898,7 +913,8 @@
         if (periodBundle && periodBundle.timings) {
           console.info('[report-economici] timings', periodBundle.timings, 'ui', ms, 'ms');
         }
-        render(assembleEconomiciFromBundle(periodBundle, filters));
+        // Ri-leggi i filtri: l'utente può aver cambiato terreno/coltura durante il caricamento periodo
+        render(assembleEconomiciFromBundle(periodBundle, currentFilters()));
       } catch (e) {
         console.error(e);
         if (seq !== refreshSeq) return;

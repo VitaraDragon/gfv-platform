@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: layout grafici, Carburante, carichi paralleli.**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: ritocchi post-PR 468 (mensile, %, €/ha, filtri).**
+
+## 2026-11-24 — Report Economici: ritocchi post-layout (mensile impilato, %, €/ha, filtri periodo)
+
+Su `fix/report-economici-ritocchi-post-468` (PR verso develop). Nessun merge, nessun deploy.
+
+1) Andamento mensile a barre **impilate** per categoria (stessi colori della ciambella), da voci in cache. 2) Helper `allocatePercentages` (largest remainder): barretta, legenda e tooltip ciambella con quote che sommano a 100. 3) €/ha su ettari **non arrotondati** (riquadro = tabella = totale azienda = export). 4) Cambio periodo: invalida il bundle precedente e riassembla con i **filtri UI attuali** (evita leak di altre righe/export non filtrato se si cambia terreno durante il load). Test su %, €/ha e filtri combinati. Guide REPORT aggiornate. Niente letture/indici/functions/rules nuovi.
 
 ## 2026-11-24 — Report Economici: layout con grafici, colonna Carburante, carichi in parallelo
 
