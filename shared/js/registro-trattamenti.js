@@ -260,7 +260,7 @@ function testoIntervalloDose(min, max, unita) {
   const a = min != null ? fmtDoseIt(min) : '';
   const b = max != null ? fmtDoseIt(max) : '';
   const u = unita ? ' ' + unita : '';
-  if (a && b) return a + '–' + b + u;
+  if (a && b) return (Number(min) === Number(max) ? a : a + '–' + b) + u;
   if (a) return 'da ' + a + u;
   if (b) return 'fino a ' + b + u;
   return '';

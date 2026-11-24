@@ -298,7 +298,9 @@ export function testoDoseDaEtichetta(scheda, coltura, avversita) {
   if (!intervallo) return '';
   let fascia;
   if (intervallo.min != null && intervallo.max != null) {
-    fascia = formattaNumeroIt(intervallo.min) + '–' + formattaNumeroIt(intervallo.max);
+    fascia = Number(intervallo.min) === Number(intervallo.max)
+      ? formattaNumeroIt(intervallo.min)
+      : formattaNumeroIt(intervallo.min) + '–' + formattaNumeroIt(intervallo.max);
   } else if (intervallo.max != null) {
     fascia = 'fino a ' + formattaNumeroIt(intervallo.max);
   } else {
