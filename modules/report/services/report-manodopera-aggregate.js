@@ -387,20 +387,231 @@ export function filterManodoperaLines(lines, filters = {}) {
 }
 
 /**
+ * Etichetta leggibile per tipo operaio (ciambella / tabelle).
+ * @param {string|null|undefined} tipo
+ * @returns {string}
+ */
+export function labelTipoOperaio(tipo) {
+  const raw = String(tipo || '').trim().toLowerCase();
+  if (!raw) return 'Non classificato';
+  const map = {
+    semplice: 'Semplice',
+    specializzato: 'Specializzato',
+    trattorista: 'Trattorista',
+    proprietario: 'Proprietario',
+    [PROPRIETARIO_TIPO]: 'Proprietario'
+  };
+  if (map[raw]) return map[raw];
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/**
+ * Formato centro ciambella: `€ 6.074` (prefisso, migliaia IT, senza decimali).
+ * Formattazione manuale: indipendente dal locale Node/browser.
+ * @param {number|null|undefined} value
+ * @returns {string}
+ */
+export function formatEuroPrefixCompact(value) {
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  const n = Math.round(Number(value));
+  const sign = n < 0 ? '-' : '';
+  const abs = String(Math.abs(n));
+  const withDots = abs.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `€ ${sign}${withDots}`;
+}
+
+/**
+ * Costo (e ore) per tipo operaio — ciambella.
+ * @param {ManodoperaLine[]} lines
+ * @returns {Array<{ tipo: string, label: string, ore: number, costo: number|null, partialCosto: boolean }>}
+ */
+export function aggregateByTipoOperaio(lines) {
+  /** @type {Map<string, { tipo: string, ore: number, costoKnown: number, costoMissing: boolean }>} */
+  const map = new Map();
+  for (const line of lines || []) {
+    if (!line || !(Number(line.ore) > 0)) continue;
+    const tipo = String(line.tipo || '').trim() || '__none__';
+    if (!map.has(tipo)) {
+      map.set(tipo, { tipo, ore: 0, costoKnown: 0, costoMissing: false });
+    }
+    const row = map.get(tipo);
+    row.ore += Number(line.ore) || 0;
+    if (line.tariffaMissing || line.costo == null) {
+      row.costoMissing = true;
+    } else {
+      row.costoKnown += Number(line.costo) || 0;
+    }
+  }
+
+  return [...map.values()]
+    .map((r) => {
+      const costo = r.costoMissing && !(r.costoKnown > 0)
+        ? null
+        : euro(r.costoKnown);
+      return {
+        tipo: r.tipo === '__none__' ? '' : r.tipo,
+        label: labelTipoOperaio(r.tipo === '__none__' ? '' : r.tipo),
+        ore: euro(r.ore) || 0,
+        costo,
+        partialCosto: r.costoMissing && r.costoKnown > 0
+      };
+    })
+    .sort((a, b) => (Number(b.costo) || 0) - (Number(a.costo) || 0)
+      || String(a.label).localeCompare(String(b.label), 'it'));
+}
+
+/**
+ * Barre terreno: primi `topN` per ore (o costo), poi «Altri».
+ * @param {Array<{ terrenoId?: string, terrenoNome?: string, ore?: number, costo?: number|null }>} byTerreno
+ * @param {number} [topN=8]
+ * @param {'ore'|'costo'} [metric='ore']
+ */
+export function aggregateManodoperaTerrenoForChart(byTerreno, topN = 8, metric = 'ore') {
+  const key = metric === 'costo' ? 'costo' : 'ore';
+  const attributed = [...(byTerreno || [])]
+    .filter((r) => r && r.terrenoId)
+    .map((r) => ({
+      terrenoId: String(r.terrenoId),
+      terrenoNome: r.terrenoNome || r.terrenoId,
+      ore: Number(r.ore) || 0,
+      costo: r.costo == null ? null : Number(r.costo)
+    }))
+    .sort((a, b) => (Number(b[key]) || 0) - (Number(a[key]) || 0));
+
+  const n = Math.max(0, topN);
+  const top = attributed.slice(0, n);
+  const rest = attributed.slice(n);
+  const out = top.map((x) => ({
+    terrenoId: x.terrenoId,
+    terrenoNome: x.terrenoNome,
+    ore: euro(x.ore) || 0,
+    costo: x.costo == null ? null : euro(x.costo)
+  }));
+  if (rest.length) {
+    const altri = rest.reduce((acc, x) => {
+      acc.ore += Number(x.ore) || 0;
+      if (x.costo != null) {
+        acc.costoKnown += Number(x.costo) || 0;
+      } else {
+        acc.costoMissing = true;
+      }
+      return acc;
+    }, { ore: 0, costoKnown: 0, costoMissing: false });
+    out.push({
+      terrenoId: '__altri__',
+      terrenoNome: 'Altri',
+      ore: euro(altri.ore) || 0,
+      costo: altri.costoMissing && !(altri.costoKnown > 0)
+        ? null
+        : euro(altri.costoKnown)
+    });
+  }
+  return out;
+}
+
+const MESI_IT_SHORT = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+
+/**
+ * Ore per mese: validate + da validare (barre impilate).
+ * @param {Array<{ dataIso?: string, ore?: number }>} linesValidate
+ * @param {Array<{ dataIso?: string, ore?: number }>} [linesDaValidare]
+ * @returns {Array<{ key: string, label: string, oreValidate: number, oreDaValidare: number, oreTotali: number }>}
+ */
+export function aggregateMonthlyOreValidateDaValidare(linesValidate, linesDaValidare = []) {
+  /** @type {Map<string, { oreValidate: number, oreDaValidare: number }>} */
+  const map = new Map();
+  const bump = (list, field) => {
+    for (const line of list || []) {
+      if (!line || !(Number(line.ore) > 0)) continue;
+      const iso = String(line.dataIso || '').slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(iso)) continue;
+      let bucket = map.get(iso);
+      if (!bucket) {
+        bucket = { oreValidate: 0, oreDaValidare: 0 };
+        map.set(iso, bucket);
+      }
+      bucket[field] += Number(line.ore) || 0;
+    }
+  };
+  bump(linesValidate, 'oreValidate');
+  bump(linesDaValidare, 'oreDaValidare');
+
+  return [...map.keys()].sort().map((key) => {
+    const m = Number(key.slice(5, 7)) - 1;
+    const label = `${MESI_IT_SHORT[m] || key} ${key.slice(0, 4)}`;
+    const b = map.get(key) || { oreValidate: 0, oreDaValidare: 0 };
+    const oreValidate = euro(b.oreValidate) || 0;
+    const oreDaValidare = euro(b.oreDaValidare) || 0;
+    return {
+      key,
+      label,
+      oreValidate,
+      oreDaValidare,
+      oreTotali: euro(oreValidate + oreDaValidare) || 0
+    };
+  });
+}
+
+/**
+ * Righe dettaglio per un operaio (lavori/giorni).
+ * @param {ManodoperaLine[]} lines
+ * @param {string} operaioId
+ * @returns {Array<object>}
+ */
+export function buildOperaioDetailRows(lines, operaioId) {
+  const id = String(operaioId || '');
+  if (!id) return [];
+  const rows = (lines || [])
+    .filter((line) => {
+      if (!line || !(Number(line.ore) > 0)) return false;
+      if (id === PROPRIETARIO_ID) return !!line.isProprietario;
+      return String(line.operaioId || '') === id;
+    })
+    .map((line) => ({
+      dataIso: line.dataIso || null,
+      terrenoNome: line.terrenoNome || '—',
+      terrenoId: line.terrenoId || null,
+      lavoro: line.tipoLavoro || (line.isProprietario ? 'Diario' : '—'),
+      lavoroId: line.lavoroId || null,
+      ore: euro(line.ore) || 0,
+      tariffa: line.tariffaMissing ? null : (line.tariffa != null ? Number(line.tariffa) : null),
+      tariffaMissing: !!line.tariffaMissing,
+      costo: line.costo == null ? null : euro(line.costo),
+      partialCosto: false
+    }));
+
+  rows.sort((a, b) => {
+    const da = String(a.dataIso || '');
+    const db = String(b.dataIso || '');
+    if (da !== db) return da.localeCompare(db);
+    return String(a.terrenoNome).localeCompare(String(b.terrenoNome), 'it');
+  });
+  return rows;
+}
+
+/**
  * Assembla report completo da linee + meta.
- * @param {{ lines: ManodoperaLine[], oreDaValidare?: number, hasCaposquadraData?: boolean }} input
+ * @param {{ lines: ManodoperaLine[], linesDaValidare?: Array<object>, oreDaValidare?: number, hasCaposquadraData?: boolean }} input
  * @param {{ terrenoId?: string|null, operaioId?: string|null, caposquadraId?: string|null }} [filters]
  */
 export function assembleManodoperaReport(input, filters = {}) {
   const filtered = filterManodoperaLines(input.lines || [], filters);
+  const filteredDaValidare = filterManodoperaLines(input.linesDaValidare || [], filters);
   const byOperaio = aggregateByOperaio(filtered);
   const byCaposquadra = aggregateByCaposquadra(filtered);
   const byTerreno = aggregateByTerreno(filtered);
+  const byTipo = aggregateByTipoOperaio(filtered);
+  const chartTerreno = aggregateManodoperaTerrenoForChart(byTerreno, 8, 'ore');
+  const chartMensile = aggregateMonthlyOreValidateDaValidare(filtered, filteredDaValidare);
   const kpi = buildManodoperaKpi(byOperaio);
 
   /** @type {string[]} */
   const notes = [];
-  const oreDaValidare = Number(input.oreDaValidare) || 0;
+  const oreDaValidareFiltered = filteredDaValidare.reduce((s, l) => s + (Number(l && l.ore) || 0), 0);
+  // Se il bundle espone linee da_validare, il totale rispetta i filtri; altrimenti legacy (solo KPI globale).
+  const oreDaValidare = Array.isArray(input.linesDaValidare)
+    ? (euro(oreDaValidareFiltered) || 0)
+    : (Number(input.oreDaValidare) || 0);
   if (oreDaValidare > 0) {
     const nLabel = Number.isInteger(oreDaValidare)
       ? String(oreDaValidare)
@@ -420,6 +631,10 @@ export function assembleManodoperaReport(input, filters = {}) {
     byOperaio,
     byCaposquadra,
     byTerreno,
+    byTipo,
+    chartTerreno,
+    chartMensile,
+    lines: filtered,
     kpi,
     notes,
     oreDaValidare,

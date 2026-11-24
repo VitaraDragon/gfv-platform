@@ -6,12 +6,18 @@ import {
   aggregateByCaposquadra,
   aggregateByOperaio,
   aggregateByTerreno,
+  aggregateByTipoOperaio,
+  aggregateManodoperaTerrenoForChart,
+  aggregateMonthlyOreValidateDaValidare,
   assembleManodoperaReport,
   buildChiaviLavoroDiario,
   buildManodoperaKpi,
+  buildOperaioDetailRows,
   buildProprietarioLines,
   filterManodoperaLines,
+  formatEuroPrefixCompact,
   isManodoperaDataReady,
+  labelTipoOperaio,
   prepareManodoperaExportData,
   sumCostoManodoperaLines,
   PROPRIETARIO_ID,
@@ -338,5 +344,86 @@ describe('Report Manodopera — aggregazione', () => {
     const kpi = buildManodoperaKpi(rows);
     expect(kpi.costoTotale).toBeNull();
     expect(kpi.nOperai).toBe(0);
+  });
+
+  it('aggrega costo per tipo operaio (ciambella)', () => {
+    const rows = aggregateByTipoOperaio(linesBase);
+    const semplice = rows.find((r) => r.tipo === 'semplice');
+    const tratt = rows.find((r) => r.tipo === 'trattorista');
+    const prop = rows.find((r) => r.tipo === 'proprietario');
+    expect(semplice.costo).toBe(120);
+    expect(semplice.ore).toBe(12);
+    expect(tratt.costo).toBe(90);
+    expect(prop.costo).toBe(45);
+    expect(labelTipoOperaio('semplice')).toBe('Semplice');
+    expect(labelTipoOperaio('')).toBe('Non classificato');
+    expect(formatEuroPrefixCompact(6074)).toMatch(/€\s*6\.074/);
+  });
+
+  it('barre terreno: top N + Altri', () => {
+    const byTerr = [
+      { terrenoId: 't1', terrenoNome: 'A', ore: 40, costo: 400 },
+      { terrenoId: 't2', terrenoNome: 'B', ore: 30, costo: 300 },
+      { terrenoId: 't3', terrenoNome: 'C', ore: 20, costo: 200 },
+      { terrenoId: 't4', terrenoNome: 'D', ore: 10, costo: 100 },
+      { terrenoId: 't5', terrenoNome: 'E', ore: 5, costo: 50 }
+    ];
+    const chart = aggregateManodoperaTerrenoForChart(byTerr, 2, 'ore');
+    expect(chart).toHaveLength(3);
+    expect(chart[0].terrenoNome).toBe('A');
+    expect(chart[1].terrenoNome).toBe('B');
+    expect(chart[2].terrenoNome).toBe('Altri');
+    expect(chart[2].ore).toBe(35);
+  });
+
+  it('mensile: ore validate + da validare impilate', () => {
+    const validate = [
+      { dataIso: '2025-01-10', ore: 8 },
+      { dataIso: '2025-01-20', ore: 2 },
+      { dataIso: '2025-02-05', ore: 5 }
+    ];
+    const daVal = [
+      { dataIso: '2025-01-15', ore: 3 },
+      { dataIso: '2025-03-01', ore: 4 }
+    ];
+    const months = aggregateMonthlyOreValidateDaValidare(validate, daVal);
+    expect(months).toHaveLength(3);
+    expect(months[0].key).toBe('2025-01');
+    expect(months[0].oreValidate).toBe(10);
+    expect(months[0].oreDaValidare).toBe(3);
+    expect(months[1].oreValidate).toBe(5);
+    expect(months[1].oreDaValidare).toBe(0);
+    expect(months[2].oreValidate).toBe(0);
+    expect(months[2].oreDaValidare).toBe(4);
+  });
+
+  it('dettaglio operaio: giorni con data/terreno/lavoro/ore/costo', () => {
+    const withDates = linesBase.map((l, i) => ({
+      ...l,
+      dataIso: l.dataIso || `2025-06-0${i + 1}`,
+      tipoLavoro: l.tipoLavoro || (l.isProprietario ? 'Diario' : 'Potatura')
+    }));
+    const detail = buildOperaioDetailRows(withDates, 'o1');
+    expect(detail.length).toBe(2);
+    expect(detail[0].terrenoNome).toBeTruthy();
+    expect(detail[0].ore).toBeGreaterThan(0);
+    expect(detail.every((d) => d.lavoro)).toBe(true);
+    const prop = buildOperaioDetailRows(withDates, PROPRIETARIO_ID);
+    expect(prop).toHaveLength(1);
+  });
+
+  it('assemble espone chart + lines filtrate per dettaglio', () => {
+    const withIso = linesBase.map((l) => ({ ...l, dataIso: l.dataIso || '2025-06-01', tipoLavoro: 'Lavoro' }));
+    const report = assembleManodoperaReport({
+      lines: withIso,
+      linesDaValidare: [{ dataIso: '2025-06-02', ore: 2, terrenoId: 't1', operaioId: 'o1' }],
+      oreDaValidare: 2,
+      hasCaposquadraData: true
+    }, { terrenoId: 't1' });
+    expect(report.byTipo.length).toBeGreaterThan(0);
+    expect(report.chartTerreno.length).toBeGreaterThan(0);
+    expect(report.chartMensile.some((m) => m.oreDaValidare > 0)).toBe(true);
+    expect(report.oreDaValidare).toBe(2);
+    expect(report.lines.every((l) => l.terrenoId === 't1')).toBe(true);
   });
 });
