@@ -6,7 +6,8 @@
  * - lavori / attività / movimenti / trattamenti flat / campagne / magazzino avviati in parallelo;
  * - cache in memoria del bundle grezzo per periodo (filtri terreno/coltura = solo ricalcolo);
  * - campagna/anagrafiche caricate una sola volta;
- * - fase manodopera/macchine prima, prodotti dopo (progressive UI).
+ * - labour pronto prima di prodotti/carburante (callback onLabourReady opzionale);
+ *   la UI mostra cifre solo a bundle completo (niente totali parziali in caricamento).
  * Limite noto: oreOperai restano 1 lettura per lavoro (niente collectionGroup senza indice nuovo).
  *
  * @module modules/report/services/report-economici-service
@@ -1191,5 +1192,6 @@ export {
   prepareEconomiciExportData,
   prodottoCostFromMovimentoUscita,
   filterUsciteMagazzinoPerEconomici,
-  mergeDocsById
+  mergeDocsById,
+  isEconomiciDataReady
 } from './report-economici-aggregate.js';
