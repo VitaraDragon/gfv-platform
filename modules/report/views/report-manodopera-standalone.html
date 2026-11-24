@@ -687,14 +687,15 @@
         mobileHost.innerHTML = '';
         return;
       }
-      mobileHost.innerHTML = byOp.map((r) => `
+      // Titolo visibile su mobile (il «Per operaio» in tables-host è desktop-only).
+      mobileHost.innerHTML = '<h2 class="section" style="margin-top:0;">Per operaio</h2>'
+        + byOp.map((r) => `
         <div class="m-card${selectedOperaioId === r.operaioId ? ' selected' : ''}" data-operaio-id="${escapeHtml(r.operaioId)}">
           <div class="title">${escapeHtml(r.nome)}${warnBadge(r)}</div>
           <div class="meta">${escapeHtml(labelTipoOperaio(r.tipo))} · ${escapeHtml(fmtNum(r.ore, 1))} h · lavori ${escapeHtml(fmtLavoriCell(r))} · terreni ${r.nTerreni}</div>
           <div class="tot${(r.partialCosto || r.tariffaMissing) ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))} €</div>
           <div class="amounts">
-            <div><span>Tariffa</span><br>${escapeHtml(fmtEuro(r.tariffa, false))} €/h</div>
-            <div><span>Costo</span><br>${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))}</div>
+            <div><span>Tariffa</span><br>${escapeHtml(r.tariffaMissing ? '—' : fmtEuro(r.tariffa, false))} €/h</div>
           </div>
         </div>
       `).join('');
