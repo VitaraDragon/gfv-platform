@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: caricamento senza cifre parziali + filtri mobile.**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Manodopera (ore/costi per operaio, squadra, terreno).**
+
+## 2026-11-24 — Report: scheda Manodopera (ore e costi, export Excel)
+
+Su `feature/report-manodopera` (PR verso develop). Nessun merge, nessun deploy.
+
+Card **Manodopera** attiva sull’hub Report → `report-manodopera-standalone.html` (stesso accesso manager/admin e filtri periodo di Economici). KPI (ore, costo, n. operai, €/ora); tabelle per operaio, per caposquadra (`caposquadraId` sul lavoro), per terreno (€/ha); riga proprietario da diario; solo ore **validate** + nota conteggio `da_validare`; tariffa mancante con `*` (mai zero silenzioso). Helper condivisi in `report-labour-shared.js` (tariffe / lavori / attività) riusati da Economici senza cambiare il comportamento. Aggregati puri + test in `report-manodopera-aggregate.js`. Scheda **Macchine** placeholder (`soon`) dopo Manodopera. Niente indici/rules/functions/Tony.
 
 ## 2026-11-24 — Report Economici: caricamento completo + filtri a tutta larghezza su telefono
 
