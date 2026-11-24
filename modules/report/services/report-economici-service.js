@@ -52,6 +52,11 @@ import {
   loadTariffe,
   resolveTariffaOperaio
 } from './report-labour-shared.js';
+import {
+  bumpOreMacchinaPerMezzo,
+  costiMacchineFromOreMap,
+  oreMacchinaMapFromAttivita
+} from './report-macchine-shared.js';
 
 /** @type {{ key: string, data: object }|null} */
 let periodBundleCache = null;
@@ -101,9 +106,7 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
 
   let ore = 0;
   let costoManodopera = 0;
-  let costoMacchine = 0;
   let missingManodopera = false;
-  let missingMacchine = false;
   /** @type {string[]} */
   const notes = [];
   /** @type {Record<string, number>} */
@@ -124,15 +127,7 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
     if (operaioId) {
       orePerOperaio[operaioId] = (orePerOperaio[operaioId] || 0) + oreNette;
     }
-    const oreMac = Number(ora.oreMacchina) || 0;
-    if (oreMac > 0) {
-      if (ora.macchinaId) {
-        oreMacchinaPerId[ora.macchinaId] = (oreMacchinaPerId[ora.macchinaId] || 0) + oreMac;
-      }
-      if (ora.attrezzoId && ora.attrezzoId !== ora.macchinaId) {
-        oreMacchinaPerId[ora.attrezzoId] = (oreMacchinaPerId[ora.attrezzoId] || 0) + oreMac;
-      }
-    }
+    bumpOreMacchinaPerMezzo(oreMacchinaPerId, ora);
   }
 
   const operaioIds = Object.keys(orePerOperaio);
@@ -185,50 +180,14 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
     }
   }
 
-  if (hasParco) {
-    for (const [mid, oreM] of Object.entries(oreMacchinaPerId)) {
-      const label = (macchineNomiById && macchineNomiById.get(String(mid))) || mid;
-      if (!macchineById.has(String(mid))) {
-        missingMacchine = true;
-        notes.push('Macchina non in anagrafica (costo orario mancante)');
-        voci.push({
-          origine: 'lavoro',
-          categoria: 'macchine',
-          descrizione: `${tipo} — ${label} (${oreM} h)`,
-          importo: null,
-          prezzoMancante: true,
-          dataIso
-        });
-        continue;
-      }
-      const costoOra = macchineById.get(String(mid));
-      if (!costoOra || costoOra <= 0) {
-        missingMacchine = true;
-        notes.push('Costo orario macchina non impostato');
-        voci.push({
-          origine: 'lavoro',
-          categoria: 'macchine',
-          descrizione: `${tipo} — ${label} (${oreM} h)`,
-          importo: null,
-          prezzoMancante: true,
-          dataIso
-        });
-        continue;
-      }
-      const importo = oreM * costoOra;
-      costoMacchine += importo;
-      voci.push({
-        origine: 'lavoro',
-        categoria: 'macchine',
-        descrizione: `${tipo} — ${label} (${oreM} h × € ${costoOra}/h)`,
-        importo: euro(importo),
-        prezzoMancante: false,
-        dataIso
-      });
-    }
-  } else if (Object.keys(oreMacchinaPerId).length > 0) {
-    costoMacchine = 0;
-  }
+  const mac = costiMacchineFromOreMap(oreMacchinaPerId, macchineById, macchineNomiById, {
+    tipo,
+    dataIso,
+    origine: 'lavoro',
+    hasParco
+  });
+  for (const v of mac.voci) voci.push(v);
+  for (const n of mac.notes) notes.push(n);
 
   void tariffaProprietario;
   void tariffaProprietarioConfigurata;
@@ -236,9 +195,9 @@ export function costiFromOreBundle(lavoro, oreDocs, ctx) {
   return {
     ore: euro(ore) || 0,
     costoManodopera: missingManodopera ? null : euro(costoManodopera),
-    costoMacchine: missingMacchine ? null : euro(costoMacchine),
+    costoMacchine: mac.costoMacchine,
     missingManodopera,
-    missingMacchine,
+    missingMacchine: mac.missingMacchine,
     notes: [...new Set(notes)],
     voci
   };
@@ -287,60 +246,22 @@ function costiAttivitaDiario(att, ctx) {
     }
   }
 
-  let missingMacchine = false;
-  let costoMacchine = 0;
-  const oreMac = Number(att.oreMacchina) || 0;
-  if (oreMac > 0 && hasParco) {
-    const ids = [att.macchinaId, att.attrezzoId].filter(Boolean);
-    const unique = [...new Set(ids.map(String))];
-    for (const mid of unique) {
-      const label = (macchineNomiById && macchineNomiById.get(mid)) || mid;
-      if (!macchineById.has(mid)) {
-        missingMacchine = true;
-        notes.push('Macchina non in anagrafica (costo orario mancante)');
-        voci.push({
-          origine: 'diario',
-          categoria: 'macchine',
-          descrizione: `${tipo} — ${label} (${oreMac} h)`,
-          importo: null,
-          prezzoMancante: true,
-          dataIso
-        });
-        continue;
-      }
-      const costoOra = macchineById.get(mid);
-      if (!costoOra || costoOra <= 0) {
-        missingMacchine = true;
-        notes.push('Costo orario macchina non impostato');
-        voci.push({
-          origine: 'diario',
-          categoria: 'macchine',
-          descrizione: `${tipo} — ${label} (${oreMac} h)`,
-          importo: null,
-          prezzoMancante: true,
-          dataIso
-        });
-        continue;
-      }
-      const importo = oreMac * costoOra;
-      costoMacchine += importo;
-      voci.push({
-        origine: 'diario',
-        categoria: 'macchine',
-        descrizione: `${tipo} — ${label} (${oreMac} h × € ${costoOra}/h)`,
-        importo: euro(importo),
-        prezzoMancante: false,
-        dataIso
-      });
-    }
-  }
+  const oreMacchinaPerId = oreMacchinaMapFromAttivita(att);
+  const mac = costiMacchineFromOreMap(oreMacchinaPerId, macchineById, macchineNomiById, {
+    tipo,
+    dataIso,
+    origine: 'diario',
+    hasParco
+  });
+  for (const v of mac.voci) voci.push(v);
+  for (const n of mac.notes) notes.push(n);
 
   return {
     ore: euro(ore) || 0,
     costoManodopera: missingManodopera ? null : euro(costoManodopera),
-    costoMacchine: missingMacchine ? null : euro(costoMacchine),
+    costoMacchine: mac.costoMacchine,
     missingManodopera,
-    missingMacchine,
+    missingMacchine: mac.missingMacchine,
     notes: [...new Set(notes)],
     voci
   };

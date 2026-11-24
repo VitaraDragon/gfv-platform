@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Report — Macchine GFV</title>
+  <meta name="theme-color" content="#1c1917" />
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <style>
+    :root {
+      --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
+      --mano: #2563eb; --mano-soft: #93c5fd; --warn: #c2410c; --accent: #1d4ed8;
+      --proprietario: #059669; --non-classificato: #78716c; --attrezzo: #d97706; --validate: #2563eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; padding: 16px;
+    }
+    .container { max-width: 1440px; margin: 0 auto; }
+    .header {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      padding: 18px 20px; display: flex; flex-wrap: wrap; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .nav-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid var(--line); background: #f5f5f4; color: var(--ink);
+      padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
+      font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: #e7e5e4; }
+    .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-accent:hover { background: #1e40af; }
+    .btn:disabled, .btn-accent:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+    .panel {
+      margin-top: 12px; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+    .filter-group label { font-size: 12px; font-weight: 700; color: #374151; }
+    select, input[type="date"] {
+      border: 1px solid #e5e7eb; border-radius: 10px; padding: 9px 11px; font-size: 14px; background: white;
+    }
+    .period-hint {
+      font-size: 13px; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe;
+      padding: 10px 12px; border-radius: 10px; margin-top: 12px;
+    }
+    .alert { padding: 12px 14px; border-radius: 12px; border: 1px solid; margin-top: 10px; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .alert-warn { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .loading-box { padding: 20px; text-align: center; color: var(--muted); font-size: 14px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+    .kpi .value { font-size: 26px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
+    .kpi.warn .value { color: var(--warn); }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; margin-top: 12px; }
+    .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .chart-card h3 { font-size: 14px; margin-bottom: 8px; color: #44403c; }
+    .chart-wrap { position: relative; height: 240px; }
+    .chart-wrap.tall { height: 280px; }
+    .chart-full { margin-top: 12px; }
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    table.data th, table.data td {
+      border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; white-space: nowrap; background: var(--panel);
+    }
+    table.data th {
+      background: #fafaf9; color: #44403c; font-weight: 700; cursor: pointer; user-select: none;
+      position: sticky; top: 0; z-index: 2;
+    }
+    table.data th.sorted-asc::after { content: ' ▲'; font-size: 10px; }
+    table.data th.sorted-desc::after { content: ' ▼'; font-size: 10px; }
+    table.data td.num, table.data th.num { text-align: right; }
+    table.data tbody tr.row-click { cursor: pointer; }
+    table.data tbody tr.row-click:hover { background: #f5f5f4; }
+    table.data tbody tr.row-selected td { background: #eff6ff; }
+    .warn-text { color: var(--warn); font-weight: 700; }
+    .warn-badge {
+      display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+      background: #fff7ed; color: var(--warn); border: 1px solid #fed7aa; margin-left: 6px;
+    }
+    .notes { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .notes ul { margin: 6px 0 0 18px; }
+    h2.section { font-size: 16px; color: #44403c; margin: 16px 0 8px; }
+    h2.section:first-child { margin-top: 0; }
+    .mobile-cards { display: none; gap: 10px; margin-top: 8px; }
+    .m-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); cursor: pointer; }
+    .m-card.selected { outline: 2px solid #93c5fd; }
+    .m-card .title { font-weight: 700; font-size: 15px; }
+    .m-card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .m-card .tot { font-size: 20px; font-weight: 700; margin-top: 8px; }
+    .detail-cards { display: none; gap: 8px; margin-top: 8px; }
+    .d-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fafaf9; }
+    .d-card .top { font-weight: 700; font-size: 13px; }
+    .d-card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .d-card .bottom { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 14px; }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(28, 25, 23, 0.45);
+      display: flex; align-items: flex-end; justify-content: center; z-index: 80; padding: 12px;
+    }
+    .modal-panel {
+      background: var(--panel); border-radius: 14px; max-width: 860px; width: 100%;
+      max-height: min(88vh, 720px); overflow: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); padding: 18px;
+    }
+    .modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+    .modal-head h2 { font-size: 17px; }
+    .modal-nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .modal-close, .modal-nav-btn {
+      border: 1px solid var(--line); background: #fafaf9; border-radius: 8px; padding: 6px 10px;
+      cursor: pointer; font-weight: 600;
+    }
+    .detail-drawer {
+      display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 42vw);
+      background: var(--panel); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+      z-index: 70; overflow: auto; padding: 18px;
+    }
+    .detail-drawer.open { display: block; }
+    body.drawer-open .container { padding-right: min(456px, calc(42vw + 16px)); }
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts-grid { grid-template-columns: 1fr; }
+      body.drawer-open .container { padding-right: 16px; }
+      .detail-drawer { display: none !important; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi .value { font-size: 20px; }
+      .desktop-only { display: none !important; }
+      .mobile-cards { display: grid; }
+      .detail-cards { display: grid; }
+      .detail-table-desktop { display: none !important; }
+      .chart-wrap { height: 220px; }
+      .filters { flex-direction: column; align-items: stretch; gap: 12px; }
+      .filter-group { min-width: 0; width: 100%; }
+      .filter-group select, .filter-group input[type="date"] { width: 100%; min-width: 0; }
+    }
+    @media (min-width: 601px) {
+      .mobile-only { display: none !important; }
+      .detail-cards { display: none !important; }
+    }
+    @media (min-width: 1101px) {
+      .modal-backdrop.desktop-side { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>🚜 Report — Macchine</h1>
+        <p>Ore, costi, carburante e guasti per mezzo. Solo ore macchina validate nei costi; allineato alla voce Macchine di Economici.</p>
+      </div>
+      <div class="nav-row">
+        <a class="btn" href="./report-dashboard-standalone.html">← Dashboard</a>
+        <a class="btn" href="../../../core/dashboard-standalone.html">Home</a>
+        <button type="button" class="btn btn-accent" id="btn-export" disabled>Esporta Excel</button>
+      </div>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden"><div class="alert alert-error" id="gate-message"></div></div>
+
+    <div id="main-content" class="hidden">
+      <div class="panel">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="sel-mode">Tipo periodo</label>
+            <select id="sel-mode">
+              <option value="agrarian">Annata agraria (11 nov – 10 nov)</option>
+              <option value="solar">Anno solare</option>
+              <option value="custom">Intervallo personalizzato</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-year">
+            <label for="sel-year">Anno di riferimento</label>
+            <select id="sel-year"></select>
+          </div>
+          <div class="filter-group hidden" id="group-from">
+            <label for="date-from">Da</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div class="filter-group hidden" id="group-to">
+            <label for="date-to">A</label>
+            <input type="date" id="date-to" />
+          </div>
+          <div class="filter-group">
+            <label for="sel-terreno">Terreno</label>
+            <select id="sel-terreno"><option value="">Tutti</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-mezzo">Mezzo</label>
+            <select id="sel-mezzo"><option value="">Tutti</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-tipo">Tipo</label>
+            <select id="sel-tipo">
+              <option value="">Tutti</option>
+              <option value="trattore">Trattore</option>
+              <option value="attrezzo">Attrezzo</option>
+            </select>
+          </div>
+        </div>
+        <div class="period-hint" id="period-label"></div>
+        <p class="muted" style="margin-top:10px;">
+          Contano solo le ore macchina <strong>validate</strong>. Carburante = pieni magazzino (non duplica Economici).
+        </p>
+      </div>
+
+      <div id="partial-banner" class="alert alert-warn hidden" role="status"></div>
+      <div id="da-validare-banner" class="alert alert-info hidden" role="status"></div>
+      <div id="alert-box"></div>
+      <div id="kpi-host" class="kpi-grid"></div>
+      <div class="charts-grid" id="charts-row">
+        <div class="chart-card">
+          <h3>Costo per tipo (trattori / attrezzi)</h3>
+          <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Costo per mezzo</h3>
+          <div class="chart-wrap tall"><canvas id="chart-costo"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card chart-full">
+        <h3>Ore mensili (validate / da validare)</h3>
+        <div class="chart-wrap"><canvas id="chart-mensile"></canvas></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px;">
+        <div id="tables-host" class="loading-box">Caricamento…</div>
+        <div id="mobile-host" class="mobile-cards mobile-only"></div>
+        <div class="notes" id="notes-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside id="detail-drawer" class="detail-drawer" aria-labelledby="drawer-title">
+    <div class="modal-head">
+      <div>
+        <h2 id="drawer-title">Dettaglio mezzo</h2>
+        <p class="muted" id="drawer-sub"></p>
+      </div>
+      <div class="modal-nav">
+        <button type="button" class="modal-nav-btn" id="drawer-prev" title="Mezzo precedente">←</button>
+        <button type="button" class="modal-nav-btn" id="drawer-next" title="Mezzo successivo">→</button>
+        <button type="button" class="modal-close" id="drawer-close">Chiudi</button>
+      </div>
+    </div>
+    <div id="drawer-body"></div>
+  </aside>
+
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="detail-title">Dettaglio mezzo</h2>
+          <p class="muted" id="detail-sub"></p>
+        </div>
+        <div class="modal-nav">
+          <button type="button" class="modal-nav-btn" id="detail-prev" title="Mezzo precedente">←</button>
+          <button type="button" class="modal-nav-btn" id="detail-next" title="Mezzo successivo">→</button>
+          <button type="button" class="modal-close" id="detail-close">Chiudi</button>
+        </div>
+      </div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+  <script type="module">
+    import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[report-macchine] Bootstrap failed:', err);
+      throw err;
+    }
+
+    import {
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } from '../../../core/services/firebase-service.js';
+    import { initializeTenantService, setCurrentTenantId } from '../../../core/services/tenant-service.js';
+    import { hasReportModuleAccess } from '../services/report-service.js';
+    import { canAccessStrategicReports } from '../js/report-access.js';
+    import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
+    import {
+      loadMacchinePeriodBundle,
+      assembleMacchineFromBundle,
+      prepareMacchineExportData,
+      isMacchineDataReady,
+      buildMezzoDetailRows,
+      formatEuroPrefixCompact,
+      labelTipoMezzo
+    } from '../services/report-macchine-service.js';
+    import { setReportExportEnabled } from '../js/report-export-gate.js';
+
+    const _cs = getComputedStyle(document.documentElement);
+    const COLORS = {
+      validate: (_cs.getPropertyValue('--validate').trim() || '#2563eb'),
+      daValidare: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
+      trattore: (_cs.getPropertyValue('--mano').trim() || '#2563eb'),
+      attrezzo: (_cs.getPropertyValue('--attrezzo').trim() || '#d97706'),
+      nonClassificato: (_cs.getPropertyValue('--non-classificato').trim() || '#78716c'),
+      warn: (_cs.getPropertyValue('--warn').trim() || '#c2410c'),
+      bar: (_cs.getPropertyValue('--mano').trim() || '#2563eb')
+    };
+
+    function colorForTipoMezzo(tipo) {
+      const t = String(tipo || '').toLowerCase();
+      if (t === 'trattore') return COLORS.trattore;
+      if (t === 'attrezzo') return COLORS.attrezzo;
+      if (!t) return COLORS.nonClassificato;
+      return COLORS.bar;
+    }
+
+    const auth = getAuthInstance();
+    initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const gateMessage = document.getElementById('gate-message');
+    const mainContent = document.getElementById('main-content');
+    const selMode = document.getElementById('sel-mode');
+    const selYear = document.getElementById('sel-year');
+    const groupYear = document.getElementById('group-year');
+    const groupFrom = document.getElementById('group-from');
+    const groupTo = document.getElementById('group-to');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+    const periodLabel = document.getElementById('period-label');
+    const selTerreno = document.getElementById('sel-terreno');
+    const selMezzo = document.getElementById('sel-mezzo');
+    const selTipo = document.getElementById('sel-tipo');
+    const tablesHost = document.getElementById('tables-host');
+    const mobileHost = document.getElementById('mobile-host');
+    const kpiHost = document.getElementById('kpi-host');
+    const alertBox = document.getElementById('alert-box');
+    const partialBanner = document.getElementById('partial-banner');
+    const daValidareBanner = document.getElementById('da-validare-banner');
+    const notesBox = document.getElementById('notes-box');
+    const btnExport = document.getElementById('btn-export');
+    const detailModal = document.getElementById('detail-modal');
+    const detailTitle = document.getElementById('detail-title');
+    const detailSub = document.getElementById('detail-sub');
+    const detailBody = document.getElementById('detail-body');
+    const detailClose = document.getElementById('detail-close');
+    const detailDrawer = document.getElementById('detail-drawer');
+    const drawerTitle = document.getElementById('drawer-title');
+    const drawerSub = document.getElementById('drawer-sub');
+    const drawerBody = document.getElementById('drawer-body');
+    const drawerClose = document.getElementById('drawer-close');
+
+    let tenantId = null;
+    let cached = null;
+    let periodBundle = null;
+    let periodBundleKey = '';
+    let refreshSeq = 0;
+    let sortState = { key: 'nome', dir: 'asc' };
+    let selectedMezzoId = null;
+    const charts = { donut: null, costo: null, mensile: null };
+
+    function showGate(msg) {
+      gateMessage.textContent = msg;
+      gateBlocked.classList.remove('hidden');
+      mainContent.classList.add('hidden');
+    }
+
+    function fillYearSelect() {
+      const y = new Date().getFullYear();
+      selYear.innerHTML = '';
+      for (let i = 0; i < 8; i++) {
+        const yy = y - i;
+        const o = document.createElement('option');
+        o.value = String(yy);
+        o.textContent = String(yy);
+        selYear.appendChild(o);
+      }
+      selYear.value = String(y);
+    }
+
+    function currentPeriodBounds() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        let a = dateFrom.value ? new Date(dateFrom.value + 'T00:00:00') : new Date();
+        let b = dateTo.value ? new Date(dateTo.value + 'T23:59:59.999') : new Date();
+        if (a > b) { const x = a; a = b; b = x; }
+        return { start: a, end: b, label: formatRangeIt(a, b) };
+      }
+      const year = Number(selYear.value) || new Date().getFullYear();
+      if (mode === 'solar') {
+        const b = getSolarYearBounds(year);
+        return { ...b, label: `Anno solare ${year}` };
+      }
+      const b = getAgrarianYearBounds(year);
+      return { ...b, label: `Annata agraria ${year}/${year + 1}` };
+    }
+
+    function updatePeriodUi() {
+      const custom = selMode.value === 'custom';
+      groupYear.classList.toggle('hidden', custom);
+      groupFrom.classList.toggle('hidden', !custom);
+      groupTo.classList.toggle('hidden', !custom);
+      const p = currentPeriodBounds();
+      periodLabel.textContent = p.label + ' · ' + formatRangeIt(p.start, p.end);
+    }
+
+    function currentFilters() {
+      return {
+        terrenoId: selTerreno.value || null,
+        macchinaId: selMezzo.value || null,
+        tipoMezzo: selTipo.value || null
+      };
+    }
+
+    function fmtNum(v, dig = 1) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      return Number(v).toLocaleString('it-IT', { maximumFractionDigits: dig, minimumFractionDigits: 0 });
+    }
+    function fmtEuro(v, partial) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      const s = Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return partial ? s + '*' : s;
+    }
+    function warnBadge(r) {
+      let html = '';
+      if (r.costoOraMissing) html += '<span class="warn-badge">Costo orario non impostato</span>';
+      if (r.manutenzioneSuperata) html += '<span class="warn-badge">Manutenzione superata</span>';
+      return html;
+    }
+    function costoCell(r) {
+      const partial = !!(r.partialCosto || r.costoOraMissing);
+      return `<td class="num${partial ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.costo, partial))}</td>`;
+    }
+
+    function destroyCharts() {
+      for (const k of Object.keys(charts)) {
+        if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+      }
+    }
+
+    function renderKpi(data) {
+      const k = data.kpi || {};
+      const partial = !!k.partialCosto;
+      kpiHost.innerHTML = `
+        <div class="kpi"><div class="label">Ore macchina</div><div class="value">${escapeHtml(fmtNum(k.oreTotali, 1))}</div></div>
+        <div class="kpi${partial || k.costoTotale == null ? ' warn' : ''}"><div class="label">Costo</div><div class="value">${escapeHtml(fmtEuro(k.costoTotale, partial))} €</div></div>
+        <div class="kpi"><div class="label">Litri (pieni)</div><div class="value">${escapeHtml(fmtNum(k.litriTotali, 1))}</div></div>
+        <div class="kpi"><div class="label">Guasti aperti</div><div class="value">${escapeHtml(String(k.guastiAperti || 0))}</div></div>
+      `;
+    }
+
+    function renderCharts(data) {
+      if (typeof Chart === 'undefined') return;
+      destroyCharts();
+
+      const byTipo = data.byTipo || [];
+      const donutVals = byTipo.map((r) => Number(r.costo) || 0);
+      const donutSum = donutVals.reduce((a, b) => a + b, 0);
+      const donutCtx = document.getElementById('chart-donut');
+      if (donutCtx) {
+        charts.donut = new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: byTipo.map((r) => r.label || labelTipoMezzo(r.tipo)),
+            datasets: [{
+              data: donutVals,
+              backgroundColor: byTipo.map((r) => colorForTipoMezzo(r.tipo)),
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    const euroVal = Number(ctx.raw) || 0;
+                    return ` ${ctx.label}: ${euroVal.toLocaleString('it-IT', { maximumFractionDigits: 2 })} €`;
+                  }
+                }
+              }
+            }
+          },
+          plugins: [{
+            id: 'centerText',
+            afterDraw(chart) {
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return;
+              ctx.save();
+              ctx.fillStyle = '#1c1917';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.font = '700 16px Segoe UI, sans-serif';
+              ctx.fillText(
+                formatEuroPrefixCompact(donutSum),
+                (chartArea.left + chartArea.right) / 2,
+                (chartArea.top + chartArea.bottom) / 2
+              );
+              ctx.restore();
+            }
+          }]
+        });
+      }
+
+      const byCosto = data.chartCosto || [];
+      const cCtx = document.getElementById('chart-costo');
+      if (cCtx) {
+        charts.costo = new Chart(cCtx, {
+          type: 'bar',
+          data: {
+            labels: byCosto.map((r) => r.nome),
+            datasets: [{
+              label: 'Costo €',
+              data: byCosto.map((r) => Number(r.costo) || 0),
+              backgroundColor: COLORS.bar,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } },
+              y: { ticks: { font: { size: 11 } } }
+            }
+          }
+        });
+      }
+
+      const monthly = data.chartMensile || [];
+      const mCtx = document.getElementById('chart-mensile');
+      if (mCtx) {
+        charts.mensile = new Chart(mCtx, {
+          type: 'bar',
+          data: {
+            labels: monthly.map((m) => m.label),
+            datasets: [
+              {
+                label: 'Validate',
+                data: monthly.map((m) => Number(m.oreValidate) || 0),
+                backgroundColor: COLORS.validate,
+                stack: 'm',
+                borderRadius: 0
+              },
+              {
+                label: 'Da validare',
+                data: monthly.map((m) => Number(m.oreDaValidare) || 0),
+                backgroundColor: COLORS.daValidare,
+                stack: 'm',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } }
+            }
+          }
+        });
+      }
+    }
+
+    function sortRows(rows, key, dir) {
+      const mul = dir === 'desc' ? -1 : 1;
+      return [...(rows || [])].sort((a, b) => {
+        const va = a[key];
+        const vb = b[key];
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * mul;
+        return String(va).localeCompare(String(vb), 'it') * mul;
+      });
+    }
+
+    function thSort(key, label, num) {
+      const cls = (num ? 'num ' : '')
+        + (sortState.key === key ? (sortState.dir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '');
+      return `<th class="${cls}" data-sort="${escapeHtml(key)}">${escapeHtml(label)}</th>`;
+    }
+
+    function renderMobileCards(byMezzo) {
+      if (!mobileHost) return;
+      if (!byMezzo.length) { mobileHost.innerHTML = ''; return; }
+      mobileHost.innerHTML = '<h2 class="section" style="margin-top:0;">Per mezzo</h2>'
+        + byMezzo.map((r) => `
+        <div class="m-card${selectedMezzoId === r.macchinaId ? ' selected' : ''}" data-macchina-id="${escapeHtml(r.macchinaId)}">
+          <div class="title">${escapeHtml(r.nome)}${warnBadge(r)}</div>
+          <div class="meta">${escapeHtml(labelTipoMezzo(r.tipoMezzo))} · ${escapeHtml(fmtNum(r.ore, 1))} h · litri ${escapeHtml(fmtNum(r.litri, 1))}</div>
+          <div class="tot${(r.partialCosto || r.costoOraMissing) ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.costoOraMissing))} €</div>
+        </div>
+      `).join('');
+    }
+
+    function isDesktopWide() {
+      return window.matchMedia('(min-width: 1101px)').matches;
+    }
+
+    function mezzoListIds() {
+      return (cached && cached.byMezzo ? cached.byMezzo : []).map((r) => String(r.macchinaId));
+    }
+
+    function navigateMezzo(delta) {
+      const ids = mezzoListIds();
+      if (!ids.length || !selectedMezzoId) return;
+      const idx = ids.indexOf(String(selectedMezzoId));
+      if (idx < 0) return;
+      const next = ids[(idx + delta + ids.length) % ids.length];
+      openMezzoDetail(next);
+    }
+
+    function buildDetailHtml(macchinaId) {
+      const row = (cached.byMezzo || []).find((r) => String(r.macchinaId) === String(macchinaId));
+      const detail = buildMezzoDetailRows(cached.lines || [], macchinaId);
+      const carb = (cached.carburanteByMacchinaId && cached.carburanteByMacchinaId.get(String(macchinaId)))
+        || { movimenti: [], litri: 0, costo: null };
+      const guasti = (cached.guastiByMacchinaId && cached.guastiByMacchinaId.get(String(macchinaId)))
+        || { items: [] };
+
+      let html = '';
+      if (!detail.length) {
+        html = '<div class="alert alert-info">Nessuna ora macchina validate per questo mezzo nel periodo.</div>';
+      } else {
+        html += `<div class="table-wrap detail-table-desktop"><table class="data"><thead><tr>
+          <th>Data</th><th>Terreno</th><th>Lavoro</th><th>Operaio</th>
+          <th class="num">Ore</th><th class="num">€/h</th><th class="num">Costo €</th>
+        </tr></thead><tbody>`;
+        for (const d of detail) {
+          const missing = !!d.costoOraMissing;
+          html += `<tr>
+            <td>${escapeHtml(d.dataIso || '—')}</td>
+            <td>${escapeHtml(d.terrenoNome || '—')}</td>
+            <td>${escapeHtml(d.lavoro || '—')}</td>
+            <td>${escapeHtml(d.operaioNome || '—')}</td>
+            <td class="num">${escapeHtml(fmtNum(d.ore, 1))}</td>
+            <td class="num${missing ? ' warn-text' : ''}">${escapeHtml(missing ? '—' : fmtEuro(d.costoOra, false))}</td>
+            <td class="num${missing ? ' warn-text' : ''}">${escapeHtml(missing ? '—' : fmtEuro(d.costo, false))}</td>
+          </tr>`;
+        }
+        html += '</tbody></table></div>';
+        html += '<div class="detail-cards">';
+        for (const d of detail) {
+          const missing = !!d.costoOraMissing;
+          html += `<div class="d-card">
+            <div class="top">${escapeHtml(d.dataIso || '—')} · ${escapeHtml(d.terrenoNome || '—')}</div>
+            <div class="sub">${escapeHtml(d.lavoro || '—')} · ${escapeHtml(d.operaioNome || '—')}</div>
+            <div class="bottom">
+              <span>${escapeHtml(fmtNum(d.ore, 1))} h × ${escapeHtml(missing ? '—' : fmtEuro(d.costoOra, false))} €/h</span>
+              <strong class="${missing ? 'warn-text' : ''}">${escapeHtml(missing ? '—' : fmtEuro(d.costo, false))} €</strong>
+            </div>
+          </div>`;
+        }
+        html += '</div>';
+      }
+
+      html += '<h3 class="section">Pieni nel periodo</h3>';
+      const movs = carb.movimenti || [];
+      if (!movs.length) {
+        html += '<p class="muted">Nessun pieno registrato.</p>';
+      } else {
+        html += '<ul style="margin:6px 0 0 18px;font-size:13px;">';
+        for (const m of movs) {
+          const costoBit = m.costo == null ? ' (solo litri)' : ` · ${fmtEuro(m.costo, false)} €`;
+          html += `<li>${escapeHtml(m.dataIso || '—')}: ${escapeHtml(fmtNum(m.litri, 1))} L ${escapeHtml(m.prodottoNome || '')}${escapeHtml(costoBit)}</li>`;
+        }
+        html += '</ul>';
+        if (row && row.litriOra != null) {
+          html += `<p class="muted" style="margin-top:6px;">Litri/ora: ${escapeHtml(fmtNum(row.litriOra, 2))}</p>`;
+        }
+      }
+
+      html += '<h3 class="section">Guasti</h3>';
+      const gItems = (guasti.items || []).filter((g) => g.inPeriodo || g.attivo);
+      if (!gItems.length) {
+        html += '<p class="muted">Nessun guasto nel periodo / aperto.</p>';
+      } else {
+        html += '<ul style="margin:6px 0 0 18px;font-size:13px;">';
+        for (const g of gItems) {
+          html += `<li>${escapeHtml(g.dataIso || '—')}: ${escapeHtml(g.dettagli || g.stato || 'guasto')}${g.attivo ? ' <span class="warn-badge">aperto</span>' : ''}</li>`;
+        }
+        html += '</ul>';
+      }
+
+      if (row && (row.oreAttuali != null || row.oreProssimaManutenzione != null)) {
+        html += `<p class="muted" style="margin-top:12px;">Manutenzione: ore attuali ${escapeHtml(fmtNum(row.oreAttuali, 0))} · prossima a ${escapeHtml(fmtNum(row.oreProssimaManutenzione, 0))}${row.manutenzioneSuperata ? ' <span class="warn-badge">superata</span>' : ''}</p>`;
+      }
+
+      html += '<p class="muted" style="margin-top:10px;">Usa ← → oppure seleziona un altro mezzo dalla tabella senza chiudere.</p>';
+      return {
+        title: row ? row.nome : 'Dettaglio mezzo',
+        sub: row
+          ? `${labelTipoMezzo(row.tipoMezzo)} · ${fmtNum(row.ore, 1)} h · ${fmtEuro(row.costo, row.partialCosto || row.costoOraMissing)} €`
+          : '',
+        html
+      };
+    }
+
+    function openMezzoDetail(macchinaId) {
+      if (!cached || !macchinaId) return;
+      selectedMezzoId = String(macchinaId);
+      const built = buildDetailHtml(macchinaId);
+
+      if (isDesktopWide()) {
+        drawerTitle.textContent = built.title;
+        drawerSub.textContent = built.sub;
+        drawerBody.innerHTML = built.html;
+        detailDrawer.classList.add('open');
+        document.body.classList.add('drawer-open');
+        detailModal.classList.add('hidden');
+        detailModal.classList.add('desktop-side');
+      } else {
+        detailTitle.textContent = built.title;
+        detailSub.textContent = built.sub;
+        detailBody.innerHTML = built.html;
+        detailModal.classList.remove('hidden');
+        detailModal.classList.remove('desktop-side');
+        detailDrawer.classList.remove('open');
+        document.body.classList.remove('drawer-open');
+      }
+      if (cached) renderTables(cached);
+    }
+
+    function closeDetail() {
+      detailModal.classList.add('hidden');
+      detailDrawer.classList.remove('open');
+      document.body.classList.remove('drawer-open');
+      selectedMezzoId = null;
+      if (cached) renderTables(cached);
+    }
+
+    function renderTables(data) {
+      const byMezzo = sortRows(data.byMezzo, sortState.key, sortState.dir);
+      if (!byMezzo.length) {
+        tablesHost.innerHTML = '<div class="alert alert-info">Nessuna ora macchina nel periodo selezionato</div>';
+        if (mobileHost) mobileHost.innerHTML = '';
+        return;
+      }
+
+      let html = '<h2 class="section desktop-only">Per mezzo</h2>';
+      html += '<p class="muted desktop-only" style="margin-bottom:8px;">Seleziona un mezzo per il dettaglio (pannello laterale su desktop).</p>';
+      html += '<div class="table-wrap desktop-only"><table class="data" id="tbl-mezzo"><thead><tr>';
+      html += thSort('nome', 'Mezzo', false);
+      html += thSort('tipoMezzo', 'Tipo', false);
+      html += thSort('ore', 'Ore', true);
+      html += thSort('costoOra', '€/h', true);
+      html += thSort('costo', 'Costo €', true);
+      html += thSort('euroHa', '€/ha', true);
+      html += thSort('litri', 'Litri', true);
+      html += thSort('guastiAperti', 'Guasti aperti', true);
+      html += '</tr></thead><tbody>';
+      for (const r of byMezzo) {
+        const sel = selectedMezzoId === r.macchinaId ? ' row-selected' : '';
+        html += `<tr class="row-click${sel}" data-macchina-id="${escapeHtml(r.macchinaId)}">
+          <td>${escapeHtml(r.nome)}${warnBadge(r)}</td>
+          <td>${escapeHtml(labelTipoMezzo(r.tipoMezzo))}</td>
+          <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
+          <td class="num${r.costoOraMissing ? ' warn-text' : ''}">${escapeHtml(r.costoOraMissing ? '—' : fmtEuro(r.costoOra, false))}</td>
+          ${costoCell(r)}
+          <td class="num">${escapeHtml(r.euroHa == null ? '—' : fmtEuro(r.euroHa, false))}</td>
+          <td class="num">${escapeHtml(fmtNum(r.litri, 1))}${r.litriOra != null ? ` <span class="muted">(${escapeHtml(fmtNum(r.litriOra, 2))}/h)</span>` : ''}</td>
+          <td class="num">${r.guastiAperti}</td>
+        </tr>`;
+      }
+      html += '</tbody></table></div>';
+      tablesHost.innerHTML = html;
+      renderMobileCards(byMezzo);
+    }
+
+    function render(data) {
+      cached = data;
+      const ready = isMacchineDataReady(data);
+      setReportExportEnabled(btnExport, ready && !data.empty);
+
+      if (data.empty) {
+        destroyCharts();
+        kpiHost.innerHTML = '';
+        tablesHost.innerHTML = '<div class="alert alert-info">Nessuna ora macchina nel periodo selezionato</div>';
+        if (mobileHost) mobileHost.innerHTML = '';
+        notesBox.innerHTML = '';
+        partialBanner.classList.add('hidden');
+        daValidareBanner.classList.add('hidden');
+        document.getElementById('charts-row')?.classList.add('hidden');
+        document.querySelector('.chart-full')?.classList.add('hidden');
+        return;
+      }
+
+      document.getElementById('charts-row')?.classList.remove('hidden');
+      document.querySelector('.chart-full')?.classList.remove('hidden');
+      renderKpi(data);
+      renderCharts(data);
+      renderTables(data);
+
+      if (data.kpi && (data.kpi.partialCosto || data.kpi.costoTotale == null)) {
+        partialBanner.textContent = 'Alcuni costi macchina mancano (costo orario non impostato). I totali con * sono parziali.';
+        partialBanner.classList.remove('hidden');
+      } else {
+        partialBanner.classList.add('hidden');
+      }
+
+      if (data.oreDaValidare > 0) {
+        daValidareBanner.textContent = `${fmtNum(data.oreDaValidare, 1)} ore macchina ancora da validare (non incluse nei costi).`;
+        daValidareBanner.classList.remove('hidden');
+      } else {
+        daValidareBanner.classList.add('hidden');
+      }
+
+      notesBox.innerHTML = data.notes && data.notes.length
+        ? `<strong>Note:</strong><ul>${data.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+        : '';
+    }
+
+    function fillFilterOptions(bundle) {
+      const terreni = (bundle && bundle.terreni) || [];
+      const keepT = selTerreno.value;
+      selTerreno.innerHTML = '<option value="">Tutti</option>';
+      for (const t of terreni) {
+        const o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.nome;
+        selTerreno.appendChild(o);
+      }
+      if (keepT) selTerreno.value = keepT;
+
+      const mezzi = (bundle && bundle.mezziOptions) || [];
+      const keepM = selMezzo.value;
+      selMezzo.innerHTML = '<option value="">Tutti</option>';
+      for (const m of mezzi) {
+        const o = document.createElement('option');
+        o.value = m.id;
+        o.textContent = m.nome;
+        selMezzo.appendChild(o);
+      }
+      if (keepM) selMezzo.value = keepM;
+    }
+
+    function applyLocalFilters() {
+      if (!periodBundle) return;
+      const data = assembleMacchineFromBundle(periodBundle, currentFilters());
+      render(data);
+    }
+
+    async function refreshReport({ forceReload = false } = {}) {
+      const seq = ++refreshSeq;
+      const p = currentPeriodBounds();
+      const key = `${p.start.toISOString()}|${p.end.toISOString()}`;
+      setReportExportEnabled(btnExport, false);
+      tablesHost.innerHTML = '<div class="loading-box">Caricamento ore e costi macchine…</div>';
+      try {
+        if (forceReload || periodBundleKey !== key || !periodBundle) {
+          periodBundle = await loadMacchinePeriodBundle(p.start, p.end, { forceReload: true });
+          periodBundleKey = key;
+          fillFilterOptions(periodBundle);
+        }
+        if (seq !== refreshSeq) return;
+        const data = assembleMacchineFromBundle(periodBundle, currentFilters());
+        render(data);
+      } catch (e) {
+        console.error(e);
+        tablesHost.innerHTML = `<div class="alert alert-error">${escapeHtml(e && e.message ? e.message : 'Errore caricamento')}</div>`;
+      }
+    }
+
+    async function exportExcel() {
+      if (!cached || typeof ExcelJS === 'undefined') return;
+      const p = currentPeriodBounds();
+      const filters = currentFilters();
+      const terrenoNome = filters.terrenoId
+        ? ((periodBundle && (periodBundle.terreni || []).find((t) => String(t.id) === String(filters.terrenoId)) || {}).nome || filters.terrenoId)
+        : null;
+      const macchinaNome = filters.macchinaId
+        ? ((periodBundle && (periodBundle.mezziOptions || []).find((m) => String(m.id) === String(filters.macchinaId)) || {}).nome || filters.macchinaId)
+        : null;
+      const exportData = prepareMacchineExportData(cached, {
+        periodoLabel: p.label || formatRangeIt(p.start, p.end),
+        terrenoId: filters.terrenoId,
+        terrenoNome,
+        macchinaId: filters.macchinaId,
+        macchinaNome,
+        tipoMezzo: filters.tipoMezzo,
+        tipoMezzoLabel: filters.tipoMezzo ? labelTipoMezzo(filters.tipoMezzo) : null
+      });
+
+      const wb = new ExcelJS.Workbook();
+      function addMeta(ws) {
+        ws.addRow(['Periodo', exportData.periodoLabel]);
+        ws.addRow(['Filtro terreno', exportData.filtroTerreno]);
+        ws.addRow(['Filtro mezzo', exportData.filtroMezzo]);
+        ws.addRow(['Filtro tipo', exportData.filtroTipo]);
+        ws.addRow([]);
+      }
+      const wsKpi = wb.addWorksheet('KPI');
+      addMeta(wsKpi);
+      wsKpi.addRow(['Ore macchina', exportData.kpi.oreTotali]);
+      wsKpi.addRow(['Costo €', exportData.kpi.costoTotale]);
+      wsKpi.addRow(['Litri', exportData.kpi.litriTotali]);
+      wsKpi.addRow(['Guasti aperti', exportData.kpi.guastiAperti]);
+
+      const ws = wb.addWorksheet('Per mezzo');
+      addMeta(ws);
+      ws.addRow(['Mezzo', 'Tipo', 'Ore', '€/h', 'Costo €', '€/ha', 'Litri', 'Litri/h', 'Carburante €', 'Guasti segnalati', 'Guasti aperti', 'Note']);
+      for (const r of exportData.perMezzo) {
+        ws.addRow([
+          r.nome, r.tipo, r.ore, r.costoOra, r.costo, r.euroHa, r.litri, r.litriOra,
+          r.costoCarburante, r.guastiSegnalati, r.guastiAperti, r.noteParziale || ''
+        ]);
+      }
+      const wsNote = wb.addWorksheet('Note');
+      for (const n of exportData.noteRows) wsNote.addRow([n]);
+
+      const fileName = `report-macchine-${new Date().toISOString().split('T')[0]}.xlsx`;
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      alertBox.innerHTML = `<div class="alert alert-info">Export completato: ${escapeHtml(fileName)}</div>`;
+    }
+
+    tablesHost.addEventListener('click', (ev) => {
+      const th = ev.target.closest('th[data-sort]');
+      if (th && cached) {
+        const key = th.getAttribute('data-sort');
+        if (sortState.key === key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        else { sortState.key = key; sortState.dir = key === 'nome' || key === 'tipoMezzo' ? 'asc' : 'desc'; }
+        render(cached);
+        return;
+      }
+      const tr = ev.target.closest('tr.row-click[data-macchina-id]');
+      if (tr && cached) openMezzoDetail(tr.getAttribute('data-macchina-id'));
+    });
+    if (mobileHost) {
+      mobileHost.addEventListener('click', (ev) => {
+        const card = ev.target.closest('.m-card[data-macchina-id]');
+        if (card && cached) openMezzoDetail(card.getAttribute('data-macchina-id'));
+      });
+    }
+
+    detailClose?.addEventListener('click', closeDetail);
+    drawerClose?.addEventListener('click', closeDetail);
+    document.getElementById('detail-prev')?.addEventListener('click', () => navigateMezzo(-1));
+    document.getElementById('detail-next')?.addEventListener('click', () => navigateMezzo(1));
+    document.getElementById('drawer-prev')?.addEventListener('click', () => navigateMezzo(-1));
+    document.getElementById('drawer-next')?.addEventListener('click', () => navigateMezzo(1));
+    detailModal?.addEventListener('click', (ev) => { if (ev.target === detailModal) closeDetail(); });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') closeDetail();
+      if (ev.key === 'ArrowLeft' && selectedMezzoId) navigateMezzo(-1);
+      if (ev.key === 'ArrowRight' && selectedMezzoId) navigateMezzo(1);
+    });
+    window.addEventListener('resize', () => {
+      if (selectedMezzoId) openMezzoDetail(selectedMezzoId);
+    });
+
+    function onPeriodChange() {
+      updatePeriodUi();
+      refreshReport({ forceReload: true });
+    }
+    selMode.addEventListener('change', onPeriodChange);
+    selYear.addEventListener('change', onPeriodChange);
+    dateFrom.addEventListener('change', onPeriodChange);
+    dateTo.addEventListener('change', onPeriodChange);
+    selTerreno.addEventListener('change', () => applyLocalFilters());
+    selMezzo.addEventListener('change', () => applyLocalFilters());
+    selTipo.addEventListener('change', () => applyLocalFilters());
+    btnExport.addEventListener('click', () => { exportExcel().catch((e) => console.error(e)); });
+
+    fillYearSelect();
+    updatePeriodUi();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
+      if (!user) {
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+        return;
+      }
+      const userData = await getDocumentData('users', user.uid);
+      if (!userData) { showGate('Profilo utente non trovato.'); return; }
+      if (userData.tenantId) {
+        setCurrentTenantId(userData.tenantId);
+        tenantId = userData.tenantId;
+      }
+      const okReport = await hasReportModuleAccess();
+      if (!okReport) { showGate('Il modulo Report non è attivo per questo account.'); return; }
+      if (!canAccessStrategicReports(userData)) {
+        showGate('Questa area è riservata a Manager e Amministratore.');
+        return;
+      }
+      gateBlocked.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+      await refreshReport({ forceReload: true });
+    });
+  </script>
+  <script type="module">
+    import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+    const swPath = window.location.pathname.includes('/gfv-platform/')
+      ? '/gfv-platform/service-worker.js'
+      : '../../../service-worker.js';
+    registraServiceWorker(swPath);
+  </script>
+</body>
+</html>
