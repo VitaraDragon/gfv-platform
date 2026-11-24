@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: colore Carburante + €/ha senza filtri.**
+**Ultimo aggiornamento documentazione: 2026-11-24 — Report Economici: caricamento senza cifre parziali + filtri mobile.**
+
+## 2026-11-24 — Report Economici: caricamento completo + filtri a tutta larghezza su telefono
+
+Su `fix/report-economici-caricamento-filtri-mobile` (PR verso develop). Nessun merge, nessun deploy.
+
+1) Niente cifre/grafici/export finché manodopera, macchine, prodotti e carburante sono tutti pronti: rimosso il render progressivo su `onLabourReady` (che mostrava totali e €/ha parziali per ~6 s); al cambio periodo si azzerano KPI/grafici e resta «Caricamento costi…» senza mix dati vecchi/nuovi. Helper `isEconomiciDataReady` + test. 2) Filtri su ~390 px: CSS pagina forza colonna a tutta larghezza (lo stile locale `align-items:flex-end` sovrascriveva `responsive-standalone`). Nessuna lettura/indice/function/rule nuova.
 
 ## 2026-11-24 — Report Economici: colore Carburante ambra + €/ha allineato senza filtri
 
