@@ -5,7 +5,7 @@ Modulo **`report`** (Report/Bilancio). Ingresso **Moduli** → **Report**.
 ## Cosa c’è oggi
 - Hub `report-dashboard`: card per area.
 - **Terreni** (featured) → `report-terreni-standalone.html` (stato campi, confronti, input/ore).
-- **Economici** → `report-economici-standalone.html` (KPI + grafici impilati per categoria, quote % coerenti, €/ha su ettari non arrotondati, costi terreno × coltura con Carburante, filtri terreno/coltura preservati al cambio periodo, dettaglio voci, export filtrato; niente ricavi/margine).
+- **Economici** → `report-economici-standalone.html` (KPI + grafici impilati per categoria, quote % coerenti, €/ha su ettari attribuiti non arrotondati, costi terreno × coltura con Carburante in giallo ambra distinto da Macchine, filtri terreno/coltura preservati al cambio periodo, dettaglio voci, export filtrato; niente ricavi/margine).
 - Con **Vigneto** attivo: card Vigneto → `report-standalone.html` (export/tabelle vendemmie/lavori MVP).
 - Altre card (Frutteto, Magazzino, Manodopera, Conto terzi, Sintesi): spesso badge **In sviluppo** (href `#`) finché non implementate.
 
