@@ -101,9 +101,9 @@
     .kpi .value { font-size: 26px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
     .kpi.warn .value { color: var(--warn); }
     .charts-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; margin-top: 12px; }
-    .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; max-width: 100%; overflow: hidden; }
     .chart-card h3 { font-size: 14px; margin-bottom: 8px; color: #44403c; }
-    .chart-wrap { position: relative; height: 240px; }
+    .chart-wrap { position: relative; height: 240px; width: 100%; max-width: 100%; overflow: hidden; }
     .chart-wrap.tall { height: 280px; }
     .chart-full { margin-top: 12px; }
     .table-wrap { overflow-x: auto; margin-top: 8px; }
@@ -386,7 +386,7 @@
     import { setReportExportEnabled } from '../js/report-export-gate.js';
     import {
       readReportChartColors,
-      seriesColorAt,
+      chartColorsForItems,
       colorForTipoOperaio as colorForTipoOperaioShared
     } from '../js/report-chart-colors.js';
 
@@ -698,7 +698,7 @@
             datasets: [{
               label: 'Ore',
               data: byTerr.map((r) => Number(r.ore) || 0),
-              backgroundColor: byTerr.map((_, i) => seriesColorAt(i, COLORS)),
+              backgroundColor: chartColorsForItems(byTerr, COLORS),
               borderRadius: 4
             }]
           },
@@ -1243,7 +1243,14 @@
       if (ev.key === 'ArrowLeft' && selectedOperaioId) navigateOperaio(-1);
       if (ev.key === 'ArrowRight' && selectedOperaioId) navigateOperaio(1);
     });
+    function resizeCharts() {
+      Object.keys(charts).forEach((k) => {
+        const c = charts[k];
+        if (c && typeof c.resize === 'function') c.resize();
+      });
+    }
     window.addEventListener('resize', () => {
+      resizeCharts();
       if (selectedOperaioId) openOperaioDetail(selectedOperaioId);
     });
 
