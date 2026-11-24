@@ -569,6 +569,7 @@ export {
   buildMezzoDetailRows,
   buildMacchinaCostLine,
   formatEuroPrefixCompact,
+  hasMacchineCostiDisponibili,
   isMacchineDataReady,
   labelTipoMezzo,
   prepareMacchineExportData,
