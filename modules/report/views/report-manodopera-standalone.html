@@ -8,11 +8,12 @@
   <title>Report — Manodopera GFV</title>
   <meta name="theme-color" content="#1c1917" />
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
   <style>
     :root {
       --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
-      --mano: #2563eb; --warn: #c2410c; --accent: #1d4ed8;
+      --mano: #2563eb; --mano-soft: #93c5fd; --warn: #c2410c; --accent: #1d4ed8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -98,6 +99,12 @@
     .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
     .kpi .value { font-size: 26px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
     .kpi.warn .value { color: var(--warn); }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; margin-top: 12px; }
+    .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .chart-card h3 { font-size: 14px; margin-bottom: 8px; color: #44403c; }
+    .chart-wrap { position: relative; height: 240px; }
+    .chart-wrap.tall { height: 280px; }
+    .chart-full { margin-top: 12px; }
     .table-wrap { overflow-x: auto; margin-top: 8px; }
     table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
     table.data th, table.data td {
@@ -111,19 +118,43 @@
     table.data th.sorted-desc::after { content: ' ▼'; font-size: 10px; }
     table.data td.num, table.data th.num { text-align: right; }
     table.data tfoot td { font-weight: 700; background: #f5f5f4; }
+    table.data tbody tr.row-click { cursor: pointer; }
+    table.data tbody tr.row-click:hover { background: #f5f5f4; }
+    table.data tbody tr.row-selected td { background: #eff6ff; }
+    .warn-text { color: var(--warn); font-weight: 700; }
+    .warn-badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 999px;
+      background: #fff7ed; color: var(--warn); border: 1px solid #fed7aa;
+      margin-left: 6px;
+    }
     .notes { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
     .notes ul { margin: 6px 0 0 18px; }
     h2.section { font-size: 16px; color: #44403c; margin: 16px 0 8px; }
     h2.section:first-child { margin-top: 0; }
     .mobile-cards { display: none; gap: 10px; margin-top: 8px; }
-    .m-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); }
+    .m-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); cursor: pointer; }
+    .m-card.selected { outline: 2px solid #93c5fd; }
     .m-card .title { font-weight: 700; font-size: 15px; }
     .m-card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
     .m-card .tot { font-size: 20px; font-weight: 700; margin-top: 8px; }
     .m-card .amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 10px; font-size: 12px; }
     .m-card .amounts span { color: var(--muted); }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(28, 25, 23, 0.45);
+      display: flex; align-items: flex-end; justify-content: center; z-index: 80; padding: 12px;
+    }
+    @media (min-width: 720px) { .modal-backdrop { align-items: center; } }
+    .modal-panel {
+      background: var(--panel); border-radius: 14px; max-width: 860px; width: 100%;
+      max-height: min(88vh, 720px); overflow: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); padding: 18px;
+    }
+    .modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+    .modal-head h2 { font-size: 17px; }
+    .modal-close { border: 1px solid var(--line); background: #fafaf9; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: 600; }
     @media (max-width: 1100px) {
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) {
       body { padding: 10px; }
@@ -131,6 +162,7 @@
       .kpi .value { font-size: 20px; }
       .desktop-only { display: none !important; }
       .mobile-cards { display: grid; }
+      .chart-wrap { height: 220px; }
       .filters {
         flex-direction: column;
         align-items: stretch;
@@ -211,12 +243,39 @@
       <div id="da-validare-banner" class="alert alert-info hidden" role="status"></div>
       <div id="alert-box"></div>
       <div id="kpi-host" class="kpi-grid"></div>
+      <div class="charts-grid" id="charts-row">
+        <div class="chart-card">
+          <h3>Costo per tipo operaio</h3>
+          <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Ore per terreno</h3>
+          <div class="chart-wrap tall"><canvas id="chart-terreni"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card chart-full">
+        <h3>Ore mensili (validate / da validare)</h3>
+        <div class="chart-wrap"><canvas id="chart-mensile"></canvas></div>
+      </div>
 
       <div class="panel" style="margin-top:12px;">
         <div id="tables-host" class="loading-box">Caricamento…</div>
         <div id="mobile-host" class="mobile-cards mobile-only"></div>
         <div class="notes" id="notes-box"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="detail-title">Dettaglio ore</h2>
+          <p class="muted" id="detail-sub"></p>
+        </div>
+        <button type="button" class="modal-close" id="detail-close">Chiudi</button>
+      </div>
+      <div id="detail-body"></div>
     </div>
   </div>
 
@@ -247,9 +306,19 @@
       assembleManodoperaFromBundle,
       prepareManodoperaExportData,
       isManodoperaDataReady,
-      getManodoperaFilterOptions
+      getManodoperaFilterOptions,
+      buildOperaioDetailRows,
+      formatEuroPrefixCompact,
+      labelTipoOperaio
     } from '../services/report-manodopera-service.js';
     import { setReportExportEnabled } from '../js/report-export-gate.js';
+
+    const _cs = getComputedStyle(document.documentElement);
+    const COLORS = {
+      mano: (_cs.getPropertyValue('--mano').trim() || '#2563eb'),
+      manoSoft: (_cs.getPropertyValue('--mano-soft').trim() || '#93c5fd'),
+      warn: (_cs.getPropertyValue('--warn').trim() || '#c2410c')
+    };
 
     const auth = getAuthInstance();
     initializeTenantService();
@@ -276,6 +345,11 @@
     const daValidareBanner = document.getElementById('da-validare-banner');
     const notesBox = document.getElementById('notes-box');
     const btnExport = document.getElementById('btn-export');
+    const detailModal = document.getElementById('detail-modal');
+    const detailTitle = document.getElementById('detail-title');
+    const detailSub = document.getElementById('detail-sub');
+    const detailBody = document.getElementById('detail-body');
+    const detailClose = document.getElementById('detail-close');
 
     let tenantId = null;
     /** @type {object|null} */
@@ -289,6 +363,9 @@
     let terrenoOptions = [];
     /** @type {{ key: string, dir: 'asc'|'desc', table: string }} */
     let sortState = { key: 'nome', dir: 'asc', table: 'operaio' };
+    let selectedOperaioId = null;
+    /** @type {Record<string, any>} */
+    const charts = { donut: null, terreni: null, mensile: null };
 
     function showGate(msg) {
       gateMessage.textContent = msg;
@@ -374,8 +451,16 @@
       return `${p.start.toISOString()}|${p.end.toISOString()}`;
     }
 
+    function destroyCharts() {
+      for (const k of Object.keys(charts)) {
+        if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+      }
+    }
+
     function enterLoadingState() {
       cached = null;
+      selectedOperaioId = null;
+      destroyCharts();
       kpiHost.innerHTML = '';
       tablesHost.innerHTML = '<div class="loading-box">Caricamento ore e costi manodopera…</div>';
       if (mobileHost) mobileHost.innerHTML = '';
@@ -387,6 +472,23 @@
         daValidareBanner.textContent = '';
       }
       setReportExportEnabled(btnExport, false);
+    }
+
+    function warnBadge(r) {
+      if (!r) return '';
+      if (r.tariffaMissing && (r.costo == null || Number(r.costo) === 0) && !r.partialCosto) {
+        return '<span class="warn-badge">tariffa mancante</span>';
+      }
+      if (r.partialCosto || r.tariffaMissing) {
+        return '<span class="warn-badge">parziale</span>';
+      }
+      return '';
+    }
+
+    function costoCell(r) {
+      const partial = !!(r.partialCosto || r.tariffaMissing);
+      const cls = partial ? 'num warn-text' : 'num';
+      return `<td class="${cls}">${escapeHtml(fmtEuro(r.costo, partial))}${warnBadge(r)}</td>`;
     }
 
     function sortRows(rows, key, dir) {
@@ -450,6 +552,135 @@
       return String(r.nLavori);
     }
 
+    function renderCharts(data) {
+      if (typeof Chart === 'undefined') return;
+      destroyCharts();
+
+      const byTipo = data.byTipo || [];
+      const donutVals = byTipo.map((r) => Number(r.costo) || 0);
+      const donutSum = donutVals.reduce((a, b) => a + b, 0);
+      const donutCtx = document.getElementById('chart-donut');
+      if (donutCtx) {
+        const palette = [
+          COLORS.mano,
+          '#1d4ed8',
+          '#0ea5e9',
+          '#6366f1',
+          '#0891b2',
+          '#64748b',
+          COLORS.warn
+        ];
+        charts.donut = new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: byTipo.map((r) => r.label || labelTipoOperaio(r.tipo)),
+            datasets: [{
+              data: donutVals,
+              backgroundColor: byTipo.map((_, i) => palette[i % palette.length]),
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    const euroVal = Number(ctx.raw) || 0;
+                    return ` ${ctx.label}: ${euroVal.toLocaleString('it-IT', { maximumFractionDigits: 2 })} €`;
+                  }
+                }
+              }
+            }
+          },
+          plugins: [{
+            id: 'centerText',
+            afterDraw(chart) {
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return;
+              ctx.save();
+              ctx.fillStyle = '#1c1917';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.font = '700 16px Segoe UI, sans-serif';
+              ctx.fillText(
+                formatEuroPrefixCompact(donutSum),
+                (chartArea.left + chartArea.right) / 2,
+                (chartArea.top + chartArea.bottom) / 2
+              );
+              ctx.restore();
+            }
+          }]
+        });
+      }
+
+      const byTerr = data.chartTerreno || [];
+      const terrCtx = document.getElementById('chart-terreni');
+      if (terrCtx) {
+        charts.terreni = new Chart(terrCtx, {
+          type: 'bar',
+          data: {
+            labels: byTerr.map((r) => r.terrenoNome),
+            datasets: [{
+              label: 'Ore',
+              data: byTerr.map((r) => Number(r.ore) || 0),
+              backgroundColor: COLORS.mano,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } },
+              y: { ticks: { font: { size: 11 } } }
+            }
+          }
+        });
+      }
+
+      const monthly = data.chartMensile || [];
+      const mCtx = document.getElementById('chart-mensile');
+      if (mCtx) {
+        charts.mensile = new Chart(mCtx, {
+          type: 'bar',
+          data: {
+            labels: monthly.map((m) => m.label),
+            datasets: [
+              {
+                label: 'Validate',
+                data: monthly.map((m) => Number(m.oreValidate) || 0),
+                backgroundColor: COLORS.mano,
+                stack: 'm',
+                borderRadius: 0
+              },
+              {
+                label: 'Da validare',
+                data: monthly.map((m) => Number(m.oreDaValidare) || 0),
+                backgroundColor: COLORS.manoSoft,
+                stack: 'm',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, ticks: { callback: (v) => Number(v).toLocaleString('it-IT') } }
+            }
+          }
+        });
+      }
+    }
+
     function renderMobileCards(byOp) {
       if (!mobileHost) return;
       if (!byOp.length) {
@@ -457,16 +688,58 @@
         return;
       }
       mobileHost.innerHTML = byOp.map((r) => `
-        <div class="m-card">
-          <div class="title">${escapeHtml(r.nome)}</div>
-          <div class="meta">${escapeHtml(r.tipo || '—')} · ${escapeHtml(fmtNum(r.ore, 1))} h · lavori ${escapeHtml(fmtLavoriCell(r))} · terreni ${r.nTerreni}</div>
-          <div class="tot">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))} €</div>
+        <div class="m-card${selectedOperaioId === r.operaioId ? ' selected' : ''}" data-operaio-id="${escapeHtml(r.operaioId)}">
+          <div class="title">${escapeHtml(r.nome)}${warnBadge(r)}</div>
+          <div class="meta">${escapeHtml(labelTipoOperaio(r.tipo))} · ${escapeHtml(fmtNum(r.ore, 1))} h · lavori ${escapeHtml(fmtLavoriCell(r))} · terreni ${r.nTerreni}</div>
+          <div class="tot${(r.partialCosto || r.tariffaMissing) ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))} €</div>
           <div class="amounts">
             <div><span>Tariffa</span><br>${escapeHtml(fmtEuro(r.tariffa, false))} €/h</div>
             <div><span>Costo</span><br>${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))}</div>
           </div>
         </div>
       `).join('');
+    }
+
+    function openOperaioDetail(operaioId) {
+      if (!cached || !operaioId) return;
+      const row = (cached.byOperaio || []).find((r) => String(r.operaioId) === String(operaioId));
+      const detail = buildOperaioDetailRows(cached.lines || [], operaioId);
+      selectedOperaioId = String(operaioId);
+      detailTitle.textContent = row ? row.nome : 'Dettaglio ore';
+      detailSub.textContent = row
+        ? `${labelTipoOperaio(row.tipo)} · ${fmtNum(row.ore, 1)} h · ${fmtEuro(row.costo, row.partialCosto || row.tariffaMissing)} €`
+        : 'Lavori e giorni nel periodo filtrato';
+
+      let html = '';
+      if (!detail.length) {
+        html = '<div class="alert alert-info">Nessuna riga di dettaglio per questa selezione.</div>';
+      } else {
+        html = `<div class="table-wrap"><table class="data"><thead><tr>
+          <th>Data</th><th>Terreno</th><th>Lavoro</th><th class="num">Ore</th><th class="num">Tariffa €/h</th><th class="num">Costo €</th>
+        </tr></thead><tbody>`;
+        for (const d of detail) {
+          const missing = !!d.tariffaMissing;
+          html += `<tr>
+            <td>${escapeHtml(d.dataIso || '—')}</td>
+            <td>${escapeHtml(d.terrenoNome || '—')}</td>
+            <td>${escapeHtml(d.lavoro || '—')}</td>
+            <td class="num">${escapeHtml(fmtNum(d.ore, 1))}</td>
+            <td class="num${missing ? ' warn-text' : ''}">${escapeHtml(missing ? 'tariffa mancante' : fmtEuro(d.tariffa, false))}</td>
+            <td class="num${missing ? ' warn-text' : ''}">${escapeHtml(missing ? '—' : fmtEuro(d.costo, false))}</td>
+          </tr>`;
+        }
+        html += '</tbody></table></div>';
+        html += '<p class="muted" style="margin-top:8px;">Tocca un’altra riga operaio per cambiare il dettaglio. Solo ore validate.</p>';
+      }
+      detailBody.innerHTML = html;
+      detailModal.classList.remove('hidden');
+      if (cached) renderTables(cached);
+    }
+
+    function closeDetail() {
+      detailModal.classList.add('hidden');
+      selectedOperaioId = null;
+      if (cached) renderTables(cached);
     }
 
     function renderTables(data) {
@@ -487,7 +760,8 @@
       }
 
       let html = '<h2 class="section desktop-only">Per operaio</h2>';
-      html += '<div class="table-wrap desktop-only"><table class="data"><thead><tr>';
+      html += '<p class="muted desktop-only" style="margin-bottom:8px;">Tocca una riga per il dettaglio lavori/giorni.</p>';
+      html += '<div class="table-wrap desktop-only"><table class="data" id="tbl-operaio"><thead><tr>';
       html += thSort('operaio', 'nome', 'Nome', false);
       html += thSort('operaio', 'tipo', 'Tipo', false);
       html += thSort('operaio', 'ore', 'Ore validate', true);
@@ -497,12 +771,13 @@
       html += thSort('operaio', 'nTerreni', 'Terreni', true);
       html += '</tr></thead><tbody>';
       for (const r of byOp) {
-        html += `<tr>
+        const sel = selectedOperaioId === r.operaioId ? ' row-selected' : '';
+        html += `<tr class="row-click${sel}" data-operaio-id="${escapeHtml(r.operaioId)}">
           <td>${escapeHtml(r.nome)}</td>
-          <td>${escapeHtml(r.tipo || '—')}</td>
+          <td>${escapeHtml(labelTipoOperaio(r.tipo))}</td>
           <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
-          <td class="num">${escapeHtml(fmtEuro(r.tariffa, false))}</td>
-          <td class="num">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.tariffaMissing))}</td>
+          <td class="num${r.tariffaMissing ? ' warn-text' : ''}">${escapeHtml(r.tariffaMissing ? '—' : fmtEuro(r.tariffa, false))}</td>
+          ${costoCell(r)}
           <td class="num">${escapeHtml(fmtLavoriCell(r))}</td>
           <td class="num">${r.nTerreni}</td>
         </tr>`;
@@ -519,10 +794,11 @@
         html += thSort('capo', 'nLavori', 'Lavori', true);
         html += '</tr></thead><tbody>';
         for (const r of byCapo) {
+          const partial = !!(r.partialCosto || r.costo == null);
           html += `<tr>
             <td>${escapeHtml(r.nome)}</td>
             <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
-            <td class="num">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.costo == null))}</td>
+            <td class="num${partial ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.costo, partial))}${partial ? '<span class="warn-badge">parziale</span>' : ''}</td>
             <td class="num">${r.nOperai}</td>
             <td class="num">${r.nLavori}</td>
           </tr>`;
@@ -545,11 +821,12 @@
         html += thSort('terreno', 'euroHa', '€/ha', true);
         html += '</tr></thead><tbody>';
         for (const r of byTerr) {
+          const partial = !!(r.partialCosto || r.costo == null);
           html += `<tr>
             <td>${escapeHtml(r.terrenoNome)}</td>
             <td class="num">${escapeHtml(fmtNum(r.ettari, 2))}</td>
             <td class="num">${escapeHtml(fmtNum(r.ore, 1))}</td>
-            <td class="num">${escapeHtml(fmtEuro(r.costo, r.partialCosto || r.costo == null))}</td>
+            <td class="num${partial ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.costo, partial))}${partial ? '<span class="warn-badge">parziale</span>' : ''}</td>
             <td class="num">${escapeHtml(fmtEuro(r.euroHa, r.partialCosto))}</td>
           </tr>`;
         }
@@ -580,8 +857,13 @@
         }
       }
 
+      const chartsRow = document.getElementById('charts-row');
+      const chartMensileCard = document.querySelector('.chart-full');
       if (data.empty) {
+        destroyCharts();
         kpiHost.innerHTML = '';
+        if (chartsRow) chartsRow.classList.add('hidden');
+        if (chartMensileCard) chartMensileCard.classList.add('hidden');
         partialBanner.classList.add('hidden');
         tablesHost.innerHTML = '<div class="alert alert-info">Nessuna ora nel periodo selezionato</div>';
         if (mobileHost) mobileHost.innerHTML = '';
@@ -592,16 +874,19 @@
         return;
       }
 
+      if (chartsRow) chartsRow.classList.remove('hidden');
+      if (chartMensileCard) chartMensileCard.classList.remove('hidden');
       renderKpi(data);
+      renderCharts(data);
       renderTables(data);
 
       const notes = data.notes || [];
       if (notes.length) {
-        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno una tariffa). «—» = nessun valore noto. Per il proprietario la colonna lavori è «—» (diario, non lavori di squadra).<ul>${
+        notesBox.innerHTML = `<strong>Note:</strong> * = totale parziale (manca almeno una tariffa). Badge arancione = tariffa mancante o costo parziale. Tocca una riga operaio per il dettaglio. Per il proprietario la colonna lavori è «—».<ul>${
           notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
         }</ul>`;
       } else {
-        notesBox.innerHTML = '<span class="muted">* = parziale. Contano solo ore validate. Proprietario: lavori = «—».</span>';
+        notesBox.innerHTML = '<span class="muted">* = parziale. Contano solo ore validate. Tocca una riga operaio per il dettaglio.</span>';
       }
       setReportExportEnabled(btnExport, true);
     }
@@ -671,6 +956,7 @@
         cached = null;
         periodBundle = null;
         periodBundleKey = '';
+        destroyCharts();
         kpiHost.innerHTML = '';
         tablesHost.innerHTML = '';
         if (mobileHost) mobileHost.innerHTML = '';
@@ -790,17 +1076,42 @@
 
     tablesHost.addEventListener('click', (ev) => {
       const th = ev.target.closest('th[data-sort]');
-      if (!th || !cached) return;
-      const key = th.getAttribute('data-sort');
-      const table = th.getAttribute('data-table') || 'operaio';
-      if (sortState.table === table && sortState.key === key) {
-        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
-      } else {
-        sortState.table = table;
-        sortState.key = key;
-        sortState.dir = key === 'nome' || key === 'terrenoNome' || key === 'tipo' ? 'asc' : 'desc';
+      if (th && cached) {
+        const key = th.getAttribute('data-sort');
+        const table = th.getAttribute('data-table') || 'operaio';
+        if (sortState.table === table && sortState.key === key) {
+          sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortState.table = table;
+          sortState.key = key;
+          sortState.dir = key === 'nome' || key === 'terrenoNome' || key === 'tipo' ? 'asc' : 'desc';
+        }
+        render(cached);
+        return;
       }
-      render(cached);
+      const tr = ev.target.closest('tr.row-click[data-operaio-id]');
+      if (tr && cached) {
+        openOperaioDetail(tr.getAttribute('data-operaio-id'));
+      }
+    });
+
+    if (mobileHost) {
+      mobileHost.addEventListener('click', (ev) => {
+        const card = ev.target.closest('.m-card[data-operaio-id]');
+        if (card && cached) openOperaioDetail(card.getAttribute('data-operaio-id'));
+      });
+    }
+
+    if (detailClose) detailClose.addEventListener('click', closeDetail);
+    if (detailModal) {
+      detailModal.addEventListener('click', (ev) => {
+        if (ev.target === detailModal) closeDetail();
+      });
+    }
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && detailModal && !detailModal.classList.contains('hidden')) {
+        closeDetail();
+      }
     });
 
     selMode.addEventListener('change', onPeriodChange);

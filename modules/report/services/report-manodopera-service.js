@@ -132,19 +132,56 @@ function buildLinesFromOre(lavoriInRange, oreByLavoroId, ctx) {
 
 /**
  * Ore ancora da validare nel periodo (lavori in range, anche non completati).
+ * Linee leggere (ore + filtri + data) per grafico mensile — stessa lettura ore già in cache.
  */
-function countOreDaValidare(lavoriDocs, oreByLavoroId) {
+function buildLinesDaValidare(lavoriDocs, oreByLavoroId, ctx) {
+  const { usersById, terrenoById } = ctx || {};
+  /** @type {Array<object>} */
+  const lines = [];
   let oreDaValidare = 0;
+
   for (const lav of lavoriDocs || []) {
     const id = lav && lav.id;
-    const entry = id ? (oreByLavoroId.get(id) || { oreDocs: [] }) : { oreDocs: [] };
+    if (!id) continue;
+    const lavData = typeof lav.data === 'function' ? lav.data() : lav;
+    if (!lavData) continue;
+    const entry = oreByLavoroId.get(id) || { oreDocs: [] };
+    const metaT = terrenoMeta(terrenoById, lavData.terrenoId);
+    const caposquadraId = lavData.caposquadraId ? String(lavData.caposquadraId) : null;
+    const capoUser = caposquadraId && usersById ? usersById.get(caposquadraId) : null;
+    const dataIso = dataIsoFromAny(lavData.dataInizio || lavData.data);
+
     for (const oraDoc of entry.oreDocs || []) {
       const ora = typeof oraDoc.data === 'function' ? oraDoc.data() : oraDoc;
       if (!ora || ora.stato !== 'da_validare') continue;
-      oreDaValidare += Number(ora.oreNette) || 0;
+      const oreNette = Number(ora.oreNette) || 0;
+      if (oreNette <= 0) continue;
+      oreDaValidare += oreNette;
+      const operaioId = ora.operaioId ? String(ora.operaioId) : '';
+      const user = operaioId && usersById ? usersById.get(operaioId) : null;
+      lines.push({
+        operaioId: operaioId || null,
+        nome: operaioId ? displayNameUser(user, operaioId) : '—',
+        tipo: (user && user.tipoOperaio) || '',
+        isProprietario: false,
+        ore: oreNette,
+        tariffa: null,
+        tariffaMissing: true,
+        costo: null,
+        ...metaT,
+        dataIso,
+        tipoLavoro: lavData.tipoLavoro || '',
+        lavoroId: String(id),
+        caposquadraId,
+        caposquadraNome: caposquadraId
+          ? displayNameUser(capoUser, caposquadraId)
+          : null,
+        stato: 'da_validare'
+      });
     }
   }
-  return euro(oreDaValidare) || 0;
+
+  return { lines, oreDaValidare: euro(oreDaValidare) || 0 };
 }
 
 /**
@@ -283,7 +320,12 @@ export async function loadManodoperaPeriodBundle(start, end, opts = {}) {
     tariffeOperai: tariffe.tariffeOperai,
     terrenoById
   });
-  const oreDaValidare = countOreDaValidare(lavoriDocsOre, oreByLavoroId);
+  const daValidare = buildLinesDaValidare(lavoriDocsOre, oreByLavoroId, {
+    usersById,
+    terrenoById
+  });
+  const linesDaValidare = daValidare.lines;
+  const oreDaValidare = daValidare.oreDaValidare;
 
   // Stesso anti-doppio di Economici: diario diretto se già coperto da un lavoro completato.
   const chiaviLavoro = buildChiaviLavoroDiario(lavoriInRange);
@@ -320,6 +362,7 @@ export async function loadManodoperaPeriodBundle(start, end, opts = {}) {
 
   const data = {
     lines,
+    linesDaValidare,
     oreDaValidare,
     hasCaposquadraData,
     costoManodoperaTotale,
@@ -349,6 +392,10 @@ export function assembleManodoperaFromBundle(bundle, filters = {}) {
       byOperaio: [],
       byCaposquadra: [],
       byTerreno: [],
+      byTipo: [],
+      chartTerreno: [],
+      chartMensile: [],
+      lines: [],
       kpi: {
         oreTotali: 0,
         costoTotale: null,
@@ -367,6 +414,7 @@ export function assembleManodoperaFromBundle(bundle, filters = {}) {
   }
   return assembleManodoperaReport({
     lines: bundle.lines,
+    linesDaValidare: bundle.linesDaValidare || [],
     oreDaValidare: bundle.oreDaValidare,
     hasCaposquadraData: bundle.hasCaposquadraData
   }, filters);
@@ -404,9 +452,15 @@ export async function getManodoperaFilterOptions() {
 
 export {
   assembleManodoperaReport,
+  aggregateByTipoOperaio,
+  aggregateManodoperaTerrenoForChart,
+  aggregateMonthlyOreValidateDaValidare,
+  buildOperaioDetailRows,
   buildChiaviLavoroDiario,
   buildProprietarioLines,
+  formatEuroPrefixCompact,
   isManodoperaDataReady,
+  labelTipoOperaio,
   prepareManodoperaExportData,
   sumCostoManodoperaLines,
   PROPRIETARIO_ID,
