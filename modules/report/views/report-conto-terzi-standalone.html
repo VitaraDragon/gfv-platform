@@ -104,6 +104,11 @@
       white-space: nowrap; overflow-wrap: normal; word-break: normal;
       text-align: right; padding-left: 4px; padding-right: 4px;
     }
+    .detail-drawer table.data td.col-prev {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      overflow-wrap: normal; word-break: normal;
+    }
+    .detail-drawer table.data td.col-prev .prev-num,
     .detail-drawer table.data td.col-prev .rif-id {
       display: inline-block; max-width: 100%; overflow: hidden;
       text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
@@ -488,8 +493,8 @@
         </div>
         <div class="kpi">
           <div class="label">Preventivi</div>
-          <div class="value" style="font-size:18px;">${escapeHtml(String(k.preventiviAccettati || 0))} acc.</div>
-          <div class="kpi-sub">${escapeHtml(String(k.preventiviInAttesa || 0))} in attesa · ${escapeHtml(String(k.preventiviRifiutatiOScaduti || 0))} rifiutati/scaduti</div>
+          <div class="value" style="font-size:18px;">${escapeHtml(String(k.preventiviAccettati || 0))}</div>
+          <div class="kpi-sub">accettati o pianificati · ${escapeHtml(String(k.preventiviInAttesa || 0))} in attesa · ${escapeHtml(String(k.preventiviRifiutatiOScaduti || 0))} rifiutati/scaduti</div>
         </div>
       `;
 
@@ -616,11 +621,11 @@
             <th class="num">Ricavo</th><th class="num">Costo</th><th class="num">Margine</th><th>Preventivo</th>
           </tr></thead><tbody>`;
         for (const d of detail) {
-          const prevLabel = d.preventivoNumero || '—';
-          const prevShort = prevLabel.length > 14 ? `${prevLabel.slice(0, 13)}…` : prevLabel;
-          const prevHtml = prevShort === prevLabel
-            ? escapeHtml(prevLabel)
-            : `<span class="rif-id" title="${escapeHtml(prevLabel)}">${escapeHtml(prevShort)}</span>`;
+          const prevRif = d.preventivoRifLabel || d.preventivoNumero || '—';
+          const statoPrev = d.preventivoStato ? labelStatoPreventivo(d.preventivoStato) : '';
+          const prevTitle = statoPrev ? `${prevRif} · ${statoPrev}` : prevRif;
+          const prevHtml = `<span class="prev-num" title="${escapeHtml(prevTitle)}">${escapeHtml(prevRif)}</span>`
+            + (statoPrev ? `<div class="muted" style="font-size:11px;white-space:nowrap;">${escapeHtml(statoPrev)}</div>` : '');
           html += `<tr>
             <td class="col-data">${escapeHtml(d.dataIso || '—')}</td>
             <td class="col-tipo">${escapeHtml(d.tipoLavoro || '—')}${d.senzaPreventivo ? ' <span class="warn-badge">Senza prev.</span>' : ''}</td>
@@ -637,9 +642,12 @@
 
         html += '<div class="detail-cards">';
         for (const d of detail) {
+          const prevRif = d.preventivoRifLabel || d.preventivoNumero || '';
+          const statoPrev = d.preventivoStato ? labelStatoPreventivo(d.preventivoStato) : '';
+          const prevSub = [prevRif, statoPrev].filter(Boolean).join(' · ');
           html += `<div class="d-card">
             <div class="top">${escapeHtml(d.dataIso || '—')} · ${escapeHtml(d.tipoLavoro || '—')}</div>
-            <div class="sub">${escapeHtml(d.terrenoNome || '—')}${d.preventivoNumero ? ' · ' + escapeHtml(d.preventivoNumero) : ''}</div>
+            <div class="sub">${escapeHtml(d.terrenoNome || '—')}${prevSub ? ' · ' + escapeHtml(prevSub) : ''}</div>
             <div class="bottom">
               <span>${escapeHtml(fmtNum(d.ettari, 2))} ha · ${escapeHtml(fmtNum(d.ore, 1))} h</span>
               <strong class="${d.senzaPreventivo ? 'warn-text' : ''}">Ricavo ${escapeHtml(fmtEuro(d.ricavo, d.senzaPreventivo))} €</strong>
@@ -902,7 +910,7 @@
       wsKpi.addRow(['Clienti', exportData.kpi.nClienti]);
       wsKpi.addRow(['Lavori', exportData.kpi.nLavori]);
       wsKpi.addRow(['Preventivi in attesa', exportData.kpi.preventiviInAttesa]);
-      wsKpi.addRow(['Preventivi accettati', exportData.kpi.preventiviAccettati]);
+      wsKpi.addRow(['Preventivi accettati o pianificati', exportData.kpi.preventiviAccettati]);
       wsKpi.addRow(['Preventivi rifiutati/scaduti', exportData.kpi.preventiviRifiutatiOScaduti]);
 
       const wsCli = wb.addWorksheet('Per cliente');
