@@ -318,6 +318,27 @@ service cloud.firestore {
         && isManagerOrAdmin(tenantId);
     }
 
+    // Collection: acquirenti (anagrafica destinazioni vendita — non clienti conto terzi)
+    match /tenants/{tenantId}/acquirenti/{acquirenteId} {
+      allow read, create, update, delete: if isAuthenticated()
+        && belongsToTenant(tenantId)
+        && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: conferimenti (acquirente + prodotto + annata)
+    match /tenants/{tenantId}/conferimenti/{conferimentoId} {
+      allow read, create, update, delete: if isAuthenticated()
+        && belongsToTenant(tenantId)
+        && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: consegne (bolle / DDT verso acquirente)
+    match /tenants/{tenantId}/consegne/{consegnaId} {
+      allow read, create, update, delete: if isAuthenticated()
+        && belongsToTenant(tenantId)
+        && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: clienti
     match /tenants/{tenantId}/clienti/{clienteId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);

@@ -59,6 +59,21 @@ describe('Entrata model', () => {
     expect(t).toEqual({ registrate: 150, incassate: 100, daIncassare: 50 });
   });
 
+  it('acconto richiede acquirente e conferimento, senza quantità', () => {
+    const bad = new Entrata({ data: '2026-03-01', tipo: 'acconto', importo: 100 });
+    expect(bad.validate().valid).toBe(false);
+    const ok = new Entrata({
+      data: '2026-03-01',
+      tipo: 'acconto',
+      importo: 4200,
+      acquirenteId: 'a1',
+      conferimentoId: 'c1',
+      incassato: true
+    });
+    expect(ok.validate().valid).toBe(true);
+    expect(ok.toFirestore().quantita).toBeNull();
+  });
+
   it('filtra per periodo, tipo e coltura', () => {
     const items = [
       { data: '2025-11-10', tipo: 'altro', importo: 1, coltura: '' },

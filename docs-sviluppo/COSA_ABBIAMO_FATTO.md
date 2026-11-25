@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-24 — Report Magazzino + palette colori Report.**
+**Ultimo aggiornamento documentazione: 2026-11-25 — Vendite ed entrate + conferimenti/acconti (PR 504).**
+
+## 2026-11-25 — Vendite ed entrate: acquirenti, conferimenti, consegne, acconti (PR 504)
+
+Su `feat/registro-entrate-vendite` (PR #504 verso develop). Nessun merge, nessun deploy.
+
+Registro `entrate` (passo 1) + anagrafica `acquirenti`, `conferimenti`, `consegne`/bolle; tipi entrata `acconto`/`saldo`; riparto provvisorio per campo (stima €/q); UI acconto/consegna/vista conferimento; intent Tony acconto **solo client** (conferma obbligatoria, niente CF). Rules dedicate manager/admin. Niente indici compositi nuovi (filtri lato client). Niente Stripe/landing/report esistenti.
 
 ## 2026-11-24 — Report Magazzino (nuova sezione) + regola colori Report + rifiniture Macchine/Manodopera
 

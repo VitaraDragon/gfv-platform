@@ -7,6 +7,7 @@
   <title>Vendite ed entrate - GFV</title>
   <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
   <link rel="stylesheet" href="../styles/responsive-standalone.css">
+  <link rel="stylesheet" href="../../modules/report/styles/report-chart-palette.css">
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0fdfa; color: #134e4a; margin: 0; }
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
@@ -98,6 +99,17 @@
       .kpi-grid { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
     }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .tabs button {
+      padding: 8px 14px; border-radius: 999px; border: 1px solid #99f6e4; background: #fff;
+      color: #0f766e; cursor: pointer; font: inherit;
+    }
+    .tabs button.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+    .stima-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+      background: #fef3c7; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .campo-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
     @media (max-width: 390px) {
       .desktop-only { display: none !important; }
       .mobile-cards { display: block; }
@@ -113,7 +125,9 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn" href="../dashboard-standalone.html">← Dashboard</a>
-        <button type="button" class="btn btn-accent" id="btn-nuova">+ Nuova entrata</button>
+        <button type="button" class="btn btn-accent" id="btn-acconto">Nuovo acconto</button>
+        <button type="button" class="btn" id="btn-consegna">Nuova consegna</button>
+        <button type="button" class="btn btn-accent" id="btn-nuova">+ Altra entrata</button>
       </div>
     </div>
 
@@ -150,6 +164,8 @@
               <option value="">Tutti</option>
               <option value="vendita_prodotto">Vendita prodotto</option>
               <option value="pac_contributo">PAC / contributo</option>
+              <option value="acconto">Acconto</option>
+              <option value="saldo">Saldo</option>
               <option value="altro">Altro</option>
             </select>
           </div>
@@ -185,6 +201,12 @@
         <a id="ct-link" href="../../modules/report/views/report-conto-terzi-standalone.html">Apri report Conto terzi</a>
       </div>
 
+      <div class="tabs" role="tablist">
+        <button type="button" class="active" data-tab="lista" id="tab-lista">Registro</button>
+        <button type="button" data-tab="conferimenti" id="tab-conferimenti">Vista conferimento</button>
+      </div>
+
+      <div id="panel-lista">
       <div class="panel">
         <div id="list-alert"></div>
         <div class="table-responsive desktop-only">
@@ -205,6 +227,42 @@
         </div>
         <div class="mobile-cards" id="mobile-host"></div>
         <div id="empty-state" class="empty hidden">Nessuna entrata nel periodo selezionato.</div>
+      </div>
+      </div>
+
+      <div id="panel-conferimenti" class="hidden">
+        <div class="panel">
+          <div class="filters">
+            <div class="filter-group">
+              <label for="cf-cat">Prodotto</label>
+              <select id="cf-cat"><option value="">Tutti</option></select>
+            </div>
+            <div class="filter-group">
+              <label for="cf-acq">Acquirente</label>
+              <select id="cf-acq"><option value="">Tutti</option></select>
+            </div>
+            <div class="filter-group">
+              <label for="cf-annata">Annata</label>
+              <select id="cf-annata"><option value="">Tutte</option></select>
+            </div>
+          </div>
+          <div id="cf-detail" class="period-hint">Seleziona un conferimento dai filtri.</div>
+          <div class="table-responsive desktop-only" style="margin-top:12px;">
+            <table class="entrate-table">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Quantità (q)</th>
+                  <th>Quota acconti (stima)</th>
+                  <th>€/q</th>
+                  <th>Stato</th>
+                </tr>
+              </thead>
+              <tbody id="cf-tbody"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="cf-mobile"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -291,6 +349,99 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="modal-acconto" role="dialog" aria-modal="true">
+    <div class="modal-panel">
+      <h2>Nuovo acconto</h2>
+      <p class="iva-note">Importo senza IVA. Niente campo, kg o bolla — solo incasso sul conferimento.</p>
+      <form id="form-acconto">
+        <div class="form-grid">
+          <div>
+            <label for="ac-cat">Tipo prodotto *</label>
+            <select id="ac-cat" required></select>
+          </div>
+          <div>
+            <label for="ac-acq">Acquirente *</label>
+            <select id="ac-acq" required></select>
+          </div>
+          <div class="full">
+            <label for="ac-conf">Conferimento aperto *</label>
+            <select id="ac-conf" required></select>
+          </div>
+          <div>
+            <label for="ac-data">Data *</label>
+            <input type="date" id="ac-data" required />
+          </div>
+          <div>
+            <label for="ac-importo">Importo (€) *</label>
+            <input type="number" id="ac-importo" min="0.01" step="0.01" required />
+          </div>
+          <div>
+            <label for="ac-tipo">Tipo</label>
+            <select id="ac-tipo">
+              <option value="acconto">Acconto</option>
+              <option value="saldo">Saldo / liquidazione</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-ghost btn" data-close="modal-acconto" style="color:#0f766e;">Annulla</button>
+          <button type="submit" class="btn-accent btn" style="border:none;">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-consegna" role="dialog" aria-modal="true">
+    <div class="modal-panel">
+      <h2>Nuova consegna / bolla</h2>
+      <p class="iva-note">Se non c’è un conferimento aperto uguale, ne crea uno in un tocco.</p>
+      <form id="form-consegna">
+        <div class="form-grid">
+          <div>
+            <label for="cs-cat">Tipo prodotto *</label>
+            <select id="cs-cat" required></select>
+          </div>
+          <div>
+            <label for="cs-acq">Acquirente *</label>
+            <select id="cs-acq" required></select>
+          </div>
+          <div class="full">
+            <label for="cs-conf">Conferimento aperto</label>
+            <select id="cs-conf"><option value="">— Crea / collega in automatico —</option></select>
+          </div>
+          <div>
+            <label for="cs-data">Data *</label>
+            <input type="date" id="cs-data" required />
+          </div>
+          <div>
+            <label for="cs-bolla">N. bolla / DDT</label>
+            <input type="text" id="cs-bolla" />
+          </div>
+          <div>
+            <label for="cs-qty">Quantità netta *</label>
+            <input type="number" id="cs-qty" min="0.01" step="any" required />
+          </div>
+          <div>
+            <label for="cs-unita">Unità</label>
+            <select id="cs-unita"><option value="q">q</option><option value="kg">kg</option></select>
+          </div>
+          <div class="full">
+            <label for="cs-prodotto">Prodotto / varietà</label>
+            <input type="text" id="cs-prodotto" />
+          </div>
+          <div class="full">
+            <label for="cs-raccolta">Raccolta / campo (facoltativo)</label>
+            <select id="cs-raccolta"><option value="">— Nessuna —</option></select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-ghost btn" data-close="modal-consegna" style="color:#0f766e;">Annulla</button>
+          <button type="submit" class="btn-accent btn" style="border:none;">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="../js/standalone-bootstrap.js" data-config-base=".."></script>
   <script type="module">
     import { escapeHtml } from '../js/gfv-page-utils.js';
@@ -333,13 +484,32 @@
       totaliEntrate,
       filtraEntrate
     } from '../models/Entrata.js';
+    import { getAllAcquirenti, createAcquirente } from '../services/acquirenti-service.js';
+    import {
+      getAllConferimenti,
+      annataCorrente
+    } from '../services/conferimenti-service.js';
+    import { getAllConsegne, createConsegna } from '../services/consegne-service.js';
+    import {
+      CATEGORIE_PRODOTTO,
+      CATEGORIA_PRODOTTO_LABELS,
+      cascadeAcquirenti,
+      cascadeConferimenti,
+      coloreRigaCampo,
+      decideMigrazioneAcquirenteTesto,
+      ripartoProvvisorioPerCampo
+    } from './js/entrate-page-controllers.js';
 
     const LOG = '[entrate]';
     let allEntrate = [];
+    let allAcquirenti = [];
+    let allConferimenti = [];
+    let allConsegne = [];
     let raccolteOptions = [];
     let editingId = null;
     let importoManuale = false;
     let hasContoTerzi = false;
+    let selectedConferimentoId = null;
 
     function euro(n) {
       const v = Number(n);
@@ -488,9 +658,216 @@
     }
 
     async function reload() {
-      allEntrate = await getAllEntrate({ orderBy: 'data', orderDirection: 'desc' });
+      const [entrate, acquirenti, conferimenti, consegne] = await Promise.all([
+        getAllEntrate({ orderBy: 'data', orderDirection: 'desc' }),
+        getAllAcquirenti().catch(() => []),
+        getAllConferimenti().catch(() => []),
+        getAllConsegne().catch(() => [])
+      ]);
+      allEntrate = entrate;
+      allAcquirenti = acquirenti;
+      allConferimenti = conferimenti;
+      allConsegne = consegne;
+      fillCategoriaSelects();
+      fillCfFilters();
       renderList();
+      renderConferimentoVista();
       await loadContoTerziRow();
+    }
+
+    function fillCategoriaSelects() {
+      for (const id of ['ac-cat', 'cs-cat', 'cf-cat']) {
+        const sel = document.getElementById(id);
+        if (!sel) continue;
+        const cur = sel.value;
+        const keepAll = id === 'cf-cat';
+        sel.innerHTML = keepAll ? '<option value="">Tutti</option>' : '';
+        for (const c of CATEGORIE_PRODOTTO) {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = CATEGORIA_PRODOTTO_LABELS[c] || c;
+          sel.appendChild(opt);
+        }
+        if (cur) sel.value = cur;
+      }
+    }
+
+    function fillCascadeAcqConf(prefix) {
+      const cat = document.getElementById(prefix + '-cat').value;
+      const acqSel = document.getElementById(prefix + '-acq');
+      const confSel = document.getElementById(prefix + '-conf');
+      const { list: acqList, selectedId } = cascadeAcquirenti(allAcquirenti, cat, acqSel.value);
+      acqSel.innerHTML = '<option value="">— Seleziona —</option>';
+      for (const a of acqList) {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = a.nome;
+        acqSel.appendChild(opt);
+      }
+      if (selectedId) acqSel.value = selectedId;
+
+      const acqId = acqSel.value;
+      const { list: confList, selectedId: confId } = cascadeConferimenti(allConferimenti, {
+        acquirenteId: acqId,
+        categoria: cat,
+        preferredId: confSel.value
+      });
+      const autoOpt = prefix === 'cs'
+        ? '<option value="">— Crea / collega in automatico —</option>'
+        : '<option value="">— Seleziona —</option>';
+      confSel.innerHTML = autoOpt;
+      for (const c of confList) {
+        const acq = allAcquirenti.find((x) => x.id === c.acquirenteId);
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.labelBreve(acq ? acq.nome : '');
+        confSel.appendChild(opt);
+      }
+      if (confId) confSel.value = confId;
+    }
+
+    function fillCfFilters() {
+      const cat = document.getElementById('cf-cat').value;
+      const acqSel = document.getElementById('cf-acq');
+      const annSel = document.getElementById('cf-annata');
+      const prevAcq = acqSel.value;
+      const prevAnn = annSel.value;
+      const { list } = cascadeAcquirenti(allAcquirenti, cat, prevAcq);
+      acqSel.innerHTML = '<option value="">Tutti</option>';
+      for (const a of list) {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = a.nome;
+        acqSel.appendChild(opt);
+      }
+      if (prevAcq) acqSel.value = prevAcq;
+
+      let confs = allConferimenti.slice();
+      if (cat) confs = confs.filter((c) => c.categoriaProdotto === cat);
+      if (acqSel.value) confs = confs.filter((c) => c.acquirenteId === acqSel.value);
+      const annate = Array.from(new Set(confs.map((c) => c.annata).filter(Boolean))).sort().reverse();
+      annSel.innerHTML = '<option value="">Tutte</option>';
+      for (const a of annate) {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        annSel.appendChild(opt);
+      }
+      if (prevAnn) annSel.value = prevAnn;
+
+      if (annSel.value) confs = confs.filter((c) => c.annata === annSel.value);
+      selectedConferimentoId = confs.length === 1 ? confs[0].id : (confs.find((c) => c.id === selectedConferimentoId) || confs[0] || {}).id || null;
+    }
+
+    function renderConferimentoVista() {
+      fillCfFilters();
+      const detail = document.getElementById('cf-detail');
+      const tbody = document.getElementById('cf-tbody');
+      const mobile = document.getElementById('cf-mobile');
+      tbody.innerHTML = '';
+      mobile.innerHTML = '';
+      if (!selectedConferimentoId) {
+        detail.textContent = 'Nessun conferimento con i filtri attuali.';
+        return;
+      }
+      const conf = allConferimenti.find((c) => c.id === selectedConferimentoId);
+      const acq = conf ? allAcquirenti.find((a) => a.id === conf.acquirenteId) : null;
+      const consegne = allConsegne.filter((c) => c.conferimentoId === selectedConferimentoId);
+      const entrate = allEntrate.filter((e) => e.conferimentoId === selectedConferimentoId);
+      const riparto = ripartoProvvisorioPerCampo(consegne, entrate, selectedConferimentoId);
+      const totaleIncassi = riparto.totaleIncassi;
+      detail.innerHTML = `
+        <strong>${escapeHtml(conf ? conf.labelBreve(acq ? acq.nome : '') : '')}</strong>
+        · stato ${escapeHtml(conf && conf.stato ? conf.stato : '—')}
+        · incassi (acconti+saldi): <strong>${euro(totaleIncassi)}</strong>
+        · <span class="stima-badge">Stima provvisoria</span>
+        ${riparto.euroPerQ != null ? ' · €/q medio ' + riparto.euroPerQ : ''}`;
+
+      riparto.perCampo.forEach((row, idx) => {
+        const color = coloreRigaCampo(idx, row.nonAttribuito);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="campo-dot" style="background:${color}"></span>${escapeHtml(row.label)}</td>
+          <td>${row.quantitaQ}</td>
+          <td>${euro(row.quotaEuro)}</td>
+          <td>${row.euroPerQ != null ? row.euroPerQ : '—'}</td>
+          <td><span class="stima-badge">${escapeHtml(row.stato)}</span></td>`;
+        tbody.appendChild(tr);
+        const card = document.createElement('div');
+        card.className = 'entrate-card';
+        card.innerHTML = `
+          <h3><span class="campo-dot" style="background:${color}"></span>${escapeHtml(row.label)}</h3>
+          <div class="meta">${row.quantitaQ} q · quota ${euro(row.quotaEuro)}
+          · €/q ${row.euroPerQ != null ? row.euroPerQ : '—'}
+          · <span class="stima-badge">${escapeHtml(row.stato)}</span></div>`;
+        mobile.appendChild(card);
+      });
+    }
+
+    function openModalById(id) {
+      document.getElementById(id).classList.add('open');
+    }
+    function closeModalById(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    function openAccontoModal() {
+      document.getElementById('form-acconto').reset();
+      document.getElementById('ac-data').value = isoFromDate(new Date());
+      document.getElementById('ac-tipo').value = 'acconto';
+      fillCategoriaSelects();
+      if (!document.getElementById('ac-cat').value) document.getElementById('ac-cat').value = 'uva';
+      fillCascadeAcqConf('ac');
+      openModalById('modal-acconto');
+    }
+
+    function openConsegnaModal() {
+      document.getElementById('form-consegna').reset();
+      document.getElementById('cs-data').value = isoFromDate(new Date());
+      fillCategoriaSelects();
+      if (!document.getElementById('cs-cat').value) document.getElementById('cs-cat').value = 'uva';
+      fillCascadeAcqConf('cs');
+      const sel = document.getElementById('cs-raccolta');
+      sel.innerHTML = '<option value="">— Nessuna —</option>';
+      for (const r of raccolteOptions) {
+        const opt = document.createElement('option');
+        opt.value = r.key;
+        opt.textContent = r.label;
+        sel.appendChild(opt);
+      }
+      openModalById('modal-consegna');
+    }
+
+    async function maybeMigrateAcquirenteTesto(payload) {
+      if (payload.acquirenteId || !payload.acquirente) return payload;
+      const decision = decideMigrazioneAcquirenteTesto(payload.acquirente, allAcquirenti);
+      if (!decision) return payload;
+      if (decision.action === 'link') {
+        const ok = await showConfirmDialog({
+          title: 'Collega acquirente',
+          message: `«${decision.acquirente.nome}» è già in anagrafica. Lo collego a questa entrata?`,
+          confirmLabel: 'Collega',
+          cancelLabel: 'Lascia testo'
+        });
+        if (ok) payload.acquirenteId = decision.acquirente.id;
+        return payload;
+      }
+      const ok = await showConfirmDialog({
+        title: 'Crea acquirente',
+        message: `«${decision.nome}» non è in anagrafica. Lo creo come acquirente «altro»?`,
+        confirmLabel: 'Crea e collega',
+        cancelLabel: 'Solo testo'
+      });
+      if (ok) {
+        const id = await createAcquirente({
+          nome: decision.nome,
+          tipo: 'altro',
+          categorieProdotto: []
+        });
+        payload.acquirenteId = id;
+        allAcquirenti = await getAllAcquirenti().catch(() => allAcquirenti);
+      }
+      return payload;
     }
 
     function toggleVenditaFields() {
@@ -655,7 +1032,9 @@
                 unita: 'kg',
                 terrenoId: f.terrenoId || null,
                 fruttetoId: f.id,
-                vignetoId: null
+                vignetoId: null,
+                raccoltaModulo: 'frutta',
+                parametri: {}
               });
             }
           }
@@ -686,7 +1065,9 @@
                 unita: 'q',
                 terrenoId: v.terrenoId || null,
                 fruttetoId: null,
-                vignetoId: v.id
+                vignetoId: v.id,
+                raccoltaModulo: 'vendemmia',
+                parametri: r.gradoBabo != null ? { grado: r.gradoBabo } : {}
               });
             }
           }
@@ -715,7 +1096,9 @@
               unita: 'q',
               terrenoId: r.terrenoId || null,
               fruttetoId: null,
-              vignetoId: null
+              vignetoId: null,
+              raccoltaModulo: 'seminativo',
+              parametri: {}
             });
           }
         } catch (err) {
@@ -723,7 +1106,37 @@
         }
       }
 
-      await Promise.all([addFrutteto(), addVendemmia(), addSeminativo()]);
+      async function addOrticole() {
+        if (!mods.has('orticole')) return;
+        try {
+          const { getAllRaccolteOrticole } = await import(
+            '../../modules/orticole/services/raccolta-service.js'
+          );
+          const list = await getAllRaccolteOrticole().catch(() => []) || [];
+          for (const r of list) {
+            const d = r.data ? String(r.data).slice(0, 10) : '';
+            if (d && d < cutoffIso) continue;
+            const coltura = r.coltura || r.varieta || 'Orticole';
+            const qty = r.quantitaQli;
+            out.push({
+              key: `orticole:${r.id}`,
+              label: `${d} · Orticole · ${coltura} · ${qty != null ? qty + ' q' : '?'}`,
+              coltura,
+              quantita: qty,
+              unita: 'q',
+              terrenoId: r.terrenoId || null,
+              fruttetoId: null,
+              vignetoId: null,
+              raccoltaModulo: 'orticole',
+              parametri: {}
+            });
+          }
+        } catch (err) {
+          console.warn(LOG, 'raccolte orticole', err);
+        }
+      }
+
+      await Promise.all([addFrutteto(), addVendemmia(), addSeminativo(), addOrticole()]);
       out.sort((a, b) => String(b.label).localeCompare(String(a.label)));
       raccolteOptions = out;
     }
@@ -794,9 +1207,112 @@
     document.getElementById('sel-tipo').addEventListener('change', renderList);
     document.getElementById('filtro-coltura').addEventListener('input', renderList);
     document.getElementById('btn-nuova').addEventListener('click', openNew);
+    document.getElementById('btn-acconto').addEventListener('click', openAccontoModal);
+    document.getElementById('btn-consegna').addEventListener('click', openConsegnaModal);
     document.getElementById('btn-annulla').addEventListener('click', closeModal);
     document.getElementById('modal').addEventListener('click', (ev) => {
       if (ev.target === document.getElementById('modal')) closeModal();
+    });
+    document.querySelectorAll('[data-close]').forEach((btn) => {
+      btn.addEventListener('click', () => closeModalById(btn.getAttribute('data-close')));
+    });
+    ['modal-acconto', 'modal-consegna'].forEach((id) => {
+      document.getElementById(id).addEventListener('click', (ev) => {
+        if (ev.target === document.getElementById(id)) closeModalById(id);
+      });
+    });
+    document.getElementById('tab-lista').addEventListener('click', () => {
+      document.getElementById('tab-lista').classList.add('active');
+      document.getElementById('tab-conferimenti').classList.remove('active');
+      document.getElementById('panel-lista').classList.remove('hidden');
+      document.getElementById('panel-conferimenti').classList.add('hidden');
+    });
+    document.getElementById('tab-conferimenti').addEventListener('click', () => {
+      document.getElementById('tab-conferimenti').classList.add('active');
+      document.getElementById('tab-lista').classList.remove('active');
+      document.getElementById('panel-conferimenti').classList.remove('hidden');
+      document.getElementById('panel-lista').classList.add('hidden');
+      renderConferimentoVista();
+    });
+    ['ac-cat', 'ac-acq'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', () => fillCascadeAcqConf('ac'));
+    });
+    ['cs-cat', 'cs-acq'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', () => fillCascadeAcqConf('cs'));
+    });
+    ['cf-cat', 'cf-acq', 'cf-annata'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', () => {
+        selectedConferimentoId = null;
+        renderConferimentoVista();
+      });
+    });
+    document.getElementById('cs-raccolta').addEventListener('change', () => {
+      const meta = raccolteOptions.find((r) => r.key === document.getElementById('cs-raccolta').value);
+      if (!meta) return;
+      if (meta.coltura) document.getElementById('cs-prodotto').value = meta.coltura;
+      if (meta.quantita != null) document.getElementById('cs-qty').value = meta.quantita;
+      if (meta.unita === 'kg' || meta.unita === 'q') document.getElementById('cs-unita').value = meta.unita;
+    });
+    document.getElementById('form-acconto').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      try {
+        let confId = document.getElementById('ac-conf').value;
+        const acqId = document.getElementById('ac-acq').value;
+        const cat = document.getElementById('ac-cat').value;
+        if (!confId) {
+          const { createConferimento } = await import('../services/conferimenti-service.js');
+          confId = await createConferimento({
+            acquirenteId: acqId,
+            categoriaProdotto: cat,
+            annata: annataCorrente(),
+            stato: 'aperto'
+          });
+        }
+        const data = document.getElementById('ac-data').value;
+        await createEntrata({
+          data,
+          tipo: document.getElementById('ac-tipo').value,
+          importo: document.getElementById('ac-importo').value,
+          acquirenteId: acqId,
+          conferimentoId: confId,
+          descrizione: document.getElementById('ac-tipo').value === 'saldo' ? 'Saldo conferimento' : 'Acconto conferimento',
+          incassato: true,
+          dataIncasso: data
+        });
+        closeModalById('modal-acconto');
+        await reload();
+      } catch (err) {
+        alert(err.message || 'Errore salvataggio acconto');
+      }
+    });
+    document.getElementById('form-consegna').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      try {
+        const raccoltaKey = document.getElementById('cs-raccolta').value;
+        const meta = raccolteOptions.find((r) => r.key === raccoltaKey) || null;
+        await createConsegna({
+          data: document.getElementById('cs-data').value,
+          numeroBolla: document.getElementById('cs-bolla').value,
+          acquirenteId: document.getElementById('cs-acq').value,
+          conferimentoId: document.getElementById('cs-conf').value || null,
+          quantitaNetta: document.getElementById('cs-qty').value,
+          unita: document.getElementById('cs-unita').value,
+          prodotto: document.getElementById('cs-prodotto').value,
+          raccoltaId: raccoltaKey || null,
+          raccoltaModulo: meta ? meta.raccoltaModulo : null,
+          terrenoId: meta ? meta.terrenoId : null,
+          fruttetoId: meta ? meta.fruttetoId : null,
+          vignetoId: meta ? meta.vignetoId : null,
+          parametri: meta && meta.parametri ? meta.parametri : {}
+        }, {
+          categoriaProdotto: document.getElementById('cs-cat').value,
+          annata: annataCorrente()
+        });
+        closeModalById('modal-consegna');
+        await reload();
+      } catch (err) {
+        alert(err.message || 'Errore salvataggio consegna');
+      }
     });
     document.getElementById('f-tipo').addEventListener('change', () => {
       toggleVenditaFields();
@@ -828,7 +1344,12 @@
 
     document.getElementById('form-entrata').addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const payload = readForm();
+      let payload = readForm();
+      try {
+        payload = await maybeMigrateAcquirenteTesto(payload);
+      } catch (errMig) {
+        console.warn(LOG, 'migrazione acquirente', errMig);
+      }
       const check = new Entrata(payload).validate();
       if (!check.valid) {
         alert(check.errors.join('\n'));

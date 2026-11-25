@@ -1,15 +1,23 @@
 /**
- * Entrata — vendita prodotto, PAC/contributo o altra entrata (senza IVA).
+ * Entrata — vendita, PAC, acconto/saldo conferimento o altro (senza IVA).
  * Collection: tenants/{tenantId}/entrate
  *
  * @module core/models/Entrata
  */
 
-export const ENTRATA_TIPI = ['vendita_prodotto', 'pac_contributo', 'altro'];
+export const ENTRATA_TIPI = [
+  'vendita_prodotto',
+  'pac_contributo',
+  'acconto',
+  'saldo',
+  'altro'
+];
 
 export const ENTRATA_TIPO_LABELS = {
   vendita_prodotto: 'Vendita prodotto',
   pac_contributo: 'PAC / contributo',
+  acconto: 'Acconto',
+  saldo: 'Saldo / liquidazione',
   altro: 'Altro'
 };
 
@@ -18,7 +26,6 @@ export const ENTRATA_UNITA = ['kg', 'q', 't', 'hl', 'l', 'pezzi'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Importo calcolato da quantità × prezzo unitario (2 decimali).
  * @param {number|string|null|undefined} quantita
  * @param {number|string|null|undefined} prezzoUnitario
  * @returns {number|null}
@@ -53,7 +60,6 @@ export function totaliEntrate(items) {
 }
 
 /**
- * Filtro periodo su campo `data` (YYYY-MM-DD), inclusivo.
  * @param {Array<object>} items
  * @param {string|null|undefined} startIso
  * @param {string|null|undefined} endIso
@@ -72,12 +78,13 @@ export function filtraEntratePerPeriodo(items, startIso, endIso) {
 
 /**
  * @param {Array<object>} items
- * @param {{ start?: string|null, end?: string|null, tipo?: string|null, coltura?: string|null }} [filters]
+ * @param {{ start?: string|null, end?: string|null, tipo?: string|null, coltura?: string|null, conferimentoId?: string|null }} [filters]
  */
 export function filtraEntrate(items, filters = {}) {
   let list = filtraEntratePerPeriodo(items, filters.start, filters.end);
   const tipo = filters.tipo ? String(filters.tipo) : '';
   const coltura = filters.coltura ? String(filters.coltura).trim().toLowerCase() : '';
+  const confId = filters.conferimentoId ? String(filters.conferimentoId) : '';
   if (tipo) list = list.filter((i) => i && String(i.tipo || '') === tipo);
   if (coltura) {
     list = list.filter((i) => {
@@ -85,13 +92,17 @@ export function filtraEntrate(items, filters = {}) {
       return c.indexOf(coltura) >= 0;
     });
   }
+  if (confId) {
+    list = list.filter((i) => i && String(i.conferimentoId || '') === confId);
+  }
   return list;
 }
 
+export function isTipoConferimento(tipo) {
+  return tipo === 'acconto' || tipo === 'saldo';
+}
+
 export class Entrata {
-  /**
-   * @param {Object} data
-   */
   constructor(data = {}) {
     this.id = data.id || null;
     this.data = data.data || '';
@@ -104,6 +115,8 @@ export class Entrata {
       data.prezzoUnitario != null && data.prezzoUnitario !== '' ? Number(data.prezzoUnitario) : null;
     this.importo = data.importo != null && data.importo !== '' ? Number(data.importo) : null;
     this.acquirente = data.acquirente != null ? String(data.acquirente) : '';
+    this.acquirenteId = data.acquirenteId || null;
+    this.conferimentoId = data.conferimentoId || null;
     this.terrenoId = data.terrenoId || null;
     this.fruttetoId = data.fruttetoId || null;
     this.vignetoId = data.vignetoId || null;
@@ -119,9 +132,6 @@ export class Entrata {
     return new Entrata(data);
   }
 
-  /**
-   * Se tipo vendita e importo non impostato a mano, calcola da quantità × prezzo.
-   */
   syncImportoCalcolatoSeManca() {
     if (this.tipo !== 'vendita_prodotto') return;
     if (this.importo != null && Number.isFinite(Number(this.importo))) return;
@@ -129,9 +139,6 @@ export class Entrata {
     if (calc != null) this.importo = calc;
   }
 
-  /**
-   * @returns {{ valid: boolean, errors: string[] }}
-   */
   validate() {
     const errors = [];
 
@@ -156,6 +163,11 @@ export class Entrata {
       }
     }
 
+    if (isTipoConferimento(this.tipo)) {
+      if (!this.acquirenteId) errors.push('Acquirente obbligatorio per acconto/saldo');
+      if (!this.conferimentoId) errors.push('Conferimento obbligatorio per acconto/saldo');
+    }
+
     if (this.dataIncasso && !DATE_RE.test(String(this.dataIncasso).slice(0, 10))) {
       errors.push('Data incasso non valida (formato AAAA-MM-GG)');
     }
@@ -163,9 +175,6 @@ export class Entrata {
     return { valid: errors.length === 0, errors };
   }
 
-  /**
-   * @returns {Object}
-   */
   toFirestore() {
     this.syncImportoCalcolatoSeManca();
     const data = {
@@ -176,6 +185,8 @@ export class Entrata {
       incassato: !!this.incassato,
       note: (this.note || '').trim(),
       acquirente: (this.acquirente || '').trim() || null,
+      acquirenteId: this.acquirenteId || null,
+      conferimentoId: this.conferimentoId || null,
       terrenoId: this.terrenoId || null,
       fruttetoId: this.fruttetoId || null,
       vignetoId: this.vignetoId || null,
@@ -206,9 +217,6 @@ export class Entrata {
     return data;
   }
 
-  /**
-   * @param {Object} updates
-   */
   update(updates = {}) {
     Object.keys(updates).forEach((key) => {
       if (key === 'id' || key === 'createdAt') return;
