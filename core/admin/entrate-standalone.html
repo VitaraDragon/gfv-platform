@@ -110,6 +110,21 @@
       background: #fef3c7; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em;
     }
     .campo-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .select-with-btn { display: flex; gap: 6px; align-items: stretch; }
+    .select-with-btn select { flex: 1; min-width: 0; }
+    .select-with-btn .btn-inline {
+      padding: 8px 10px; font-size: 13px; white-space: nowrap; border-radius: 8px;
+      border: 1px solid #99f6e4; background: #fff; color: #0f766e; cursor: pointer; font: inherit;
+    }
+    .select-with-btn .btn-inline:hover { background: #ecfdf5; }
+    .check-grid { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 4px; }
+    .check-grid label { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: #134e4a; font-size: 13px; margin: 0; cursor: pointer; }
+    .acq-row {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+      padding: 12px 0; border-bottom: 1px solid #e2e8f0;
+    }
+    .acq-row:last-child { border-bottom: none; }
+    .acq-meta { font-size: 13px; color: #475569; line-height: 1.4; }
     @media (max-width: 390px) {
       .desktop-only { display: none !important; }
       .mobile-cards { display: block; }
@@ -204,6 +219,7 @@
       <div class="tabs" role="tablist">
         <button type="button" class="active" data-tab="lista" id="tab-lista">Registro</button>
         <button type="button" data-tab="conferimenti" id="tab-conferimenti">Vista conferimento</button>
+        <button type="button" data-tab="acquirenti" id="tab-acquirenti">Acquirenti</button>
       </div>
 
       <div id="panel-lista">
@@ -262,6 +278,21 @@
             </table>
           </div>
           <div class="mobile-cards" id="cf-mobile"></div>
+        </div>
+      </div>
+
+      <div id="panel-acquirenti" class="hidden">
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+            <div>
+              <strong>Anagrafica acquirenti</strong>
+              <div class="period-hint" style="margin:4px 0 0;">Nome, tipo e categorie prodotto. Gli acquirenti senza categorie non compaiono bene nelle tendine: correggili qui.</div>
+            </div>
+            <button type="button" class="btn-accent btn" id="btn-acq-nuovo-tab" style="border:none;color:#0f766e;">+ Nuovo acquirente</button>
+          </div>
+          <div id="acq-list-alert"></div>
+          <div id="acq-list-empty" class="empty hidden">Nessun acquirente in anagrafica.</div>
+          <div id="acq-list"></div>
         </div>
       </div>
     </div>
@@ -361,7 +392,10 @@
           </div>
           <div>
             <label for="ac-acq">Acquirente *</label>
-            <select id="ac-acq" required></select>
+            <div class="select-with-btn">
+              <select id="ac-acq" required></select>
+              <button type="button" class="btn-inline" id="btn-nuovo-acq-ac" title="Nuovo acquirente">+ Nuovo</button>
+            </div>
           </div>
           <div class="full">
             <label for="ac-conf">Conferimento aperto *</label>
@@ -403,7 +437,10 @@
           </div>
           <div>
             <label for="cs-acq">Acquirente *</label>
-            <select id="cs-acq" required></select>
+            <div class="select-with-btn">
+              <select id="cs-acq" required></select>
+              <button type="button" class="btn-inline" id="btn-nuovo-acq-cs" title="Nuovo acquirente">+ Nuovo</button>
+            </div>
           </div>
           <div class="full">
             <label for="cs-conf">Conferimento aperto</label>
@@ -430,12 +467,48 @@
             <input type="text" id="cs-prodotto" />
           </div>
           <div class="full">
-            <label for="cs-raccolta">Raccolta / campo (facoltativo)</label>
+            <label for="cs-raccolta">Raccolta (facoltativo)</label>
             <select id="cs-raccolta"><option value="">— Nessuna —</option></select>
+          </div>
+          <div class="full" id="wrap-cs-campo">
+            <label for="cs-campo">Campo (facoltativo, senza raccolta)</label>
+            <select id="cs-campo"><option value="">— Nessuno —</option></select>
           </div>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-ghost btn" data-close="modal-consegna" style="color:#0f766e;">Annulla</button>
+          <button type="submit" class="btn-accent btn" style="border:none;">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-acquirente" role="dialog" aria-modal="true" aria-labelledby="acq-modal-title">
+    <div class="modal-panel">
+      <h2 id="acq-modal-title">Nuovo acquirente</h2>
+      <p class="iva-note">Comparirà nelle tendine di acconto e consegna per le categorie scelte.</p>
+      <form id="form-acquirente">
+        <input type="hidden" id="acq-id" />
+        <div class="form-grid">
+          <div class="full">
+            <label for="acq-nome">Nome *</label>
+            <input type="text" id="acq-nome" required minlength="2" maxlength="120" />
+          </div>
+          <div>
+            <label for="acq-tipo">Tipo *</label>
+            <select id="acq-tipo" required></select>
+          </div>
+          <div>
+            <label for="acq-piva">P.IVA (facoltativa)</label>
+            <input type="text" id="acq-piva" inputmode="numeric" maxlength="11" placeholder="11 cifre" />
+          </div>
+          <div class="full">
+            <label>Categorie prodotto</label>
+            <div class="check-grid" id="acq-categorie"></div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-ghost btn" data-close="modal-acquirente" style="color:#0f766e;">Annulla</button>
           <button type="submit" class="btn-accent btn" style="border:none;">Salva</button>
         </div>
       </form>
@@ -484,7 +557,7 @@
       totaliEntrate,
       filtraEntrate
     } from '../models/Entrata.js';
-    import { getAllAcquirenti, createAcquirente } from '../services/acquirenti-service.js';
+    import { getAllAcquirenti, createAcquirente, updateAcquirente } from '../services/acquirenti-service.js';
     import {
       getAllConferimenti,
       annataCorrente
@@ -493,11 +566,15 @@
     import {
       CATEGORIE_PRODOTTO,
       CATEGORIA_PRODOTTO_LABELS,
+      ACQUIRENTE_TIPI,
+      ACQUIRENTE_TIPO_LABELS,
       cascadeAcquirenti,
       cascadeConferimenti,
       coloreRigaCampo,
       decideMigrazioneAcquirenteTesto,
-      ripartoProvvisorioPerCampo
+      ripartoProvvisorioPerCampo,
+      toIsoDate,
+      campiSourceForCategoria
     } from './js/entrate-page-controllers.js';
 
     const LOG = '[entrate]';
@@ -506,10 +583,15 @@
     let allConferimenti = [];
     let allConsegne = [];
     let raccolteOptions = [];
+    /** @type {Array<{ key: string, label: string, terrenoId: string|null, fruttetoId: string|null, vignetoId: string|null }>} */
+    let campiOptions = [];
     let editingId = null;
     let importoManuale = false;
     let hasContoTerzi = false;
     let selectedConferimentoId = null;
+    /** Prefisso form da cui è stato aperto il modal acquirente: 'ac' | 'cs' | null */
+    let acqModalSelectPrefix = null;
+    let moduliAttivi = [];
 
     function euro(n) {
       const v = Number(n);
@@ -672,6 +754,7 @@
       fillCfFilters();
       renderList();
       renderConferimentoVista();
+      renderAcquirentiList();
       await loadContoTerziRow();
     }
 
@@ -835,7 +918,216 @@
         opt.textContent = r.label;
         sel.appendChild(opt);
       }
+      fillCampiSelect().then(() => syncCampoVsRaccolta());
       openModalById('modal-consegna');
+    }
+
+    function fillAcqTipoSelect() {
+      const sel = document.getElementById('acq-tipo');
+      sel.innerHTML = '';
+      for (const t of ACQUIRENTE_TIPI) {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = ACQUIRENTE_TIPO_LABELS[t] || t;
+        sel.appendChild(opt);
+      }
+    }
+
+    function fillAcqCategorieChecks(selected) {
+      const host = document.getElementById('acq-categorie');
+      const set = new Set(Array.isArray(selected) ? selected : []);
+      host.innerHTML = '';
+      for (const c of CATEGORIE_PRODOTTO) {
+        const id = `acq-cat-${c}`;
+        const lab = document.createElement('label');
+        lab.setAttribute('for', id);
+        lab.innerHTML = `<input type="checkbox" id="${id}" value="${c}" ${set.has(c) ? 'checked' : ''} /> ${escapeHtml(CATEGORIA_PRODOTTO_LABELS[c] || c)}`;
+        host.appendChild(lab);
+      }
+    }
+
+    function readAcqCategorieChecks() {
+      return Array.from(document.querySelectorAll('#acq-categorie input[type="checkbox"]:checked')).map(
+        (el) => el.value
+      );
+    }
+
+    /**
+     * @param {{ mode?: 'create'|'edit', acquirente?: object|null, selectPrefix?: string|null, prefillCategoria?: string }} opts
+     */
+    function openAcquirenteModal(opts = {}) {
+      const mode = opts.mode || 'create';
+      const row = opts.acquirente || null;
+      acqModalSelectPrefix = opts.selectPrefix || null;
+      fillAcqTipoSelect();
+      document.getElementById('acq-id').value = row && row.id ? row.id : '';
+      document.getElementById('acq-nome').value = row ? row.nome || '' : '';
+      document.getElementById('acq-tipo').value = row && row.tipo ? row.tipo : 'altro';
+      document.getElementById('acq-piva').value = row && row.partitaIva ? row.partitaIva : '';
+      const prefCats =
+        row && Array.isArray(row.categorieProdotto) && row.categorieProdotto.length
+          ? row.categorieProdotto
+          : opts.prefillCategoria
+            ? [opts.prefillCategoria]
+            : [];
+      fillAcqCategorieChecks(prefCats);
+      document.getElementById('acq-modal-title').textContent =
+        mode === 'edit' ? 'Modifica acquirente' : 'Nuovo acquirente';
+      openModalById('modal-acquirente');
+      setTimeout(() => document.getElementById('acq-nome').focus(), 50);
+    }
+
+    function renderAcquirentiList() {
+      const host = document.getElementById('acq-list');
+      const empty = document.getElementById('acq-list-empty');
+      if (!host || !empty) return;
+      host.innerHTML = '';
+      const list = (allAcquirenti || []).slice().sort((a, b) =>
+        String(a.nome || '').localeCompare(String(b.nome || ''), 'it')
+      );
+      empty.classList.toggle('hidden', list.length > 0);
+      for (const a of list) {
+        const cats = (a.categorieProdotto || [])
+          .map((c) => CATEGORIA_PRODOTTO_LABELS[c] || c)
+          .join(', ');
+        const tipo = ACQUIRENTE_TIPO_LABELS[a.tipo] || a.tipo || '—';
+        const warn =
+          !a.categorieProdotto || !a.categorieProdotto.length
+            ? ' <span class="badge off">Senza categorie</span>'
+            : '';
+        const div = document.createElement('div');
+        div.className = 'acq-row';
+        div.innerHTML = `
+          <div>
+            <strong>${escapeHtml(a.nome || '')}</strong>${warn}
+            <div class="acq-meta">${escapeHtml(tipo)}${cats ? ' · ' + escapeHtml(cats) : ''}${a.partitaIva ? ' · P.IVA ' + escapeHtml(a.partitaIva) : ''}</div>
+          </div>
+          <div class="row-actions">
+            <button type="button" data-edit-acq="${escapeHtml(a.id)}">Modifica</button>
+          </div>`;
+        host.appendChild(div);
+      }
+      host.querySelectorAll('[data-edit-acq]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-edit-acq');
+          const row = allAcquirenti.find((x) => x.id === id);
+          if (row) openAcquirenteModal({ mode: 'edit', acquirente: row, selectPrefix: null });
+        });
+      });
+    }
+
+    function activateTab(name) {
+      const tabs = {
+        lista: document.getElementById('tab-lista'),
+        conferimenti: document.getElementById('tab-conferimenti'),
+        acquirenti: document.getElementById('tab-acquirenti')
+      };
+      const panels = {
+        lista: document.getElementById('panel-lista'),
+        conferimenti: document.getElementById('panel-conferimenti'),
+        acquirenti: document.getElementById('panel-acquirenti')
+      };
+      for (const key of Object.keys(tabs)) {
+        if (tabs[key]) tabs[key].classList.toggle('active', key === name);
+        if (panels[key]) panels[key].classList.toggle('hidden', key !== name);
+      }
+      if (name === 'conferimenti') renderConferimentoVista();
+      if (name === 'acquirenti') renderAcquirentiList();
+    }
+
+    async function loadCampiOptions() {
+      const mods = new Set((moduliAttivi || []).map((m) => String(m || '').toLowerCase()));
+      const out = [];
+      try {
+        if (mods.has('vigneto')) {
+          const { getAllVigneti } = await import('../../modules/vigneto/services/vigneti-service.js');
+          const list = (await getAllVigneti().catch(() => [])) || [];
+          for (const v of list) {
+            if (!v || !v.id) continue;
+            const label = v.varieta || v.nome || v.codice || `Vigneto ${v.id.slice(0, 6)}`;
+            out.push({
+              key: `vigneto:${v.id}`,
+              label: `Vigneto · ${label}`,
+              terrenoId: v.terrenoId || null,
+              fruttetoId: null,
+              vignetoId: v.id,
+              source: 'vigneti'
+            });
+          }
+        }
+      } catch (err) {
+        console.warn(LOG, 'campi vigneti', err);
+      }
+      try {
+        if (mods.has('frutteto')) {
+          const { getAllFrutteti } = await import('../../modules/frutteto/services/frutteti-service.js');
+          const list = (await getAllFrutteti().catch(() => [])) || [];
+          for (const f of list) {
+            if (!f || !f.id) continue;
+            const label = f.varieta || f.coltura || f.nome || f.codice || `Frutteto ${f.id.slice(0, 6)}`;
+            out.push({
+              key: `frutteto:${f.id}`,
+              label: `Frutteto · ${label}`,
+              terrenoId: f.terrenoId || null,
+              fruttetoId: f.id,
+              vignetoId: null,
+              source: 'frutteti'
+            });
+          }
+        }
+      } catch (err) {
+        console.warn(LOG, 'campi frutteti', err);
+      }
+      try {
+        const { getAllTerreni } = await import('../services/terreni-service.js');
+        const list = (await getAllTerreni().catch(() => [])) || [];
+        for (const t of list) {
+          if (!t || !t.id) continue;
+          const label = t.nome || t.codice || `Terreno ${t.id.slice(0, 6)}`;
+          out.push({
+            key: `terreno:${t.id}`,
+            label: `Terreno · ${label}`,
+            terrenoId: t.id,
+            fruttetoId: null,
+            vignetoId: null,
+            source: 'terreni'
+          });
+        }
+      } catch (err) {
+        console.warn(LOG, 'campi terreni', err);
+      }
+      out.sort((a, b) => String(a.label).localeCompare(String(b.label), 'it'));
+      campiOptions = out;
+    }
+
+    async function fillCampiSelect() {
+      if (!campiOptions.length) await loadCampiOptions();
+      const source = campiSourceForCategoria(document.getElementById('cs-cat').value);
+      const sel = document.getElementById('cs-campo');
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">— Nessuno —</option>';
+      const filtered = source ? campiOptions.filter((c) => c.source === source) : [];
+      for (const c of filtered) {
+        const opt = document.createElement('option');
+        opt.value = c.key;
+        opt.textContent = c.label;
+        sel.appendChild(opt);
+      }
+      if (prev && filtered.some((c) => c.key === prev)) sel.value = prev;
+      const wrap = document.getElementById('wrap-cs-campo');
+      if (wrap) wrap.classList.toggle('hidden', !source);
+    }
+
+    function syncCampoVsRaccolta() {
+      const hasRaccolta = Boolean(document.getElementById('cs-raccolta').value);
+      const wrap = document.getElementById('wrap-cs-campo');
+      const sel = document.getElementById('cs-campo');
+      if (hasRaccolta) {
+        if (wrap) wrap.classList.add('hidden');
+        if (sel) sel.value = '';
+      } else {
+        fillCampiSelect();
+      }
     }
 
     async function maybeMigrateAcquirenteTesto(payload) {
@@ -1007,7 +1299,7 @@
       const mods = new Set((moduli || []).map((m) => String(m || '').toLowerCase()));
       const cutoff = new Date();
       cutoff.setFullYear(cutoff.getFullYear() - 1);
-      const cutoffIso = isoFromDate(cutoff);
+      const cutoffIso = toIsoDate(cutoff);
       const out = [];
 
       async function addFrutteto() {
@@ -1020,7 +1312,7 @@
             if (!f || !f.id) continue;
             const list = await getRaccolte(f.id).catch(() => []) || [];
             for (const r of list) {
-              const d = r.data ? String(r.data).slice(0, 10) : '';
+              const d = toIsoDate(r.data);
               if (d && d < cutoffIso) continue;
               const coltura = r.varieta || r.specie || f.varieta || f.coltura || 'Frutta';
               const qty = r.quantitaKg;
@@ -1053,7 +1345,7 @@
             if (!v || !v.id) continue;
             const list = await getVendemmie(v.id).catch(() => []) || [];
             for (const r of list) {
-              const d = r.data ? String(r.data).slice(0, 10) : '';
+              const d = toIsoDate(r.data);
               if (d && d < cutoffIso) continue;
               const coltura = r.varieta || v.varieta || 'Uva';
               const qty = r.quantitaQli;
@@ -1084,7 +1376,7 @@
           );
           const list = await getAllRaccolteSeminativo().catch(() => []) || [];
           for (const r of list) {
-            const d = r.data ? String(r.data).slice(0, 10) : '';
+            const d = toIsoDate(r.data);
             if (d && d < cutoffIso) continue;
             const coltura = r.coltura || r.varieta || 'Seminativo';
             const qty = r.quantitaQli;
@@ -1114,7 +1406,7 @@
           );
           const list = await getAllRaccolteOrticole().catch(() => []) || [];
           for (const r of list) {
-            const d = r.data ? String(r.data).slice(0, 10) : '';
+            const d = toIsoDate(r.data);
             if (d && d < cutoffIso) continue;
             const coltura = r.coltura || r.varieta || 'Orticole';
             const qty = r.quantitaQli;
@@ -1175,12 +1467,14 @@
 
       const tenant = await getCurrentTenant().catch(() => null);
       const moduli = resolveEffectiveModules(tenant || {}) || [];
+      moduliAttivi = moduli;
       hasContoTerzi = moduli.map((m) => String(m || '').toLowerCase()).includes('contoterzi')
         || moduli.includes('contoTerzi');
 
       fillYears();
       syncPeriodUi();
       await loadRaccolteOptions(moduli);
+      await loadCampiOptions();
       await reload();
     }
 
@@ -1216,29 +1510,22 @@
     document.querySelectorAll('[data-close]').forEach((btn) => {
       btn.addEventListener('click', () => closeModalById(btn.getAttribute('data-close')));
     });
-    ['modal-acconto', 'modal-consegna'].forEach((id) => {
+    ['modal-acconto', 'modal-consegna', 'modal-acquirente'].forEach((id) => {
       document.getElementById(id).addEventListener('click', (ev) => {
         if (ev.target === document.getElementById(id)) closeModalById(id);
       });
     });
-    document.getElementById('tab-lista').addEventListener('click', () => {
-      document.getElementById('tab-lista').classList.add('active');
-      document.getElementById('tab-conferimenti').classList.remove('active');
-      document.getElementById('panel-lista').classList.remove('hidden');
-      document.getElementById('panel-conferimenti').classList.add('hidden');
-    });
-    document.getElementById('tab-conferimenti').addEventListener('click', () => {
-      document.getElementById('tab-conferimenti').classList.add('active');
-      document.getElementById('tab-lista').classList.remove('active');
-      document.getElementById('panel-conferimenti').classList.remove('hidden');
-      document.getElementById('panel-lista').classList.add('hidden');
-      renderConferimentoVista();
-    });
+    document.getElementById('tab-lista').addEventListener('click', () => activateTab('lista'));
+    document.getElementById('tab-conferimenti').addEventListener('click', () => activateTab('conferimenti'));
+    document.getElementById('tab-acquirenti').addEventListener('click', () => activateTab('acquirenti'));
     ['ac-cat', 'ac-acq'].forEach((id) => {
       document.getElementById(id).addEventListener('change', () => fillCascadeAcqConf('ac'));
     });
     ['cs-cat', 'cs-acq'].forEach((id) => {
-      document.getElementById(id).addEventListener('change', () => fillCascadeAcqConf('cs'));
+      document.getElementById(id).addEventListener('change', () => {
+        fillCascadeAcqConf('cs');
+        if (id === 'cs-cat') syncCampoVsRaccolta();
+      });
     });
     ['cf-cat', 'cf-acq', 'cf-annata'].forEach((id) => {
       document.getElementById(id).addEventListener('change', () => {
@@ -1248,10 +1535,62 @@
     });
     document.getElementById('cs-raccolta').addEventListener('change', () => {
       const meta = raccolteOptions.find((r) => r.key === document.getElementById('cs-raccolta').value);
+      syncCampoVsRaccolta();
       if (!meta) return;
       if (meta.coltura) document.getElementById('cs-prodotto').value = meta.coltura;
       if (meta.quantita != null) document.getElementById('cs-qty').value = meta.quantita;
       if (meta.unita === 'kg' || meta.unita === 'q') document.getElementById('cs-unita').value = meta.unita;
+    });
+    document.getElementById('btn-nuovo-acq-ac').addEventListener('click', () => {
+      openAcquirenteModal({
+        mode: 'create',
+        selectPrefix: 'ac',
+        prefillCategoria: document.getElementById('ac-cat').value || ''
+      });
+    });
+    document.getElementById('btn-nuovo-acq-cs').addEventListener('click', () => {
+      openAcquirenteModal({
+        mode: 'create',
+        selectPrefix: 'cs',
+        prefillCategoria: document.getElementById('cs-cat').value || ''
+      });
+    });
+    document.getElementById('btn-acq-nuovo-tab').addEventListener('click', () => {
+      openAcquirenteModal({ mode: 'create', selectPrefix: null });
+    });
+    document.getElementById('form-acquirente').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const id = document.getElementById('acq-id').value || '';
+      const payload = {
+        nome: document.getElementById('acq-nome').value,
+        tipo: document.getElementById('acq-tipo').value,
+        partitaIva: document.getElementById('acq-piva').value,
+        categorieProdotto: readAcqCategorieChecks()
+      };
+      try {
+        let savedId = id;
+        if (id) await updateAcquirente(id, payload);
+        else savedId = await createAcquirente(payload);
+        allAcquirenti = await getAllAcquirenti().catch(() => allAcquirenti);
+        closeModalById('modal-acquirente');
+        renderAcquirentiList();
+        if (acqModalSelectPrefix) {
+          const catEl = document.getElementById(acqModalSelectPrefix + '-cat');
+          const cats = payload.categorieProdotto || [];
+          if (catEl && cats.length && !cats.includes(catEl.value)) {
+            catEl.value = cats[0];
+          }
+          fillCascadeAcqConf(acqModalSelectPrefix);
+          const acqSel = document.getElementById(acqModalSelectPrefix + '-acq');
+          if (acqSel && savedId) acqSel.value = savedId;
+          fillCascadeAcqConf(acqModalSelectPrefix);
+          if (acqSel && savedId) acqSel.value = savedId;
+        }
+        fillCfFilters();
+        acqModalSelectPrefix = null;
+      } catch (err) {
+        alert(err.message || 'Errore salvataggio acquirente');
+      }
     });
     document.getElementById('form-acconto').addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -1290,6 +1629,10 @@
       try {
         const raccoltaKey = document.getElementById('cs-raccolta').value;
         const meta = raccolteOptions.find((r) => r.key === raccoltaKey) || null;
+        const campoKey = document.getElementById('cs-campo').value;
+        const campoMeta = !meta && campoKey
+          ? campiOptions.find((c) => c.key === campoKey) || null
+          : null;
         await createConsegna({
           data: document.getElementById('cs-data').value,
           numeroBolla: document.getElementById('cs-bolla').value,
@@ -1300,9 +1643,9 @@
           prodotto: document.getElementById('cs-prodotto').value,
           raccoltaId: raccoltaKey || null,
           raccoltaModulo: meta ? meta.raccoltaModulo : null,
-          terrenoId: meta ? meta.terrenoId : null,
-          fruttetoId: meta ? meta.fruttetoId : null,
-          vignetoId: meta ? meta.vignetoId : null,
+          terrenoId: meta ? meta.terrenoId : (campoMeta ? campoMeta.terrenoId : null),
+          fruttetoId: meta ? meta.fruttetoId : (campoMeta ? campoMeta.fruttetoId : null),
+          vignetoId: meta ? meta.vignetoId : (campoMeta ? campoMeta.vignetoId : null),
           parametri: meta && meta.parametri ? meta.parametri : {}
         }, {
           categoriaProdotto: document.getElementById('cs-cat').value,

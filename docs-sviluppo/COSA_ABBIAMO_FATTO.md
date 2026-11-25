@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-25 — Vendite ed entrate + conferimenti/acconti (PR 504).**
+**Ultimo aggiornamento documentazione: 2026-11-25 — Fix UI acquirenti + date raccolte + campo senza raccolta (follow-up 504).**
+
+## 2026-11-25 — Vendite ed entrate: UI acquirenti, date raccolte, campo senza raccolta
+
+Su `fix/entrate-acquirenti-ui-date-campo` (PR verso develop, follow-up della #504). Nessun merge, nessun deploy. Niente functions/rules/indici/Tony.
+
+- Modale «Nuovo / Modifica acquirente» (+ pulsante accanto alle tendine acconto/consegna) con nome, tipo, categorie, P.IVA; tab **Acquirenti** per elenco/modifica (niente cancellazione).
+- Helper `toIsoDate` per Timestamp/Date/stringa sulle etichette e sul filtro 12 mesi delle raccolte (frutteto/vendemmia/seminativo/orticole).
+- In consegna, tendina **Campo** facoltativa se non c’è raccolta (vigneti/frutteti/terreni per categoria).
 
 ## 2026-11-25 — Vendite ed entrate: acquirenti, conferimenti, consegne, acconti (PR 504)
 
