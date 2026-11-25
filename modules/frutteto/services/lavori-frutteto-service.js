@@ -137,27 +137,89 @@ export async function getLavoriPerTerreno(terrenoId, options = {}) {
 }
 
 /**
- * Aggrega spese annuali per frutteto dai lavori e dalle attività dirette del diario
- * @param {string} fruttetoId - ID frutteto
- * @param {number} anno - Anno (opzionale, default: anno corrente)
- * @returns {Promise<Object>} Spese aggregate per categoria
+ * Giorno ISO locale YYYY-MM-DD da Date / Timestamp / stringa.
+ * @param {Date|object|string|null|undefined} val
+ * @returns {string|null}
  */
-export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
+function toIsoDayLocal(val) {
+  if (!val) return null;
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) return val.slice(0, 10);
+  const d = val instanceof Date
+    ? val
+    : (typeof val.toDate === 'function' ? val.toDate() : new Date(val));
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * @param {Date|string} start
+ * @param {Date|string} end
+ * @returns {{ startIso: string, endIso: string }}
+ */
+function periodBoundsIso(start, end) {
+  const startIso = toIsoDayLocal(start) || '1970-01-01';
+  const endIso = toIsoDayLocal(end) || '9999-12-31';
+  return { startIso, endIso };
+}
+
+/**
+ * Spese vuote (stesso shape di aggregaSpeseFruttetoAnno).
+ * @returns {object}
+ */
+function emptySpeseFrutteto() {
+  return {
+    speseManodoperaAnno: 0,
+    speseMacchineAnno: 0,
+    speseProdottiAnno: 0,
+    spesePotaturaAnno: 0,
+    speseTrattamentiAnno: 0,
+    speseRaccoltaAnno: 0,
+    speseTotaleAnno: 0,
+    costoTotaleAnno: 0,
+    costiMensili: [],
+    undatedNotes: []
+  };
+}
+
+/**
+ * Aggrega spese frutteto nel periodo [start, end] (inclusive, giorno locale).
+ * Stesse fonti e regole di aggregaSpeseFruttetoAnno (lavori completati su terreno,
+ * attività dirette diario, prodotti da trattamenti), filtrate per data invece che per anno.
+ * Deduplica i lavori per id.
+ *
+ * @param {string} fruttetoId
+ * @param {Date|string} start
+ * @param {Date|string} end
+ * @returns {Promise<object>} Spese + costiMensili [{ym,costi}] + undatedNotes
+ */
+export async function aggregaSpeseFruttetoPeriodo(fruttetoId, start, end) {
   try {
     const frutteto = await getFrutteto(fruttetoId);
     if (!frutteto) {
       throw new Error('Frutteto non trovato');
     }
-    
-    const annoTarget = anno || new Date().getFullYear();
-    
-    // Carica tutti i lavori completati per il terreno del frutteto
-    const lavori = await getLavoriPerTerreno(frutteto.terrenoId, {
-      anno: annoTarget,
-      stato: 'completato' // Solo lavori completati
-    });
-    
-    // Inizializza spese (struttura allineata a vigneto: categorie dinamiche + legacy)
+
+    const { startIso, endIso } = periodBoundsIso(start, end);
+
+    // Lavori completati sul terreno: carica senza filtro anno, filtra per periodo, dedupe per id
+    const lavoriRaw = frutteto.terrenoId
+      ? await getLavoriPerTerreno(frutteto.terrenoId, { stato: 'completato' })
+      : [];
+    /** @type {Map<string, object>} */
+    const lavoriById = new Map();
+    for (const l of lavoriRaw || []) {
+      if (!l || !l.id) continue;
+      const id = String(l.id);
+      if (lavoriById.has(id)) continue;
+      const giorno = toIsoDayLocal(l.dataInizioRaw || l.dataInizio);
+      if (!giorno || giorno < startIso || giorno > endIso) continue;
+      lavoriById.set(id, l);
+    }
+    const lavori = [...lavoriById.values()];
+
     const spese = {
       speseManodoperaAnno: 0,
       speseMacchineAnno: 0,
@@ -168,12 +230,28 @@ export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
       speseTotaleAnno: 0
     };
 
+    /** @type {Map<string, number>} */
+    const costiMensiliMap = new Map();
+    /** @type {string[]} */
+    const undatedNotes = [];
+
+    function addMensile(giornoIso, importo) {
+      if (!importo || !(Number(importo) > 0)) return;
+      if (!giornoIso || !/^\d{4}-\d{2}-\d{2}$/.test(giornoIso)) {
+        undatedNotes.push(
+          `Voce di costo € ${Number(importo).toFixed(2)} senza data (nel totale KPI, assente dal grafico mensile).`
+        );
+        return;
+      }
+      const ym = giornoIso.slice(0, 7);
+      costiMensiliMap.set(ym, (costiMensiliMap.get(ym) || 0) + Number(importo));
+    }
+
     /**
-     * Aggiungi costo manodopera alla categoria dinamica e al totale
-     * @param {Object} speseObj - Oggetto spese
-     * @param {string} categoriaCodice - Codice categoria (potatura, trattamenti, raccolta, ecc.)
-     * @param {string} categoriaNome - Nome categoria per visualizzazione
-     * @param {number} importo - Importo da aggiungere
+     * @param {Object} speseObj
+     * @param {string} categoriaCodice
+     * @param {string} categoriaNome
+     * @param {number} importo
      */
     function aggiungiManodoperaPerCategoria(speseObj, categoriaCodice, categoriaNome, importo) {
       if (!importo || importo <= 0) return;
@@ -181,7 +259,7 @@ export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
         index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)
       ).join('');
       const chiaveCategoria = `manodopera${categoriaCamelCase.charAt(0).toUpperCase() + categoriaCamelCase.slice(1)}`;
-      if (!speseObj.hasOwnProperty(chiaveCategoria)) {
+      if (!Object.prototype.hasOwnProperty.call(speseObj, chiaveCategoria)) {
         speseObj[chiaveCategoria] = 0;
         speseObj[`${chiaveCategoria}_nome`] = categoriaNome;
       }
@@ -189,9 +267,9 @@ export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
       speseObj.speseManodoperaAnno += importo;
     }
 
-    // Calcola spese da ogni lavoro (con categorizzazione tipo lavoro → categoria)
     for (const lavoro of lavori) {
       const costi = await calcolaCostiLavoro(lavoro.id, lavoro);
+      const giorno = toIsoDayLocal(lavoro.dataInizioRaw || lavoro.dataInizio);
 
       const risultato = await getCategoriaManodoperaPerTipoLavoro(
         lavoro.tipoLavoro,
@@ -203,125 +281,91 @@ export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
       spese.speseMacchineAnno += costi.costoMacchine || 0;
       spese.speseProdottiAnno += costi.costoProdotti || 0;
       spese.speseTotaleAnno += costi.costoTotale || 0;
+      addMensile(giorno, costi.costoTotale || 0);
     }
-    
-    // Se ci sono lavori completati, trova la data del primo lavoro per determinare il periodo non coperto
+
     let dataPrimoLavoro = null;
     if (lavori.length > 0) {
-      // Trova la data inizio più antica tra i lavori completati
       const dateInizio = lavori
-        .map(l => {
-          const dataInizio = l.dataInizioRaw?.toDate ? l.dataInizioRaw.toDate() : (l.dataInizio ? new Date(l.dataInizio) : null);
-          if (!dataInizio || isNaN(dataInizio.getTime())) return null;
+        .map((l) => {
+          const dataInizio = l.dataInizioRaw?.toDate
+            ? l.dataInizioRaw.toDate()
+            : (l.dataInizio ? new Date(l.dataInizio) : null);
+          if (!dataInizio || Number.isNaN(dataInizio.getTime())) return null;
           return dataInizio;
         })
-        .filter(d => d !== null && !isNaN(d.getTime()));
-      
+        .filter((d) => d !== null);
       if (dateInizio.length > 0) {
-        dataPrimoLavoro = new Date(Math.min(...dateInizio.map(d => d.getTime())));
+        dataPrimoLavoro = new Date(Math.min(...dateInizio.map((d) => d.getTime())));
       }
     }
-    
-    // Carica attività dirette del diario (senza lavoroId) per il terreno del frutteto
+
     const tenantId = getCurrentTenantId();
     const db = getDb();
-    
+
     if (!db || !tenantId) {
       console.warn('[LAVORI-FRUTTETO] Database o tenantId non disponibili per caricare attività dirette');
-    } else {
+    } else if (frutteto.terrenoId) {
       try {
         const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
         const attivitaRef = collection(db, `tenants/${tenantId}/attivita`);
-        
-        // Recupera tutte le attività per il terreno (filtro lato client per lavoroId null)
-        // Firestore non supporta where('lavoroId', '==', null), quindi recuperiamo tutte e filtriamo
         const attivitaQuery = query(
           attivitaRef,
           where('terrenoId', '==', frutteto.terrenoId)
         );
-        
         const attivitaSnapshot = await getDocs(attivitaQuery);
-        
-        // Filtra lato client per anno, data, e attività dirette (senza lavoroId)
-        const annoInizio = `${annoTarget}-01-01`;
-        const annoFine = `${annoTarget}-12-31`;
-        const dataLimite = dataPrimoLavoro ? dataPrimoLavoro.toISOString().split('T')[0] : annoFine;
-        
-        // Filtra tutte le attività valide
+        const dataLimite = dataPrimoLavoro
+          ? toIsoDayLocal(dataPrimoLavoro)
+          : endIso;
+
         const attivitaValide = [];
+        /** @type {Record<string, { macchinaId: string, oreTotali: number, giorni: string[] }>} */
         const macchineMap = {};
-        
-        attivitaSnapshot.forEach(attivitaDoc => {
+
+        attivitaSnapshot.forEach((attivitaDoc) => {
           const attivita = attivitaDoc.data();
-          
-          // Filtra solo attività dirette (senza lavoroId) e aziendali (senza clienteId)
-          if (attivita.lavoroId && attivita.lavoroId !== '') {
-            return;
-          }
-          if (attivita.clienteId && attivita.clienteId !== '') {
-            return;
-          }
-          if (!attivita.data) {
-            return;
-          }
-          if (!attivita.tipoLavoro) {
-            return;
-          }
-          
-          // Filtra per anno
-          if (attivita.data < annoInizio || attivita.data > annoFine) {
-            return;
-          }
-          
-          // Se ci sono lavori completati, verifica se l'attività diretta è duplicata
-          // Un'attività diretta è considerata duplicata se:
-          // - È dello stesso giorno o dopo del primo lavoro
-          // - E ha lo stesso tipo di lavoro di un lavoro completato
-          // Altrimenti, è una lavorazione diversa e va inclusa (es. potatura vs erpicatura nello stesso giorno)
-          if (dataPrimoLavoro && attivita.data >= dataLimite) {
-            // Verifica se c'è un lavoro completato dello stesso tipo nello stesso giorno
-            const attivitaData = attivita.data;
-            const lavoroDuplicato = lavori.find(l => {
-              const dataInizio = l.dataInizioRaw?.toDate ? l.dataInizioRaw.toDate() : (l.dataInizio ? new Date(l.dataInizio) : null);
-              if (!dataInizio || isNaN(dataInizio.getTime())) return false;
-              const lavoroData = dataInizio.toISOString().split('T')[0];
-              return lavoroData === attivitaData && l.tipoLavoro === attivita.tipoLavoro;
+          if (attivita.lavoroId && attivita.lavoroId !== '') return;
+          if (attivita.clienteId && attivita.clienteId !== '') return;
+          if (!attivita.data) return;
+          if (!attivita.tipoLavoro) return;
+
+          const giornoAtt = typeof attivita.data === 'string'
+            ? attivita.data.slice(0, 10)
+            : toIsoDayLocal(attivita.data);
+          if (!giornoAtt || giornoAtt < startIso || giornoAtt > endIso) return;
+
+          if (dataPrimoLavoro && dataLimite && giornoAtt >= dataLimite) {
+            const lavoroDuplicato = lavori.find((l) => {
+              const lavoroData = toIsoDayLocal(l.dataInizioRaw || l.dataInizio);
+              return lavoroData === giornoAtt && l.tipoLavoro === attivita.tipoLavoro;
             });
-            
-            // Se c'è un lavoro duplicato (stesso tipo, stesso giorno), escludi l'attività diretta
-            if (lavoroDuplicato) {
-              return;
-            }
-            // Altrimenti, è una lavorazione diversa e va inclusa
+            if (lavoroDuplicato) return;
           }
-          
-          // Aggiungi a lista attività valide
-          attivitaValide.push(attivita);
-          
-          // Aggrega ore macchina se presenti (per calcolo costi macchine)
+
+          attivitaValide.push({ ...attivita, _giorno: giornoAtt });
+
           const oreMacchina = attivita.oreMacchina || 0;
           const macchinaId = attivita.macchinaId;
           const attrezzoId = attivita.attrezzoId;
-          
+
           if (macchinaId && oreMacchina > 0) {
             if (!macchineMap[macchinaId]) {
-              macchineMap[macchinaId] = { macchinaId: macchinaId, oreTotali: 0 };
+              macchineMap[macchinaId] = { macchinaId, oreTotali: 0, giorni: [] };
             }
             macchineMap[macchinaId].oreTotali += oreMacchina;
+            macchineMap[macchinaId].giorni.push(giornoAtt);
           }
-          
           if (attrezzoId && oreMacchina > 0) {
             if (!macchineMap[attrezzoId]) {
-              macchineMap[attrezzoId] = { macchinaId: attrezzoId, oreTotali: 0 };
+              macchineMap[attrezzoId] = { macchinaId: attrezzoId, oreTotali: 0, giorni: [] };
             }
             macchineMap[attrezzoId].oreTotali += oreMacchina;
+            macchineMap[attrezzoId].giorni.push(giornoAtt);
           }
         });
-        
-        // Calcola costi manodopera dalle attività dirette (con categorizzazione)
+
         if (attivitaValide.length > 0) {
           const tariffaProprietario = await getTariffaProprietario(tenantId);
-
           for (const attivita of attivitaValide) {
             const oreNette = attivita.oreNette || 0;
             if (oreNette > 0) {
@@ -332,28 +376,34 @@ export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
                 attivita
               );
               aggiungiManodoperaPerCategoria(spese, risultato.categoriaCodice, risultato.categoriaNome, costoManodopera);
+              addMensile(attivita._giorno, costoManodopera);
             }
           }
         }
-        
-        // Calcola costo macchine dalle attività dirette (se modulo Parco Macchine attivo)
+
         let hasParcoMacchineModule = false;
         try {
           const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
           hasParcoMacchineModule = await hasModuleAccess('parcoMacchine');
-        } catch (error) {
-          // Modulo non disponibile, ignora
-        }
-        
+        } catch (_) { /* ignore */ }
+
         if (hasParcoMacchineModule && Object.keys(macchineMap).length > 0) {
           const { getMacchina } = await import('../../../modules/parco-macchine/services/macchine-service.js');
-          
           for (const [macchinaId, datiMacchina] of Object.entries(macchineMap)) {
             try {
               const macchina = await getMacchina(macchinaId);
               if (macchina && macchina.costoOra) {
                 const costoMacchina = datiMacchina.oreTotali * macchina.costoOra;
                 spese.speseMacchineAnno += costoMacchina;
+                // Ripartisci il costo macchina sui giorni delle attività (parti uguali per ora è ok:
+                // usiamo il primo giorno come bucket se non c’è dettaglio ore/giorno)
+                const giorni = datiMacchina.giorni || [];
+                if (giorni.length === 0) {
+                  addMensile(null, costoMacchina);
+                } else {
+                  const perGiorno = costoMacchina / giorni.length;
+                  for (const g of giorni) addMensile(g, perGiorno);
+                }
               }
             } catch (error) {
               console.warn(`[LAVORI-FRUTTETO] Errore calcolo costo macchina ${macchinaId} da attività dirette:`, error);
@@ -362,58 +412,82 @@ export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
         }
       } catch (error) {
         console.warn('[LAVORI-FRUTTETO] Errore caricamento attività dirette del diario:', error);
-        // Non blocchiamo il calcolo, continuiamo con i lavori completati
       }
     }
 
-    // Costi prodotti da trattamenti (frutteti/{fruttetoId}/trattamenti) per l'anno
+    // Prodotti da trattamenti nel periodo
     try {
       const { getTrattamenti } = await import('./trattamenti-frutteto-service.js');
-      const trattamenti = await getTrattamenti(fruttetoId, { anno: annoTarget });
-      for (const t of trattamenti) {
+      const y0 = Number(startIso.slice(0, 4));
+      const y1 = Number(endIso.slice(0, 4));
+      /** @type {Map<string, object>} */
+      const trattamentiById = new Map();
+      for (let y = y0; y <= y1; y += 1) {
+        const list = await getTrattamenti(fruttetoId, { anno: y });
+        for (const t of list || []) {
+          if (!t) continue;
+          const id = t.id ? String(t.id) : `${toIsoDayLocal(t.data)}|${t.prodotto || ''}`;
+          if (trattamentiById.has(id)) continue;
+          const giorno = toIsoDayLocal(t.data);
+          if (!giorno || giorno < startIso || giorno > endIso) continue;
+          trattamentiById.set(id, t);
+        }
+      }
+      for (const t of trattamentiById.values()) {
         const costoProdotti = (t.prodotti && t.prodotti.length)
           ? t.prodotti.reduce((s, r) => s + (Number(r.costo) || 0), 0)
           : (Number(t.costoProdotto) || 0);
         spese.speseProdottiAnno += costoProdotti;
+        addMensile(toIsoDayLocal(t.data), costoProdotti);
       }
     } catch (error) {
       console.warn('[LAVORI-FRUTTETO] Errore caricamento costi prodotti da trattamenti:', error);
     }
 
-    // Ricalcola speseTotaleAnno dopo aver aggiunto le attività dirette e i prodotti trattamenti
     spese.speseTotaleAnno = spese.speseManodoperaAnno + spese.speseMacchineAnno + spese.speseProdottiAnno;
-
-    // Mappa categorie dinamiche su campi legacy (allineato a vigneto)
     spese.spesePotaturaAnno = spese.manodoperaPotatura || 0;
     spese.speseTrattamentiAnno = spese.manodoperaTrattamenti || 0;
     spese.speseRaccoltaAnno = spese.manodoperaRaccolta || 0;
-
-    // API allineata: costoTotaleAnno (come vigneto)
     spese.costoTotaleAnno = spese.speseTotaleAnno;
 
-    // Arrotonda a 2 decimali (escludi chiavi _nome)
-    Object.keys(spese).forEach(key => {
+    Object.keys(spese).forEach((key) => {
       if (key.endsWith('_nome')) return;
       const valore = spese[key];
-      if (typeof valore === 'number' && !isNaN(valore)) {
+      if (typeof valore === 'number' && !Number.isNaN(valore)) {
         spese[key] = parseFloat(valore.toFixed(2));
       }
     });
 
-    return spese;
-  } catch (error) {
-    console.error('[LAVORI-FRUTTETO] Errore aggregazione spese frutteto:', error);
+    const costiMensili = [...costiMensiliMap.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([ym, costi]) => ({
+        ym,
+        costi: parseFloat(Number(costi).toFixed(2))
+      }));
+
     return {
-      speseManodoperaAnno: 0,
-      speseMacchineAnno: 0,
-      speseProdottiAnno: 0,
-      spesePotaturaAnno: 0,
-      speseTrattamentiAnno: 0,
-      speseRaccoltaAnno: 0,
-      speseTotaleAnno: 0,
-      costoTotaleAnno: 0
+      ...spese,
+      costiMensili,
+      undatedNotes
     };
+  } catch (error) {
+    console.error('[LAVORI-FRUTTETO] Errore aggregazione spese frutteto (periodo):', error);
+    return emptySpeseFrutteto();
   }
+}
+
+/**
+ * Aggrega spese annuali per frutteto (wrapper: 1 gen – 31 dic dell’anno).
+ * Comportamento invariato rispetto alla versione pre-periodo.
+ * @param {string} fruttetoId - ID frutteto
+ * @param {number} anno - Anno (opzionale, default: anno corrente)
+ * @returns {Promise<Object>} Spese aggregate per categoria
+ */
+export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
+  const annoTarget = anno || new Date().getFullYear();
+  const start = new Date(annoTarget, 0, 1, 0, 0, 0, 0);
+  const end = new Date(annoTarget, 11, 31, 23, 59, 59, 999);
+  return aggregaSpeseFruttetoPeriodo(fruttetoId, start, end);
 }
 
 /**
@@ -777,6 +851,7 @@ export async function ricalcolaSpeseFruttetoAnno(fruttetoId, anno = null) {
 export default {
   getLavoriPerTerreno,
   aggregaSpeseFruttetoAnno,
+  aggregaSpeseFruttetoPeriodo,
   getAttivitaDirettePerTerreno,
   calcolaCostiLavoro,
   ricalcolaSpeseFruttetoAnno
