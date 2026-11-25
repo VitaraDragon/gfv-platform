@@ -59,6 +59,7 @@ const MODULE_ICON = {
   contoTerzi: 'coins',
   meteo: 'cloud',
   report: 'chart',
+  entrate: 'coins',
   diarioAttivita: 'pen',
   abbonamento: 'card',
   statistiche: 'chart',

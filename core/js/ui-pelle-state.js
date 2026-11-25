@@ -22,6 +22,7 @@ export const PELLE_ACCENT = {
   lavori: '#2E8B57',
   terreni: '#1f6b3a',
   report: '#1c1917',
+  entrate: '#0F766E',
   magazzino: '#2E7D32'
 };
 
@@ -57,6 +58,7 @@ export const PELLE_PATH_MODULES = [
   ['impegni-giornalieri', 'manodopera'],
   ['terreni-standalone', 'terreni'],
   ['mappa-aziendale', 'terreni'],
+  ['entrate-standalone', 'entrate'],
   ['attivita-standalone', 'diarioAttivita']
 ];
 
@@ -80,6 +82,13 @@ export const PELLE_SHELL_ORDER = [
   { catalogId: 'contoTerzi', hint: 'Clienti e preventivi', optional: true },
   { catalogId: 'meteo', hint: 'Sede e campi', optional: true },
   { catalogId: 'report', hint: 'Bilancio per area', optional: true },
+  {
+    id: 'entrate',
+    label: 'Vendite ed entrate',
+    hint: 'Incassi e vendite',
+    href: 'admin/entrate-standalone.html',
+    requireManagerOrAdmin: true
+  },
   { catalogId: 'diarioAttivita', hint: 'Diario', hideWhenManodopera: true },
   { catalogId: 'abbonamento', hint: 'Piano e moduli', menu: 'opzioni' },
   { catalogId: 'statistiche', hint: 'Numeri' },
@@ -200,8 +209,9 @@ export function moduleFromLocation(pathname, search) {
  * @param {Record<string, { label?: string, href?: string, hrefManodopera?: string }>|null|undefined} catalog
  * @param {string[]|null|undefined} moduliAttivi null = non ancora noti (i moduli optional restano visibili)
  * @param {Array} [order]
+ * @param {string[]|null|undefined} [ruoli] ruoli tenant; serve per voci requireManagerOrAdmin
  */
-export function visibleShellEntries(catalog, moduliAttivi, order) {
+export function visibleShellEntries(catalog, moduliAttivi, order, ruoli) {
   const active = Array.isArray(moduliAttivi) ? moduliAttivi : null;
   const list = Array.isArray(order) ? order : PELLE_SHELL_ORDER;
   const out = [];
@@ -211,6 +221,14 @@ export function visibleShellEntries(catalog, moduliAttivi, order) {
       if (!meta || !meta.href) return;
       if (item.hideWhenManodopera && active && active.indexOf('manodopera') >= 0) return;
       if (item.optional && active && active.indexOf(item.catalogId) < 0) return;
+      if (
+        item.requireManagerOrAdmin &&
+        Array.isArray(ruoli) &&
+        ruoli.length > 0 &&
+        !puoGestireUtenti(ruoli)
+      ) {
+        return;
+      }
       const href =
         item.catalogId === 'statistiche' &&
         active &&
@@ -229,6 +247,14 @@ export function visibleShellEntries(catalog, moduliAttivi, order) {
     }
     if (!item.href || !item.label) return;
     if (item.requireManodopera && active && active.indexOf('manodopera') < 0) return;
+    if (
+      item.requireManagerOrAdmin &&
+      Array.isArray(ruoli) &&
+      ruoli.length > 0 &&
+      !puoGestireUtenti(ruoli)
+    ) {
+      return;
+    }
     out.push({
       id: item.id,
       label: item.label,

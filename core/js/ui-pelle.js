@@ -220,7 +220,12 @@ function loadCatalog() {
 
 function shellEntriesFrom(catalog) {
   const moduli = window.__gfvModuliAttivi;
-  return visibleShellEntries(catalog, Array.isArray(moduli) ? moduli : null);
+  return visibleShellEntries(
+    catalog,
+    Array.isArray(moduli) ? moduli : null,
+    undefined,
+    indizioPelleCampo().ruoli
+  );
 }
 
 function linkHtml(e) {
