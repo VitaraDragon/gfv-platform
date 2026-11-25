@@ -36,6 +36,12 @@ import {
 } from './tony-segna-ora-local-engine.js?v=2026-11-05a';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
+    isAccontoUtterance,
+    resolveAccontoIntent,
+    isConfermaAffermativa,
+    isConfermaNegativa
+} from './tony-acconto-intent.js';
+import {
     risolviLavoroDaTesto,
     messaggioSceltaLavoroOre,
     nomeLavoroVisibile,
@@ -7958,6 +7964,98 @@ if (typeof window !== 'undefined') {
                 }, 150);
             }
             saveTonyState();
+
+            // Acconto cantina/cooperativa: intent locale (niente CF). Salva solo dopo conferma esplicita.
+            if (!opts.proactive && !opts._skipAccontoIntent) {
+                try {
+                    var accontoHandled = false;
+                    var pendingAcconto = null;
+                    try { pendingAcconto = window.__tonyPendingAcconto; } catch (ePendA) { pendingAcconto = null; }
+                    if (pendingAcconto && isConfermaNegativa(text)) {
+                        cancelTonyEarlyTyping();
+                        try { window.__tonyPendingAcconto = null; } catch (eClrA) { /* ignore */ }
+                        appendMessage('Ok, non registro l’acconto.', 'tony');
+                        if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
+                            window.Tony.chatHistory.push({ role: 'model', parts: [{ text: 'Ok, non registro l’acconto.' }] });
+                        }
+                        saveTonyState();
+                        releaseVoiceTurnFromIntercept();
+                        accontoHandled = true;
+                    } else if (pendingAcconto && isConfermaAffermativa(text)) {
+                        cancelTonyEarlyTyping();
+                        accontoHandled = true;
+                        (async function() {
+                            try {
+                                var entrateMod = await import('../../services/entrate-service.js');
+                                await entrateMod.createEntrata({
+                                    data: pendingAcconto.data,
+                                    tipo: pendingAcconto.tipo || 'acconto',
+                                    importo: pendingAcconto.importo,
+                                    acquirenteId: pendingAcconto.acquirenteId,
+                                    conferimentoId: pendingAcconto.conferimentoId,
+                                    descrizione: pendingAcconto.tipo === 'saldo' ? 'Saldo conferimento' : 'Acconto conferimento',
+                                    incassato: true,
+                                    dataIncasso: pendingAcconto.data
+                                });
+                                try { window.__tonyPendingAcconto = null; } catch (eClrB) { /* ignore */ }
+                                var okMsg = 'Registrato. Lo trovi in Vendite ed entrate.';
+                                appendMessage(okMsg, 'tony');
+                                if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
+                                    window.Tony.chatHistory.push({ role: 'model', parts: [{ text: okMsg }] });
+                                }
+                                if (typeof speakWithTTS === 'function') speakWithTTS(okMsg, {});
+                                saveTonyState();
+                            } catch (eSaveA) {
+                                var errMsg = 'Non sono riuscito a salvare l’acconto: ' + (eSaveA && eSaveA.message ? eSaveA.message : 'errore');
+                                appendMessage(errMsg, 'error');
+                            } finally {
+                                releaseVoiceTurnFromIntercept();
+                            }
+                        })();
+                    } else if (isAccontoUtterance(text)) {
+                        cancelTonyEarlyTyping();
+                        accontoHandled = true;
+                        (async function() {
+                            try {
+                                var acqMod = await import('../../services/acquirenti-service.js');
+                                var confMod = await import('../../services/conferimenti-service.js');
+                                var acquirenti = await acqMod.getAllAcquirenti().catch(function() { return []; });
+                                var conferimenti = await confMod.getAllConferimenti({ stato: 'aperto' }).catch(function() { return []; });
+                                var todayIso = new Date().toISOString().slice(0, 10);
+                                var resolved = resolveAccontoIntent(text, {
+                                    acquirenti: acquirenti,
+                                    conferimenti: conferimenti,
+                                    todayIso: todayIso
+                                });
+                                if (!resolved.handled) {
+                                    sendMessage(text, Object.assign({}, opts, { _skipAccontoIntent: true, _suppressUserBubble: true }));
+                                    return;
+                                }
+                                if (resolved.stato === 'conferma' && resolved.pending) {
+                                    try { window.__tonyPendingAcconto = resolved.pending; } catch (eSetP) { /* ignore */ }
+                                } else {
+                                    try { window.__tonyPendingAcconto = null; } catch (eClrC) { /* ignore */ }
+                                }
+                                appendMessage(resolved.replyText, 'tony');
+                                if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
+                                    window.Tony.chatHistory.push({ role: 'model', parts: [{ text: resolved.replyText }] });
+                                }
+                                if (typeof speakWithTTS === 'function') speakWithTTS(resolved.replyText, {});
+                                saveTonyState();
+                            } catch (eAcc) {
+                                console.warn('[Tony] Intent acconto fallito, passo alla CF', eAcc);
+                                sendMessage(text, Object.assign({}, opts, { _skipAccontoIntent: true, _suppressUserBubble: true }));
+                                return;
+                            } finally {
+                                releaseVoiceTurnFromIntercept();
+                            }
+                        })();
+                    }
+                    if (accontoHandled) return;
+                } catch (eAccOuter) {
+                    console.warn('[Tony] Acconto intercept', eAccOuter);
+                }
+            }
 
             // «Va bene» sulla fascia libera proposta: mette quegli orari, non salva il turno in conflitto.
             if (!opts.proactive && isTonySaveConfirmText(text)) {

@@ -24,6 +24,7 @@ export const MODULE_CATALOG = {
     manodopera: { label: 'Manodopera', href: '../modules/manodopera/views/manodopera-home-standalone.html', icon: '👷' },
     parcoMacchine: { label: 'Parco Macchine', href: '../modules/macchine/views/macchine-dashboard-standalone.html', icon: '🚜' },
     report: { label: 'Report', href: '../modules/report/views/report-dashboard-standalone.html', icon: '📑' },
+    entrate: { label: 'Vendite ed entrate', href: 'admin/entrate-standalone.html', icon: '💰' },
     meteo: { label: 'Meteo', href: '../modules/meteo/views/meteo-dashboard-standalone.html', icon: '🌦️' }
 };
 

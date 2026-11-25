@@ -84,12 +84,13 @@ describe('ui-pelle stato', () => {
   });
 
   test('shell legge il catalogo e nasconde i moduli non attivi', () => {
-    const entries = visibleShellEntries(catalog, ['frutteto'], undefined);
+    const entries = visibleShellEntries(catalog, ['frutteto'], undefined, ['manager']);
     const ids = entries.map((e) => e.id);
     expect(ids[0]).toBe('home');
     expect(ids).toContain('frutteto');
     expect(ids).not.toContain('lavori');
     expect(ids).toContain('impostazioni');
+    expect(ids).toContain('entrate');
     expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('impostazioni');
     expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('abbonamento');
     expect(accountMenuEntries(entries).map((e) => e.id)).toEqual(['impostazioni', 'abbonamento', 'guide', 'logout']);
@@ -101,6 +102,13 @@ describe('ui-pelle stato', () => {
     const frutteto = entries.find((e) => e.id === 'frutteto');
     expect(frutteto.href).toBe('../modules/frutteto/views/frutteto-dashboard-standalone.html');
     expect(frutteto.label).toBe('Frutteto');
+  });
+
+  test('Vendite ed entrate solo per manager/admin', () => {
+    const asManager = visibleShellEntries(catalog, [], undefined, ['manager']).map((e) => e.id);
+    const asOperaio = visibleShellEntries(catalog, [], undefined, ['operaio']).map((e) => e.id);
+    expect(asManager).toContain('entrate');
+    expect(asOperaio).not.toContain('entrate');
   });
 
   test('statistiche manodopera usa href del catalogo', () => {
