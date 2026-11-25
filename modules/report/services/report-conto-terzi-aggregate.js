@@ -61,6 +61,124 @@ export function labelStatoPreventivo(stato) {
 }
 
 /**
+ * Ripartisci un totale € su n quote per pesi (es. ettari).
+ * Arrotonda al centesimo; il resto va sull'ultima quota così la somma è esatta.
+ * Se tutti i pesi sono ≤ 0 → parti uguali.
+ *
+ * @param {number} total
+ * @param {Array<number|null|undefined>} weights
+ * @returns {Array<number|null>}
+ */
+export function allocateEuroByWeights(total, weights) {
+  const n = (weights || []).length;
+  if (n === 0) return [];
+  const tot = euro(total);
+  if (tot == null) return Array(n).fill(null);
+  if (n === 1) return [tot];
+
+  const w = weights.map((x) => {
+    const v = Number(x);
+    return !Number.isNaN(v) && v > 0 ? v : 0;
+  });
+  const sumW = w.reduce((a, b) => a + b, 0);
+  /** @type {number[]} */
+  const shares = new Array(n);
+  if (sumW <= 0) {
+    const base = euro(tot / n) ?? 0;
+    for (let i = 0; i < n - 1; i++) shares[i] = base;
+    const sumPrev = base * (n - 1);
+    shares[n - 1] = euro(tot - sumPrev) ?? 0;
+  } else {
+    for (let i = 0; i < n - 1; i++) {
+      shares[i] = euro((tot * w[i]) / sumW) ?? 0;
+    }
+    const sumPrev = shares.slice(0, -1).reduce((a, b) => a + b, 0);
+    shares[n - 1] = euro(tot - sumPrev) ?? 0;
+  }
+  return shares;
+}
+
+/**
+ * Etichetta rif. preventivo in cassetto / Excel (quota se condiviso).
+ * @param {{ preventivoNumero?: string|null, preventivoCondivisoN?: number }} row
+ */
+export function formatPreventivoRifLabel(row) {
+  if (!row) return '';
+  const num = row.preventivoNumero ? String(row.preventivoNumero) : '';
+  const n = Number(row.preventivoCondivisoN) || 0;
+  if (n > 1 && num) return `quota di ${num} (${n} lavori)`;
+  return num;
+}
+
+/**
+ * Se lo stesso preventivo è collegato a più lavori, ripartisci il ricavo
+ * in proporzione agli ettari (o in parti uguali se ettari assenti).
+ * Mutates in place; ricalcola margine e €/ha.
+ *
+ * @param {Array<object>} lavori
+ * @returns {{ nPreventiviCondivisi: number, nLavoriConQuota: number }}
+ */
+export function applyRicaviPreventiviCondivisi(lavori) {
+  /** @type {Map<string, object[]>} */
+  const byPrev = new Map();
+  for (const l of lavori || []) {
+    if (!l || l.senzaPreventivo || l.ricavo == null || !l.preventivoId) continue;
+    const key = String(l.preventivoId);
+    if (!byPrev.has(key)) byPrev.set(key, []);
+    byPrev.get(key).push(l);
+  }
+
+  let nPreventiviCondivisi = 0;
+  let nLavoriConQuota = 0;
+
+  for (const group of byPrev.values()) {
+    for (const l of group) {
+      l.preventivoCondivisoN = group.length;
+    }
+    if (group.length < 2) continue;
+    nPreventiviCondivisi += 1;
+    nLavoriConQuota += group.length;
+
+    group.sort((a, b) => {
+      const da = String(a.dataIso || '');
+      const db = String(b.dataIso || '');
+      if (da !== db) return da.localeCompare(db);
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+    const totale = group[0].ricavo;
+    // usa il totale originale del preventivo (tutti partono con lo stesso)
+    const weights = group.map((l) => Number(l.ettari) || 0);
+    const shares = allocateEuroByWeights(totale, weights);
+
+    for (let i = 0; i < group.length; i++) {
+      const l = group[i];
+      const ricavo = shares[i];
+      l.ricavo = ricavo;
+      l.preventivoRifLabel = formatPreventivoRifLabel(l);
+      if (ricavo == null || l.costo == null) {
+        l.margine = null;
+        l.partialMargine = true;
+      } else {
+        l.margine = euro(Number(ricavo) - Number(l.costo));
+        l.partialMargine = !!l.partialCosto;
+      }
+      l.euroPerHa = euroPerHa(ricavo, l.ettari);
+    }
+  }
+
+  for (const l of lavori || []) {
+    if (!l) continue;
+    if (l.preventivoCondivisoN == null) l.preventivoCondivisoN = 1;
+    if (!l.preventivoRifLabel) {
+      l.preventivoRifLabel = formatPreventivoRifLabel(l);
+    }
+  }
+
+  return { nPreventiviCondivisi, nLavoriConQuota };
+}
+
+/**
  * Ricavo da preventivo accettato: solo `totale` (imponibile, senza IVA).
  * @param {object|null|undefined} prev
  * @returns {{ ricavo: number|null, senzaPreventivo: boolean, preventivoId: string|null, preventivoNumero: string|null, stato: string|null }}
@@ -259,7 +377,8 @@ export function enrichLavoroCt(lavoro, ctx = {}) {
     costoProdotti: costi.costoProdotti,
     missingProdotti: !!costi.missingProdotti
   });
-  const ettari = resolveEttariLavoro(lavoro, prev, terreno);
+  const ettariRaw = resolveEttariLavoro(lavoro, prev, terreno);
+  const ettari = euro(ettariRaw) || 0;
   const ricavo = ricavoInfo.ricavo;
   const costo = combined.value;
   const partialCosto = combined.partial;
@@ -280,7 +399,7 @@ export function enrichLavoroCt(lavoro, ctx = {}) {
     ? (cliente.ragioneSociale || cliente.nome || clienteId)
     : (clienteId || '—');
 
-  return {
+  const row = {
     id: lavoro.id ? String(lavoro.id) : null,
     kind: lavoro._kind || 'lavoro',
     clienteId,
@@ -299,6 +418,8 @@ export function enrichLavoroCt(lavoro, ctx = {}) {
     preventivoId: ricavoInfo.preventivoId || (lavoro.preventivoId ? String(lavoro.preventivoId) : null),
     preventivoNumero,
     preventivoStato,
+    preventivoCondivisoN: 1,
+    preventivoRifLabel: '',
     costo,
     partialCosto,
     costoManodopera: costi.missingManodopera ? null : (costi.costoManodopera == null ? 0 : costi.costoManodopera),
@@ -312,6 +433,8 @@ export function enrichLavoroCt(lavoro, ctx = {}) {
     euroPerHa: euroPerHa(ricavo, ettari),
     notes: costi.notes || []
   };
+  row.preventivoRifLabel = formatPreventivoRifLabel(row);
+  return row;
 }
 
 /**
@@ -647,12 +770,12 @@ export function prepareContoTerziExportData(data) {
       cliente: l.clienteNome,
       tipo: l.tipoLavoro,
       terreno: l.terrenoNome,
-      ettari: l.ettari,
+      ettari: euro(l.ettari) || 0,
       ore: l.ore,
       ricavo: l.ricavo,
       costo: l.costo,
       margine: l.margine,
-      preventivo: l.preventivoNumero || '',
+      preventivo: formatPreventivoRifLabel(l) || l.preventivoNumero || '',
       statoPreventivo: labelStatoPreventivo(l.preventivoStato),
       senzaPreventivo: !!l.senzaPreventivo,
       costoParziale: !!l.partialCosto
@@ -738,6 +861,9 @@ export function assembleContoTerziReport(input = {}, filters = {}) {
     if (row) enrichedAll.push(row);
   }
 
+  // Un preventivo collegato a più lavori: ricavo una sola volta, ripartito per ettari.
+  applyRicaviPreventiviCondivisi(enrichedAll);
+
   const lavori = filterLavoriCt(enrichedAll, filters);
 
   // preventivi nel perimetro filtri (cliente / tipo / stato) per i KPI stato
@@ -763,6 +889,18 @@ export function assembleContoTerziReport(input = {}, filters = {}) {
   const nSenza = lavori.filter((l) => l.senzaPreventivo).length;
   if (nSenza > 0) {
     notes.push(`${nSenza} lavor${nSenza === 1 ? 'o' : 'i'} senza preventivo accettato (ricavo —; totali con *).`);
+  }
+  const preventiviCondivisiInView = new Set(
+    lavori.filter((l) => l && l.preventivoCondivisoN > 1 && l.preventivoId)
+      .map((l) => String(l.preventivoId))
+  );
+  if (preventiviCondivisiInView.size > 0) {
+    const np = preventiviCondivisiInView.size;
+    notes.push(
+      `${np} preventiv${np === 1 ? 'o' : 'i'} collegat${np === 1 ? 'o' : 'i'} a più lavori: ` +
+      'il ricavo è ripartito in quota proporzionale agli ettari (o in parti uguali se gli ettari mancano); ' +
+      'nei dettagli compare «quota di PREV-… (n lavori)».'
+    );
   }
   if (kpi.partialCosti || kpi.costi == null) {
     notes.push('Alcuni costi orari o prezzi prodotti mancano (mostrati come —; totali con * se parziali).');
