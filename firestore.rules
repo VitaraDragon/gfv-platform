@@ -311,6 +311,13 @@ service cloud.firestore {
     
     // Regole specifiche per collection Conto Terzi
     
+    // Collection: entrate (registro vendite ed entrate — solo manager/admin)
+    match /tenants/{tenantId}/entrate/{entrataId} {
+      allow read, create, update, delete: if isAuthenticated()
+        && belongsToTenant(tenantId)
+        && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: clienti
     match /tenants/{tenantId}/clienti/{clienteId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);

@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Vendite ed entrate - GFV</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
+  <link rel="stylesheet" href="../styles/responsive-standalone.css">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0fdfa; color: #134e4a; margin: 0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header {
+      background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+      color: #fff; padding: 28px; border-radius: 12px; margin-bottom: 24px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    }
+    .header h1 { margin: 0 0 6px; font-size: 1.6rem; }
+    .header p { margin: 0; opacity: 0.92; font-size: 0.95rem; }
+    .btn {
+      padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;
+      text-decoration: none; display: inline-block; background: rgba(255,255,255,0.2); color: #fff;
+      border: 1px solid rgba(255,255,255,0.35);
+    }
+    .btn:hover { background: rgba(255,255,255,0.32); }
+    .btn-accent { background: #fff; color: #0f766e; border: none; font-weight: 600; }
+    .btn-accent:hover { background: #ecfdf5; }
+    .btn-danger { background: #b91c1c; color: #fff; border: none; }
+    .btn-ghost { background: #fff; color: #0f766e; border: 1px solid #99f6e4; }
+    .panel {
+      background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(15, 118, 110, 0.08);
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: #5eead4; color: #0f766e; }
+    .filter-group select, .filter-group input, .form-grid input, .form-grid select, .form-grid textarea {
+      padding: 8px 10px; border: 1px solid #99f6e4; border-radius: 8px; font: inherit; min-width: 0;
+    }
+    .period-hint { margin-top: 10px; font-size: 13px; color: #64748b; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .kpi {
+      background: #fff; border-radius: 12px; padding: 18px; border-left: 4px solid #0f766e;
+      box-shadow: 0 2px 6px rgba(15, 118, 110, 0.08);
+    }
+    .kpi .val { font-size: 1.6rem; font-weight: 700; color: #0f766e; }
+    .kpi .lab { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; margin-top: 4px; }
+    .kpi.muted { border-left-color: #94a3b8; }
+    .kpi.muted .val { color: #475569; }
+    .kpi.warn { border-left-color: #d97706; }
+    .kpi.warn .val { color: #b45309; }
+    .ct-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;
+    }
+    .ct-row a { color: #0f766e; font-weight: 600; }
+    .table-responsive { overflow-x: auto; }
+    table.entrate-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    table.entrate-table th, table.entrate-table td {
+      text-align: left; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: top;
+    }
+    table.entrate-table th { color: #0f766e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: #ccfbf1; color: #115e59;
+    }
+    .badge.off { background: #fee2e2; color: #991b1b; }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .row-actions button { padding: 6px 10px; font-size: 13px; border-radius: 6px; cursor: pointer; border: 1px solid #99f6e4; background: #fff; color: #0f766e; }
+    .row-actions button.del { border-color: #fecaca; color: #b91c1c; }
+    .mobile-cards { display: none; }
+    .entrate-card {
+      background: #fff; border: 1px solid #ccfbf1; border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    }
+    .entrate-card h3 { margin: 0 0 8px; font-size: 1rem; }
+    .entrate-card .meta { font-size: 13px; color: #475569; line-height: 1.45; }
+    .empty { padding: 24px; text-align: center; color: #64748b; }
+    .alert { padding: 12px 14px; border-radius: 8px; margin-bottom: 12px; }
+    .alert-error { background: #fef2f2; color: #991b1b; }
+    .alert-info { background: #ecfeff; color: #155e75; }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: none;
+      align-items: center; justify-content: center; padding: 16px; z-index: 1000;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-panel {
+      background: #fff; border-radius: 12px; max-width: 560px; width: 100%; max-height: 90vh;
+      overflow: auto; padding: 20px;
+    }
+    .modal-panel h2 { margin: 0 0 8px; color: #0f766e; }
+    .iva-note { font-size: 13px; color: #64748b; margin: 0 0 14px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-grid label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #0f766e; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .hidden { display: none !important; }
+    @media (max-width: 768px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 390px) {
+      .desktop-only { display: none !important; }
+      .mobile-cards { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Vendite ed entrate</h1>
+        <p>Registro unico di come l’azienda incassa. Tutti gli importi sono <strong>senza IVA</strong>.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn" href="../dashboard-standalone.html">← Dashboard</a>
+        <button type="button" class="btn btn-accent" id="btn-nuova">+ Nuova entrata</button>
+      </div>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden">
+      <div class="alert alert-error" id="gate-message">Accesso riservato a manager e amministratori.</div>
+    </div>
+
+    <div id="main-content" class="hidden">
+      <div class="panel">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="sel-mode">Tipo periodo</label>
+            <select id="sel-mode">
+              <option value="agrarian">Annata agraria (11 nov – 10 nov)</option>
+              <option value="solar">Anno solare</option>
+              <option value="custom">Intervallo personalizzato</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-year">
+            <label for="sel-year">Anno di riferimento</label>
+            <select id="sel-year"></select>
+          </div>
+          <div class="filter-group hidden" id="group-from">
+            <label for="date-from">Da</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div class="filter-group hidden" id="group-to">
+            <label for="date-to">A</label>
+            <input type="date" id="date-to" />
+          </div>
+          <div class="filter-group">
+            <label for="sel-tipo">Tipo</label>
+            <select id="sel-tipo">
+              <option value="">Tutti</option>
+              <option value="vendita_prodotto">Vendita prodotto</option>
+              <option value="pac_contributo">PAC / contributo</option>
+              <option value="altro">Altro</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filtro-coltura">Coltura</label>
+            <input type="search" id="filtro-coltura" placeholder="Es. grano, uva…" />
+          </div>
+        </div>
+        <div class="period-hint" id="period-label"></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="val" id="kpi-registrate">—</div>
+          <div class="lab">Entrate registrate</div>
+        </div>
+        <div class="kpi muted">
+          <div class="val" id="kpi-incassate">—</div>
+          <div class="lab">Di cui incassate</div>
+        </div>
+        <div class="kpi warn">
+          <div class="val" id="kpi-da-incassare">—</div>
+          <div class="lab">Da incassare</div>
+        </div>
+      </div>
+
+      <div id="ct-row" class="ct-row hidden">
+        <div>
+          <strong>Conto terzi</strong> (sola lettura) — totale preventivi accettati/pianificati nel periodo
+          (preventivo condiviso contato una sola volta):
+          <span id="ct-totale">—</span>
+        </div>
+        <a id="ct-link" href="../../modules/report/views/report-conto-terzi-standalone.html">Apri report Conto terzi</a>
+      </div>
+
+      <div class="panel">
+        <div id="list-alert"></div>
+        <div class="table-responsive desktop-only">
+          <table class="entrate-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Descrizione</th>
+                <th>Coltura</th>
+                <th>Importo</th>
+                <th>Incasso</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="mobile-cards" id="mobile-host"></div>
+        <div id="empty-state" class="empty hidden">Nessuna entrata nel periodo selezionato.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-panel">
+      <h2 id="modal-title">Nuova entrata</h2>
+      <p class="iva-note">Gli importi sono senza IVA.</p>
+      <form id="form-entrata">
+        <input type="hidden" id="f-id" />
+        <div class="form-grid">
+          <div>
+            <label for="f-data">Data *</label>
+            <input type="date" id="f-data" required />
+          </div>
+          <div>
+            <label for="f-tipo">Tipo *</label>
+            <select id="f-tipo">
+              <option value="vendita_prodotto">Vendita prodotto</option>
+              <option value="pac_contributo">PAC / contributo</option>
+              <option value="altro">Altro</option>
+            </select>
+          </div>
+          <div class="full">
+            <label for="f-descrizione">Descrizione</label>
+            <input type="text" id="f-descrizione" maxlength="200" placeholder="Breve descrizione" />
+          </div>
+          <div class="full vendita-only">
+            <label for="f-raccolta">Collega a una raccolta (ultimi 12 mesi)</label>
+            <select id="f-raccolta"><option value="">— Nessuna —</option></select>
+          </div>
+          <div class="vendita-only">
+            <label for="f-coltura">Coltura / prodotto</label>
+            <input type="text" id="f-coltura" />
+          </div>
+          <div class="vendita-only">
+            <label for="f-quantita">Quantità</label>
+            <input type="number" id="f-quantita" min="0" step="any" />
+          </div>
+          <div class="vendita-only">
+            <label for="f-unita">Unità</label>
+            <select id="f-unita">
+              <option value="kg">kg</option>
+              <option value="q">q</option>
+              <option value="t">t</option>
+              <option value="hl">hl</option>
+              <option value="l">l</option>
+              <option value="pezzi">pezzi</option>
+            </select>
+          </div>
+          <div class="vendita-only">
+            <label for="f-prezzo">Prezzo unitario (€)</label>
+            <input type="number" id="f-prezzo" min="0" step="0.01" />
+          </div>
+          <div>
+            <label for="f-importo">Importo (€) *</label>
+            <input type="number" id="f-importo" min="0.01" step="0.01" required />
+          </div>
+          <div>
+            <label for="f-acquirente">Acquirente</label>
+            <input type="text" id="f-acquirente" />
+          </div>
+          <div>
+            <label for="f-incassato">Incassato</label>
+            <select id="f-incassato">
+              <option value="no">No</option>
+              <option value="si">Sì</option>
+            </select>
+          </div>
+          <div id="wrap-data-incasso" class="hidden">
+            <label for="f-data-incasso">Data incasso</label>
+            <input type="date" id="f-data-incasso" />
+          </div>
+          <div class="full">
+            <label for="f-note">Note</label>
+            <textarea id="f-note" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-ghost btn" id="btn-annulla" style="color:#0f766e;">Annulla</button>
+          <button type="submit" class="btn-accent btn" style="border:none;">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="../js/standalone-bootstrap.js" data-config-base=".."></script>
+  <script type="module">
+    import { escapeHtml } from '../js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+    import { showConfirmDialog } from '../../shared/js/confirm-dialog.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[entrate] Bootstrap failed:', err);
+      throw err;
+    }
+
+    import {
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } from '../services/firebase-service.js';
+    import {
+      initializeTenantService,
+      setCurrentTenantId,
+      getCurrentTenant
+    } from '../services/tenant-service.js';
+    import { resolveEffectiveModules } from '../utils/module-access-resolver.js';
+    import {
+      getAgrarianYearBounds,
+      getSolarYearBounds,
+      formatRangeIt
+    } from '../../modules/report/js/report-time-range.js';
+    import {
+      getAllEntrate,
+      createEntrata,
+      updateEntrata,
+      deleteEntrata
+    } from '../services/entrate-service.js';
+    import {
+      Entrata,
+      ENTRATA_TIPO_LABELS,
+      calcolaImportoVendita,
+      totaliEntrate,
+      filtraEntrate
+    } from '../models/Entrata.js';
+
+    const LOG = '[entrate]';
+    let allEntrate = [];
+    let raccolteOptions = [];
+    let editingId = null;
+    let importoManuale = false;
+    let hasContoTerzi = false;
+
+    function euro(n) {
+      const v = Number(n);
+      if (!Number.isFinite(v)) return '—';
+      return v.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+    }
+
+    function isoFromDate(d) {
+      if (!(d instanceof Date) || Number.isNaN(d.getTime())) return '';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function fillYears() {
+      const sel = document.getElementById('sel-year');
+      const yNow = new Date().getFullYear();
+      sel.innerHTML = '';
+      for (let y = yNow + 1; y >= yNow - 8; y -= 1) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        if (y === yNow) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    function currentPeriod() {
+      const mode = document.getElementById('sel-mode').value;
+      const year = Number(document.getElementById('sel-year').value) || new Date().getFullYear();
+      if (mode === 'custom') {
+        const from = document.getElementById('date-from').value;
+        const to = document.getElementById('date-to').value;
+        const start = from ? new Date(from + 'T00:00:00') : new Date(year, 0, 1);
+        const end = to ? new Date(to + 'T23:59:59') : new Date(year, 11, 31, 23, 59, 59, 999);
+        return { start, end, label: formatRangeIt(start, end) || 'Intervallo personalizzato' };
+      }
+      if (mode === 'solar') {
+        const b = getSolarYearBounds(new Date(year, 6, 1));
+        return b;
+      }
+      const b = getAgrarianYearBounds(new Date(year, 10, 15));
+      return b;
+    }
+
+    function syncPeriodUi() {
+      const mode = document.getElementById('sel-mode').value;
+      document.getElementById('group-year').classList.toggle('hidden', mode === 'custom');
+      document.getElementById('group-from').classList.toggle('hidden', mode !== 'custom');
+      document.getElementById('group-to').classList.toggle('hidden', mode !== 'custom');
+      const p = currentPeriod();
+      document.getElementById('period-label').textContent = p.label || formatRangeIt(p.start, p.end);
+    }
+
+    function filteredList() {
+      const p = currentPeriod();
+      return filtraEntrate(allEntrate, {
+        start: isoFromDate(p.start),
+        end: isoFromDate(p.end),
+        tipo: document.getElementById('sel-tipo').value || null,
+        coltura: document.getElementById('filtro-coltura').value || null
+      });
+    }
+
+    function renderKpi(list) {
+      const t = totaliEntrate(list);
+      document.getElementById('kpi-registrate').textContent = euro(t.registrate);
+      document.getElementById('kpi-incassate').textContent = euro(t.incassate);
+      document.getElementById('kpi-da-incassare').textContent = euro(t.daIncassare);
+    }
+
+    function renderList() {
+      const list = filteredList().slice().sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
+      renderKpi(list);
+      const tbody = document.getElementById('tbody');
+      const mobile = document.getElementById('mobile-host');
+      const empty = document.getElementById('empty-state');
+      tbody.innerHTML = '';
+      mobile.innerHTML = '';
+      empty.classList.toggle('hidden', list.length > 0);
+
+      for (const e of list) {
+        const tipoLabel = ENTRATA_TIPO_LABELS[e.tipo] || e.tipo;
+        const incHtml = e.incassato
+          ? `<span class="badge">Incassata${e.dataIncasso ? ' · ' + escapeHtml(e.dataIncasso) : ''}</span>`
+          : '<span class="badge off">Da incassare</span>';
+        const actions = `
+          <div class="row-actions">
+            <button type="button" data-edit="${escapeHtml(e.id)}">Modifica</button>
+            <button type="button" class="del" data-del="${escapeHtml(e.id)}">Elimina</button>
+          </div>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(e.data || '')}</td>
+          <td>${escapeHtml(tipoLabel)}</td>
+          <td>${escapeHtml(e.descrizione || '—')}</td>
+          <td>${escapeHtml(e.coltura || '—')}</td>
+          <td>${euro(e.importo)}</td>
+          <td>${incHtml}</td>
+          <td>${actions}</td>`;
+        tbody.appendChild(tr);
+
+        const card = document.createElement('div');
+        card.className = 'entrate-card';
+        card.innerHTML = `
+          <h3>${escapeHtml(e.descrizione || tipoLabel)} · ${euro(e.importo)}</h3>
+          <div class="meta">
+            ${escapeHtml(e.data || '')} · ${escapeHtml(tipoLabel)}
+            ${e.coltura ? ' · ' + escapeHtml(e.coltura) : ''}<br>
+            ${incHtml}
+            ${e.acquirente ? '<br>Acquirente: ' + escapeHtml(e.acquirente) : ''}
+          </div>
+          <div style="margin-top:10px;">${actions}</div>`;
+        mobile.appendChild(card);
+      }
+
+      document.querySelectorAll('[data-edit]').forEach((btn) => {
+        btn.addEventListener('click', () => openEdit(btn.getAttribute('data-edit')));
+      });
+      document.querySelectorAll('[data-del]').forEach((btn) => {
+        btn.addEventListener('click', () => onDelete(btn.getAttribute('data-del')));
+      });
+    }
+
+    async function loadContoTerziRow() {
+      const row = document.getElementById('ct-row');
+      if (!hasContoTerzi) {
+        row.classList.add('hidden');
+        return;
+      }
+      row.classList.remove('hidden');
+      try {
+        const { loadContoTerziPeriodBundle, assembleContoTerziFromBundle } = await import(
+          '../../modules/report/services/report-conto-terzi-service.js'
+        );
+        const p = currentPeriod();
+        const bundle = await loadContoTerziPeriodBundle(p.start, p.end);
+        const report = assembleContoTerziFromBundle(bundle, {});
+        const ricavi = report && report.kpi ? report.kpi.ricavi : null;
+        document.getElementById('ct-totale').textContent = euro(ricavi);
+      } catch (err) {
+        console.warn(LOG, 'conto terzi', err);
+        document.getElementById('ct-totale').textContent = '—';
+      }
+    }
+
+    async function reload() {
+      allEntrate = await getAllEntrate({ orderBy: 'data', orderDirection: 'desc' });
+      renderList();
+      await loadContoTerziRow();
+    }
+
+    function toggleVenditaFields() {
+      const vendita = document.getElementById('f-tipo').value === 'vendita_prodotto';
+      document.querySelectorAll('.vendita-only').forEach((el) => {
+        el.classList.toggle('hidden', !vendita);
+      });
+    }
+
+    function toggleIncassoFields() {
+      const si = document.getElementById('f-incassato').value === 'si';
+      document.getElementById('wrap-data-incasso').classList.toggle('hidden', !si);
+    }
+
+    function syncImportoFromCalc() {
+      if (importoManuale) return;
+      if (document.getElementById('f-tipo').value !== 'vendita_prodotto') return;
+      const calc = calcolaImportoVendita(
+        document.getElementById('f-quantita').value,
+        document.getElementById('f-prezzo').value
+      );
+      if (calc != null) document.getElementById('f-importo').value = String(calc);
+    }
+
+    function openModal(title) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+      editingId = null;
+      importoManuale = false;
+      document.getElementById('form-entrata').reset();
+      document.getElementById('f-id').value = '';
+      toggleVenditaFields();
+      toggleIncassoFields();
+    }
+
+    function fillRaccolteSelect(selected) {
+      const sel = document.getElementById('f-raccolta');
+      sel.innerHTML = '<option value="">— Nessuna —</option>';
+      for (const r of raccolteOptions) {
+        const opt = document.createElement('option');
+        opt.value = r.key;
+        opt.textContent = r.label;
+        if (selected && selected === r.key) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    function openNew() {
+      editingId = null;
+      importoManuale = false;
+      document.getElementById('form-entrata').reset();
+      document.getElementById('f-id').value = '';
+      document.getElementById('f-data').value = isoFromDate(new Date());
+      document.getElementById('f-tipo').value = 'vendita_prodotto';
+      document.getElementById('f-incassato').value = 'no';
+      fillRaccolteSelect('');
+      toggleVenditaFields();
+      toggleIncassoFields();
+      openModal('Nuova entrata');
+    }
+
+    function openEdit(id) {
+      const e = allEntrate.find((x) => x && x.id === id);
+      if (!e) return;
+      editingId = id;
+      importoManuale = true;
+      document.getElementById('f-id').value = id;
+      document.getElementById('f-data').value = e.data || '';
+      document.getElementById('f-tipo').value = e.tipo || 'vendita_prodotto';
+      document.getElementById('f-descrizione').value = e.descrizione || '';
+      document.getElementById('f-coltura').value = e.coltura || '';
+      document.getElementById('f-quantita').value = e.quantita != null ? e.quantita : '';
+      document.getElementById('f-unita').value = e.unita || 'kg';
+      document.getElementById('f-prezzo').value = e.prezzoUnitario != null ? e.prezzoUnitario : '';
+      document.getElementById('f-importo').value = e.importo != null ? e.importo : '';
+      document.getElementById('f-acquirente').value = e.acquirente || '';
+      document.getElementById('f-incassato').value = e.incassato ? 'si' : 'no';
+      document.getElementById('f-data-incasso').value = e.dataIncasso || '';
+      document.getElementById('f-note').value = e.note || '';
+      const key = e.raccoltaId || '';
+      fillRaccolteSelect(key);
+      toggleVenditaFields();
+      toggleIncassoFields();
+      openModal('Modifica entrata');
+    }
+
+    async function onDelete(id) {
+      const e = allEntrate.find((x) => x && x.id === id);
+      const ok = await showConfirmDialog({
+        title: 'Elimina entrata',
+        message: `Eliminare l’entrata del ${e && e.data ? e.data : ''} (${euro(e && e.importo)})? L’operazione non si può annullare.`,
+        confirmLabel: 'Elimina',
+        cancelLabel: 'Annulla'
+      });
+      if (!ok) return;
+      try {
+        await deleteEntrata(id);
+        await reload();
+      } catch (err) {
+        document.getElementById('list-alert').innerHTML =
+          `<div class="alert alert-error">${escapeHtml(err.message || 'Errore eliminazione')}</div>`;
+      }
+    }
+
+    function readForm() {
+      const tipo = document.getElementById('f-tipo').value;
+      const raccoltaKey = document.getElementById('f-raccolta').value || '';
+      const raccoltaMeta = raccolteOptions.find((r) => r.key === raccoltaKey) || null;
+      const data = {
+        data: document.getElementById('f-data').value,
+        tipo,
+        descrizione: document.getElementById('f-descrizione').value,
+        importo: document.getElementById('f-importo').value,
+        acquirente: document.getElementById('f-acquirente').value,
+        incassato: document.getElementById('f-incassato').value === 'si',
+        dataIncasso: document.getElementById('f-data-incasso').value || null,
+        note: document.getElementById('f-note').value,
+        terrenoId: raccoltaMeta ? raccoltaMeta.terrenoId : null,
+        fruttetoId: raccoltaMeta ? raccoltaMeta.fruttetoId : null,
+        vignetoId: raccoltaMeta ? raccoltaMeta.vignetoId : null,
+        raccoltaId: raccoltaKey || null
+      };
+      if (tipo === 'vendita_prodotto') {
+        data.coltura = document.getElementById('f-coltura').value;
+        data.quantita = document.getElementById('f-quantita').value;
+        data.unita = document.getElementById('f-unita').value;
+        data.prezzoUnitario = document.getElementById('f-prezzo').value;
+      }
+      return data;
+    }
+
+    async function loadRaccolteOptions(moduli) {
+      const mods = new Set((moduli || []).map((m) => String(m || '').toLowerCase()));
+      const cutoff = new Date();
+      cutoff.setFullYear(cutoff.getFullYear() - 1);
+      const cutoffIso = isoFromDate(cutoff);
+      const out = [];
+
+      async function addFrutteto() {
+        if (!mods.has('frutteto')) return;
+        try {
+          const { getAllFrutteti } = await import('../../modules/frutteto/services/frutteti-service.js');
+          const { getRaccolte } = await import('../../modules/frutteto/services/raccolta-frutta-service.js');
+          const frutteti = await getAllFrutteti().catch(() => []) || [];
+          for (const f of frutteti) {
+            if (!f || !f.id) continue;
+            const list = await getRaccolte(f.id).catch(() => []) || [];
+            for (const r of list) {
+              const d = r.data ? String(r.data).slice(0, 10) : '';
+              if (d && d < cutoffIso) continue;
+              const coltura = r.varieta || r.specie || f.varieta || f.coltura || 'Frutta';
+              const qty = r.quantitaKg;
+              out.push({
+                key: `frutteto:${f.id}:${r.id}`,
+                label: `${d} · Frutteto · ${coltura} · ${qty != null ? qty + ' kg' : '?'}`,
+                coltura,
+                quantita: qty,
+                unita: 'kg',
+                terrenoId: f.terrenoId || null,
+                fruttetoId: f.id,
+                vignetoId: null
+              });
+            }
+          }
+        } catch (err) {
+          console.warn(LOG, 'raccolte frutteto', err);
+        }
+      }
+
+      async function addVendemmia() {
+        if (!mods.has('vigneto')) return;
+        try {
+          const { getAllVigneti } = await import('../../modules/vigneto/services/vigneti-service.js');
+          const { getVendemmie } = await import('../../modules/vigneto/services/vendemmia-service.js');
+          const vigneti = await getAllVigneti().catch(() => []) || [];
+          for (const v of vigneti) {
+            if (!v || !v.id) continue;
+            const list = await getVendemmie(v.id).catch(() => []) || [];
+            for (const r of list) {
+              const d = r.data ? String(r.data).slice(0, 10) : '';
+              if (d && d < cutoffIso) continue;
+              const coltura = r.varieta || v.varieta || 'Uva';
+              const qty = r.quantitaQli;
+              out.push({
+                key: `vendemmia:${v.id}:${r.id}`,
+                label: `${d} · Vendemmia · ${coltura} · ${qty != null ? qty + ' q' : '?'}`,
+                coltura,
+                quantita: qty,
+                unita: 'q',
+                terrenoId: v.terrenoId || null,
+                fruttetoId: null,
+                vignetoId: v.id
+              });
+            }
+          }
+        } catch (err) {
+          console.warn(LOG, 'vendemmie', err);
+        }
+      }
+
+      async function addSeminativo() {
+        if (!mods.has('seminativo')) return;
+        try {
+          const { getAllRaccolteSeminativo } = await import(
+            '../../modules/seminativo/services/raccolta-service.js'
+          );
+          const list = await getAllRaccolteSeminativo().catch(() => []) || [];
+          for (const r of list) {
+            const d = r.data ? String(r.data).slice(0, 10) : '';
+            if (d && d < cutoffIso) continue;
+            const coltura = r.coltura || r.varieta || 'Seminativo';
+            const qty = r.quantitaQli;
+            out.push({
+              key: `seminativo:${r.id}`,
+              label: `${d} · Seminativo · ${coltura} · ${qty != null ? qty + ' q' : '?'}`,
+              coltura,
+              quantita: qty,
+              unita: 'q',
+              terrenoId: r.terrenoId || null,
+              fruttetoId: null,
+              vignetoId: null
+            });
+          }
+        } catch (err) {
+          console.warn(LOG, 'raccolte seminativo', err);
+        }
+      }
+
+      await Promise.all([addFrutteto(), addVendemmia(), addSeminativo()]);
+      out.sort((a, b) => String(b.label).localeCompare(String(a.label)));
+      raccolteOptions = out;
+    }
+
+    function isManagerOrAdmin(roles) {
+      const low = (roles || []).map((r) => String(r || '').toLowerCase());
+      return low.includes('manager') || low.includes('amministratore');
+    }
+
+    async function bootstrapUser(user) {
+      if (!user) {
+        window.location.href = loginPageUrl('../auth/login-standalone.html');
+        return;
+      }
+      await initializeTenantService();
+      const resolved = await resolveAuthUser(user);
+      const tenantId = resolved && resolved.tenantId;
+      if (tenantId) setCurrentTenantId(tenantId);
+
+      const userDoc = await getDocumentData('users', user.uid).catch(() => null);
+      let roles = [];
+      if (userDoc && userDoc.tenantMemberships && tenantId && userDoc.tenantMemberships[tenantId]) {
+        roles = userDoc.tenantMemberships[tenantId].ruoli || [];
+      } else if (userDoc && Array.isArray(userDoc.ruoli)) {
+        roles = userDoc.ruoli;
+      }
+
+      if (!isManagerOrAdmin(roles)) {
+        document.getElementById('gate-blocked').classList.remove('hidden');
+        document.getElementById('main-content').classList.add('hidden');
+        return;
+      }
+
+      document.getElementById('gate-blocked').classList.add('hidden');
+      document.getElementById('main-content').classList.remove('hidden');
+
+      const tenant = await getCurrentTenant().catch(() => null);
+      const moduli = resolveEffectiveModules(tenant || {}) || [];
+      hasContoTerzi = moduli.map((m) => String(m || '').toLowerCase()).includes('contoterzi')
+        || moduli.includes('contoTerzi');
+
+      fillYears();
+      syncPeriodUi();
+      await loadRaccolteOptions(moduli);
+      await reload();
+    }
+
+    document.getElementById('sel-mode').addEventListener('change', () => {
+      syncPeriodUi();
+      renderList();
+      loadContoTerziRow();
+    });
+    document.getElementById('sel-year').addEventListener('change', () => {
+      syncPeriodUi();
+      renderList();
+      loadContoTerziRow();
+    });
+    document.getElementById('date-from').addEventListener('change', () => {
+      syncPeriodUi();
+      renderList();
+      loadContoTerziRow();
+    });
+    document.getElementById('date-to').addEventListener('change', () => {
+      syncPeriodUi();
+      renderList();
+      loadContoTerziRow();
+    });
+    document.getElementById('sel-tipo').addEventListener('change', renderList);
+    document.getElementById('filtro-coltura').addEventListener('input', renderList);
+    document.getElementById('btn-nuova').addEventListener('click', openNew);
+    document.getElementById('btn-annulla').addEventListener('click', closeModal);
+    document.getElementById('modal').addEventListener('click', (ev) => {
+      if (ev.target === document.getElementById('modal')) closeModal();
+    });
+    document.getElementById('f-tipo').addEventListener('change', () => {
+      toggleVenditaFields();
+      importoManuale = false;
+      syncImportoFromCalc();
+    });
+    document.getElementById('f-incassato').addEventListener('change', toggleIncassoFields);
+    document.getElementById('f-quantita').addEventListener('input', () => {
+      importoManuale = false;
+      syncImportoFromCalc();
+    });
+    document.getElementById('f-prezzo').addEventListener('input', () => {
+      importoManuale = false;
+      syncImportoFromCalc();
+    });
+    document.getElementById('f-importo').addEventListener('input', () => {
+      importoManuale = true;
+    });
+    document.getElementById('f-raccolta').addEventListener('change', () => {
+      const key = document.getElementById('f-raccolta').value;
+      const meta = raccolteOptions.find((r) => r.key === key);
+      if (!meta) return;
+      if (meta.coltura) document.getElementById('f-coltura').value = meta.coltura;
+      if (meta.quantita != null) document.getElementById('f-quantita').value = meta.quantita;
+      if (meta.unita) document.getElementById('f-unita').value = meta.unita;
+      importoManuale = false;
+      syncImportoFromCalc();
+    });
+
+    document.getElementById('form-entrata').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const payload = readForm();
+      const check = new Entrata(payload).validate();
+      if (!check.valid) {
+        alert(check.errors.join('\n'));
+        return;
+      }
+      try {
+        if (editingId) await updateEntrata(editingId, payload);
+        else await createEntrata(payload);
+        closeModal();
+        await reload();
+      } catch (err) {
+        alert(err.message || 'Errore salvataggio');
+      }
+    });
+
+    const auth = getAuthInstance();
+    onAuthStateChanged(auth, (user) => {
+      bootstrapUser(user).catch((err) => {
+        console.error(LOG, err);
+        document.getElementById('gate-blocked').classList.remove('hidden');
+        document.getElementById('gate-message').textContent = err.message || 'Errore di accesso';
+      });
+    });
+
+  </script>
+</body>
+</html>
