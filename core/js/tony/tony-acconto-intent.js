@@ -40,6 +40,20 @@ export function parseImportoEuro(raw) {
 }
 
 /**
+ * Data locale YYYY-MM-DD (non UTC: evita giorno-prima tra 00:00 e 01:00/02:00 IT).
+ * @param {Date} [date]
+ * @returns {string}
+ */
+export function todayIsoLocal(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
  * @param {string} text
  * @returns {boolean}
  */
@@ -103,6 +117,7 @@ export function matchConferimentiAperti(conferimenti, filters = {}) {
  *   acquirenti: Array<object>,
  *   conferimenti: Array<object>,
  *   todayIso?: string,
+ *   now?: Date,
  *   acquirenteLabel?: (a: object) => string,
  *   conferimentoLabel?: (c: object, a: object|null) => string
  * }} ctx
@@ -203,7 +218,7 @@ export function resolveAccontoIntent(text, ctx) {
     ctx.conferimentoLabel ||
     ((c) => (c.labelBreve ? c.labelBreve(acq.nome) : `${c.categoriaProdotto} ${c.annata}, ${acq.nome}`));
   const label = labelFn(conf, acq);
-  const data = ctx.todayIso || new Date().toISOString().slice(0, 10);
+  const data = ctx.todayIso || todayIsoLocal(ctx.now || new Date());
   const importoFmt = importo.toLocaleString('it-IT', {
     minimumFractionDigits: importo % 1 ? 2 : 0,
     maximumFractionDigits: 2
@@ -244,6 +259,7 @@ export function isConfermaNegativa(text) {
 
 export default {
   parseImportoEuro,
+  todayIsoLocal,
   isAccontoUtterance,
   inferCategoriaProdotto,
   matchAcquirenti,

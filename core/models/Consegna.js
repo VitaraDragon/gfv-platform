@@ -27,6 +27,7 @@ export class Consegna {
     this.terrenoId = data.terrenoId || null;
     this.fruttetoId = data.fruttetoId || null;
     this.vignetoId = data.vignetoId || null;
+    this.campoLabel = data.campoLabel != null ? String(data.campoLabel).trim() : '';
     this.parametri =
       data.parametri && typeof data.parametri === 'object' && !Array.isArray(data.parametri)
         ? { ...data.parametri }
@@ -70,6 +71,7 @@ export class Consegna {
       terrenoId: this.terrenoId || null,
       fruttetoId: this.fruttetoId || null,
       vignetoId: this.vignetoId || null,
+      campoLabel: this.campoLabel || null,
       parametri: this.parametri && typeof this.parametri === 'object' ? this.parametri : {},
       note: (this.note || '').trim(),
       createdBy: this.createdBy || null

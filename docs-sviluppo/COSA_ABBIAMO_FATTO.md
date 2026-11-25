@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-25 — Fix UI acquirenti + date raccolte + campo senza raccolta (follow-up 504).**
+**Ultimo aggiornamento documentazione: 2026-11-25 — Fix Entrate campo/KPI/data Tony acconto.**
+
+## 2026-11-25 — Vendite ed entrate: label campo, KPI Conto terzi, data locale acconto Tony
+
+Su `fix/entrate-campo-kpi-data-tony` (PR verso develop, follow-up 504/506). Nessun merge, nessun deploy. Niente functions/rules/indici.
+
+- Vista conferimento: `ripartoProvvisorioPerCampo` riceve `opts.labels` da `campiOptions`; fallback «Campo senza nome» (mai id grezzo); salvataggio `campoLabel` sulla consegna.
+- KPI Conto terzi: token anti-race sulle chiamate concorrenti; «—» solo su errore reale; 0 ricavi = «0,00 €».
+- Intent Tony acconto: data YYYY-MM-DD locale (`todayIsoLocal` / `tonyOggiIsoLocale`), non `toISOString` UTC.
 
 ## 2026-11-25 — Vendite ed entrate: UI acquirenti, date raccolte, campo senza raccolta
 
