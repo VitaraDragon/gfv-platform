@@ -12,6 +12,7 @@ import {
 import { annataCorrente } from '../../services/conferimenti-service.js';
 import { ripartoProvvisorioPerCampo } from '../../services/conferimenti-riparto.js';
 import { REPORT_CHART_SERIES_FALLBACK, REPORT_CHART_ALTRI_FALLBACK } from '../../../modules/report/js/report-chart-colors.js';
+import { toIsoDate, campiSourceForCategoria } from './entrate-utils.js';
 
 export {
   CATEGORIE_PRODOTTO,
@@ -21,7 +22,9 @@ export {
   annataCorrente,
   ripartoProvvisorioPerCampo,
   REPORT_CHART_SERIES_FALLBACK,
-  REPORT_CHART_ALTRI_FALLBACK
+  REPORT_CHART_ALTRI_FALLBACK,
+  toIsoDate,
+  campiSourceForCategoria
 };
 
 /**
