@@ -8021,7 +8021,13 @@ if (typeof window !== 'undefined') {
                                 var confMod = await import('../../services/conferimenti-service.js');
                                 var acquirenti = await acqMod.getAllAcquirenti().catch(function() { return []; });
                                 var conferimenti = await confMod.getAllConferimenti({ stato: 'aperto' }).catch(function() { return []; });
-                                var todayIso = new Date().toISOString().slice(0, 10);
+                                var todayIso = typeof tonyOggiIsoLocale === 'function'
+                                    ? tonyOggiIsoLocale()
+                                    : (function() {
+                                        var d = new Date();
+                                        function p(n) { return (n < 10 ? '0' : '') + n; }
+                                        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+                                    })();
                                 var resolved = resolveAccontoIntent(text, {
                                     acquirenti: acquirenti,
                                     conferimenti: conferimenti,

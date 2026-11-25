@@ -592,6 +592,8 @@
     /** Prefisso form da cui è stato aperto il modal acquirente: 'ac' | 'cs' | null */
     let acqModalSelectPrefix = null;
     let moduliAttivi = [];
+    /** Token per ignorare risposte stale di loadContoTerziRow (chiamate concorrenti). */
+    let contoTerziLoadToken = 0;
 
     function euro(n) {
       const v = Number(n);
@@ -719,23 +721,34 @@
 
     async function loadContoTerziRow() {
       const row = document.getElementById('ct-row');
+      const totEl = document.getElementById('ct-totale');
       if (!hasContoTerzi) {
-        row.classList.add('hidden');
+        if (row) row.classList.add('hidden');
         return;
       }
-      row.classList.remove('hidden');
+      if (row) row.classList.remove('hidden');
+      const token = ++contoTerziLoadToken;
       try {
         const { loadContoTerziPeriodBundle, assembleContoTerziFromBundle } = await import(
           '../../modules/report/services/report-conto-terzi-service.js'
         );
+        if (token !== contoTerziLoadToken) return;
         const p = currentPeriod();
+        if (!(p.start instanceof Date) || Number.isNaN(p.start.getTime())
+          || !(p.end instanceof Date) || Number.isNaN(p.end.getTime())) {
+          throw new Error('Periodo non valido');
+        }
         const bundle = await loadContoTerziPeriodBundle(p.start, p.end);
+        if (token !== contoTerziLoadToken) return;
         const report = assembleContoTerziFromBundle(bundle, {});
-        const ricavi = report && report.kpi ? report.kpi.ricavi : null;
-        document.getElementById('ct-totale').textContent = euro(ricavi);
+        // null = ricavi incompleti nel report → in questa riga KPI trattiamo come 0 (€)
+        const ricaviRaw = report && report.kpi ? report.kpi.ricavi : 0;
+        const ricavi = ricaviRaw == null || Number.isNaN(Number(ricaviRaw)) ? 0 : Number(ricaviRaw);
+        if (totEl) totEl.textContent = euro(ricavi);
       } catch (err) {
         console.warn(LOG, 'conto terzi', err);
-        document.getElementById('ct-totale').textContent = '—';
+        if (token !== contoTerziLoadToken) return;
+        if (totEl) totEl.textContent = '—';
       }
     }
 
@@ -753,7 +766,7 @@
       fillCategoriaSelects();
       fillCfFilters();
       renderList();
-      renderConferimentoVista();
+      await renderConferimentoVista();
       renderAcquirentiList();
       await loadContoTerziRow();
     }
@@ -842,7 +855,7 @@
       selectedConferimentoId = confs.length === 1 ? confs[0].id : (confs.find((c) => c.id === selectedConferimentoId) || confs[0] || {}).id || null;
     }
 
-    function renderConferimentoVista() {
+    async function renderConferimentoVista() {
       fillCfFilters();
       const detail = document.getElementById('cf-detail');
       const tbody = document.getElementById('cf-tbody');
@@ -853,11 +866,18 @@
         detail.textContent = 'Nessun conferimento con i filtri attuali.';
         return;
       }
+      if (!campiOptions.length) {
+        try { await loadCampiOptions(); } catch (_) { /* ignore */ }
+      }
       const conf = allConferimenti.find((c) => c.id === selectedConferimentoId);
       const acq = conf ? allAcquirenti.find((a) => a.id === conf.acquirenteId) : null;
       const consegne = allConsegne.filter((c) => c.conferimentoId === selectedConferimentoId);
       const entrate = allEntrate.filter((e) => e.conferimentoId === selectedConferimentoId);
-      const riparto = ripartoProvvisorioPerCampo(consegne, entrate, selectedConferimentoId);
+      const labels = {};
+      for (const c of campiOptions) {
+        if (c && c.key) labels[c.key] = c.label;
+      }
+      const riparto = ripartoProvvisorioPerCampo(consegne, entrate, selectedConferimentoId, { labels });
       const totaleIncassi = riparto.totaleIncassi;
       detail.innerHTML = `
         <strong>${escapeHtml(conf ? conf.labelBreve(acq ? acq.nome : '') : '')}</strong>
@@ -1646,6 +1666,7 @@
           terrenoId: meta ? meta.terrenoId : (campoMeta ? campoMeta.terrenoId : null),
           fruttetoId: meta ? meta.fruttetoId : (campoMeta ? campoMeta.fruttetoId : null),
           vignetoId: meta ? meta.vignetoId : (campoMeta ? campoMeta.vignetoId : null),
+          campoLabel: campoMeta && campoMeta.label ? campoMeta.label : null,
           parametri: meta && meta.parametri ? meta.parametri : {}
         }, {
           categoriaProdotto: document.getElementById('cs-cat').value,
