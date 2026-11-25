@@ -19,6 +19,130 @@ import {
 export const KG_PER_Q = 100;
 
 /**
+ * True se [start,end] è un anno solare intero (1 gen – 31 dic dello stesso anno).
+ * @param {Date|string} start
+ * @param {Date|string} end
+ */
+export function isFullSolarYearBounds(start, end) {
+  const s = start instanceof Date ? start : new Date(start);
+  const e = end instanceof Date ? end : new Date(end);
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return false;
+  return s.getFullYear() === e.getFullYear()
+    && s.getMonth() === 0 && s.getDate() === 1
+    && e.getMonth() === 11 && e.getDate() === 31;
+}
+
+/**
+ * Filtra eventi di costo per periodo (giorno ISO). Senza data → undated.
+ * Deduplica per id. Usato dai test e come contratto del service.
+ *
+ * @param {Array<{ id?: string, fruttetoId?: string, dataIso?: string|null, costo?: number|null, voce?: string }>} eventi
+ * @param {string} startIso YYYY-MM-DD
+ * @param {string} endIso YYYY-MM-DD
+ * @returns {{
+ *   totale: number|null,
+ *   byFruttetoId: Map<string, number>,
+ *   costiMensili: Array<{ ym: string, costi: number }>,
+ *   undated: Array<object>,
+ *   undatedTotale: number
+ * }}
+ */
+export function aggregateCostiEventiPerPeriodo(eventi, startIso, endIso) {
+  const start = String(startIso || '').slice(0, 10);
+  const end = String(endIso || '').slice(0, 10);
+  /** @type {Set<string>} */
+  const seen = new Set();
+  /** @type {Map<string, number>} */
+  const byFruttetoId = new Map();
+  /** @type {Map<string, number>} */
+  const mensile = new Map();
+  /** @type {object[]} */
+  const undated = [];
+  let totale = 0;
+  let undatedTotale = 0;
+
+  for (const ev of eventi || []) {
+    if (!ev) continue;
+    const id = ev.id != null ? String(ev.id) : null;
+    if (id) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+    }
+    const costo = ev.costo == null || Number.isNaN(Number(ev.costo)) ? 0 : Number(ev.costo);
+    const giorno = ev.dataIso ? String(ev.dataIso).slice(0, 10) : null;
+    if (!giorno || !/^\d{4}-\d{2}-\d{2}$/.test(giorno)) {
+      undated.push(ev);
+      undatedTotale += costo;
+      continue;
+    }
+    if (giorno < start || giorno > end) continue;
+    totale += costo;
+    const fid = String(ev.fruttetoId || '');
+    byFruttetoId.set(fid, (byFruttetoId.get(fid) || 0) + costo);
+    const ym = giorno.slice(0, 7);
+    mensile.set(ym, (mensile.get(ym) || 0) + costo);
+  }
+
+  return {
+    totale: euro(totale) || 0,
+    byFruttetoId,
+    costiMensili: [...mensile.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([ym, costi]) => ({ ym, costi: euro(costi) || 0 })),
+    undated,
+    undatedTotale: euro(undatedTotale) || 0
+  };
+}
+
+/**
+ * Somma costi del grafico mensile (ignora null).
+ * @param {Array<{ costi?: number|null }>} chartMensile
+ * @returns {number|null}
+ */
+export function sumCostiMensili(chartMensile) {
+  let sum = 0;
+  let known = 0;
+  for (const m of chartMensile || []) {
+    if (!m || m.costi == null || Number.isNaN(Number(m.costi))) continue;
+    sum += Number(m.costi);
+    known += 1;
+  }
+  if (known === 0) return null;
+  return euro(sum);
+}
+
+/**
+ * Unisce costi mensili di più frutteti (per id in scope).
+ * @param {Map<string, object>|Record<string, object>} speseByFruttetoId
+ * @param {Iterable<string>} fruttetoIds
+ */
+export function mergeCostiMensiliForFrutteti(speseByFruttetoId, fruttetoIds) {
+  /** @type {Map<string, object>} */
+  const speseMap = speseByFruttetoId instanceof Map
+    ? speseByFruttetoId
+    : new Map(Object.entries(speseByFruttetoId || {}));
+  /** @type {Map<string, { costi: number, partial: boolean }>} */
+  const map = new Map();
+  for (const fid of fruttetoIds || []) {
+    const spese = speseMap.get(String(fid)) || {};
+    for (const m of spese.costiMensili || []) {
+      if (!m || !m.ym) continue;
+      const prev = map.get(m.ym) || { costi: 0, partial: false };
+      if (m.costi != null) prev.costi += Number(m.costi) || 0;
+      if (m.partial) prev.partial = true;
+      map.set(m.ym, prev);
+    }
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([ym, v]) => ({
+      ym,
+      costi: euro(v.costi),
+      partial: !!v.partial
+    }));
+}
+
+/**
  * @param {number|null|undefined} kg
  * @returns {number|null}
  */
@@ -276,8 +400,16 @@ export function aggregateByFrutteto(raccolte, speseByFruttetoId, fruttetoById) {
     }
   }
 
-  // Includi frutteti con sole spese (senza raccolte nel filtro) se richiesti via spese map — no:
-  // solo quelli con raccolte o già nel bucket. Frutteti filtrati senza raccolte restano fuori.
+  // Frutteti con costi nel periodo ma senza raccolte (stesso filtro fruttetoId)
+  for (const [fid, speseRaw] of speseMap.entries()) {
+    if (!fid) continue;
+    if (buckets.has(fid)) continue;
+    const tot = speseRaw && (speseRaw.costoTotale != null
+      ? Number(speseRaw.costoTotale)
+      : null);
+    if (!(tot > 0) && !(speseRaw && speseRaw.partial)) continue;
+    ensure(fid);
+  }
 
   const out = [];
   for (const b of buckets.values()) {
@@ -611,7 +743,8 @@ export function prepareFruttetoExportData(data) {
  *   frutteti?: Array<object>,
  *   raccolte?: Array<object>,
  *   speseByFruttetoId?: Map<string, object>|Record<string, object>,
- *   costiMensili?: Array<object>|Map<string, object>|Record<string, object>
+ *   costiMensili?: Array<object>|Map<string, object>|Record<string, object>,
+ *   undatedNotes?: string[]
  * }} input
  * @param {{ fruttetoId?: string|null, specie?: string|null, varieta?: string|null }} [filters]
  */
@@ -620,6 +753,21 @@ export function assembleFruttetoReport(input = {}, filters = {}) {
   const fruttetoById = new Map(
     frutteti.filter((f) => f && f.id).map((f) => [String(f.id), f])
   );
+
+  /** @type {Map<string, object>} */
+  let speseMap;
+  if (input.speseByFruttetoId instanceof Map) {
+    speseMap = input.speseByFruttetoId;
+  } else {
+    speseMap = new Map(Object.entries(input.speseByFruttetoId || {}));
+  }
+  // Applica filtro frutteto anche alle spese (specie/varietà non attribuiscono costi)
+  if (filters.fruttetoId) {
+    const only = String(filters.fruttetoId);
+    speseMap = new Map(
+      [...speseMap.entries()].filter(([id]) => id === only)
+    );
+  }
 
   const enrichedAll = [];
   for (const raw of input.raccolte || []) {
@@ -635,18 +783,25 @@ export function assembleFruttetoReport(input = {}, filters = {}) {
   }
 
   const raccolte = filterRaccolte(enrichedAll, filters);
-  const byFrutteto = aggregateByFrutteto(raccolte, input.speseByFruttetoId || {}, fruttetoById);
+  const byFrutteto = aggregateByFrutteto(raccolte, speseMap, fruttetoById);
   const kpi = buildFruttetoKpi(byFrutteto, raccolte);
   const chartProduzione = aggregateProduzioneForChart(byFrutteto, raccolte, {
     fruttetoId: filters.fruttetoId || null,
     topN: 7
   });
-  const chartMensile = aggregateMonthlyProduzioneCosti(raccolte, input.costiMensili);
+
+  // Mensile: stessi frutteti del KPI (per-frutteto da spese), così somma = KPI salvo undated
+  const idsInView = byFrutteto.map((r) => r.fruttetoId);
+  const costiMensiliScoped = mergeCostiMensiliForFrutteti(speseMap, idsInView);
+  const chartMensile = aggregateMonthlyProduzioneCosti(
+    raccolte,
+    costiMensiliScoped.length ? costiMensiliScoped : input.costiMensili
+  );
 
   /** @type {string[]} */
   const notes = [
     'Ricavi solo da prezzo di vendita registrato sulla raccolta (niente stime; PAC ecc. nella futura Sintesi).',
-    'Costi allineati all’aggregazione del modulo Frutteto (manodopera, macchine, prodotti/trattamenti, potatura).'
+    'Costi del periodo (stesse regole del modulo Frutteto, filtrate per data).'
   ];
   const nSenza = raccolte.filter((r) => r.senzaPrezzo).length;
   if (nSenza > 0) {
@@ -660,6 +815,16 @@ export function assembleFruttetoReport(input = {}, filters = {}) {
   const nPartialC = byFrutteto.filter((r) => r.partialCosti).length;
   if (nPartialC > 0) {
     notes.push(`${nPartialC} fruttet${nPartialC === 1 ? 'o' : 'i'} con costi parziali.`);
+  }
+  for (const n of input.undatedNotes || []) {
+    if (n) notes.push(n);
+  }
+  const sumM = sumCostiMensili(chartMensile);
+  const undatedHint = (input.undatedNotes || []).length > 0;
+  if (kpi.costi != null && sumM != null && euro(sumM) !== euro(kpi.costi) && undatedHint) {
+    notes.push(
+      `Somma costi mensili (${sumM} €) e KPI costi (${kpi.costi} €) differiscono per voci senza data (vedi note sopra).`
+    );
   }
 
   return {

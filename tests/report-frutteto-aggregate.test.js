@@ -16,7 +16,10 @@ import {
   combineSpeseFrutteto,
   aggregateProduzioneForChart,
   prepareFruttetoExportData,
-  enrichRaccolta
+  enrichRaccolta,
+  aggregateCostiEventiPerPeriodo,
+  isFullSolarYearBounds,
+  sumCostiMensili
 } from '../modules/report/services/report-frutteto-aggregate.js';
 
 describe('Report Frutteto — aggregazione', () => {
@@ -252,5 +255,95 @@ describe('Report Frutteto — aggregazione', () => {
     expect(exp.kpi.nFrutteti).toBe(2);
     expect(exp.perFrutteto.find((r) => r.frutteto === 'Melo Nord').produzioneQ).toBe(20);
     expect(exp.perFrutteto.find((r) => r.frutteto === 'Melo Nord').resaQHa).toBe(10);
+  });
+
+  it('periodo a cavallo di due anni: solo costi dentro il periodo', () => {
+    const eventi = [
+      { id: 'a', fruttetoId: 'f1', dataIso: '2025-10-01', costo: 100 }, // fuori
+      { id: 'b', fruttetoId: 'f1', dataIso: '2025-12-01', costo: 50 },
+      { id: 'c', fruttetoId: 'f1', dataIso: '2026-06-15', costo: 200 },
+      { id: 'd', fruttetoId: 'f1', dataIso: '2026-11-20', costo: 80 }, // fuori (dopo 10 nov)
+      { id: 'e', fruttetoId: 'f1', dataIso: '2025-11-11', costo: 25 },
+      // stesso id di b → dedupe, non contare due volte
+      { id: 'b', fruttetoId: 'f1', dataIso: '2025-12-01', costo: 50 }
+    ];
+
+    const r = aggregateCostiEventiPerPeriodo(eventi, '2025-11-11', '2026-11-10');
+    expect(r.totale).toBe(275); // 50 + 200 + 25
+    expect(r.byFruttetoId.get('f1')).toBe(275);
+    expect(r.costiMensili.map((m) => m.ym).sort()).toEqual(['2025-11', '2025-12', '2026-06']);
+  });
+
+  it('anno solare intero = aggregazione del modulo (tutti gli eventi datati dell’anno)', () => {
+    expect(isFullSolarYearBounds(new Date(2026, 0, 1), new Date(2026, 11, 31))).toBe(true);
+    expect(isFullSolarYearBounds(new Date(2025, 10, 11), new Date(2026, 10, 10))).toBe(false);
+
+    const eventiAnno = [
+      { id: '1', fruttetoId: 'f1', dataIso: '2026-01-15', costo: 100 },
+      { id: '2', fruttetoId: 'f1', dataIso: '2026-07-01', costo: 250 },
+      { id: '3', fruttetoId: 'f1', dataIso: '2026-12-20', costo: 50 },
+      { id: 'out', fruttetoId: 'f1', dataIso: '2025-12-31', costo: 999 }
+    ];
+    const periodo = aggregateCostiEventiPerPeriodo(eventiAnno, '2026-01-01', '2026-12-31');
+    const sommaModulo = 100 + 250 + 50; // come aggregaSpeseFruttetoAnno su soli questi eventi
+    expect(periodo.totale).toBe(sommaModulo);
+    expect(sumCostiMensili(periodo.costiMensili)).toBe(sommaModulo);
+
+    // Report: spese = totale anno → KPI costi uguale
+    const report = assembleFruttetoReport({
+      frutteti,
+      raccolte: [{
+        id: 'r', fruttetoId: 'f1', data: '2026-09-01', specie: 'Melo', varieta: 'Golden',
+        quantitaKg: 100, quantitaEttari: 1, prezzoVendita: 1, ricavo: 100
+      }],
+      speseByFruttetoId: {
+        f1: {
+          costoTotale: sommaModulo,
+          speseManodopera: sommaModulo,
+          costiMensili: periodo.costiMensili
+        }
+      }
+    });
+    expect(report.kpi.costi).toBe(sommaModulo);
+  });
+
+  it('grafico mensile = KPI costi (senza voci undated)', () => {
+    const costiMensili = [
+      { ym: '2026-03', costi: 120 },
+      { ym: '2026-06', costi: 80 },
+      { ym: '2026-09', costi: 200 }
+    ];
+    const totale = 400;
+    const report = assembleFruttetoReport({
+      frutteti,
+      raccolte: [
+        {
+          id: 'r1', fruttetoId: 'f1', data: '2026-06-01', specie: 'Melo', varieta: 'Golden',
+          quantitaKg: 500, quantitaEttari: 1, prezzoVendita: 1, ricavo: 500
+        },
+        {
+          id: 'r2', fruttetoId: 'f2', data: '2026-09-01', specie: 'Pesco', varieta: 'Redhaven',
+          quantitaKg: 300, quantitaEttari: 1, prezzoVendita: 1, ricavo: 300
+        }
+      ],
+      speseByFruttetoId: {
+        f1: {
+          costoTotale: 200,
+          speseManodopera: 200,
+          costiMensili: [
+            { ym: '2026-03', costi: 120 },
+            { ym: '2026-06', costi: 80 }
+          ]
+        },
+        f2: {
+          costoTotale: 200,
+          speseManodopera: 200,
+          costiMensili: [{ ym: '2026-09', costi: 200 }]
+        }
+      }
+    });
+    expect(report.kpi.costi).toBe(totale);
+    expect(sumCostiMensili(report.chartMensile)).toBe(report.kpi.costi);
+    expect(sumCostiMensili(costiMensili)).toBe(totale);
   });
 });

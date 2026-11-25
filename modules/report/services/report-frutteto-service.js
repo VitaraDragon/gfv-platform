@@ -1,6 +1,6 @@
 /**
  * Report Frutteto — caricamento fonti + assemblaggio.
- * Solo lettura: frutteti, raccolte, aggregaSpeseFruttetoAnno.
+ * Solo lettura: frutteti, raccolte, aggregaSpeseFruttetoPeriodo.
  *
  * @module modules/report/services/report-frutteto-service
  */
@@ -36,7 +36,7 @@ function timePhase(timings, name, ms) {
 }
 
 /**
- * Anni solari coperti dall’intervallo (per aggregaSpeseFruttetoAnno).
+ * Anni solari coperti dall’intervallo (per caricamento raccolte per anno).
  * @param {Date} start
  * @param {Date} end
  * @returns {number[]}
@@ -51,7 +51,7 @@ export function calendarYearsInRange(start, end) {
 
 /**
  * @param {object} macchina
- * @returns {boolean} true se ha ore ma manca costo orario
+ * @returns {boolean} true se manca costo orario
  */
 function macchinaMissingCostoOra(macchina) {
   if (!macchina) return false;
@@ -60,7 +60,7 @@ function macchinaMissingCostoOra(macchina) {
 }
 
 /**
- * Carica bundle periodo: frutteti, raccolte in range, spese anno, costi mensili.
+ * Carica bundle periodo: frutteti, raccolte in range, spese filtrate sul periodo.
  * @param {Date} start
  * @param {Date} end
  * @param {{ forceReload?: boolean }} [opts]
@@ -84,6 +84,7 @@ export async function loadFruttetoPeriodBundle(start, end, opts = {}) {
       raccolte: [],
       speseByFruttetoId: new Map(),
       costiMensili: [],
+      undatedNotes: [],
       timings: { skipped: 1 },
       ready: true
     };
@@ -139,7 +140,8 @@ export async function loadFruttetoPeriodBundle(start, end, opts = {}) {
   const speseByFruttetoId = new Map();
   /** @type {Map<string, { costi: number, partial: boolean }>} */
   const costiMensiliMap = new Map();
-  const years = calendarYearsInRange(start, end);
+  /** @type {string[]} */
+  const undatedNotes = [];
 
   let macchineById = new Map();
   try {
@@ -150,90 +152,98 @@ export async function loadFruttetoPeriodBundle(start, end, opts = {}) {
 
   try {
     const {
-      aggregaSpeseFruttetoAnno,
-      getLavoriPerTerreno,
-      calcolaCostiLavoro
+      aggregaSpeseFruttetoPeriodo,
+      getLavoriPerTerreno
     } = await import('../../frutteto/services/lavori-frutteto-service.js');
 
     await Promise.all(
       (frutteti || []).map(async (f) => {
         if (!f || !f.id) return;
-        let costoTotale = 0;
-        let speseManodopera = 0;
-        let speseMacchine = 0;
-        let speseProdotti = 0;
-        let spesePotatura = 0;
-        let speseTrattamenti = 0;
-        let speseRaccolta = 0;
         let missingMacchine = false;
 
-        for (const anno of years) {
+        let spese;
+        try {
+          spese = await aggregaSpeseFruttetoPeriodo(f.id, start, end);
+        } catch (e) {
+          console.warn('[report-frutteto] spese periodo', f.id, e && e.message);
+          spese = {
+            costoTotaleAnno: 0,
+            speseManodoperaAnno: 0,
+            speseMacchineAnno: 0,
+            speseProdottiAnno: 0,
+            spesePotaturaAnno: 0,
+            speseTrattamentiAnno: 0,
+            speseRaccoltaAnno: 0,
+            costiMensili: [],
+            undatedNotes: []
+          };
+        }
+
+        for (const n of spese.undatedNotes || []) {
+          undatedNotes.push(n);
+        }
+        for (const m of spese.costiMensili || []) {
+          if (!m || !m.ym) continue;
+          const prev = costiMensiliMap.get(m.ym) || { costi: 0, partial: false };
+          prev.costi += Number(m.costi) || 0;
+          costiMensiliMap.set(m.ym, prev);
+        }
+
+        // Detection costoOra mancante sui lavori nel periodo (stesso perimetro)
+        if (f.terrenoId) {
           try {
-            const spese = await aggregaSpeseFruttetoAnno(f.id, anno);
-            costoTotale += Number(spese.costoTotaleAnno ?? spese.speseTotaleAnno) || 0;
-            speseManodopera += Number(spese.speseManodoperaAnno) || 0;
-            speseMacchine += Number(spese.speseMacchineAnno) || 0;
-            speseProdotti += Number(spese.speseProdottiAnno) || 0;
-            spesePotatura += Number(spese.spesePotaturaAnno) || 0;
-            speseTrattamenti += Number(spese.speseTrattamentiAnno) || 0;
-            speseRaccolta += Number(spese.speseRaccoltaAnno) || 0;
-          } catch (e) {
-            console.warn('[report-frutteto] spese', f.id, anno, e && e.message);
-          }
-
-          // Costi mensili + detection costoOra mancante (stesso perimetro lavori del modulo)
-          if (f.terrenoId) {
-            try {
-              const lavori = await getLavoriPerTerreno(f.terrenoId, {
-                anno,
-                stato: 'completato'
-              });
-              for (const lavoro of lavori || []) {
-                const dataRaw = lavoro.dataInizioRaw || lavoro.dataInizio;
-                if (!inRange(dataRaw, start, end)) continue;
-                const ym = String(dataIsoFromAny(dataRaw) || '').slice(0, 7);
-                if (!/^\d{4}-\d{2}$/.test(ym)) continue;
-
-                let partial = false;
-                // Macchine senza costoOra usate sul lavoro
-                const macIds = Array.isArray(lavoro.macchine) ? lavoro.macchine : [];
-                for (const mid of macIds) {
-                  const id = typeof mid === 'object' && mid ? (mid.id || mid.macchinaId) : mid;
-                  if (!id) continue;
-                  const mac = macchineById.get(String(id));
-                  if (mac && macchinaMissingCostoOra(mac)) {
-                    missingMacchine = true;
-                    partial = true;
+            const lavori = await getLavoriPerTerreno(f.terrenoId, { stato: 'completato' });
+            /** @type {Set<string>} */
+            const seen = new Set();
+            for (const lavoro of lavori || []) {
+              if (!lavoro || !lavoro.id) continue;
+              const lid = String(lavoro.id);
+              if (seen.has(lid)) continue;
+              seen.add(lid);
+              const dataRaw = lavoro.dataInizioRaw || lavoro.dataInizio;
+              if (!inRange(dataRaw, start, end)) continue;
+              const macIds = Array.isArray(lavoro.macchine) ? lavoro.macchine : [];
+              for (const mid of macIds) {
+                const id = typeof mid === 'object' && mid ? (mid.id || mid.macchinaId) : mid;
+                if (!id) continue;
+                const mac = macchineById.get(String(id));
+                if (mac && macchinaMissingCostoOra(mac)) {
+                  missingMacchine = true;
+                  const ym = String(dataIsoFromAny(dataRaw) || '').slice(0, 7);
+                  if (/^\d{4}-\d{2}$/.test(ym)) {
+                    const prev = costiMensiliMap.get(ym) || { costi: 0, partial: false };
+                    prev.partial = true;
+                    costiMensiliMap.set(ym, prev);
                   }
                 }
-
-                let costoLavoro = 0;
-                try {
-                  const costi = await calcolaCostiLavoro(lavoro.id, lavoro);
-                  costoLavoro = Number(costi.costoTotale) || 0;
-                } catch (_) { /* ignore */ }
-
-                const prev = costiMensiliMap.get(ym) || { costi: 0, partial: false };
-                prev.costi += costoLavoro;
-                if (partial) prev.partial = true;
-                costiMensiliMap.set(ym, prev);
               }
-            } catch (e) {
-              console.warn('[report-frutteto] lavori mensili', f.id, e && e.message);
             }
+          } catch (e) {
+            console.warn('[report-frutteto] detection macchine', f.id, e && e.message);
           }
         }
 
+        const costoTotale = Number(spese.costoTotaleAnno ?? spese.speseTotaleAnno) || 0;
+        const costiMensiliFru = (spese.costiMensili || []).map((m) => ({
+          ym: m.ym,
+          costi: euro(m.costi),
+          partial: false
+        }));
+        // Propaga partial mesi se macchine senza costoOra
+        if (missingMacchine) {
+          for (const m of costiMensiliFru) m.partial = true;
+        }
         speseByFruttetoId.set(String(f.id), {
           costoTotale: euro(costoTotale) || 0,
-          speseManodopera: euro(speseManodopera) || 0,
-          speseMacchine: missingMacchine ? null : (euro(speseMacchine) || 0),
+          speseManodopera: euro(Number(spese.speseManodoperaAnno) || 0) || 0,
+          speseMacchine: missingMacchine ? null : (euro(Number(spese.speseMacchineAnno) || 0) || 0),
           missingMacchine,
-          speseProdotti: euro(speseProdotti) || 0,
-          spesePotatura: euro(spesePotatura) || 0,
-          speseTrattamenti: euro(speseTrattamenti) || 0,
-          speseRaccolta: euro(speseRaccolta) || 0,
-          partial: missingMacchine
+          speseProdotti: euro(Number(spese.speseProdottiAnno) || 0) || 0,
+          spesePotatura: euro(Number(spese.spesePotaturaAnno) || 0) || 0,
+          speseTrattamenti: euro(Number(spese.speseTrattamentiAnno) || 0) || 0,
+          speseRaccolta: euro(Number(spese.speseRaccoltaAnno) || 0) || 0,
+          partial: missingMacchine,
+          costiMensili: costiMensiliFru
         });
       })
     );
@@ -242,17 +252,20 @@ export async function loadFruttetoPeriodBundle(start, end, opts = {}) {
   }
   timePhase(timings, 'spese', now() - t0);
 
-  const costiMensili = [...costiMensiliMap.entries()].map(([ym, v]) => ({
-    ym,
-    costi: euro(v.costi),
-    partial: !!v.partial
-  }));
+  const costiMensili = [...costiMensiliMap.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([ym, v]) => ({
+      ym,
+      costi: euro(v.costi),
+      partial: !!v.partial
+    }));
 
   const data = {
     frutteti,
     raccolte,
     speseByFruttetoId,
     costiMensili,
+    undatedNotes,
     timings,
     ready: true
   };
@@ -294,7 +307,8 @@ export function assembleFruttetoFromBundle(bundle, filters = {}) {
     frutteti: bundle.frutteti || [],
     raccolte: bundle.raccolte || [],
     speseByFruttetoId: bundle.speseByFruttetoId || new Map(),
-    costiMensili: bundle.costiMensili || []
+    costiMensili: bundle.costiMensili || [],
+    undatedNotes: bundle.undatedNotes || []
   }, filters);
 }
 
