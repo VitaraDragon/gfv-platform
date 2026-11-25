@@ -78,7 +78,10 @@ export function ripartoProvvisorioPerCampo(consegne, entrate, conferimentoId, op
     const prev = byCampo.get(key) || {
       key,
       quantitaQ: 0,
-      label: labels[key] || c.campoLabel || (key === 'non_attribuito' ? 'Non attribuito' : key)
+      label:
+        labels[key] ||
+        c.campoLabel ||
+        (key === 'non_attribuito' ? 'Non attribuito' : 'Campo senza nome')
     };
     prev.quantitaQ += q;
     if (c.campoLabel && key !== 'non_attribuito') prev.label = c.campoLabel;

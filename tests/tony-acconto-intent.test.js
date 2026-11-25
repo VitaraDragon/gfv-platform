@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveAccontoIntent,
   parseImportoEuro,
-  isConfermaAffermativa
+  isConfermaAffermativa,
+  todayIsoLocal
 } from '../core/js/tony/tony-acconto-intent.js';
 
 const cantinaX = {
@@ -89,5 +90,21 @@ describe('tony acconto intent', () => {
     expect(isConfermaAffermativa('sì')).toBe(true);
     expect(isConfermaAffermativa('ok salva')).toBe(true);
     expect(isConfermaAffermativa('forse')).toBe(false);
+  });
+
+  it('todayIsoLocal a 00:30 locali (non UTC)', () => {
+    const d = new Date(2026, 2, 20, 0, 30, 0);
+    expect(todayIsoLocal(d)).toBe('2026-03-20');
+    // In fuso a est di UTC (es. Italia) toISOString alle 00:30 locali è il giorno prima
+    if (d.getTimezoneOffset() < 0) {
+      expect(d.toISOString().slice(0, 10)).toBe('2026-03-19');
+      expect(todayIsoLocal(d)).not.toBe(d.toISOString().slice(0, 10));
+    }
+    const r = resolveAccontoIntent('è arrivato l’acconto della cantina, 4.200 euro', {
+      acquirenti: [cantinaX],
+      conferimenti: [confX],
+      now: d
+    });
+    expect(r.pending.data).toBe('2026-03-20');
   });
 });

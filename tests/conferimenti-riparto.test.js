@@ -88,4 +88,20 @@ describe('conferimenti riparto provvisorio', () => {
     expect(byLabel.A).toBe(100);
     expect(byLabel.B).toBe(100);
   });
+
+  it('opts.labels e fallback «Campo senza nome» (mai chiave grezza)', () => {
+    const r = ripartoProvvisorioPerCampo(
+      [
+        { quantitaNetta: 40, unita: 'q', vignetoId: 'n3T7abc' },
+        { quantitaNetta: 10, unita: 'q', terrenoId: 't9' }
+      ],
+      [{ tipo: 'acconto', importo: 500, conferimentoId: 'c1' }],
+      'c1',
+      { labels: { 'vigneto:n3T7abc': 'Vigneto · Sangiovese' } }
+    );
+    const byKey = Object.fromEntries(r.perCampo.map((p) => [p.key, p]));
+    expect(byKey['vigneto:n3T7abc'].label).toBe('Vigneto · Sangiovese');
+    expect(byKey['terreno:t9'].label).toBe('Campo senza nome');
+    expect(r.perCampo.every((p) => !/^vigneto:|^frutteto:|^terreno:/.test(p.label))).toBe(true);
+  });
 });
