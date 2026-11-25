@@ -763,7 +763,8 @@ export function prepareMagazzinoExportData(data) {
       valoreUscite: kpi.valoreUscite,
       valoreMagazzino: kpi.valoreMagazzino,
       prodottiSottoScorta: kpi.prodottiSottoScorta,
-      nProdotti: kpi.nProdotti,
+      // Conteggio righe foglio/tabella «Per prodotto» (non kpi.nProdotti grezzo, che include solo-giacenza).
+      nProdotti: byProdotto.length,
       usciteEscluseEconomici: kpi.usciteEscluseEconomici || null
     },
     perProdotto: byProdotto.map((r) => ({
