@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Report — Frutteto GFV</title>
+  <meta name="theme-color" content="#1c1917" />
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <link rel="stylesheet" href="../styles/report-chart-palette.css">
+  <style>
+    :root {
+      --bg: #F6F3EC; --panel: #FFFEFA; --ink: #1c1917; --muted: #78716c; --line: #e7e5e4;
+      --warn: #c2410c; --accent: #1d4ed8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; padding: 16px;
+    }
+    .container { max-width: 1440px; margin: 0 auto; }
+    .header {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      padding: 18px 20px; display: flex; flex-wrap: wrap; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .nav-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid var(--line); background: #f5f5f4; color: var(--ink);
+      padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
+      font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: #e7e5e4; }
+    .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-accent:hover { background: #1e40af; }
+    .btn:disabled, .btn-accent:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+    .panel {
+      margin-top: 12px; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+    .filter-group label { font-size: 12px; font-weight: 700; color: #374151; }
+    select, input[type="date"] {
+      border: 1px solid #e5e7eb; border-radius: 10px; padding: 9px 11px; font-size: 14px; background: white;
+    }
+    .period-hint {
+      font-size: 13px; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe;
+      padding: 10px 12px; border-radius: 10px; margin-top: 12px;
+    }
+    .alert { padding: 12px 14px; border-radius: 12px; border: 1px solid; margin-top: 10px; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .alert-warn { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .loading-box { padding: 20px; text-align: center; color: var(--muted); font-size: 14px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .kpi .label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+    .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; line-height: 1.15; }
+    .kpi .kpi-sub {
+      margin-top: 6px; font-size: 11px; line-height: 1.35; color: var(--muted); font-weight: 500;
+      text-transform: none; letter-spacing: 0;
+    }
+    .kpi.warn .value { color: var(--warn); }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; margin-top: 12px; }
+    .chart-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .chart-card h3 { font-size: 14px; margin-bottom: 8px; color: #44403c; }
+    .chart-wrap { position: relative; height: 240px; width: 100%; max-width: 100%; overflow: hidden; }
+    .chart-wrap.tall { height: 280px; }
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    table.data th, table.data td {
+      border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; background: var(--panel);
+    }
+    .detail-drawer .detail-table-desktop { overflow-x: hidden; }
+    .detail-drawer table.data { table-layout: fixed; width: 100%; font-size: 12px; }
+    .detail-drawer table.data col.col-data { width: 92px; }
+    .detail-drawer table.data col.col-var { width: 14%; }
+    .detail-drawer table.data col.col-qty { width: 64px; }
+    .detail-drawer table.data col.col-ha { width: 52px; }
+    .detail-drawer table.data col.col-resa { width: 64px; }
+    .detail-drawer table.data col.col-scarto { width: 56px; }
+    .detail-drawer table.data col.col-cal { width: 12%; }
+    .detail-drawer table.data col.col-eur { width: 68px; }
+    .detail-drawer table.data th,
+    .detail-drawer table.data td {
+      white-space: normal; overflow-wrap: break-word; word-break: normal;
+      padding: 8px 6px; vertical-align: top;
+    }
+    .detail-drawer table.data th,
+    .detail-drawer table.data td.col-data {
+      white-space: nowrap; overflow-wrap: normal; word-break: normal;
+    }
+    .detail-drawer table.data th.num,
+    .detail-drawer table.data td.num {
+      white-space: nowrap; overflow-wrap: normal; word-break: normal;
+      text-align: right; padding-left: 4px; padding-right: 4px;
+    }
+    .detail-drawer table.data td.col-cal {
+      overflow-wrap: break-word; word-break: normal;
+    }
+    table.data th {
+      background: #fafaf9; color: #44403c; font-weight: 700; cursor: pointer; user-select: none;
+      position: sticky; top: 0; z-index: 2; white-space: nowrap;
+    }
+    table.data th.sorted-asc::after { content: ' ▲'; font-size: 10px; }
+    table.data th.sorted-desc::after { content: ' ▼'; font-size: 10px; }
+    table.data td.num, table.data th.num { text-align: right; white-space: nowrap; }
+    table.data tbody tr.row-click { cursor: pointer; }
+    table.data tbody tr.row-click:hover { background: #f5f5f4; }
+    table.data tbody tr.row-selected td { background: #eff6ff; }
+    .warn-text { color: var(--warn); font-weight: 700; }
+    .warn-badge {
+      display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+      background: #fff7ed; color: var(--warn); border: 1px solid #fed7aa; margin: 2px 4px 2px 0;
+    }
+    .notes { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .notes ul { margin: 6px 0 0 18px; }
+    h2.section { font-size: 16px; color: #44403c; margin: 16px 0 8px; }
+    h2.section:first-child { margin-top: 0; }
+    .cost-breakdown { margin-top: 14px; font-size: 13px; }
+    .cost-breakdown dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; margin-top: 8px; }
+    .cost-breakdown dt { color: var(--muted); }
+    .cost-breakdown dd { text-align: right; font-weight: 600; margin: 0; }
+    .mobile-cards { display: none; gap: 10px; margin-top: 8px; }
+    .m-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); cursor: pointer; }
+    .m-card.selected { outline: 2px solid #93c5fd; }
+    .m-card .title { font-weight: 700; font-size: 15px; }
+    .m-card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .m-card .tot { font-size: 18px; font-weight: 700; margin-top: 8px; }
+    .detail-cards { display: none; gap: 8px; margin-top: 8px; }
+    .d-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fafaf9; }
+    .d-card .top { font-weight: 700; font-size: 13px; }
+    .d-card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; overflow-wrap: break-word; }
+    .d-card .bottom { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 14px; }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(28, 25, 23, 0.45);
+      display: flex; align-items: flex-end; justify-content: center; z-index: 80; padding: 12px;
+    }
+    .modal-panel {
+      background: var(--panel); border-radius: 14px; max-width: 860px; width: 100%;
+      max-height: min(88vh, 720px); overflow: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); padding: 18px;
+    }
+    .modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+    .modal-head h2 { font-size: 17px; }
+    .modal-nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .modal-close, .modal-nav-btn {
+      border: 1px solid var(--line); background: #fafaf9; border-radius: 8px; padding: 6px 10px;
+      cursor: pointer; font-weight: 600;
+    }
+    .detail-drawer {
+      display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(720px, 92vw);
+      background: var(--panel); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+      z-index: 70; overflow: auto; padding: 18px;
+    }
+    .detail-drawer.open { display: block; }
+    body.drawer-open .container { padding-right: min(736px, calc(92vw + 16px)); }
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts-grid { grid-template-columns: 1fr; }
+      body.drawer-open .container { padding-right: 16px; }
+      .detail-drawer { display: none !important; }
+    }
+    @media (max-width: 390px) {
+      body { padding: 10px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi .value { font-size: 18px; }
+      .desktop-only { display: none !important; }
+      .mobile-cards { display: grid; }
+      .detail-cards { display: grid; }
+      .detail-table-desktop { display: none !important; }
+      .chart-wrap { height: 220px; }
+      .filters { flex-direction: column; align-items: stretch; gap: 12px; }
+      .filter-group { min-width: 0; width: 100%; }
+      .filter-group select, .filter-group input[type="date"] { width: 100%; min-width: 0; }
+    }
+    @media (min-width: 391px) and (max-width: 600px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .desktop-only { display: none !important; }
+      .mobile-cards { display: grid; }
+      .detail-cards { display: grid; }
+      .detail-table-desktop { display: none !important; }
+    }
+    @media (min-width: 601px) {
+      .mobile-only { display: none !important; }
+      .detail-cards { display: none !important; }
+    }
+    @media (min-width: 1101px) {
+      .modal-backdrop.desktop-side { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>🌳 Report — Frutteto</h1>
+        <p>Quanto hai raccolto in ogni frutteto, con che resa, quanto scarto e quanto ti è costato. Ricavi solo se registrati sulla raccolta; costi allineati al modulo Frutteto. Valori mancanti come — e totali con * se parziali.</p>
+      </div>
+      <div class="nav-row">
+        <a class="btn" href="./report-dashboard-standalone.html">← Dashboard</a>
+        <a class="btn" href="../../../core/dashboard-standalone.html">Home</a>
+        <button type="button" class="btn btn-accent" id="btn-export" disabled>Esporta Excel</button>
+      </div>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden"><div class="alert alert-error" id="gate-message"></div></div>
+
+    <div id="main-content" class="hidden">
+      <div class="panel">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="sel-mode">Tipo periodo</label>
+            <select id="sel-mode">
+              <option value="agrarian">Annata agraria (11 nov – 10 nov)</option>
+              <option value="solar">Anno solare</option>
+              <option value="custom">Intervallo personalizzato</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-year">
+            <label for="sel-year">Anno di riferimento</label>
+            <select id="sel-year"></select>
+          </div>
+          <div class="filter-group hidden" id="group-from">
+            <label for="date-from">Da</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div class="filter-group hidden" id="group-to">
+            <label for="date-to">A</label>
+            <input type="date" id="date-to" />
+          </div>
+          <div class="filter-group">
+            <label for="sel-frutteto">Frutteto</label>
+            <select id="sel-frutteto"><option value="">Tutti</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-specie">Specie</label>
+            <select id="sel-specie"><option value="">Tutte</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="sel-varieta">Varietà</label>
+            <select id="sel-varieta"><option value="">Tutte</option></select>
+          </div>
+        </div>
+        <div class="period-hint" id="period-label"></div>
+      </div>
+
+      <div id="partial-banner" class="alert alert-warn hidden" role="status"></div>
+      <div id="alert-box"></div>
+      <div id="kpi-host" class="kpi-grid"></div>
+      <div class="charts-grid" id="charts-row">
+        <div class="chart-card">
+          <h3 id="chart-prod-title">Produzione per frutteto (top 7)</h3>
+          <div class="chart-wrap tall"><canvas id="chart-produzione"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Produzione e costi per mese</h3>
+          <div class="chart-wrap tall"><canvas id="chart-mensile"></canvas></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:12px;">
+        <div id="tables-host" class="loading-box">Caricamento…</div>
+        <div id="mobile-host" class="mobile-cards mobile-only"></div>
+        <div class="notes" id="notes-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside id="detail-drawer" class="detail-drawer" aria-labelledby="drawer-title">
+    <div class="modal-head">
+      <div>
+        <h2 id="drawer-title">Dettaglio frutteto</h2>
+        <p class="muted" id="drawer-sub"></p>
+      </div>
+      <div class="modal-nav">
+        <button type="button" class="modal-nav-btn" id="drawer-prev" title="Frutteto precedente">←</button>
+        <button type="button" class="modal-nav-btn" id="drawer-next" title="Frutteto successivo">→</button>
+        <button type="button" class="modal-close" id="drawer-close">Chiudi</button>
+      </div>
+    </div>
+    <div id="drawer-body"></div>
+  </aside>
+
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="detail-title">Dettaglio frutteto</h2>
+          <p class="muted" id="detail-sub"></p>
+        </div>
+        <div class="modal-nav">
+          <button type="button" class="modal-nav-btn" id="detail-prev" title="Frutteto precedente">←</button>
+          <button type="button" class="modal-nav-btn" id="detail-next" title="Frutteto successivo">→</button>
+          <button type="button" class="modal-close" id="detail-close">Chiudi</button>
+        </div>
+      </div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+  <script type="module">
+    import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[report-frutteto] Bootstrap failed:', err);
+      throw err;
+    }
+
+    import {
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } from '../../../core/services/firebase-service.js';
+    import { initializeTenantService, setCurrentTenantId, getCurrentTenant } from '../../../core/services/tenant-service.js';
+    import { hasReportModuleAccess } from '../services/report-service.js';
+    import { canAccessStrategicReports } from '../js/report-access.js';
+    import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
+    import {
+      loadFruttetoPeriodBundle,
+      assembleFruttetoFromBundle,
+      prepareFruttetoExportData,
+      isFruttetoDataReady,
+      buildFruttetoDetailRows,
+      getFruttetoFilterOptions
+    } from '../services/report-frutteto-service.js';
+    import { setReportExportEnabled } from '../js/report-export-gate.js';
+    import { readReportChartColors, chartColorsForItems } from '../js/report-chart-colors.js';
+    import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+
+    const LOG = '[report-frutteto]';
+    const COLORS = readReportChartColors();
+
+    const auth = getAuthInstance();
+    await initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const gateMessage = document.getElementById('gate-message');
+    const mainContent = document.getElementById('main-content');
+    const kpiHost = document.getElementById('kpi-host');
+    const tablesHost = document.getElementById('tables-host');
+    const mobileHost = document.getElementById('mobile-host');
+    const notesBox = document.getElementById('notes-box');
+    const partialBanner = document.getElementById('partial-banner');
+    const btnExport = document.getElementById('btn-export');
+    const periodLabel = document.getElementById('period-label');
+
+    const selMode = document.getElementById('sel-mode');
+    const selYear = document.getElementById('sel-year');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+    const groupYear = document.getElementById('group-year');
+    const groupFrom = document.getElementById('group-from');
+    const groupTo = document.getElementById('group-to');
+    const selFrutteto = document.getElementById('sel-frutteto');
+    const selSpecie = document.getElementById('sel-specie');
+    const selVarieta = document.getElementById('sel-varieta');
+
+    const detailDrawer = document.getElementById('detail-drawer');
+    const drawerTitle = document.getElementById('drawer-title');
+    const drawerSub = document.getElementById('drawer-sub');
+    const drawerBody = document.getElementById('drawer-body');
+    const drawerClose = document.getElementById('drawer-close');
+    const detailModal = document.getElementById('detail-modal');
+    const detailTitle = document.getElementById('detail-title');
+    const detailSub = document.getElementById('detail-sub');
+    const detailBody = document.getElementById('detail-body');
+    const detailClose = document.getElementById('detail-close');
+
+    let periodBundle = null;
+    let periodBundleKey = '';
+    let cached = null;
+    let selectedFruttetoId = null;
+    let refreshSeq = 0;
+    let sortState = { key: 'fruttetoNome', dir: 'asc' };
+    const charts = { produzione: null, mensile: null };
+
+    function showGate(msg) {
+      gateMessage.textContent = msg;
+      gateBlocked.classList.remove('hidden');
+      mainContent.classList.add('hidden');
+    }
+
+    function fillYearSelect() {
+      const yNow = new Date().getFullYear();
+      selYear.innerHTML = '';
+      for (let y = yNow + 1; y >= yNow - 8; y -= 1) {
+        const o = document.createElement('option');
+        o.value = String(y);
+        o.textContent = String(y);
+        if (y === yNow) o.selected = true;
+        selYear.appendChild(o);
+      }
+    }
+
+    function currentPeriodBounds() {
+      const mode = selMode.value;
+      const year = Number(selYear.value) || new Date().getFullYear();
+      if (mode === 'solar') {
+        const b = getSolarYearBounds(new Date(year, 6, 1));
+        return { start: b.start, end: b.end, label: b.label || formatRangeIt(b.start, b.end) };
+      }
+      if (mode === 'custom') {
+        const from = dateFrom.value ? new Date(`${dateFrom.value}T00:00:00`) : getAgrarianYearBounds().start;
+        const to = dateTo.value ? new Date(`${dateTo.value}T23:59:59`) : getAgrarianYearBounds().end;
+        return { start: from, end: to, label: formatRangeIt(from, to) };
+      }
+      const b = getAgrarianYearBounds(new Date(year, 0, 15));
+      return { start: b.start, end: b.end, label: b.label || formatRangeIt(b.start, b.end) };
+    }
+
+    function syncPeriodUi() {
+      const mode = selMode.value;
+      const custom = mode === 'custom';
+      groupYear.classList.toggle('hidden', custom);
+      groupFrom.classList.toggle('hidden', !custom);
+      groupTo.classList.toggle('hidden', !custom);
+      const p = currentPeriodBounds();
+      periodLabel.textContent = `Periodo: ${p.label}`;
+      if (!custom) {
+        dateFrom.value = '';
+        dateTo.value = '';
+      }
+    }
+
+    function currentFilters() {
+      return {
+        fruttetoId: selFrutteto.value || null,
+        specie: selSpecie.value || null,
+        varieta: selVarieta.value || null
+      };
+    }
+
+    function fmtEuro(v, partial) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      const s = Number(v).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      return partial ? `${s}*` : s;
+    }
+
+    function fmtNum(v, digits = 1) {
+      if (v == null || Number.isNaN(Number(v))) return '—';
+      return Number(v).toLocaleString('it-IT', { maximumFractionDigits: digits });
+    }
+
+    function destroyCharts() {
+      for (const k of Object.keys(charts)) {
+        if (charts[k]) {
+          charts[k].destroy();
+          charts[k] = null;
+        }
+      }
+    }
+
+    function renderKpi(data) {
+      const k = data.kpi || {};
+      const warnR = k.partialRicavi || k.ricavi == null;
+      const warnC = k.partialCosti || k.costi == null;
+      kpiHost.innerHTML = `
+        <div class="kpi">
+          <div class="label">Produzione</div>
+          <div class="value">${escapeHtml(fmtNum(k.produzioneQ, 1))} q</div>
+          <div class="kpi-sub">${escapeHtml(String(k.nRaccolte || 0))} raccolte · ${escapeHtml(String(k.nFrutteti || 0))} frutteti</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Resa media</div>
+          <div class="value">${escapeHtml(fmtNum(k.resaQHa, 1))} q/ha</div>
+          <div class="kpi-sub">${escapeHtml(fmtNum(k.ettari, 2))} ha</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Scarto</div>
+          <div class="value">${escapeHtml(fmtNum(k.scartoPct, 1))} %</div>
+          <div class="kpi-sub">sul raccolto</div>
+        </div>
+        <div class="kpi${warnC ? ' warn' : ''}">
+          <div class="label">Costi</div>
+          <div class="value">${escapeHtml(fmtEuro(k.costi, k.partialCosti))} €</div>
+          <div class="kpi-sub">come nel modulo Frutteto</div>
+        </div>
+        <div class="kpi${warnC ? ' warn' : ''}">
+          <div class="label">Costo / quintale</div>
+          <div class="value">${escapeHtml(fmtEuro(k.euroPerQ, k.partialCosti))} €</div>
+        </div>
+        <div class="kpi${warnR ? ' warn' : ''}">
+          <div class="label">Ricavi registrati</div>
+          <div class="value">${escapeHtml(fmtEuro(k.ricavi, k.partialRicavi))} €</div>
+          <div class="kpi-sub">solo con prezzo sulla raccolta</div>
+        </div>
+      `;
+
+      const bits = [];
+      if (warnR) bits.push('alcuni ricavi mancano (raccolte senza prezzo)');
+      if (warnC) bits.push('alcuni costi sono incompleti');
+      if (bits.length) {
+        partialBanner.textContent = `Attenzione: ${bits.join('; ')}. I totali con * sono parziali.`;
+        partialBanner.classList.remove('hidden');
+      } else {
+        partialBanner.classList.add('hidden');
+      }
+    }
+
+    function renderCharts(data) {
+      destroyCharts();
+      if (typeof Chart === 'undefined') return;
+      const prod = data.chartProduzione || [];
+      const mensile = data.chartMensile || [];
+      const titleEl = document.getElementById('chart-prod-title');
+      if (titleEl) {
+        titleEl.textContent = selFrutteto.value
+          ? 'Produzione per specie (top 7)'
+          : 'Produzione per frutteto (top 7)';
+      }
+
+      const ctxP = document.getElementById('chart-produzione');
+      if (ctxP && prod.length) {
+        const cols = chartColorsForItems(prod, COLORS);
+        charts.produzione = new Chart(ctxP, {
+          type: 'bar',
+          data: {
+            labels: prod.map((c) => c.nome),
+            datasets: [{
+              label: 'Produzione q',
+              data: prod.map((c) => c.valore == null ? 0 : c.valore),
+              backgroundColor: cols
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } }
+          }
+        });
+      }
+
+      const ctxM = document.getElementById('chart-mensile');
+      if (ctxM && mensile.length) {
+        charts.mensile = new Chart(ctxM, {
+          type: 'bar',
+          data: {
+            labels: mensile.map((m) => m.label),
+            datasets: [
+              {
+                label: 'Produzione q',
+                data: mensile.map((m) => m.produzioneQ == null ? 0 : m.produzioneQ),
+                backgroundColor: COLORS.series[0]
+              },
+              {
+                label: 'Costi €',
+                data: mensile.map((m) => m.costi == null ? 0 : m.costi),
+                backgroundColor: COLORS.series[1]
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+    }
+
+    function sortRows(rows, key, dir) {
+      const mul = dir === 'desc' ? -1 : 1;
+      return [...(rows || [])].sort((a, b) => {
+        const va = a ? a[key] : null;
+        const vb = b ? b[key] : null;
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * mul;
+        return String(va).localeCompare(String(vb), 'it') * mul;
+      });
+    }
+
+    function thSort(key, label, num) {
+      const cls = (num ? 'num ' : '')
+        + (sortState.key === key ? (sortState.dir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '');
+      return `<th class="${cls}" data-sort="${escapeHtml(key)}">${escapeHtml(label)}</th>`;
+    }
+
+    function isDesktopWide() {
+      return window.matchMedia('(min-width: 1101px)').matches;
+    }
+
+    function fruttetoListIds() {
+      return (cached && cached.byFrutteto ? cached.byFrutteto : [])
+        .filter((r) => r.fruttetoId)
+        .map((r) => String(r.fruttetoId));
+    }
+
+    function navigateFrutteto(delta) {
+      const ids = fruttetoListIds();
+      if (!ids.length || !selectedFruttetoId) return;
+      const idx = ids.indexOf(String(selectedFruttetoId));
+      if (idx < 0) return;
+      openFruttetoDetail(ids[(idx + delta + ids.length) % ids.length]);
+    }
+
+    function fmtBreakdown(bd, partial) {
+      if (!bd) return '';
+      const rows = [
+        ['Manodopera', bd.speseManodopera],
+        ['Macchine', bd.speseMacchine],
+        ['Prodotti / trattamenti', bd.speseProdotti],
+        ['Potatura (manodopera)', bd.spesePotatura],
+        ['Trattamenti (manodopera)', bd.speseTrattamenti],
+        ['Raccolta (manodopera)', bd.speseRaccolta]
+      ];
+      let html = '<div class="cost-breakdown"><h2 class="section">Costi per voce</h2><dl>';
+      for (const [label, val] of rows) {
+        const warn = val == null ? ' warn-text' : '';
+        html += `<dt>${escapeHtml(label)}</dt><dd class="${warn}">${escapeHtml(fmtEuro(val, val == null && partial))} €</dd>`;
+      }
+      html += '</dl></div>';
+      return html;
+    }
+
+    function buildDetailHtml(fruttetoId) {
+      const row = (cached.byFrutteto || []).find((r) => String(r.fruttetoId) === String(fruttetoId));
+      const detail = buildFruttetoDetailRows(cached.raccolte || [], fruttetoId);
+      let html = '';
+      if (!detail.length) {
+        html = '<div class="alert alert-info">Nessuna raccolta per questo frutteto nel periodo con i filtri attuali.</div>';
+      } else {
+        html += `<div class="table-wrap detail-table-desktop"><table class="data">
+          <colgroup>
+            <col class="col-data"><col class="col-var"><col class="col-qty"><col class="col-ha">
+            <col class="col-resa"><col class="col-scarto"><col class="col-cal">
+            <col class="col-eur"><col class="col-eur"><col class="col-eur">
+          </colgroup>
+          <thead><tr>
+            <th>Data</th><th>Varietà</th>
+            <th class="num">kg</th><th class="num">ha</th><th class="num">Resa</th><th class="num">Scarto</th>
+            <th>Calibro</th>
+            <th class="num">Costo</th><th class="num">Prezzo</th><th class="num">Ricavo</th>
+          </tr></thead><tbody>`;
+        for (const d of detail) {
+          html += `<tr>
+            <td class="col-data">${escapeHtml(d.dataIso || '—')}</td>
+            <td class="col-var">${escapeHtml(d.varieta || '—')}${d.senzaPrezzo ? ' <span class="warn-badge">Senza prezzo</span>' : ''}</td>
+            <td class="num">${escapeHtml(fmtNum(d.quantitaKg, 1))}</td>
+            <td class="num">${escapeHtml(fmtNum(d.quantitaEttari, 2))}</td>
+            <td class="num">${escapeHtml(fmtNum(d.resaKgHa, 0))} kg/ha</td>
+            <td class="num">${escapeHtml(fmtNum(d.scartoTotaleKg, 1))}</td>
+            <td class="col-cal">${escapeHtml(d.calibro || '—')}</td>
+            <td class="num">${escapeHtml(fmtEuro(d.costoTotaleRaccolta, false))}</td>
+            <td class="num${d.senzaPrezzo ? ' warn-text' : ''}">${escapeHtml(fmtEuro(d.prezzoVendita, false))}</td>
+            <td class="num${d.senzaPrezzo ? ' warn-text' : ''}">${escapeHtml(fmtEuro(d.ricavo, d.senzaPrezzo))}</td>
+          </tr>`;
+        }
+        html += '</tbody></table></div>';
+
+        html += '<div class="detail-cards">';
+        for (const d of detail) {
+          html += `<div class="d-card">
+            <div class="top">${escapeHtml(d.dataIso || '—')} · ${escapeHtml(d.varieta || '—')}</div>
+            <div class="sub">${escapeHtml(fmtNum(d.quantitaKg, 1))} kg · ${escapeHtml(fmtNum(d.quantitaEttari, 2))} ha${d.calibro ? ' · ' + escapeHtml(d.calibro) : ''}</div>
+            <div class="bottom">
+              <span>Scarto ${escapeHtml(fmtNum(d.scartoTotaleKg, 1))} kg</span>
+              <strong class="${d.senzaPrezzo ? 'warn-text' : ''}">Ricavo ${escapeHtml(fmtEuro(d.ricavo, d.senzaPrezzo))} €</strong>
+              <span>Costo ${escapeHtml(fmtEuro(d.costoTotaleRaccolta, false))} €</span>
+            </div>
+          </div>`;
+        }
+        html += '</div>';
+      }
+      if (row) html += fmtBreakdown(row.breakdown, row.partialCosti);
+      html += '<p class="muted" style="margin-top:10px;">Usa ← → oppure seleziona un altro frutteto dalla tabella.</p>';
+      return {
+        title: row ? row.fruttetoNome : 'Dettaglio frutteto',
+        sub: row
+          ? `${row.nRaccolte} raccolt${row.nRaccolte === 1 ? 'a' : 'e'} · ${fmtNum(row.produzioneQ, 1)} q · costi ${fmtEuro(row.costi, row.partialCosti)} €`
+          : '',
+        html
+      };
+    }
+
+    function openFruttetoDetail(fruttetoId) {
+      if (!cached || !fruttetoId) return;
+      selectedFruttetoId = String(fruttetoId);
+      const built = buildDetailHtml(fruttetoId);
+      if (isDesktopWide()) {
+        drawerTitle.textContent = built.title;
+        drawerSub.textContent = built.sub;
+        drawerBody.innerHTML = built.html;
+        detailDrawer.classList.add('open');
+        document.body.classList.add('drawer-open');
+        detailModal.classList.add('hidden');
+        detailModal.classList.add('desktop-side');
+      } else {
+        detailTitle.textContent = built.title;
+        detailSub.textContent = built.sub;
+        detailBody.innerHTML = built.html;
+        detailModal.classList.remove('hidden');
+        detailModal.classList.remove('desktop-side');
+        detailDrawer.classList.remove('open');
+        document.body.classList.remove('drawer-open');
+      }
+      if (cached) renderTables(cached);
+    }
+
+    function closeDetail() {
+      detailModal.classList.add('hidden');
+      detailDrawer.classList.remove('open');
+      document.body.classList.remove('drawer-open');
+      selectedFruttetoId = null;
+      if (cached) renderTables(cached);
+    }
+
+    function renderMobileCards(byFrutteto) {
+      if (!mobileHost) return;
+      if (!byFrutteto.length) { mobileHost.innerHTML = ''; return; }
+      mobileHost.innerHTML = '<h2 class="section" style="margin-top:0;">Per frutteto</h2>'
+        + byFrutteto.map((r) => {
+          const id = r.fruttetoId || '';
+          return `
+        <div class="m-card${selectedFruttetoId === id ? ' selected' : ''}" data-frutteto-id="${escapeHtml(id)}">
+          <div class="title">${escapeHtml(r.fruttetoNome)}${r.senzaPrezzo ? ' <span class="warn-badge">Senza prezzo</span>' : ''}</div>
+          <div class="meta">${escapeHtml(r.specieVarieta || '')} · ${escapeHtml(fmtNum(r.ettari, 2))} ha</div>
+          <div class="tot">${escapeHtml(fmtNum(r.produzioneQ, 1))} q</div>
+          <div class="meta">Costi ${escapeHtml(fmtEuro(r.costi, r.partialCosti))} € · ricavi ${escapeHtml(fmtEuro(r.ricavi, r.partialRicavi))} €</div>
+        </div>`;
+        }).join('');
+    }
+
+    function renderTables(data) {
+      const byFrutteto = sortRows(data.byFrutteto, sortState.key, sortState.dir);
+      if (!byFrutteto.length) {
+        tablesHost.innerHTML = data.empty
+          ? '<div class="alert alert-info">Nessuna raccolta nel periodo selezionato. Prova ad allargare l’intervallo o a togliere i filtri.</div>'
+          : '<div class="alert alert-info">Nessun frutteto corrisponde ai filtri.</div>';
+        if (mobileHost) mobileHost.innerHTML = '';
+        return;
+      }
+
+      let html = '<h2 class="section desktop-only">Per frutteto</h2>';
+      html += '<p class="muted desktop-only" style="margin-bottom:8px;">Clicca una riga per il dettaglio raccolte e costi (pannello laterale su desktop).</p>';
+      html += '<div class="table-wrap desktop-only"><table class="data" id="tbl-frutteto"><thead><tr>';
+      html += thSort('fruttetoNome', 'Frutteto', false);
+      html += thSort('specieVarieta', 'Specie / varietà', false);
+      html += thSort('ettari', 'Ettari', true);
+      html += thSort('produzioneQ', 'Produzione q', true);
+      html += thSort('resaQHa', 'Resa q/ha', true);
+      html += thSort('scartoPct', 'Scarto %', true);
+      html += thSort('costi', 'Costi €', true);
+      html += thSort('euroPerQ', '€/q', true);
+      html += thSort('ricavi', 'Ricavi €', true);
+      html += thSort('margine', 'Margine €', true);
+      html += '</tr></thead><tbody>';
+      for (const r of byFrutteto) {
+        const id = r.fruttetoId || '';
+        const sel = selectedFruttetoId === id ? ' row-selected' : '';
+        html += `<tr class="row-click${sel}" data-frutteto-id="${escapeHtml(id)}">
+          <td>${escapeHtml(r.fruttetoNome)}</td>
+          <td>${escapeHtml(r.specieVarieta || '—')}</td>
+          <td class="num">${escapeHtml(fmtNum(r.ettari, 2))}</td>
+          <td class="num">${escapeHtml(fmtNum(r.produzioneQ, 1))}</td>
+          <td class="num">${escapeHtml(fmtNum(r.resaQHa, 1))}</td>
+          <td class="num">${escapeHtml(fmtNum(r.scartoPct, 1))}</td>
+          <td class="num${r.partialCosti || r.costi == null ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.costi, r.partialCosti))}</td>
+          <td class="num${r.partialCosti || r.euroPerQ == null ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.euroPerQ, r.partialCosti))}</td>
+          <td class="num${r.partialRicavi || r.ricavi == null ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.ricavi, r.partialRicavi))}</td>
+          <td class="num${r.partialMargine || r.margine == null ? ' warn-text' : ''}">${escapeHtml(fmtEuro(r.margine, false))}</td>
+        </tr>`;
+      }
+      html += '</tbody></table></div>';
+      tablesHost.innerHTML = html;
+      renderMobileCards(byFrutteto);
+    }
+
+    function syncOpenDetailAfterRender(data) {
+      if (!selectedFruttetoId) return;
+      if (!data || data.empty) { closeDetail(); return; }
+      const stillThere = (data.byFrutteto || []).some((r) => String(r.fruttetoId) === String(selectedFruttetoId));
+      if (!stillThere) { closeDetail(); return; }
+      const built = buildDetailHtml(selectedFruttetoId);
+      if (isDesktopWide()) {
+        drawerTitle.textContent = built.title;
+        drawerSub.textContent = built.sub;
+        drawerBody.innerHTML = built.html;
+        detailDrawer.classList.add('open');
+        document.body.classList.add('drawer-open');
+        detailModal.classList.add('hidden');
+        detailModal.classList.add('desktop-side');
+      } else if (!detailModal.classList.contains('hidden')) {
+        detailTitle.textContent = built.title;
+        detailSub.textContent = built.sub;
+        detailBody.innerHTML = built.html;
+      }
+    }
+
+    function render(data) {
+      cached = data;
+      const ready = isFruttetoDataReady(data);
+      setReportExportEnabled(btnExport, ready && !data.empty);
+
+      if (data.empty) {
+        destroyCharts();
+        kpiHost.innerHTML = '';
+        tablesHost.innerHTML = '<div class="alert alert-info">Nessuna raccolta nel periodo selezionato. Prova ad allargare l’intervallo o a togliere i filtri.</div>';
+        if (mobileHost) mobileHost.innerHTML = '';
+        notesBox.innerHTML = '';
+        partialBanner.classList.add('hidden');
+        document.getElementById('charts-row')?.classList.add('hidden');
+        syncOpenDetailAfterRender(data);
+        return;
+      }
+
+      document.getElementById('charts-row')?.classList.remove('hidden');
+      renderKpi(data);
+      renderCharts(data);
+      renderTables(data);
+      syncOpenDetailAfterRender(data);
+      notesBox.innerHTML = data.notes && data.notes.length
+        ? `<strong>Note:</strong><ul>${data.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+        : '';
+    }
+
+    function fillFilterOptions(bundle) {
+      const opts = getFruttetoFilterOptions(bundle || {});
+      const keepF = selFrutteto.value;
+      selFrutteto.innerHTML = '<option value="">Tutti</option>';
+      for (const f of opts.frutteti || []) {
+        const o = document.createElement('option');
+        o.value = f.id;
+        o.textContent = f.nome;
+        selFrutteto.appendChild(o);
+      }
+      if (keepF) selFrutteto.value = keepF;
+
+      const keepS = selSpecie.value;
+      selSpecie.innerHTML = '<option value="">Tutte</option>';
+      for (const s of opts.specie || []) {
+        const o = document.createElement('option');
+        o.value = s;
+        o.textContent = s;
+        selSpecie.appendChild(o);
+      }
+      if (keepS) selSpecie.value = keepS;
+
+      const keepV = selVarieta.value;
+      selVarieta.innerHTML = '<option value="">Tutte</option>';
+      for (const v of opts.varieta || []) {
+        const o = document.createElement('option');
+        o.value = v;
+        o.textContent = v;
+        selVarieta.appendChild(o);
+      }
+      if (keepV) selVarieta.value = keepV;
+    }
+
+    function filterLabels() {
+      const f = currentFilters();
+      return {
+        frutteto: f.fruttetoId ? (selFrutteto.selectedOptions[0]?.text || f.fruttetoId) : 'Tutti',
+        specie: f.specie || 'Tutte',
+        varieta: f.varieta || 'Tutte'
+      };
+    }
+
+    function applyLocalFilters() {
+      if (!periodBundle) return;
+      render(assembleFruttetoFromBundle(periodBundle, currentFilters()));
+    }
+
+    async function refreshReport({ forceReload = false } = {}) {
+      const seq = ++refreshSeq;
+      const p = currentPeriodBounds();
+      const key = `${p.start.toISOString()}|${p.end.toISOString()}`;
+      setReportExportEnabled(btnExport, false);
+      tablesHost.innerHTML = '<div class="loading-box">Caricamento raccolte, frutteti e costi…</div>';
+      try {
+        if (forceReload || periodBundleKey !== key || !periodBundle) {
+          periodBundle = await loadFruttetoPeriodBundle(p.start, p.end, { forceReload: true });
+          periodBundleKey = key;
+          fillFilterOptions(periodBundle);
+        }
+        if (seq !== refreshSeq) return;
+        render(assembleFruttetoFromBundle(periodBundle, currentFilters()));
+      } catch (e) {
+        console.error(LOG, e);
+        tablesHost.innerHTML = `<div class="alert alert-error">${escapeHtml(e && e.message ? e.message : 'Errore caricamento')}</div>`;
+      }
+    }
+
+    async function exportExcel() {
+      if (!cached || typeof ExcelJS === 'undefined') return;
+      const p = currentPeriodBounds();
+      const fl = filterLabels();
+      const exportData = prepareFruttetoExportData(cached);
+      const wb = new ExcelJS.Workbook();
+
+      function addMeta(ws) {
+        ws.addRow(['Periodo', p.label || formatRangeIt(p.start, p.end)]);
+        ws.addRow(['Frutteto', fl.frutteto]);
+        ws.addRow(['Specie', fl.specie]);
+        ws.addRow(['Varietà', fl.varieta]);
+        ws.addRow(['Annotazione', exportData.kpi.annotazione || '']);
+        ws.addRow([]);
+      }
+
+      const wsFiltri = wb.addWorksheet('Filtri');
+      addMeta(wsFiltri);
+
+      const wsKpi = wb.addWorksheet('KPI');
+      addMeta(wsKpi);
+      wsKpi.addRow(['Produzione q', exportData.kpi.produzioneQ]);
+      wsKpi.addRow(['Resa media q/ha', exportData.kpi.resaQHa]);
+      wsKpi.addRow(['Scarto %', exportData.kpi.scartoPct]);
+      wsKpi.addRow(['Costi €', exportData.kpi.costi]);
+      wsKpi.addRow(['€/q', exportData.kpi.euroPerQ]);
+      wsKpi.addRow(['Ricavi registrati €', exportData.kpi.ricavi]);
+      wsKpi.addRow(['Ettari', exportData.kpi.ettari]);
+      wsKpi.addRow(['Frutteti', exportData.kpi.nFrutteti]);
+      wsKpi.addRow(['Raccolte', exportData.kpi.nRaccolte]);
+
+      const wsFru = wb.addWorksheet('Per frutteto');
+      addMeta(wsFru);
+      wsFru.addRow(['Frutteto', 'Specie', 'Varietà', 'Ettari', 'Produzione q', 'Resa q/ha', 'Scarto %', 'Costi', '€/q', 'Ricavi', 'Margine', 'Senza prezzo', 'Costi parziali']);
+      for (const r of exportData.perFrutteto) {
+        wsFru.addRow([r.frutteto, r.specie, r.varieta, r.ettari, r.produzioneQ, r.resaQHa, r.scartoPct, r.costi, r.euroPerQ, r.ricavi, r.margine, r.senzaPrezzo ? 'sì' : '', r.costiParziali ? 'sì' : '']);
+      }
+
+      const wsRac = wb.addWorksheet('Raccolte');
+      addMeta(wsRac);
+      wsRac.addRow(['Data', 'Frutteto', 'Specie', 'Varietà', 'kg', 'Ettari', 'Resa kg/ha', 'Scarto kg', 'Calibro', 'Costo', 'Prezzo', 'Ricavo', 'Senza prezzo']);
+      for (const r of exportData.raccolte) {
+        wsRac.addRow([r.data, r.frutteto, r.specie, r.varieta, r.kg, r.ettari, r.resaKgHa, r.scartoKg, r.calibro, r.costo, r.prezzo, r.ricavo, r.senzaPrezzo ? 'sì' : '']);
+      }
+
+      const wsNote = wb.addWorksheet('Note');
+      addMeta(wsNote);
+      for (const n of exportData.notes || []) wsNote.addRow([n]);
+      const senza = (exportData.raccolte || []).filter((l) => l.senzaPrezzo);
+      if (senza.length) {
+        wsNote.addRow([]);
+        wsNote.addRow(['Raccolte senza prezzo']);
+        for (const l of senza) wsNote.addRow([l.data, l.frutteto, l.varieta, l.kg]);
+      }
+      const parziali = (exportData.perFrutteto || []).filter((l) => l.costiParziali);
+      if (parziali.length) {
+        wsNote.addRow([]);
+        wsNote.addRow(['Frutteti con costi parziali']);
+        for (const l of parziali) wsNote.addRow([l.frutteto, l.costi]);
+      }
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `report-frutteto-${formatRangeIt(p.start, p.end).replace(/\s+/g, '_')}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    tablesHost.addEventListener('click', (ev) => {
+      const th = ev.target.closest('th[data-sort]');
+      if (th) {
+        const key = th.getAttribute('data-sort');
+        if (sortState.key === key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        else { sortState.key = key; sortState.dir = key === 'fruttetoNome' || key === 'specieVarieta' ? 'asc' : 'desc'; }
+        if (cached) renderTables(cached);
+        return;
+      }
+      const tr = ev.target.closest('tr[data-frutteto-id]');
+      if (tr) openFruttetoDetail(tr.getAttribute('data-frutteto-id'));
+    });
+    mobileHost?.addEventListener('click', (ev) => {
+      const card = ev.target.closest('[data-frutteto-id]');
+      if (card) openFruttetoDetail(card.getAttribute('data-frutteto-id'));
+    });
+    detailClose?.addEventListener('click', closeDetail);
+    drawerClose?.addEventListener('click', closeDetail);
+    detailModal?.addEventListener('click', (ev) => { if (ev.target === detailModal) closeDetail(); });
+    document.getElementById('detail-prev')?.addEventListener('click', () => navigateFrutteto(-1));
+    document.getElementById('detail-next')?.addEventListener('click', () => navigateFrutteto(1));
+    document.getElementById('drawer-prev')?.addEventListener('click', () => navigateFrutteto(-1));
+    document.getElementById('drawer-next')?.addEventListener('click', () => navigateFrutteto(1));
+    btnExport.addEventListener('click', () => { exportExcel().catch((e) => console.error(LOG, e)); });
+
+    for (const el of [selMode, selYear, dateFrom, dateTo]) {
+      el.addEventListener('change', () => { syncPeriodUi(); refreshReport({ forceReload: true }); });
+    }
+    for (const el of [selFrutteto, selSpecie, selVarieta]) {
+      el.addEventListener('change', applyLocalFilters);
+    }
+    window.addEventListener('resize', () => {
+      if (!selectedFruttetoId || !cached) return;
+      openFruttetoDetail(selectedFruttetoId);
+    });
+
+    fillYearSelect();
+    syncPeriodUi();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
+      if (!user) {
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+        return;
+      }
+      const userData = await getDocumentData('users', user.uid);
+      if (!userData) { showGate('Profilo utente non trovato.'); return; }
+      if (userData.tenantId) setCurrentTenantId(userData.tenantId);
+
+      const okReport = await hasReportModuleAccess();
+      if (!okReport) {
+        showGate('Il modulo Report non è attivo per questo account.');
+        return;
+      }
+      if (!canAccessStrategicReports(userData)) {
+        showGate('Questa area è riservata a Manager e Amministratore.');
+        return;
+      }
+      const tenant = await getCurrentTenant();
+      const mods = new Set((resolveEffectiveModules(tenant || {}) || []).map((m) => String(m || '').toLowerCase()));
+      if (!mods.has('frutteto')) {
+        showGate('Il modulo Frutteto non è attivo per questo account.');
+        return;
+      }
+
+      gateBlocked.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+      await refreshReport({ forceReload: true });
+    });
+  </script>
+  <script type="module">
+    import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+    const swPath = window.location.pathname.includes('/gfv-platform/')
+      ? '/gfv-platform/service-worker.js'
+      : '../../../service-worker.js';
+    registraServiceWorker(swPath);
+  </script>
+</body>
+</html>
