@@ -82,6 +82,13 @@
     }
     .detail-drawer .detail-table-desktop { overflow-x: hidden; }
     .detail-drawer table.data { table-layout: fixed; width: 100%; font-size: 12px; }
+    .detail-drawer table.data col.col-data { width: 92px; }
+    .detail-drawer table.data col.col-tipo { width: 90px; }
+    .detail-drawer table.data col.col-qty { width: 68px; }
+    .detail-drawer table.data col.col-prezzo { width: 72px; }
+    .detail-drawer table.data col.col-valore { width: 76px; }
+    .detail-drawer table.data col.col-origine { width: 28%; }
+    .detail-drawer table.data col.col-rif { width: 42%; }
     .detail-drawer table.data th,
     .detail-drawer table.data td {
       white-space: normal;
@@ -89,6 +96,13 @@
       word-break: normal;
       padding: 8px 6px;
       vertical-align: top;
+    }
+    .detail-drawer table.data th,
+    .detail-drawer table.data td.col-data,
+    .detail-drawer table.data td.col-tipo {
+      white-space: nowrap;
+      overflow-wrap: normal;
+      word-break: normal;
     }
     .detail-drawer table.data th.num,
     .detail-drawer table.data td.num {
@@ -98,6 +112,19 @@
       text-align: right;
       padding-left: 4px;
       padding-right: 4px;
+    }
+    .detail-drawer table.data td.col-origine,
+    .detail-drawer table.data td.col-rif {
+      word-break: normal;
+      overflow-wrap: break-word;
+    }
+    .detail-drawer table.data td.col-rif .rif-id {
+      display: inline-block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: bottom;
     }
     table.data th {
       background: #fafaf9; color: #44403c; font-weight: 700; cursor: pointer; user-select: none;
@@ -148,12 +175,12 @@
       cursor: pointer; font-weight: 600;
     }
     .detail-drawer {
-      display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(390px, 42vw);
+      display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(720px, 92vw);
       background: var(--panel); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,0.08);
       z-index: 70; overflow: auto; padding: 18px;
     }
     .detail-drawer.open { display: block; }
-    body.drawer-open .container { padding-right: min(406px, calc(42vw + 16px)); }
+    body.drawer-open .container { padding-right: min(736px, calc(92vw + 16px)); }
     @media (max-width: 1100px) {
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .charts-grid { grid-template-columns: 1fr; }
@@ -732,22 +759,41 @@
       if (!detail.length) {
         html = '<div class="alert alert-info">Nessun movimento per questo prodotto nel periodo con i filtri attuali.</div>';
       } else {
-        html += `<div class="table-wrap detail-table-desktop"><table class="data"><thead><tr>
+        html += `<div class="table-wrap detail-table-desktop"><table class="data">
+          <colgroup>
+            <col class="col-data"><col class="col-tipo"><col class="col-qty"><col class="col-prezzo">
+            <col class="col-valore"><col class="col-origine"><col class="col-rif">
+          </colgroup>
+          <thead><tr>
           <th>Data</th><th>Tipo</th><th class="num">Qtà</th><th class="num">Prezzo</th><th class="num">Valore</th><th>Origine</th><th>Riferimenti</th>
         </tr></thead><tbody>`;
         for (const d of detail) {
-          const refs = [];
-          if (d.lavoroId) refs.push(`Lavoro ${d.lavoroId}`);
-          if (d.macchinaId) refs.push(`Mezzo ${d.macchinaId}`);
-          if (d.origineTrattamentoId) refs.push(`Tratt. ${d.origineTrattamentoId}`);
+          const refBits = [];
+          const refTitles = [];
+          function pushRef(prefix, id) {
+            const fullId = String(id);
+            const shortId = fullId.length > 14 ? `${fullId.slice(0, 13)}…` : fullId;
+            const full = `${prefix} ${fullId}`;
+            refTitles.push(full);
+            refBits.push(
+              shortId === fullId
+                ? escapeHtml(full)
+                : `<span class="rif-id" title="${escapeHtml(full)}">${escapeHtml(`${prefix} ${shortId}`)}</span>`
+            );
+          }
+          if (d.lavoroId) pushRef('Lavoro', d.lavoroId);
+          if (d.macchinaId) pushRef('Mezzo', d.macchinaId);
+          if (d.origineTrattamentoId) pushRef('Tratt.', d.origineTrattamentoId);
+          const refsHtml = refBits.length ? refBits.join(' · ') : '—';
+          const refsTitle = refTitles.length ? ` title="${escapeHtml(refTitles.join(' · '))}"` : '';
           html += `<tr>
-            <td>${escapeHtml(d.dataIso || '—')}</td>
-            <td>${escapeHtml(labelTipoMovimento(d.tipo))}${d.prezzoInAttesa ? ' <span class="warn-badge">Attesa</span>' : ''}</td>
+            <td class="col-data">${escapeHtml(d.dataIso || '—')}</td>
+            <td class="col-tipo">${escapeHtml(labelTipoMovimento(d.tipo))}${d.prezzoInAttesa ? ' <span class="warn-badge">Attesa</span>' : ''}</td>
             <td class="num">${escapeHtml(fmtQty(d.quantita, d.unitaMisura))}</td>
             <td class="num${d.missingPrezzo ? ' warn-text' : ''}">${escapeHtml(d.missingPrezzo ? '—' : fmtEuro(d.prezzo, false))}</td>
             <td class="num${d.missingPrezzo ? ' warn-text' : ''}">${escapeHtml(fmtEuro(d.valore, d.missingPrezzo))}</td>
-            <td>${escapeHtml(d.origineLabel || '—')}</td>
-            <td>${escapeHtml(refs.length ? refs.join(' · ') : '—')}</td>
+            <td class="col-origine">${escapeHtml(d.origineLabel || '—')}</td>
+            <td class="col-rif"${refsTitle}>${refsHtml}</td>
           </tr>`;
         }
         html += '</tbody></table></div>';
@@ -995,9 +1041,13 @@
       addMeta(wsKpi);
       wsKpi.addRow(['Valore entrate €', exportData.kpi.valoreEntrate]);
       wsKpi.addRow(['Valore uscite €', exportData.kpi.valoreUscite]);
+      for (const note of notesUsciteVsEconomici(exportData.kpi.usciteEscluseEconomici || {})) {
+        wsKpi.addRow([note, '']);
+      }
       wsKpi.addRow(['Valore magazzino €', exportData.kpi.valoreMagazzino]);
       wsKpi.addRow(['Prodotti sotto scorta', exportData.kpi.prodottiSottoScorta]);
-      wsKpi.addRow(['N. prodotti', exportData.kpi.nProdotti]);
+      // Stesso conteggio del foglio «Per prodotto» / tabella pagina (esclude solo-giacenza).
+      wsKpi.addRow(['N. prodotti', exportData.perProdotto.length]);
 
       const wsProd = wb.addWorksheet('Per prodotto');
       addMeta(wsProd);

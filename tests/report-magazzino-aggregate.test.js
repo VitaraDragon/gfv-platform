@@ -142,6 +142,10 @@ describe('Report Magazzino — aggregazione', () => {
       visible.map((r) => r.nome).sort()
     );
     expect(exp.perProdotto.some((r) => r.nome === 'KARATE')).toBe(false);
+    // N. prodotti Excel = righe «Per prodotto» (non include KARATE solo-giacenza)
+    expect(report.kpi.nProdotti).toBeGreaterThan(visible.length);
+    expect(exp.kpi.nProdotti).toBe(exp.perProdotto.length);
+    expect(exp.kpi.nProdotti).toBe(visible.length);
   });
 
   it('giacenza: sotto scorta e prezzo mancante', () => {
