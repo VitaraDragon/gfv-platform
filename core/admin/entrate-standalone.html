@@ -587,6 +587,7 @@
       suggerisciAliquotaPerTipo,
       suggerisciAliquotaContoTerzi,
       risolviIvaEntrataInLettura,
+      resolveAggiornamentoAliquotaForm,
       totaliIvaEntrate,
       formatImportoConIva,
       mergeIvaConfig
@@ -769,32 +770,37 @@
     }
 
     function syncAliquotaDaTipoEntrata() {
-      if (!skipAliquotaAuto) {
-        const tipo = document.getElementById('f-tipo')?.value;
-        const coltura = document.getElementById('f-coltura')?.value;
-        const raccoltaKey = document.getElementById('f-raccolta')?.value || '';
-        const meta = raccolteOptions.find((r) => r.key === raccoltaKey) || null;
-        const s = suggerisciAliquotaPerTipo({
-          tipo,
-          coltura,
-          raccoltaModulo: meta ? meta.raccoltaModulo : null,
-          aliquote: ivaConfig.aliquote
-        });
-        applySuggerimentoAliquota('f-aliquota', s);
-      }
+      const tipo = document.getElementById('f-tipo')?.value;
+      const coltura = document.getElementById('f-coltura')?.value;
+      const raccoltaKey = document.getElementById('f-raccolta')?.value || '';
+      const meta = raccolteOptions.find((r) => r.key === raccoltaKey) || null;
+      const s = suggerisciAliquotaPerTipo({
+        tipo,
+        coltura,
+        raccoltaModulo: meta ? meta.raccoltaModulo : null,
+        aliquote: ivaConfig.aliquote
+      });
+      const decision = resolveAggiornamentoAliquotaForm({
+        aliquotaManuale: skipAliquotaAuto,
+        suggerimento: s
+      });
+      if (decision.apply) applySuggerimentoAliquota('f-aliquota', decision.suggerimento);
       updateIvaLive('f-importo', 'f-aliquota', 'f-iva-live');
       updateNotaContoTerzi();
     }
 
     function syncAliquotaDaAcconto() {
-      if (skipAliquotaAuto) return;
       const cat = document.getElementById('ac-cat')?.value;
       const s = suggerisciAliquotaPerTipo({
         tipo: document.getElementById('ac-tipo')?.value || 'acconto',
         categoriaProdotto: cat,
         aliquote: ivaConfig.aliquote
       });
-      applySuggerimentoAliquota('ac-aliquota', s);
+      const decision = resolveAggiornamentoAliquotaForm({
+        aliquotaManuale: skipAliquotaAuto,
+        suggerimento: s
+      });
+      if (decision.apply) applySuggerimentoAliquota('ac-aliquota', decision.suggerimento);
       updateIvaLive('ac-importo', 'ac-aliquota', 'ac-iva-live');
     }
 
@@ -1499,12 +1505,12 @@
       toggleVenditaFields();
       toggleIncassoFields();
       if (!hadIvaSalvata && e.categoriaIva) {
+        // Legacy: aliquota solo in lettura da coltura → parte non manuale (può ancora ricalcolare).
         applySuggerimentoAliquota('f-aliquota', {
           categoriaIva: e.categoriaIva,
           aliquotaIva: e.aliquotaIva,
           naturaIva: e.naturaIva
         });
-        skipAliquotaAuto = true;
       }
       updateIvaLive('f-importo', 'f-aliquota', 'f-iva-live');
       updateNotaContoTerzi();
@@ -1938,7 +1944,7 @@
     document.getElementById('f-tipo').addEventListener('change', () => {
       toggleVenditaFields();
       importoManuale = false;
-      skipAliquotaAuto = false;
+      // Non azzerare skipAliquotaAuto: se l'aliquota è stata scelta a mano resta.
       syncImportoFromCalc();
       syncAliquotaDaTipoEntrata();
     });
@@ -1961,7 +1967,6 @@
       updateNotaContoTerzi();
     });
     document.getElementById('f-coltura').addEventListener('change', () => {
-      skipAliquotaAuto = false;
       syncAliquotaDaTipoEntrata();
     });
     document.getElementById('ac-aliquota').addEventListener('change', () => {
@@ -1972,11 +1977,9 @@
       updateIvaLive('ac-importo', 'ac-aliquota', 'ac-iva-live');
     });
     document.getElementById('ac-cat').addEventListener('change', () => {
-      skipAliquotaAuto = false;
       syncAliquotaDaAcconto();
     });
     document.getElementById('ac-tipo').addEventListener('change', () => {
-      skipAliquotaAuto = false;
       syncAliquotaDaAcconto();
     });
     document.getElementById('f-raccolta').addEventListener('change', () => {
@@ -1987,7 +1990,6 @@
       if (meta.quantita != null) document.getElementById('f-quantita').value = meta.quantita;
       if (meta.unita) document.getElementById('f-unita').value = meta.unita;
       importoManuale = false;
-      skipAliquotaAuto = false;
       syncImportoFromCalc();
       syncAliquotaDaTipoEntrata();
     });
