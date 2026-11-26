@@ -1,9 +1,12 @@
 /**
- * Entrata — vendita, PAC, acconto/saldo conferimento o altro (senza IVA).
+ * Entrata — vendita, PAC, acconto/saldo conferimento o altro.
+ * `importo` = imponibile; IVA a parte (campi facoltativi per record legacy).
  * Collection: tenants/{tenantId}/entrate
  *
  * @module core/models/Entrata
  */
+
+import { calcolaIva, round2 } from './IvaConfig.js';
 
 export const ENTRATA_TIPI = [
   'vendita_prodotto',
@@ -23,7 +26,11 @@ export const ENTRATA_TIPO_LABELS = {
 
 export const ENTRATA_UNITA = ['kg', 'q', 't', 'hl', 'l', 'pezzi'];
 
+export const NATURA_IVA = ['imponibile', 'esente', 'fuori_campo'];
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export { calcolaIva } from './IvaConfig.js';
 
 /**
  * @param {number|string|null|undefined} quantita
@@ -34,7 +41,7 @@ export function calcolaImportoVendita(quantita, prezzoUnitario) {
   const q = Number(quantita);
   const p = Number(prezzoUnitario);
   if (!Number.isFinite(q) || !Number.isFinite(p)) return null;
-  return Math.round(q * p * 100) / 100;
+  return round2(q * p);
 }
 
 /**
@@ -53,9 +60,9 @@ export function totaliEntrate(items) {
     else daIncassare += importo;
   }
   return {
-    registrate: Math.round(registrate * 100) / 100,
-    incassate: Math.round(incassate * 100) / 100,
-    daIncassare: Math.round(daIncassare * 100) / 100
+    registrate: round2(registrate),
+    incassate: round2(incassate),
+    daIncassare: round2(daIncassare)
   };
 }
 
@@ -126,6 +133,27 @@ export class Entrata {
     this.note = data.note != null ? String(data.note) : '';
     this.createdBy = data.createdBy || null;
     this.createdAt = data.createdAt || null;
+
+    this.categoriaIva =
+      data.categoriaIva != null && String(data.categoriaIva).trim()
+        ? String(data.categoriaIva).trim()
+        : null;
+    this.naturaIva =
+      data.naturaIva && NATURA_IVA.includes(data.naturaIva) ? data.naturaIva : null;
+    if (data.aliquotaIva != null && data.aliquotaIva !== '') {
+      const a = Number(data.aliquotaIva);
+      this.aliquotaIva = Number.isFinite(a) ? a : null;
+    } else {
+      this.aliquotaIva = null;
+    }
+    this.importoIva =
+      data.importoIva != null && data.importoIva !== '' && Number.isFinite(Number(data.importoIva))
+        ? Number(data.importoIva)
+        : null;
+    this.importoTotale =
+      data.importoTotale != null && data.importoTotale !== '' && Number.isFinite(Number(data.importoTotale))
+        ? Number(data.importoTotale)
+        : null;
   }
 
   static fromData(data = {}) {
@@ -137,6 +165,43 @@ export class Entrata {
     if (this.importo != null && Number.isFinite(Number(this.importo))) return;
     const calc = calcolaImportoVendita(this.quantita, this.prezzoUnitario);
     if (calc != null) this.importo = calc;
+  }
+
+  /**
+   * Ricalcola importoIva / importoTotale se c'è imponibile e natura/aliquota nota.
+   * Record legacy senza aliquota: lascia IVA null (UI mostra «—»).
+   */
+  syncIvaCalcolata() {
+    const imp = Number(this.importo);
+    if (!Number.isFinite(imp)) {
+      this.importoIva = null;
+      this.importoTotale = null;
+      return;
+    }
+
+    if (this.naturaIva === 'esente' || this.naturaIva === 'fuori_campo') {
+      this.aliquotaIva = 0;
+      this.importoIva = 0;
+      this.importoTotale = round2(imp);
+      return;
+    }
+
+    if (this.aliquotaIva == null && !this.naturaIva && !this.categoriaIva) {
+      this.importoIva = null;
+      this.importoTotale = null;
+      return;
+    }
+
+    const rate = this.aliquotaIva == null ? 0 : this.aliquotaIva;
+    const calc = calcolaIva(imp, rate);
+    if (!calc) {
+      this.importoIva = null;
+      this.importoTotale = null;
+      return;
+    }
+    this.importoIva = calc.importoIva;
+    this.importoTotale = calc.importoTotale;
+    if (!this.naturaIva) this.naturaIva = 'imponibile';
   }
 
   validate() {
@@ -151,6 +216,7 @@ export class Entrata {
     }
 
     this.syncImportoCalcolatoSeManca();
+    this.syncIvaCalcolata();
 
     const importo = Number(this.importo);
     if (!Number.isFinite(importo) || importo <= 0) {
@@ -172,11 +238,16 @@ export class Entrata {
       errors.push('Data incasso non valida (formato AAAA-MM-GG)');
     }
 
+    if (this.naturaIva && !NATURA_IVA.includes(this.naturaIva)) {
+      errors.push('Natura IVA non valida');
+    }
+
     return { valid: errors.length === 0, errors };
   }
 
   toFirestore() {
     this.syncImportoCalcolatoSeManca();
+    this.syncIvaCalcolata();
     const data = {
       data: String(this.data || '').slice(0, 10),
       tipo: this.tipo,
@@ -194,7 +265,18 @@ export class Entrata {
       dataIncasso: this.incassato && this.dataIncasso
         ? String(this.dataIncasso).slice(0, 10)
         : null,
-      createdBy: this.createdBy || null
+      createdBy: this.createdBy || null,
+      categoriaIva: this.categoriaIva || null,
+      aliquotaIva: this.aliquotaIva != null && Number.isFinite(Number(this.aliquotaIva))
+        ? Number(this.aliquotaIva)
+        : null,
+      naturaIva: this.naturaIva || null,
+      importoIva: this.importoIva != null && Number.isFinite(Number(this.importoIva))
+        ? Number(this.importoIva)
+        : null,
+      importoTotale: this.importoTotale != null && Number.isFinite(Number(this.importoTotale))
+        ? Number(this.importoTotale)
+        : null
     };
 
     if (this.tipo === 'vendita_prodotto') {

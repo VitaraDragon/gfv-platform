@@ -7987,6 +7987,21 @@ if (typeof window !== 'undefined') {
                         (async function() {
                             try {
                                 var entrateMod = await import('../../services/entrate-service.js');
+                                var ivaFields = {};
+                                try {
+                                    var ivaMod = await import('../../models/IvaConfig.js');
+                                    var sug = ivaMod.suggerisciAliquotaPerTipo({
+                                        tipo: pendingAcconto.tipo || 'acconto',
+                                        categoriaProdotto: pendingAcconto.categoriaProdotto || null
+                                    });
+                                    if (sug) {
+                                        ivaFields = {
+                                            categoriaIva: sug.categoriaIva,
+                                            aliquotaIva: sug.aliquotaIva,
+                                            naturaIva: sug.naturaIva
+                                        };
+                                    }
+                                } catch (eIvaA) { /* default silenzioso opzionale */ }
                                 await entrateMod.createEntrata({
                                     data: pendingAcconto.data,
                                     tipo: pendingAcconto.tipo || 'acconto',
@@ -7995,7 +8010,10 @@ if (typeof window !== 'undefined') {
                                     conferimentoId: pendingAcconto.conferimentoId,
                                     descrizione: pendingAcconto.tipo === 'saldo' ? 'Saldo conferimento' : 'Acconto conferimento',
                                     incassato: true,
-                                    dataIncasso: pendingAcconto.data
+                                    dataIncasso: pendingAcconto.data,
+                                    categoriaIva: ivaFields.categoriaIva || null,
+                                    aliquotaIva: ivaFields.aliquotaIva != null ? ivaFields.aliquotaIva : null,
+                                    naturaIva: ivaFields.naturaIva || null
                                 });
                                 try { window.__tonyPendingAcconto = null; } catch (eClrB) { /* ignore */ }
                                 var okMsg = 'Registrato. Lo trovi in Vendite ed entrate.';

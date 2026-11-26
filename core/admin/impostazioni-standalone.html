@@ -705,6 +705,90 @@
                 </div>
             </div>
 
+            <!-- IVA (solo Manager/Amministratore) -->
+            <div class="card" id="iva-section" style="display: none;">
+                <h2>🧾 IVA</h2>
+                <p class="info-text" style="margin-bottom: 20px;">Regime e aliquote predefinite per categoria. I default valgono subito anche senza salvare; puoi modificarli in qualsiasi momento. Le categorie «costo» sono salvate qui per usi futuri (IVA costi).</p>
+
+                <div class="form-group" style="max-width: 420px; margin-bottom: 24px;">
+                    <label for="iva-regime">Regime IVA</label>
+                    <select id="iva-regime">
+                        <option value="ordinario">Ordinario (recupero l'IVA)</option>
+                        <option value="speciale_agricolo">Speciale agricolo</option>
+                    </select>
+                </div>
+
+                <h3 style="margin-bottom: 12px;">Aliquote per categoria</h3>
+                <div class="table-responsive" style="margin-bottom: 12px; overflow-x: auto;">
+                    <table class="data-table" id="iva-aliquote-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="text-align:left; border-bottom: 2px solid #e0e0e0;">
+                                <th style="padding:8px;">Categoria</th>
+                                <th style="padding:8px;">Tipo</th>
+                                <th style="padding:8px;">Natura</th>
+                                <th style="padding:8px;">Aliquota %</th>
+                                <th style="padding:8px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="iva-aliquote-tbody"></tbody>
+                    </table>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 16px;">
+                    <button type="button" class="btn btn-secondary" id="btn-iva-aggiungi">+ Aggiungi categoria</button>
+                    <button type="button" class="btn btn-secondary" id="btn-iva-ripristina">Ripristina valori predefiniti</button>
+                </div>
+                <div id="iva-add-form" style="display:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:20px;">
+                    <div class="form-row" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+                        <div class="form-group" style="min-width:180px; flex:1;">
+                            <label for="iva-add-label">Nome categoria *</label>
+                            <input type="text" id="iva-add-label" placeholder="Es. Nocciole" maxlength="80">
+                        </div>
+                        <div class="form-group" style="min-width:120px;">
+                            <label for="iva-add-tipo">Tipo</label>
+                            <select id="iva-add-tipo">
+                                <option value="entrata">Entrata</option>
+                                <option value="costo">Costo</option>
+                                <option value="entrambi">Entrambi</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="min-width:130px;">
+                            <label for="iva-add-natura">Natura</label>
+                            <select id="iva-add-natura">
+                                <option value="imponibile">Imponibile</option>
+                                <option value="esente">Esente</option>
+                                <option value="fuori_campo">Fuori campo</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="min-width:100px;">
+                            <label for="iva-add-aliquota">Aliquota %</label>
+                            <input type="number" id="iva-add-aliquota" min="0" max="100" step="0.1" value="4">
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" class="btn btn-primary" id="btn-iva-add-confirm">Aggiungi</button>
+                            <button type="button" class="btn btn-secondary" id="btn-iva-add-cancel">Annulla</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="iva-compensazione-wrap" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                    <h3 style="margin-bottom: 8px;">Compensazione regime speciale</h3>
+                    <p class="info-text" style="margin-bottom: 12px;">Percentuali di compensazione (solo salvate; non usate nei calcoli in questa versione). Verifica con il tuo commercialista.</p>
+                    <div class="table-responsive" style="overflow-x: auto;">
+                        <table class="data-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
+                            <thead>
+                                <tr style="text-align:left; border-bottom: 2px solid #e0e0e0;">
+                                    <th style="padding:8px;">Prodotto</th>
+                                    <th style="padding:8px;">Compensazione %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="iva-compensazione-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" id="btn-salva-iva" style="margin-top: 20px;">💾 Salva impostazioni IVA</button>
+            </div>
+
             <!-- Coefficienti Morfologia Conto Terzi (solo Manager/Amministratore) -->
             <div class="card" id="coefficienti-morfologia-section" style="display: none;">
                 <h2>⛰️ Coefficienti Morfologia Terreni (Conto Terzi)</h2>
@@ -946,6 +1030,7 @@
                         document.getElementById('poderi-section').style.display = 'block';
                         document.getElementById('liste-section').style.display = 'block';
                         document.getElementById('tariffe-section').style.display = 'block';
+                        document.getElementById('iva-section').style.display = 'block';
                         document.getElementById('coefficienti-morfologia-section').style.display = 'block';
                         
                         // Carica dati azienda
@@ -1041,6 +1126,8 @@
                             if (hasContoTerziModule) {
                                 await loadCoefficientiMorfologia();
                             }
+
+                            await loadIvaImpostazioni();
                         }
                     } else {
                         // Nascondi sezioni azienda per non-manager
@@ -1048,6 +1135,7 @@
                         document.getElementById('poderi-section').style.display = 'none';
                         document.getElementById('liste-section').style.display = 'none';
                         document.getElementById('tariffe-section').style.display = 'none';
+                        document.getElementById('iva-section').style.display = 'none';
                         document.getElementById('coefficienti-morfologia-section').style.display = 'none';
                         // Tony: moduli + ruoli anche senza blocco tenant manager (operaio/caposquadra in Impostazioni)
                         if (currentTenantId) {
@@ -3779,6 +3867,268 @@
             }
         }
         
+        let ivaConfigCache = null;
+
+        function toggleIvaCompensazioneVisibility() {
+            const regime = document.getElementById('iva-regime')?.value || 'ordinario';
+            const wrap = document.getElementById('iva-compensazione-wrap');
+            if (wrap) wrap.style.display = regime === 'speciale_agricolo' ? 'block' : 'none';
+        }
+
+        function renderIvaAliquoteTable(aliquote) {
+            const tbody = document.getElementById('iva-aliquote-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const naturaLabels = { imponibile: 'Imponibile', esente: 'Esente', fuori_campo: 'Fuori campo' };
+            (aliquote || []).forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #eee';
+                const aliquotaDisabled = row.natura === 'esente' || row.natura === 'fuori_campo';
+                tr.innerHTML = `
+                    <td style="padding:8px;">
+                        <input type="text" data-iva-id="${escapeHtml(row.id)}" data-iva-field="label"
+                            value="${escapeHtml(row.label || row.id)}" maxlength="80" style="min-width:140px; width:100%;">
+                    </td>
+                    <td style="padding:8px;">
+                        <select data-iva-id="${escapeHtml(row.id)}" data-iva-field="tipo" style="min-width:110px;">
+                            <option value="entrata"${row.tipo === 'entrata' ? ' selected' : ''}>Entrata</option>
+                            <option value="costo"${row.tipo === 'costo' ? ' selected' : ''}>Costo</option>
+                            <option value="entrambi"${row.tipo === 'entrambi' ? ' selected' : ''}>Entrambi</option>
+                        </select>
+                    </td>
+                    <td style="padding:8px;">
+                        <select data-iva-id="${escapeHtml(row.id)}" data-iva-field="natura" style="min-width:120px;">
+                            <option value="imponibile"${row.natura === 'imponibile' ? ' selected' : ''}>Imponibile</option>
+                            <option value="esente"${row.natura === 'esente' ? ' selected' : ''}>Esente</option>
+                            <option value="fuori_campo"${row.natura === 'fuori_campo' ? ' selected' : ''}>Fuori campo</option>
+                        </select>
+                    </td>
+                    <td style="padding:8px;">
+                        <input type="number" min="0" max="100" step="0.1"
+                            data-iva-id="${escapeHtml(row.id)}" data-iva-field="aliquota"
+                            value="${aliquotaDisabled ? '' : (row.aliquota != null ? row.aliquota : '')}"
+                            ${aliquotaDisabled ? 'disabled' : ''}
+                            placeholder="${aliquotaDisabled ? (naturaLabels[row.natura] || '—') : ''}"
+                            style="width:90px;" />
+                    </td>
+                    <td style="padding:8px;">
+                        <button type="button" class="btn btn-secondary" data-iva-remove="${escapeHtml(row.id)}"
+                            style="padding:6px 10px; font-size:12px;" title="Togli categoria">Togli</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+            tbody.querySelectorAll('[data-iva-field="natura"]').forEach((sel) => {
+                sel.addEventListener('change', () => {
+                    const id = sel.getAttribute('data-iva-id');
+                    const input = tbody.querySelector(`[data-iva-id="${CSS.escape(id)}"][data-iva-field="aliquota"]`);
+                    if (!input) return;
+                    const nat = sel.value;
+                    const disabled = nat === 'esente' || nat === 'fuori_campo';
+                    input.disabled = disabled;
+                    if (disabled) {
+                        input.value = '';
+                        input.placeholder = naturaLabels[nat] || '—';
+                    } else if (input.value === '') {
+                        input.placeholder = '';
+                    }
+                });
+            });
+            tbody.querySelectorAll('[data-iva-remove]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-iva-remove');
+                    const labelEl = tbody.querySelector(`[data-iva-id="${CSS.escape(id)}"][data-iva-field="label"]`);
+                    const nome = labelEl && labelEl.value ? labelEl.value : id;
+                    if (!confirm(`Togliere la categoria «${nome}» dall'elenco? Le entrate già salvate con questa aliquota restano invariate.`)) {
+                        return;
+                    }
+                    syncIvaCacheFromForm();
+                    ivaConfigCache.aliquote = (ivaConfigCache.aliquote || []).filter((r) => r.id !== id);
+                    renderIvaAliquoteTable(ivaConfigCache.aliquote);
+                });
+            });
+        }
+
+        function renderIvaCompensazioneTable(rows) {
+            const tbody = document.getElementById('iva-compensazione-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            (rows || []).forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #eee';
+                tr.innerHTML = `
+                    <td style="padding:8px;">${escapeHtml(row.label || row.id)}</td>
+                    <td style="padding:8px;">
+                        <input type="number" min="0" max="100" step="0.1"
+                            data-comp-id="${escapeHtml(row.id)}"
+                            value="${row.percentuale != null ? row.percentuale : ''}"
+                            placeholder="—"
+                            style="width:90px;" />
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function loadIvaImpostazioni() {
+            try {
+                const { getIvaImpostazioni } = await import('../services/iva-impostazioni-service.js');
+                const cfg = await getIvaImpostazioni();
+                ivaConfigCache = cfg;
+                const regimeEl = document.getElementById('iva-regime');
+                if (regimeEl) regimeEl.value = cfg.regime || 'ordinario';
+                renderIvaAliquoteTable(cfg.aliquote);
+                renderIvaCompensazioneTable(cfg.compensazione);
+                toggleIvaCompensazioneVisibility();
+            } catch (error) {
+                console.error('Errore caricamento IVA:', error);
+                showAlert('Errore caricamento impostazioni IVA', 'error');
+            }
+        }
+
+        function ivaField(id, field) {
+            return document.querySelector(`[data-iva-id="${CSS.escape(id)}"][data-iva-field="${field}"]`);
+        }
+
+        function readIvaFormPayload() {
+            const regime = document.getElementById('iva-regime')?.value || 'ordinario';
+            const aliquote = (ivaConfigCache && ivaConfigCache.aliquote ? ivaConfigCache.aliquote : []).map((row) => {
+                const labelEl = ivaField(row.id, 'label');
+                const tipoEl = ivaField(row.id, 'tipo');
+                const naturaEl = ivaField(row.id, 'natura');
+                const aliEl = ivaField(row.id, 'aliquota');
+                const natura = naturaEl ? naturaEl.value : row.natura;
+                let aliquota = null;
+                if (natura === 'imponibile' && aliEl && aliEl.value !== '') {
+                    const n = Number(aliEl.value);
+                    aliquota = Number.isFinite(n) ? n : row.aliquota;
+                }
+                return {
+                    id: row.id,
+                    label: labelEl && labelEl.value.trim() ? labelEl.value.trim() : row.label,
+                    tipo: tipoEl ? tipoEl.value : row.tipo,
+                    natura,
+                    aliquota
+                };
+            });
+            const compensazione = (ivaConfigCache && ivaConfigCache.compensazione ? ivaConfigCache.compensazione : []).map((row) => {
+                const el = document.querySelector(`[data-comp-id="${CSS.escape(row.id)}"]`);
+                let percentuale = null;
+                if (el && el.value !== '') {
+                    const n = Number(el.value);
+                    percentuale = Number.isFinite(n) ? n : null;
+                }
+                return { id: row.id, label: row.label, percentuale };
+            });
+            return { regime, aliquote, compensazione };
+        }
+
+        function syncIvaCacheFromForm() {
+            const payload = readIvaFormPayload();
+            ivaConfigCache = {
+                ...(ivaConfigCache || {}),
+                regime: payload.regime,
+                aliquote: payload.aliquote,
+                compensazione: payload.compensazione
+            };
+            return payload;
+        }
+
+        async function saveIvaImpostazioniUi() {
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            try {
+                const { saveIvaImpostazioni } = await import('../services/iva-impostazioni-service.js');
+                const payload = syncIvaCacheFromForm();
+                ivaConfigCache = await saveIvaImpostazioni(payload);
+                renderIvaAliquoteTable(ivaConfigCache.aliquote);
+                renderIvaCompensazioneTable(ivaConfigCache.compensazione);
+                showAlert('Impostazioni IVA salvate', 'success');
+            } catch (error) {
+                console.error('Errore salvataggio IVA:', error);
+                showAlert('Errore salvataggio IVA: ' + (error.message || error), 'error');
+            }
+        }
+
+        function toggleIvaAddForm(show) {
+            const form = document.getElementById('iva-add-form');
+            if (!form) return;
+            form.style.display = show ? 'block' : 'none';
+            if (show) {
+                const label = document.getElementById('iva-add-label');
+                if (label) label.focus();
+            }
+        }
+
+        function syncIvaAddAliquotaEnabled() {
+            const nat = document.getElementById('iva-add-natura')?.value;
+            const ali = document.getElementById('iva-add-aliquota');
+            if (!ali) return;
+            const disabled = nat === 'esente' || nat === 'fuori_campo';
+            ali.disabled = disabled;
+            if (disabled) ali.value = '';
+            else if (ali.value === '') ali.value = '4';
+        }
+
+        async function aggiungiCategoriaIvaUi() {
+            const label = (document.getElementById('iva-add-label')?.value || '').trim();
+            if (!label) {
+                showAlert('Inserisci il nome della categoria', 'error');
+                return;
+            }
+            const tipo = document.getElementById('iva-add-tipo')?.value || 'entrata';
+            const natura = document.getElementById('iva-add-natura')?.value || 'imponibile';
+            let aliquota = null;
+            if (natura === 'imponibile') {
+                const n = Number(document.getElementById('iva-add-aliquota')?.value);
+                if (!Number.isFinite(n) || n < 0) {
+                    showAlert('Inserisci un\'aliquota valida', 'error');
+                    return;
+                }
+                aliquota = n;
+            }
+            syncIvaCacheFromForm();
+            const { newCategoriaIvaId, normalizeAliquotaRow } = await import('../models/IvaConfig.js');
+            const id = newCategoriaIvaId(label, (ivaConfigCache.aliquote || []).map((r) => r.id));
+            const row = normalizeAliquotaRow({ id, label, tipo, natura, aliquota });
+            ivaConfigCache.aliquote = [...(ivaConfigCache.aliquote || []), row];
+            renderIvaAliquoteTable(ivaConfigCache.aliquote);
+            document.getElementById('iva-add-label').value = '';
+            toggleIvaAddForm(false);
+        }
+
+        async function ripristinaIvaDefaultsUi() {
+            if (!confirm('Ripristinare tutte le aliquote e le compensazioni ai valori predefiniti? Le personalizzazioni andranno perse (finché non salvi restano solo in pagina).')) {
+                return;
+            }
+            const { ripristinaIvaDefaults } = await import('../models/IvaConfig.js');
+            const defaults = ripristinaIvaDefaults();
+            const regime = document.getElementById('iva-regime')?.value || (ivaConfigCache && ivaConfigCache.regime) || 'ordinario';
+            ivaConfigCache = {
+                regime,
+                aliquote: defaults.aliquote,
+                compensazione: defaults.compensazione
+            };
+            renderIvaAliquoteTable(ivaConfigCache.aliquote);
+            renderIvaCompensazioneTable(ivaConfigCache.compensazione);
+            toggleIvaCompensazioneVisibility();
+            showAlert('Valori predefiniti ripristinati in pagina. Premi Salva per confermare.', 'success');
+        }
+
+        document.getElementById('iva-regime')?.addEventListener('change', toggleIvaCompensazioneVisibility);
+        document.getElementById('btn-salva-iva')?.addEventListener('click', () => {
+            saveIvaImpostazioniUi();
+        });
+        document.getElementById('btn-iva-aggiungi')?.addEventListener('click', () => toggleIvaAddForm(true));
+        document.getElementById('btn-iva-add-cancel')?.addEventListener('click', () => toggleIvaAddForm(false));
+        document.getElementById('btn-iva-add-confirm')?.addEventListener('click', () => {
+            aggiungiCategoriaIvaUi().catch((e) => showAlert(e.message || 'Errore', 'error'));
+        });
+        document.getElementById('btn-iva-ripristina')?.addEventListener('click', () => {
+            ripristinaIvaDefaultsUi().catch((e) => showAlert(e.message || 'Errore', 'error'));
+        });
+        document.getElementById('iva-add-natura')?.addEventListener('change', syncIvaAddAliquotaEnabled);
+
         // Salva coefficienti morfologia
         window.handleSaveCoefficientiMorfologia = async function(event) {
             console.log('handleSaveCoefficientiMorfologia chiamata');
