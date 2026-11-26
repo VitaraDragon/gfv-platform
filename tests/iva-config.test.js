@@ -14,6 +14,7 @@ import {
   risolviIvaEntrataInLettura,
   inferisciTipoClienteContoTerzi,
   suggerisciAliquotaContoTerzi,
+  resolveAggiornamentoAliquotaForm,
   totaliIvaEntrate,
   formatImportoConIva,
   ALIQUOTE_DEFAULT,
@@ -183,6 +184,82 @@ describe('suggerisciAliquotaContoTerzi', () => {
     expect(inferisciTipoClienteContoTerzi({ partitaIva: ' 12345678901 ' })).toBe('impresa_agricola');
     expect(inferisciTipoClienteContoTerzi({ partitaIva: null })).toBeNull();
     expect(inferisciTipoClienteContoTerzi({})).toBeNull();
+  });
+});
+
+describe('resolveAggiornamentoAliquotaForm — manuale non sovrascritta', () => {
+  it('senza flag manuale applica il suggerimento (es. Uva → 10%)', () => {
+    const sug = suggerisciAliquotaPerTipo({
+      tipo: 'vendita_prodotto',
+      coltura: 'Uva',
+      aliquote: ALIQUOTE_DEFAULT
+    });
+    const d = resolveAggiornamentoAliquotaForm({ aliquotaManuale: false, suggerimento: sug });
+    expect(d.apply).toBe(true);
+    expect(d.suggerimento.categoriaIva).toBe('uva_da_vino');
+    expect(d.showManualHint).toBe(false);
+  });
+
+  it('con aliquota manuale (Vino 22%) cambio coltura Uva non applica il suggerimento', () => {
+    const sug = suggerisciAliquotaPerTipo({
+      tipo: 'vendita_prodotto',
+      coltura: 'Uva',
+      aliquote: ALIQUOTE_DEFAULT
+    });
+    const d = resolveAggiornamentoAliquotaForm({
+      aliquotaManuale: true,
+      suggerimento: sug,
+      corrente: 22
+    });
+    expect(d.apply).toBe(false);
+    expect(d.suggerimento.categoriaIva).toBe('uva_da_vino');
+    expect(d.showManualHint).toBe(true);
+    expect(d.suggestedPercent).toBe(10);
+  });
+
+  it('acconto: Latte 10% manuale + prodotto Ortaggi non sovrascrive', () => {
+    const sug = suggerisciAliquotaPerTipo({
+      tipo: 'acconto',
+      categoriaProdotto: 'ortaggi',
+      aliquote: ALIQUOTE_DEFAULT
+    });
+    expect(sug.categoriaIva).toBe('ortaggi');
+    const d = resolveAggiornamentoAliquotaForm({
+      aliquotaManuale: true,
+      suggerimento: sug,
+      corrente: 10
+    });
+    expect(d.apply).toBe(false);
+    expect(d.showManualHint).toBe(true);
+    expect(d.suggestedPercent).toBe(4);
+  });
+
+  it('preventivo: senza scelta impresa lascia vuoto (non 10%)', () => {
+    const d = resolveAggiornamentoAliquotaForm({
+      aliquotaManuale: false,
+      suggerimento: suggerisciAliquotaContoTerzi(null),
+      richiedeSceltaCliente: true,
+      sceltaClientePresente: false
+    });
+    expect(d.clearForMissingCliente).toBe(true);
+    expect(d.apply).toBe(true);
+    expect(d.suggerimento).toBeNull();
+    expect(d.suggestedPercent).toBeNull();
+  });
+
+  it('preventivo: IVA manuale + cambio Sì/No mostra hint Usa X% senza applicare', () => {
+    const sug = suggerisciAliquotaContoTerzi('impresa_agricola');
+    const d = resolveAggiornamentoAliquotaForm({
+      aliquotaManuale: true,
+      suggerimento: sug,
+      corrente: 22,
+      richiedeSceltaCliente: true,
+      sceltaClientePresente: true
+    });
+    expect(d.apply).toBe(false);
+    expect(d.showManualHint).toBe(true);
+    expect(d.suggestedPercent).toBe(10);
+    expect(d.clearForMissingCliente).toBe(false);
   });
 });
 
