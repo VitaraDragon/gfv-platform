@@ -408,6 +408,69 @@ export function risolviIvaEntrataInLettura(entrata, aliquote, extra = {}) {
 }
 
 /**
+ * Aggiornamento aliquota in un form: se l'utente ha scelto a mano, non sovrascrivere.
+ * Usato da entrate/acconti (select) e preventivo CT (input %).
+ *
+ * @param {{
+ *   aliquotaManuale?: boolean,
+ *   suggerimento?: { aliquotaIva?: number|null, categoriaIva?: string|null }|null,
+ *   corrente?: string|number|null,
+ *   richiedeSceltaCliente?: boolean,
+ *   sceltaClientePresente?: boolean
+ * }} [opts]
+ * @returns {{
+ *   apply: boolean,
+ *   suggerimento: object|null,
+ *   showManualHint: boolean,
+ *   suggestedPercent: number|null,
+ *   clearForMissingCliente: boolean
+ * }}
+ */
+export function resolveAggiornamentoAliquotaForm(opts = {}) {
+  const manuale = !!opts.aliquotaManuale;
+  const richiede = !!opts.richiedeSceltaCliente;
+  const sceltaOk = !!opts.sceltaClientePresente;
+  const sug = opts.suggerimento || null;
+  const suggestedPercent =
+    sug && sug.aliquotaIva != null && Number.isFinite(Number(sug.aliquotaIva))
+      ? Number(sug.aliquotaIva)
+      : null;
+
+  if (richiede && !sceltaOk) {
+    return {
+      apply: !manuale,
+      suggerimento: null,
+      showManualHint: false,
+      suggestedPercent: null,
+      clearForMissingCliente: !manuale
+    };
+  }
+
+  if (manuale) {
+    let curNum = null;
+    if (opts.corrente != null && opts.corrente !== '') {
+      const n = Number(opts.corrente);
+      if (Number.isFinite(n)) curNum = n;
+    }
+    return {
+      apply: false,
+      suggerimento: sug,
+      showManualHint: suggestedPercent != null && curNum !== suggestedPercent,
+      suggestedPercent,
+      clearForMissingCliente: false
+    };
+  }
+
+  return {
+    apply: true,
+    suggerimento: sug,
+    showManualHint: false,
+    suggestedPercent,
+    clearForMissingCliente: false
+  };
+}
+
+/**
  * Inferenza tipo cliente CT da anagrafica (P.IVA → impresa agricola).
  * @param {{ partitaIva?: string|null }|null|undefined} cliente
  * @returns {'impresa_agricola'|'privato'|null} null se non si può inferire

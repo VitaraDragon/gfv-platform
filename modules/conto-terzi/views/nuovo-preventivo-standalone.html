@@ -314,8 +314,9 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="iva">IVA (%)</label>
-                        <input type="number" id="iva" step="0.01" min="0" max="100" value="10" onchange="onIvaManualeChange()" oninput="calcolaTotale()">
-                        <small id="iva-hint">Precompilata dalle Impostazioni IVA in base al tipo cliente; puoi modificarla.</small>
+                        <input type="number" id="iva" step="0.01" min="0" max="100" value="" placeholder="—" onchange="onIvaManualeChange()" oninput="onIvaManualeChange()">
+                        <small id="iva-hint">Scegli se il cliente è un'impresa agricola</small>
+                        <small id="iva-manual-hint" class="hidden" style="display:none;color:#b45309;"></small>
                     </div>
                     <div class="form-group">
                         <label for="giorni-scadenza">Giorni Scadenza</label>
@@ -376,6 +377,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
         import {
             suggerisciAliquotaContoTerzi,
             inferisciTipoClienteContoTerzi,
+            resolveAggiornamentoAliquotaForm,
             mergeIvaConfig
         } from '../../../core/models/IvaConfig.js';
 
@@ -1258,42 +1260,79 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             }
         }
 
-        function syncIvaDaClienteImpresa() {
-            if (ivaManuale) {
-                calcolaTotale();
+        function renderIvaManualHint(decision) {
+            const el = document.getElementById('iva-manual-hint');
+            if (!el) return;
+            if (!decision || !decision.showManualHint || decision.suggestedPercent == null) {
+                el.style.display = 'none';
+                el.classList.add('hidden');
+                el.innerHTML = '';
                 return;
             }
+            const x = decision.suggestedPercent;
+            el.style.display = 'block';
+            el.classList.remove('hidden');
+            el.innerHTML =
+                `Aliquota modificata a mano; quella suggerita sarebbe ${x}%. ` +
+                `<a href="#" id="iva-usa-suggerita" data-pct="${x}">Usa ${x}%</a>`;
+            const link = document.getElementById('iva-usa-suggerita');
+            if (link) {
+                link.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    ivaManuale = false;
+                    const ivaEl = document.getElementById('iva');
+                    if (ivaEl) ivaEl.value = String(x);
+                    syncIvaDaClienteImpresa();
+                });
+            }
+        }
+
+        function syncIvaDaClienteImpresa() {
             const scelta = document.getElementById('cliente-impresa-agricola')?.value;
             const tipoCliente =
                 scelta === 'si' ? 'impresa_agricola' : scelta === 'no' ? 'privato' : null;
-            const sug = suggerisciAliquotaContoTerzi(tipoCliente, ivaConfig.aliquote);
+            const sug =
+                tipoCliente != null
+                    ? suggerisciAliquotaContoTerzi(tipoCliente, ivaConfig.aliquote)
+                    : null;
             const ivaEl = document.getElementById('iva');
-            if (ivaEl && sug && sug.aliquotaIva != null) {
-                ivaEl.value = String(sug.aliquotaIva);
+            const decision = resolveAggiornamentoAliquotaForm({
+                aliquotaManuale: ivaManuale,
+                suggerimento: sug,
+                corrente: ivaEl ? ivaEl.value : '',
+                richiedeSceltaCliente: true,
+                sceltaClientePresente: tipoCliente != null
+            });
+            if (ivaEl) {
+                if (decision.clearForMissingCliente) {
+                    ivaEl.value = '';
+                } else if (decision.apply && decision.suggerimento && decision.suggerimento.aliquotaIva != null) {
+                    ivaEl.value = String(decision.suggerimento.aliquotaIva);
+                }
             }
             const hint = document.getElementById('iva-hint');
             if (hint) {
-                if (tipoCliente === 'impresa_agricola') {
+                if (tipoCliente == null) {
+                    hint.textContent = 'Scegli se il cliente è un\'impresa agricola';
+                } else if (tipoCliente === 'impresa_agricola') {
                     hint.textContent =
                         'Suggerita: lavori conto terzi con macchine agricole (impresa agricola). Puoi modificarla.';
-                } else if (tipoCliente === 'privato') {
-                    hint.textContent =
-                        'Suggerita: lavori conto terzi per privato o senza macchina agricola. Puoi modificarla.';
                 } else {
                     hint.textContent =
-                        'Precompilata dalle Impostazioni IVA in base al tipo cliente; puoi modificarla.';
+                        'Suggerita: lavori conto terzi per privato o senza macchina agricola. Puoi modificarla.';
                 }
             }
+            renderIvaManualHint(decision);
             calcolaTotale();
         }
 
         window.onIvaManualeChange = function() {
             ivaManuale = true;
-            calcolaTotale();
+            syncIvaDaClienteImpresa();
         };
 
         window.onClienteImpresaChange = function() {
-            ivaManuale = false;
+            // Non azzerare ivaManuale: se l'utente ha scritto l'IVA a mano resta.
             syncIvaDaClienteImpresa();
         };
 
@@ -1309,7 +1348,7 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                     if (inferito === 'impresa_agricola') impresaSel.value = 'si';
                     else if (!impresaSel.value) impresaSel.value = '';
                 }
-                ivaManuale = false;
+                // Non azzerare ivaManuale: cambio cliente non sovrascrive IVA scritta a mano.
                 syncIvaDaClienteImpresa();
             } else {
                 _loadTerreniClienteGen++;
@@ -1629,12 +1668,14 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             const coltura = _normStrPrev(colturaSelect && colturaSelect.value);
             const tipoCampo = _normTipoCampoPrev(document.getElementById('tipo-campo') && document.getElementById('tipo-campo').value);
             const superficie = parseFloat(document.getElementById('superficie').value) || 0;
-            const iva = parseFloat(document.getElementById('iva').value) || 22;
+            const ivaRaw = document.getElementById('iva').value;
+            const ivaParsed = parseFloat(ivaRaw);
+            const iva = Number.isFinite(ivaParsed) ? ivaParsed : null;
 
             // Aggiorna percentuale IVA visualizzata
-            document.getElementById('iva-percentuale').textContent = iva;
+            document.getElementById('iva-percentuale').textContent = iva != null ? iva : '—';
 
-            if (!tipoLavoro || !coltura || !tipoCampo || superficie <= 0) {
+            if (!tipoLavoro || !coltura || !tipoCampo || superficie <= 0 || iva == null) {
                 scriviTotaliPreventivo(0, 0, 0);
                 document.getElementById('tariffa-info').style.display = 'none';
                 return;
@@ -1702,10 +1743,21 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             }
 
             try {
+                const impresaScelta = document.getElementById('cliente-impresa-agricola')?.value;
+                if (!impresaScelta) {
+                    showAlert('Scegli se il cliente è un\'impresa agricola prima di salvare.', 'error');
+                    return;
+                }
+                const ivaParsed = parseFloat(document.getElementById('iva').value);
+                if (!Number.isFinite(ivaParsed)) {
+                    showAlert('Indica l\'aliquota IVA prima di salvare.', 'error');
+                    return;
+                }
+
                 // Calcola totale
                 await calcolaTotale();
                 const totaleImponibile = totaliPreventivoDaSalvare.imponibile;
-                const iva = parseFloat(document.getElementById('iva').value) || 22;
+                const iva = ivaParsed;
                 const totaleConIva = totaliPreventivoDaSalvare.conIva;
 
                 if (totaleImponibile === 0) {
