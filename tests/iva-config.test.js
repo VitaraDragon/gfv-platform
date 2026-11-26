@@ -9,7 +9,10 @@ import {
   normalizeCompensazione,
   newCategoriaIvaId,
   ripristinaIvaDefaults,
+  categoriaProdottoDaRaccoltaModulo,
   suggerisciAliquotaPerTipo,
+  risolviIvaEntrataInLettura,
+  inferisciTipoClienteContoTerzi,
   suggerisciAliquotaContoTerzi,
   totaliIvaEntrate,
   formatImportoConIva,
@@ -104,6 +107,30 @@ describe('suggerisciAliquotaPerTipo', () => {
     expect(suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto', coltura: 'vino rosso' }).aliquotaIva).toBe(22);
   });
 
+  it('raccoltaModulo orticole/frutta/seminativo/vendemmia', () => {
+    expect(categoriaProdottoDaRaccoltaModulo('orticole')).toBe('ortaggi');
+    expect(suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto', raccoltaModulo: 'orticole' }).aliquotaIva).toBe(4);
+    expect(suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto', raccoltaModulo: 'orticole' }).categoriaIva).toBe(
+      'ortaggi'
+    );
+    expect(
+      suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto', raccoltaModulo: 'frutta', coltura: 'Redhaven' })
+        .categoriaIva
+    ).toBe('frutta');
+    expect(suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto', coltura: 'pesche' }).categoriaIva).toBe('frutta');
+    expect(suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto', raccoltaModulo: 'seminativo' }).categoriaIva).toBe(
+      'cereali'
+    );
+    expect(suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto', raccoltaModulo: 'vendemmia' }).aliquotaIva).toBe(10);
+  });
+
+  it('cambio tipo senza coltura: PAC → vendita non lascia PAC; altro → null', () => {
+    expect(suggerisciAliquotaPerTipo({ tipo: 'pac_contributo' }).categoriaIva).toBe('contributi_pac');
+    expect(suggerisciAliquotaPerTipo({ tipo: 'vendita_prodotto' })).toBeNull();
+    expect(suggerisciAliquotaPerTipo({ tipo: 'altro', coltura: 'grano' }).categoriaIva).toBe('cereali');
+    expect(suggerisciAliquotaPerTipo({ tipo: 'altro' })).toBeNull();
+  });
+
   it('altro senza indizio → null', () => {
     expect(suggerisciAliquotaPerTipo({ tipo: 'altro' })).toBeNull();
   });
@@ -149,6 +176,59 @@ describe('suggerisciAliquotaContoTerzi', () => {
     const unk = suggerisciAliquotaContoTerzi(null);
     expect(unk.aliquotaIva).toBe(10);
     expect(unk.nota).toMatch(/22%/);
+  });
+
+  it('inferisce impresa agricola da P.IVA, altrimenti null', () => {
+    expect(inferisciTipoClienteContoTerzi({ partitaIva: '12345678901' })).toBe('impresa_agricola');
+    expect(inferisciTipoClienteContoTerzi({ partitaIva: ' 12345678901 ' })).toBe('impresa_agricola');
+    expect(inferisciTipoClienteContoTerzi({ partitaIva: null })).toBeNull();
+    expect(inferisciTipoClienteContoTerzi({})).toBeNull();
+  });
+});
+
+describe('risolviIvaEntrataInLettura', () => {
+  it('legacy senza aliquota: suggerisce da coltura e calcola IVA solo in memoria', () => {
+    const legacy = { tipo: 'vendita_prodotto', coltura: 'grano', importo: 4000 };
+    const resolved = risolviIvaEntrataInLettura(legacy, ALIQUOTE_DEFAULT);
+    expect(resolved).not.toBe(legacy);
+    expect(resolved.categoriaIva).toBe('cereali');
+    expect(resolved.aliquotaIva).toBe(4);
+    expect(resolved.importoIva).toBe(160);
+    expect(legacy.aliquotaIva).toBeUndefined();
+  });
+
+  it('PAC legacy → fuori campo; senza indizio resta com\'è', () => {
+    const pac = risolviIvaEntrataInLettura(
+      { tipo: 'pac_contributo', importo: 1000 },
+      ALIQUOTE_DEFAULT
+    );
+    expect(pac.naturaIva).toBe('fuori_campo');
+    expect(pac.importoIva).toBe(0);
+    const plain = { tipo: 'altro', importo: 500 };
+    expect(risolviIvaEntrataInLettura(plain, ALIQUOTE_DEFAULT)).toBe(plain);
+  });
+
+  it('già completa non viene riscritta; KPI usano suggerimento sui legacy', () => {
+    const saved = {
+      tipo: 'vendita_prodotto',
+      importo: 1000,
+      aliquotaIva: 10,
+      importoIva: 100,
+      naturaIva: 'imponibile'
+    };
+    expect(risolviIvaEntrataInLettura(saved, ALIQUOTE_DEFAULT)).toBe(saved);
+    const items = [
+      risolviIvaEntrataInLettura(
+        { importo: 4000, incassato: true, tipo: 'vendita_prodotto', coltura: 'grano' },
+        ALIQUOTE_DEFAULT
+      ),
+      { importo: 400, incassato: false }
+    ];
+    expect(totaliIvaEntrate(items)).toEqual({
+      ivaRegistrate: 160,
+      ivaIncassate: 160,
+      ivaDaIncassare: 0
+    });
   });
 });
 
