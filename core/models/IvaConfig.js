@@ -273,11 +273,26 @@ export function labelAliquotaOption(row) {
 }
 
 /**
+ * Mappa modulo raccolta / categoria prodotto verso chiave usata da suggerisciAliquotaPerTipo.
+ * @param {string|null|undefined} modulo
+ * @returns {string|null}
+ */
+export function categoriaProdottoDaRaccoltaModulo(modulo) {
+  const m = String(modulo || '').toLowerCase().trim();
+  if (m === 'frutta' || m === 'frutteto') return 'frutta';
+  if (m === 'orticole' || m === 'ortaggi') return 'ortaggi';
+  if (m === 'seminativo') return 'seminativo';
+  if (m === 'vendemmia' || m === 'vigneto' || m === 'uva') return 'uva';
+  return null;
+}
+
+/**
  * Precompilazione aliquota da tipo entrata / prodotto / coltura.
  * @param {{
  *   tipo?: string|null,
  *   categoriaProdotto?: string|null,
  *   coltura?: string|null,
+ *   raccoltaModulo?: string|null,
  *   aliquote?: Array<object>
  * }} opts
  * @returns {{ categoriaIva: string|null, aliquotaIva: number|null, naturaIva: NaturaIva }|null}
@@ -300,7 +315,10 @@ export function suggerisciAliquotaPerTipo(opts = {}) {
       : null;
   }
 
-  const cat = String(opts.categoriaProdotto || '').toLowerCase().trim();
+  const catFromModulo = categoriaProdottoDaRaccoltaModulo(opts.raccoltaModulo);
+  const cat = String(opts.categoriaProdotto || catFromModulo || '')
+    .toLowerCase()
+    .trim();
   const coltura = String(opts.coltura || '').toLowerCase().trim();
   const blob = `${cat} ${coltura}`;
 
@@ -308,9 +326,13 @@ export function suggerisciAliquotaPerTipo(opts = {}) {
   if (cat === 'uva' || /\buva\b/.test(blob)) {
     if (/tavola/.test(blob)) id = 'uva_da_tavola';
     else id = 'uva_da_vino';
-  } else if (cat === 'frutta' || /\bfrutta\b/.test(blob)) {
+  } else if (
+    cat === 'frutta' ||
+    /\bfrutta\b/.test(blob) ||
+    /\b(pesca|pesche|pesco|albicocc|cilieg|melo|pero|susin|nettarin|redhaven|williams)\b/.test(blob)
+  ) {
     id = 'frutta';
-  } else if (cat === 'ortaggi' || /\bortagg/.test(blob)) {
+  } else if (cat === 'ortaggi' || cat === 'orticole' || /\bortagg|orticol/.test(blob)) {
     id = 'ortaggi';
   } else if (cat === 'seminativo' || /\bcereal|grano|mais|orzo|seminat/.test(blob)) {
     id = 'cereali';
@@ -332,6 +354,69 @@ export function suggerisciAliquotaPerTipo(opts = {}) {
     aliquotaIva: row.natura === 'imponibile' ? row.aliquota : null,
     naturaIva: row.natura
   };
+}
+
+/**
+ * In lettura (lista/KPI/dettaglio/modifica): se l'entrata non ha aliquota né natura,
+ * applica il suggerimento coltura/tipo senza scrivere su Firestore.
+ * @param {object|null|undefined} entrata
+ * @param {Array<object>} [aliquote]
+ * @param {{ categoriaProdotto?: string|null, raccoltaModulo?: string|null }} [extra]
+ * @returns {object|null|undefined} stessa ref se già completa; altrimenti shallow copy arricchita
+ */
+export function risolviIvaEntrataInLettura(entrata, aliquote, extra = {}) {
+  if (!entrata) return entrata;
+  if (entrata.aliquotaIva != null || entrata.naturaIva) {
+    if (entrata.importoIva != null || entrata.importo == null) return entrata;
+    const calc = calcolaIva(entrata.importo, entrata.aliquotaIva);
+    if (!calc) return entrata;
+    return Object.assign({}, entrata, {
+      importoIva: calc.importoIva,
+      importoTotale: calc.importoTotale
+    });
+  }
+  const s = suggerisciAliquotaPerTipo({
+    tipo: entrata.tipo,
+    coltura: entrata.coltura,
+    categoriaProdotto: extra.categoriaProdotto || entrata.categoriaProdotto || null,
+    raccoltaModulo: extra.raccoltaModulo || entrata.raccoltaModulo || null,
+    aliquote
+  });
+  if (!s) return entrata;
+  const out = Object.assign({}, entrata, {
+    categoriaIva: s.categoriaIva,
+    aliquotaIva: s.aliquotaIva,
+    naturaIva: s.naturaIva
+  });
+  if (s.naturaIva === 'esente' || s.naturaIva === 'fuori_campo') {
+    out.aliquotaIva = 0;
+    out.importoIva = 0;
+    out.importoTotale =
+      entrata.importo != null && Number.isFinite(Number(entrata.importo))
+        ? round2(Number(entrata.importo))
+        : entrata.importoTotale;
+    return out;
+  }
+  if (s.aliquotaIva != null && entrata.importo != null) {
+    const calc = calcolaIva(entrata.importo, s.aliquotaIva);
+    if (calc) {
+      out.importoIva = calc.importoIva;
+      out.importoTotale = calc.importoTotale;
+    }
+  }
+  return out;
+}
+
+/**
+ * Inferenza tipo cliente CT da anagrafica (P.IVA → impresa agricola).
+ * @param {{ partitaIva?: string|null }|null|undefined} cliente
+ * @returns {'impresa_agricola'|'privato'|null} null se non si può inferire
+ */
+export function inferisciTipoClienteContoTerzi(cliente) {
+  if (!cliente) return null;
+  const piva = cliente.partitaIva != null ? String(cliente.partitaIva).replace(/\s/g, '') : '';
+  if (/^\d{11}$/.test(piva)) return 'impresa_agricola';
+  return null;
 }
 
 /**
@@ -373,7 +458,8 @@ export function suggerisciAliquotaContoTerzi(tipoCliente, aliquote) {
 
 /**
  * Totale IVA sulle entrate (imponibili restano in totaliEntrate).
- * Entrate senza aliquota non contribuiscono all'IVA (vecchi record).
+ * Passare items già risolti con risolviIvaEntrataInLettura se si vogliono
+ * includere i suggerimenti sui record legacy (senza scrittura Firestore).
  * @param {Array<object>} items
  * @returns {{ ivaRegistrate: number, ivaIncassate: number, ivaDaIncassare: number }}
  */
@@ -446,7 +532,10 @@ export default {
   mergeIvaConfig,
   aliquotePerEntrate,
   labelAliquotaOption,
+  categoriaProdottoDaRaccoltaModulo,
   suggerisciAliquotaPerTipo,
+  risolviIvaEntrataInLettura,
+  inferisciTipoClienteContoTerzi,
   suggerisciAliquotaContoTerzi,
   totaliIvaEntrate,
   formatImportoConIva
