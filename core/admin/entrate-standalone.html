@@ -320,6 +320,8 @@
             <select id="f-tipo">
               <option value="vendita_prodotto">Vendita prodotto</option>
               <option value="pac_contributo">PAC / contributo</option>
+              <option value="acconto">Acconto</option>
+              <option value="saldo">Saldo / liquidazione</option>
               <option value="altro">Altro</option>
             </select>
           </div>
@@ -584,11 +586,13 @@
       labelAliquotaOption,
       suggerisciAliquotaPerTipo,
       suggerisciAliquotaContoTerzi,
+      risolviIvaEntrataInLettura,
       totaliIvaEntrate,
       formatImportoConIva,
       mergeIvaConfig
     } from '../models/IvaConfig.js';
     import { getIvaImpostazioni } from '../services/iva-impostazioni-service.js';
+    import { formatEuro } from '../../shared/js/formato-importi.js';
     import { getAllAcquirenti, createAcquirente, updateAcquirente } from '../services/acquirenti-service.js';
     import {
       getAllConferimenti,
@@ -633,7 +637,25 @@
     function euro(n) {
       const v = Number(n);
       if (!Number.isFinite(v)) return '—';
-      return v.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+      // Stesso formatter it-IT di shared/formato-importi (migliaia col punto), suffisso « €».
+      const formatted = formatEuro(v, null);
+      if (!formatted || formatted === '-') return '—';
+      return formatted.replace(/^€\s*/, '') + ' €';
+    }
+
+    /**
+     * Arricchisce in lettura (no Firestore) le entrate legacy senza aliquota/natura.
+     * Per acconto/saldo usa categoriaProdotto del conferimento collegato se presente.
+     * @param {object} e
+     */
+    function entrataPerDisplay(e) {
+      if (!e) return e;
+      let categoriaProdotto = e.categoriaProdotto || null;
+      if (!categoriaProdotto && e.conferimentoId && Array.isArray(allConferimenti)) {
+        const conf = allConferimenti.find((c) => c && c.id === e.conferimentoId);
+        if (conf && conf.categoriaProdotto) categoriaProdotto = conf.categoriaProdotto;
+      }
+      return risolviIvaEntrataInLettura(e, ivaConfig.aliquote, { categoriaProdotto });
     }
 
     /**
@@ -714,10 +736,16 @@
     }
 
     function applySuggerimentoAliquota(selectId, suggerimento) {
-      if (!suggerimento || !suggerimento.categoriaIva) return;
       const sel = document.getElementById(selectId);
       if (!sel) return;
-      if (![...sel.options].some((o) => o.value === suggerimento.categoriaIva)) return;
+      if (!suggerimento || !suggerimento.categoriaIva) {
+        sel.value = '';
+        return;
+      }
+      if (![...sel.options].some((o) => o.value === suggerimento.categoriaIva)) {
+        sel.value = '';
+        return;
+      }
       sel.value = suggerimento.categoriaIva;
     }
 
@@ -725,13 +753,16 @@
       const nota = document.getElementById('f-iva-nota-ct');
       if (!nota) return;
       const sel = document.getElementById('f-aliquota');
-      if (sel && sel.value === 'ct_macchine_impresa_agricola') {
-        const ct = suggerisciAliquotaContoTerzi(null, ivaConfig.aliquote);
-        if (ct.nota) {
-          nota.textContent = ct.nota;
-          nota.classList.remove('hidden');
-          return;
-        }
+      if (sel && (sel.value === 'ct_macchine_impresa_agricola' || sel.value === 'ct_privato_o_senza_macchina')) {
+        const tipoCt = sel.value === 'ct_privato_o_senza_macchina' ? 'privato' : 'impresa_agricola';
+        const ct = suggerisciAliquotaContoTerzi(tipoCt, ivaConfig.aliquote);
+        nota.textContent =
+          tipoCt === 'impresa_agricola'
+            ? 'Lavori conto terzi con macchine agricole (impresa agricola) — modificabile.'
+            : 'Lavori conto terzi per privato o senza macchina agricola — modificabile.';
+        if (ct && ct.nota) nota.textContent = ct.nota;
+        nota.classList.remove('hidden');
+        return;
       }
       nota.textContent = '';
       nota.classList.add('hidden');
@@ -741,12 +772,15 @@
       if (!skipAliquotaAuto) {
         const tipo = document.getElementById('f-tipo')?.value;
         const coltura = document.getElementById('f-coltura')?.value;
+        const raccoltaKey = document.getElementById('f-raccolta')?.value || '';
+        const meta = raccolteOptions.find((r) => r.key === raccoltaKey) || null;
         const s = suggerisciAliquotaPerTipo({
           tipo,
           coltura,
+          raccoltaModulo: meta ? meta.raccoltaModulo : null,
           aliquote: ivaConfig.aliquote
         });
-        if (s) applySuggerimentoAliquota('f-aliquota', s);
+        applySuggerimentoAliquota('f-aliquota', s);
       }
       updateIvaLive('f-importo', 'f-aliquota', 'f-iva-live');
       updateNotaContoTerzi();
@@ -760,7 +794,7 @@
         categoriaProdotto: cat,
         aliquote: ivaConfig.aliquote
       });
-      if (s) applySuggerimentoAliquota('ac-aliquota', s);
+      applySuggerimentoAliquota('ac-aliquota', s);
       updateIvaLive('ac-importo', 'ac-aliquota', 'ac-iva-live');
     }
 
@@ -824,7 +858,8 @@
 
     function renderKpi(list) {
       const t = totaliEntrate(list);
-      const iva = totaliIvaEntrate(list);
+      const forIva = (list || []).map((e) => entrataPerDisplay(e));
+      const iva = totaliIvaEntrate(forIva);
       document.getElementById('kpi-registrate').textContent = euro(t.registrate);
       document.getElementById('kpi-incassate').textContent = euro(t.incassate);
       document.getElementById('kpi-da-incassare').textContent = euro(t.daIncassare);
@@ -846,7 +881,8 @@
       mobile.innerHTML = '';
       empty.classList.toggle('hidden', list.length > 0);
 
-      for (const e of list) {
+      for (const raw of list) {
+        const e = entrataPerDisplay(raw);
         const tipoLabel = ENTRATA_TIPO_LABELS[e.tipo] || e.tipo;
         const incHtml = e.incassato
           ? `<span class="badge">Incassata${e.dataIncasso ? ' · ' + escapeHtml(e.dataIncasso) : ''}</span>`
@@ -1056,7 +1092,7 @@
         · <span class="stima-badge">Stima provvisoria</span>
         ${riparto.euroPerQ != null ? ' · €/q medio ' + riparto.euroPerQ : ''}`;
 
-      const ivaConf = totaliIvaEntrate(entrate);
+      const ivaConf = totaliIvaEntrate(entrate.map((e) => entrataPerDisplay(e)));
       if (ivaConf.ivaRegistrate > 0) {
         detail.innerHTML += ` · <span class="importo-iva-side">IVA ${euro(ivaConf.ivaRegistrate)}</span>`;
       }
@@ -1427,14 +1463,24 @@
     }
 
     function openEdit(id) {
-      const e = allEntrate.find((x) => x && x.id === id);
-      if (!e) return;
+      const raw = allEntrate.find((x) => x && x.id === id);
+      if (!raw) return;
+      const e = entrataPerDisplay(raw);
       editingId = id;
       importoManuale = true;
-      skipAliquotaAuto = true;
+      const hadIvaSalvata = raw.aliquotaIva != null || !!raw.naturaIva || !!raw.categoriaIva;
+      skipAliquotaAuto = hadIvaSalvata;
       document.getElementById('f-id').value = id;
       document.getElementById('f-data').value = e.data || '';
-      document.getElementById('f-tipo').value = e.tipo || 'vendita_prodotto';
+      const tipoSel = document.getElementById('f-tipo');
+      const tipoVal = e.tipo || 'vendita_prodotto';
+      if (tipoSel && ![...tipoSel.options].some((o) => o.value === tipoVal)) {
+        const opt = document.createElement('option');
+        opt.value = tipoVal;
+        opt.textContent = ENTRATA_TIPO_LABELS[tipoVal] || tipoVal;
+        tipoSel.appendChild(opt);
+      }
+      document.getElementById('f-tipo').value = tipoVal;
       document.getElementById('f-descrizione').value = e.descrizione || '';
       document.getElementById('f-coltura').value = e.coltura || '';
       document.getElementById('f-quantita').value = e.quantita != null ? e.quantita : '';
@@ -1452,7 +1498,16 @@
         : null);
       toggleVenditaFields();
       toggleIncassoFields();
+      if (!hadIvaSalvata && e.categoriaIva) {
+        applySuggerimentoAliquota('f-aliquota', {
+          categoriaIva: e.categoriaIva,
+          aliquotaIva: e.aliquotaIva,
+          naturaIva: e.naturaIva
+        });
+        skipAliquotaAuto = true;
+      }
       updateIvaLive('f-importo', 'f-aliquota', 'f-iva-live');
+      updateNotaContoTerzi();
       openModal('Modifica entrata');
     }
 
@@ -1917,6 +1972,10 @@
       updateIvaLive('ac-importo', 'ac-aliquota', 'ac-iva-live');
     });
     document.getElementById('ac-cat').addEventListener('change', () => {
+      skipAliquotaAuto = false;
+      syncAliquotaDaAcconto();
+    });
+    document.getElementById('ac-tipo').addEventListener('change', () => {
       skipAliquotaAuto = false;
       syncAliquotaDaAcconto();
     });

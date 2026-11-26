@@ -235,6 +235,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="cliente-impresa-agricola">Cliente impresa agricola *</label>
+                    <select id="cliente-impresa-agricola" required onchange="onClienteImpresaChange()">
+                        <option value="">-- Seleziona --</option>
+                        <option value="si">Sì</option>
+                        <option value="no">No</option>
+                    </select>
+                    <small>Determina l’IVA suggerita (10% impresa agricola con macchine, 22% privato / senza macchina). Modificabile sotto.</small>
+                </div>
+
+                <div class="form-group">
                     <label for="terreno-id">Terreno</label>
                     <select id="terreno-id" onchange="onTerrenoChange()">
                         <option value="">-- Seleziona un terreno (opzionale) --</option>
@@ -304,8 +314,8 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="iva">IVA (%)</label>
-                        <input type="number" id="iva" step="0.01" min="0" max="100" value="22" onchange="calcolaTotale()" oninput="calcolaTotale()">
-                        <small>Percentuale IVA (default: 22%)</small>
+                        <input type="number" id="iva" step="0.01" min="0" max="100" value="10" onchange="onIvaManualeChange()" oninput="calcolaTotale()">
+                        <small id="iva-hint">Precompilata dalle Impostazioni IVA in base al tipo cliente; puoi modificarla.</small>
                     </div>
                     <div class="form-group">
                         <label for="giorni-scadenza">Giorni Scadenza</label>
@@ -333,7 +343,7 @@
                         <span id="totale-imponibile">€ 0,00</span>
                     </div>
                     <div class="totale-row">
-                        <span>IVA (<span id="iva-percentuale">22</span>%):</span>
+                        <span>IVA (<span id="iva-percentuale">10</span>%):</span>
                         <span id="totale-iva">€ 0,00</span>
                     </div>
                     <div class="totale-row">
@@ -347,7 +357,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
-                    <a href="preventivi-standalone.html" class="btn btn-secondary">Annulla</a>
+                    <button type="button" class="btn btn-secondary" id="btn-annulla-preventivo">Annulla</button>
                     <button type="submit" class="btn btn-success">💾 Salva come Bozza</button>
                 </div>
             </form>
@@ -362,6 +372,12 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { allocatePreventivoNumero } from '../services/preventivi-service.js';
+        import { getIvaImpostazioni } from '../../../core/services/iva-impostazioni-service.js';
+        import {
+            suggerisciAliquotaContoTerzi,
+            inferisciTipoClienteContoTerzi,
+            mergeIvaConfig
+        } from '../../../core/models/IvaConfig.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -377,6 +393,9 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
         let currentTenantId = null;
         // Numeri già arrotondati a 2 decimali, gli stessi che prima si rileggevano dal testo «€ 915.00».
         let totaliPreventivoDaSalvare = { imponibile: 0, conIva: 0 };
+        let ivaConfig = mergeIvaConfig({});
+        /** Se true, non sovrascrivere il campo IVA al cambio cliente/tipo. */
+        let ivaManuale = false;
         let clienti = [];
         let terreni = [];
         let tariffe = [];
@@ -447,6 +466,12 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                         }
 
                         // Carica dati
+                        try {
+                            ivaConfig = await getIvaImpostazioni();
+                        } catch (errIva) {
+                            console.warn('[PREVENTIVO] IVA impostazioni', errIva);
+                            ivaConfig = mergeIvaConfig({});
+                        }
                         await loadClienti();
                         await loadTariffe();
                         // Carica categorie lavori (deve essere prima di loadTipiLavoro)
@@ -456,6 +481,13 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                         // Setup handler per cambio categoria/sottocategoria
                         setupCategoriaLavoroHandler();
                         await loadColture();
+                        syncIvaDaClienteImpresa();
+                        const btnAnnulla = document.getElementById('btn-annulla-preventivo');
+                        if (btnAnnulla) {
+                            btnAnnulla.addEventListener('click', () => {
+                                window.location.href = 'preventivi-standalone.html';
+                            });
+                        }
                     } else {
                         window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     }
@@ -1226,11 +1258,59 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
             }
         }
 
+        function syncIvaDaClienteImpresa() {
+            if (ivaManuale) {
+                calcolaTotale();
+                return;
+            }
+            const scelta = document.getElementById('cliente-impresa-agricola')?.value;
+            const tipoCliente =
+                scelta === 'si' ? 'impresa_agricola' : scelta === 'no' ? 'privato' : null;
+            const sug = suggerisciAliquotaContoTerzi(tipoCliente, ivaConfig.aliquote);
+            const ivaEl = document.getElementById('iva');
+            if (ivaEl && sug && sug.aliquotaIva != null) {
+                ivaEl.value = String(sug.aliquotaIva);
+            }
+            const hint = document.getElementById('iva-hint');
+            if (hint) {
+                if (tipoCliente === 'impresa_agricola') {
+                    hint.textContent =
+                        'Suggerita: lavori conto terzi con macchine agricole (impresa agricola). Puoi modificarla.';
+                } else if (tipoCliente === 'privato') {
+                    hint.textContent =
+                        'Suggerita: lavori conto terzi per privato o senza macchina agricola. Puoi modificarla.';
+                } else {
+                    hint.textContent =
+                        'Precompilata dalle Impostazioni IVA in base al tipo cliente; puoi modificarla.';
+                }
+            }
+            calcolaTotale();
+        }
+
+        window.onIvaManualeChange = function() {
+            ivaManuale = true;
+            calcolaTotale();
+        };
+
+        window.onClienteImpresaChange = function() {
+            ivaManuale = false;
+            syncIvaDaClienteImpresa();
+        };
+
         // Quando cambia cliente - rendi globale per accesso da HTML
         window.onClienteChange = function() {
             const clienteId = document.getElementById('cliente-id').value;
             if (clienteId) {
                 _loadTerreniClientePromise = loadTerreniCliente(clienteId);
+                const cliente = clienti.find((c) => c.id === clienteId);
+                const inferito = inferisciTipoClienteContoTerzi(cliente);
+                const impresaSel = document.getElementById('cliente-impresa-agricola');
+                if (impresaSel) {
+                    if (inferito === 'impresa_agricola') impresaSel.value = 'si';
+                    else if (!impresaSel.value) impresaSel.value = '';
+                }
+                ivaManuale = false;
+                syncIvaDaClienteImpresa();
             } else {
                 _loadTerreniClienteGen++;
                 _loadTerreniClientePromise = Promise.resolve();
