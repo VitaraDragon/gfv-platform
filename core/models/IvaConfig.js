@@ -111,60 +111,131 @@ export function calcolaIva(imponibile, aliquota) {
 }
 
 /**
+ * Slug da label per id categoria personalizzata.
+ * @param {string} label
+ * @returns {string}
+ */
+export function slugifyIvaId(label) {
+  const base = String(label || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40);
+  return base || 'categoria';
+}
+
+/**
+ * Id unico: slug label + suffisso se già presente.
+ * @param {string} label
+ * @param {Iterable<string>} [existingIds]
+ * @returns {string}
+ */
+export function newCategoriaIvaId(label, existingIds = []) {
+  const base = slugifyIvaId(label);
+  const set = new Set([...(existingIds || [])].map((id) => String(id)));
+  if (!set.has(base)) return base;
+  let i = 2;
+  while (set.has(`${base}_${i}`)) i += 1;
+  return `${base}_${i}`;
+}
+
+/**
+ * Normalizza una riga aliquota (senza reintrodurre default assenti).
+ * @param {object} r
+ * @param {number} [idx]
+ * @param {Iterable<string>} [existingIds]
+ */
+export function normalizeAliquotaRow(r, idx = 0, existingIds = []) {
+  const label =
+    r && r.label != null && String(r.label).trim() ? String(r.label).trim() : '';
+  const id =
+    r && r.id != null && String(r.id).trim()
+      ? String(r.id).trim()
+      : newCategoriaIvaId(label || `categoria_${idx + 1}`, existingIds);
+  const natura = r && ['imponibile', 'esente', 'fuori_campo'].includes(r.natura)
+    ? r.natura
+    : 'imponibile';
+  const tipo = r && ['entrata', 'costo', 'entrambi'].includes(r.tipo) ? r.tipo : 'entrata';
+  let aliquota = null;
+  if (natura === 'imponibile') {
+    aliquota =
+      r && r.aliquota != null && r.aliquota !== '' && Number.isFinite(Number(r.aliquota))
+        ? Number(r.aliquota)
+        : 0;
+  }
+  return {
+    id,
+    label: label || id,
+    aliquota,
+    natura,
+    tipo
+  };
+}
+
+/**
+ * Se `rows` è presente e non vuoto = lista azienda (niente re-add dei default tolti;
+ * tiene id personalizzati). Default solo se manca o è vuoto.
  * @param {Array<{ id: string, label: string, aliquota: number|null, natura: string, tipo: string }>} [rows]
  * @returns {Array<object>}
  */
 export function normalizeAliquote(rows) {
-  const base = ALIQUOTE_DEFAULT.map((r) => ({ ...r }));
-  if (!Array.isArray(rows) || !rows.length) return base;
-  const byId = new Map();
-  for (const r of rows) {
-    if (!r || !r.id) continue;
-    byId.set(String(r.id), r);
+  if (!Array.isArray(rows) || !rows.length) {
+    return ALIQUOTE_DEFAULT.map((r) => ({ ...r }));
   }
-  return base.map((def) => {
-    const ov = byId.get(def.id);
-    if (!ov) return { ...def };
-    const aliquota =
-      ov.natura === 'esente' || ov.natura === 'fuori_campo'
-        ? null
-        : ov.aliquota != null && ov.aliquota !== '' && Number.isFinite(Number(ov.aliquota))
-          ? Number(ov.aliquota)
-          : def.aliquota;
-    return {
-      id: def.id,
-      label: ov.label != null && String(ov.label).trim() ? String(ov.label).trim() : def.label,
-      aliquota,
-      natura: ['imponibile', 'esente', 'fuori_campo'].includes(ov.natura) ? ov.natura : def.natura,
-      tipo: ['entrata', 'costo', 'entrambi'].includes(ov.tipo) ? ov.tipo : def.tipo
-    };
+  const used = [];
+  const out = [];
+  rows.forEach((r, idx) => {
+    if (!r || (!(r.id != null && String(r.id).trim()) && !(r.label != null && String(r.label).trim()))) {
+      return;
+    }
+    const row = normalizeAliquotaRow(r, idx, used);
+    used.push(row.id);
+    out.push(row);
   });
+  return out.length ? out : ALIQUOTE_DEFAULT.map((r) => ({ ...r }));
 }
 
 /**
+ * Stessa regola delle aliquote: lista azienda se presente, altrimenti default.
  * @param {Array<{ id: string, label: string, percentuale: number|null }>} [rows]
  */
 export function normalizeCompensazione(rows) {
-  const base = COMPENSAZIONE_DEFAULT.map((r) => ({ ...r }));
-  if (!Array.isArray(rows) || !rows.length) return base;
-  const byId = new Map();
-  for (const r of rows) {
-    if (!r || !r.id) continue;
-    byId.set(String(r.id), r);
+  if (!Array.isArray(rows) || !rows.length) {
+    return COMPENSAZIONE_DEFAULT.map((r) => ({ ...r }));
   }
-  return base.map((def) => {
-    const ov = byId.get(def.id);
-    if (!ov) return { ...def };
+  const used = [];
+  const out = [];
+  rows.forEach((r, idx) => {
+    if (!r || (!(r.id != null && String(r.id).trim()) && !(r.label != null && String(r.label).trim()))) {
+      return;
+    }
+    const label =
+      r.label != null && String(r.label).trim() ? String(r.label).trim() : '';
+    const id =
+      r.id != null && String(r.id).trim()
+        ? String(r.id).trim()
+        : newCategoriaIvaId(label || `comp_${idx + 1}`, used);
+    used.push(id);
     const percentuale =
-      ov.percentuale != null && ov.percentuale !== '' && Number.isFinite(Number(ov.percentuale))
-        ? Number(ov.percentuale)
+      r.percentuale != null && r.percentuale !== '' && Number.isFinite(Number(r.percentuale))
+        ? Number(r.percentuale)
         : null;
-    return {
-      id: def.id,
-      label: ov.label != null && String(ov.label).trim() ? String(ov.label).trim() : def.label,
-      percentuale
-    };
+    out.push({ id, label: label || id, percentuale });
   });
+  return out.length ? out : COMPENSAZIONE_DEFAULT.map((r) => ({ ...r }));
+}
+
+/**
+ * Ripristina aliquote e compensazione ai valori di fabbrica.
+ * @returns {{ aliquote: Array<object>, compensazione: Array<object> }}
+ */
+export function ripristinaIvaDefaults() {
+  return {
+    aliquote: ALIQUOTE_DEFAULT.map((r) => ({ ...r })),
+    compensazione: COMPENSAZIONE_DEFAULT.map((r) => ({ ...r }))
+  };
 }
 
 /**
@@ -212,14 +283,20 @@ export function labelAliquotaOption(row) {
  * @returns {{ categoriaIva: string|null, aliquotaIva: number|null, naturaIva: NaturaIva }|null}
  */
 export function suggerisciAliquotaPerTipo(opts = {}) {
-  const aliquote = opts.aliquote && opts.aliquote.length ? opts.aliquote : ALIQUOTE_DEFAULT;
-  const byId = (id) => aliquote.find((a) => a.id === id) || ALIQUOTE_DEFAULT.find((a) => a.id === id);
+  // Se l'azienda passa la sua lista, non ripiegare sui default per id tolti.
+  const companyList = Array.isArray(opts.aliquote);
+  const aliquote = companyList ? opts.aliquote : ALIQUOTE_DEFAULT;
+  const byId = (id) => (aliquote || []).find((a) => a && a.id === id) || null;
 
   const tipo = String(opts.tipo || '');
   if (tipo === 'pac_contributo') {
     const row = byId('contributi_pac');
     return row
-      ? { categoriaIva: row.id, aliquotaIva: null, naturaIva: 'fuori_campo' }
+      ? {
+          categoriaIva: row.id,
+          aliquotaIva: null,
+          naturaIva: row.natura === 'fuori_campo' ? 'fuori_campo' : row.natura || 'fuori_campo'
+        }
       : null;
   }
 
@@ -360,6 +437,12 @@ export default {
   COMPENSAZIONE_DEFAULT,
   round2,
   calcolaIva,
+  slugifyIvaId,
+  newCategoriaIvaId,
+  normalizeAliquotaRow,
+  normalizeAliquote,
+  normalizeCompensazione,
+  ripristinaIvaDefaults,
   mergeIvaConfig,
   aliquotePerEntrate,
   labelAliquotaOption,

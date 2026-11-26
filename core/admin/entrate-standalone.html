@@ -636,7 +636,12 @@
       return v.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
     }
 
-    function fillAliquotaSelect(selectId, selectedId) {
+    /**
+     * @param {string} selectId
+     * @param {string} [selectedId]
+     * @param {{ label?: string, aliquotaIva?: number|null, naturaIva?: string|null }|null} [orphan]
+     */
+    function fillAliquotaSelect(selectId, selectedId, orphan = null) {
       const sel = document.getElementById(selectId);
       if (!sel) return;
       const prev = selectedId != null ? selectedId : sel.value;
@@ -648,6 +653,19 @@
         opt.textContent = labelAliquotaOption(row);
         opt.dataset.aliquota = row.aliquota != null ? String(row.aliquota) : '';
         opt.dataset.natura = row.natura || 'imponibile';
+        sel.appendChild(opt);
+      }
+      if (prev && ![...sel.options].some((o) => o.value === prev)) {
+        const opt = document.createElement('option');
+        opt.value = prev;
+        const natura = (orphan && orphan.naturaIva) || 'imponibile';
+        const ali = orphan && orphan.aliquotaIva != null ? orphan.aliquotaIva : null;
+        const label = (orphan && orphan.label) || prev;
+        if (natura === 'esente') opt.textContent = `${label} — esente (non più in elenco)`;
+        else if (natura === 'fuori_campo') opt.textContent = `${label} — fuori campo (non più in elenco)`;
+        else opt.textContent = `${label} — ${ali != null ? ali : '—'}% (non più in elenco)`;
+        opt.dataset.aliquota = ali != null ? String(ali) : '';
+        opt.dataset.natura = natura;
         sel.appendChild(opt);
       }
       if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
@@ -1429,7 +1447,9 @@
       document.getElementById('f-note').value = e.note || '';
       const key = e.raccoltaId || '';
       fillRaccolteSelect(key);
-      fillAliquotaSelect('f-aliquota', e.categoriaIva || '');
+      fillAliquotaSelect('f-aliquota', e.categoriaIva || '', e.categoriaIva
+        ? { label: e.categoriaIva, aliquotaIva: e.aliquotaIva, naturaIva: e.naturaIva }
+        : null);
       toggleVenditaFields();
       toggleIncassoFields();
       updateIvaLive('f-importo', 'f-aliquota', 'f-iva-live');

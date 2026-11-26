@@ -5,11 +5,16 @@ import { describe, expect, it } from 'vitest';
 import {
   calcolaIva,
   mergeIvaConfig,
+  normalizeAliquote,
+  normalizeCompensazione,
+  newCategoriaIvaId,
+  ripristinaIvaDefaults,
   suggerisciAliquotaPerTipo,
   suggerisciAliquotaContoTerzi,
   totaliIvaEntrate,
   formatImportoConIva,
-  ALIQUOTE_DEFAULT
+  ALIQUOTE_DEFAULT,
+  COMPENSAZIONE_DEFAULT
 } from '../core/models/IvaConfig.js';
 import { Entrata, totaliEntrate } from '../core/models/Entrata.js';
 
@@ -31,7 +36,7 @@ describe('calcolaIva', () => {
   });
 });
 
-describe('mergeIvaConfig / precompilazione tabella', () => {
+describe('mergeIvaConfig / lista azienda', () => {
   it('senza documento usa default ordinario e tutte le categorie', () => {
     const cfg = mergeIvaConfig({});
     expect(cfg.regime).toBe('ordinario');
@@ -41,14 +46,47 @@ describe('mergeIvaConfig / precompilazione tabella', () => {
     expect(cfg.compensazione.find((c) => c.id === 'vino').percentuale).toBe(12.3);
   });
 
-  it('sovrascrive aliquota personalizzata mantenendo le altre', () => {
-    const cfg = mergeIvaConfig({
-      regime: 'speciale_agricolo',
-      aliquote: [{ id: 'frutta', aliquota: 5, natura: 'imponibile', tipo: 'entrata' }]
-    });
+  it('categoria personalizzata salvata e riletta', () => {
+    const id = newCategoriaIvaId('Nocciole', ALIQUOTE_DEFAULT.map((a) => a.id));
+    const saved = [
+      ...ALIQUOTE_DEFAULT.map((r) => ({ ...r })),
+      { id, label: 'Nocciole', aliquota: 4, natura: 'imponibile', tipo: 'entrata' }
+    ];
+    const cfg = mergeIvaConfig({ aliquote: saved });
+    const row = cfg.aliquote.find((a) => a.id === id);
+    expect(row).toBeTruthy();
+    expect(row.label).toBe('Nocciole');
+    expect(row.aliquota).toBe(4);
+    expect(normalizeAliquote(cfg.aliquote).find((a) => a.id === id)?.aliquota).toBe(4);
+  });
+
+  it('default tolto non ricompare; override restano sulla lista azienda', () => {
+    const senzaVino = ALIQUOTE_DEFAULT.filter((a) => a.id !== 'vino').map((r) =>
+      r.id === 'frutta' ? { ...r, aliquota: 5 } : { ...r }
+    );
+    const cfg = mergeIvaConfig({ regime: 'speciale_agricolo', aliquote: senzaVino });
     expect(cfg.regime).toBe('speciale_agricolo');
+    expect(cfg.aliquote.find((a) => a.id === 'vino')).toBeUndefined();
     expect(cfg.aliquote.find((a) => a.id === 'frutta').aliquota).toBe(5);
-    expect(cfg.aliquote.find((a) => a.id === 'vino').aliquota).toBe(22);
+    expect(cfg.aliquote.length).toBe(ALIQUOTE_DEFAULT.length - 1);
+  });
+
+  it('ripristina valori predefiniti', () => {
+    const d = ripristinaIvaDefaults();
+    expect(d.aliquote).toHaveLength(ALIQUOTE_DEFAULT.length);
+    expect(d.compensazione).toHaveLength(COMPENSAZIONE_DEFAULT.length);
+    expect(d.aliquote.find((a) => a.id === 'vino').aliquota).toBe(22);
+  });
+
+  it('compensazione: riga tolta non ricompare, personalizzata resta', () => {
+    const rows = [
+      { id: 'cereali', label: 'Cereali', percentuale: 4 },
+      { id: 'nocciole_comp', label: 'Nocciole', percentuale: 2 }
+    ];
+    const n = normalizeCompensazione(rows);
+    expect(n).toHaveLength(2);
+    expect(n.find((c) => c.id === 'vino')).toBeUndefined();
+    expect(n.find((c) => c.id === 'nocciole_comp').percentuale).toBe(2);
   });
 });
 
@@ -68,6 +106,39 @@ describe('suggerisciAliquotaPerTipo', () => {
 
   it('altro senza indizio → null', () => {
     expect(suggerisciAliquotaPerTipo({ tipo: 'altro' })).toBeNull();
+  });
+
+  it('suggerimento assente se categoria tolta dall\'azienda', () => {
+    const senzaUva = ALIQUOTE_DEFAULT.filter((a) => a.id !== 'uva_da_vino');
+    expect(
+      suggerisciAliquotaPerTipo({
+        tipo: 'acconto',
+        categoriaProdotto: 'uva',
+        aliquote: senzaUva
+      })
+    ).toBeNull();
+    expect(
+      suggerisciAliquotaPerTipo({
+        tipo: 'pac_contributo',
+        aliquote: ALIQUOTE_DEFAULT.filter((a) => a.id !== 'contributi_pac')
+      })
+    ).toBeNull();
+  });
+});
+
+describe('entrate con categoria tolta', () => {
+  it('mostrano comunque aliquota e IVA salvate', () => {
+    const e = new Entrata({
+      data: '2026-03-01',
+      tipo: 'altro',
+      importo: 1000,
+      categoriaIva: 'nocciole_custom',
+      aliquotaIva: 4,
+      naturaIva: 'imponibile'
+    });
+    expect(e.validate().valid).toBe(true);
+    expect(e.importoIva).toBe(40);
+    expect(formatImportoConIva(e, (n) => `${n}`)).toContain('+ IVA 40');
   });
 });
 
