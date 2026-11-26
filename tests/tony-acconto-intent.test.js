@@ -61,7 +61,8 @@ describe('tony acconto intent', () => {
       acquirenteId: 'acq1',
       conferimentoId: 'conf1',
       data: '2026-03-20',
-      tipo: 'acconto'
+      tipo: 'acconto',
+      categoriaProdotto: 'uva'
     });
   });
 

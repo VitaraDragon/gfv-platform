@@ -125,7 +125,7 @@ export function matchConferimentiAperti(conferimenti, filters = {}) {
  *   handled: boolean,
  *   stato: 'conferma'|'chiedi_prodotto'|'chiedi_acquirente'|'chiedi_conferimento'|'manca_importo'|'ignora',
  *   replyText: string,
- *   pending?: { importo: number, acquirenteId: string, conferimentoId: string, data: string, tipo: 'acconto'|'saldo' },
+ *   pending?: { importo: number, acquirenteId: string, conferimentoId: string, data: string, tipo: 'acconto'|'saldo', categoriaProdotto?: string|null },
  *   opzioni?: Array<{ id: string, label: string }>
  * }}
  */
@@ -233,7 +233,8 @@ export function resolveAccontoIntent(text, ctx) {
       acquirenteId: acq.id,
       conferimentoId: conf.id,
       data,
-      tipo
+      tipo,
+      categoriaProdotto: conf.categoriaProdotto || categoria || null
     }
   };
 }

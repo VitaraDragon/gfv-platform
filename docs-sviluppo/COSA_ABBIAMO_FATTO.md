@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-25 — Fix Entrate campo/KPI/data Tony acconto.**
+**Ultimo aggiornamento documentazione: 2026-11-26 — Regime IVA e aliquote nelle entrate.**
+
+## 2026-11-26 — Regime IVA e aliquote nelle entrate
+
+Su `feat/iva-regime-aliquote-entrate` (PR verso develop). Nessun merge, nessun deploy. Niente functions/rules/indici.
+
+- Impostazioni → sezione **IVA** (manager/admin): regime `ordinario` | `speciale_agricolo`, tabella aliquote per categoria (default DPR 633/72), compensazione solo salvata se speciale. Doc Firestore `tenants/{tenantId}/impostazioni/iva` (rules già presenti).
+- Modello `Entrata`: imponibile + `categoriaIva` / `aliquotaIva` / `naturaIva` / `importoIva` / `importoTotale`; helper `calcolaIva`; legacy senza aliquota resta valido (IVA «—»).
+- UI entrate: tendina aliquota su acconto/altra entrata, live IVA+totale, KPI con riga IVA, registro «imponibile (+ IVA …)». Report/margini invariati (imponibile).
+- Tony acconto: salva aliquota predefinita della categoria senza chiederla.
 
 ## 2026-11-25 — Vendite ed entrate: label campo, KPI Conto terzi, data locale acconto Tony
 
