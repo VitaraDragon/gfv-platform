@@ -215,32 +215,120 @@
             color: white;
         }
 
-        /* IVA: su schermo stretto righe impilate (tabelle escluse dalle schede pelle) */
+        /* IVA: riga regime + ingranaggio */
+        .iva-regime-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .iva-regime-row .form-group {
+            flex: 1 1 220px;
+            max-width: 420px;
+            margin-bottom: 0;
+        }
+        .iva-gear-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #334155;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .iva-gear-btn:hover,
+        .iva-gear-btn:focus-visible {
+            background: #e2e8f0;
+            outline: 2px solid #2E8B57;
+            outline-offset: 2px;
+        }
+        .iva-gear-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Modal dettagli IVA: quasi fullscreen su telefono, comoda su desktop */
+        #iva-dettagli-modal.modal.active {
+            align-items: stretch;
+            justify-content: center;
+            padding: 0;
+        }
+        #iva-dettagli-modal .modal-content.iva-dettagli-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 920px;
+            max-height: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 16px 16px 20px;
+            border-radius: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        #iva-dettagli-modal .iva-dettagli-body {
+            flex: 1 1 auto;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-right: 2px;
+        }
+        #iva-dettagli-modal .iva-dettagli-footer {
+            flex-shrink: 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+            margin-top: 12px;
+        }
+        @media (min-width: 641px) {
+            #iva-dettagli-modal.modal.active {
+                align-items: center;
+                padding: 24px 16px;
+            }
+            #iva-dettagli-modal .modal-content.iva-dettagli-content {
+                height: auto;
+                max-height: min(92vh, 900px);
+                border-radius: 12px;
+                padding: 24px 28px;
+            }
+        }
+
+        /* IVA in finestra: su schermo stretto righe impilate (batte display:table !important della pelle) */
         @media (max-width: 640px) {
-            #iva-aliquote-table-wrap,
-            #iva-compensazione-table-wrap {
-                overflow-x: visible;
+            #iva-dettagli-modal #iva-aliquote-table-wrap,
+            #iva-dettagli-modal #iva-compensazione-table-wrap {
+                overflow-x: hidden !important;
             }
 
-            #iva-aliquote-table thead,
-            #iva-compensazione-table thead {
-                display: none;
+            #iva-dettagli-modal #iva-aliquote-table thead,
+            #iva-dettagli-modal #iva-compensazione-table thead {
+                display: none !important;
             }
 
-            #iva-aliquote-table,
-            #iva-aliquote-table tbody,
-            #iva-aliquote-table tr,
-            #iva-aliquote-table td,
-            #iva-compensazione-table,
-            #iva-compensazione-table tbody,
-            #iva-compensazione-table tr,
-            #iva-compensazione-table td {
-                display: block;
-                width: 100%;
+            #iva-dettagli-modal #iva-aliquote-table,
+            #iva-dettagli-modal #iva-aliquote-table tbody,
+            #iva-dettagli-modal #iva-aliquote-table tr,
+            #iva-dettagli-modal #iva-aliquote-table td,
+            #iva-dettagli-modal #iva-compensazione-table,
+            #iva-dettagli-modal #iva-compensazione-table tbody,
+            #iva-dettagli-modal #iva-compensazione-table tr,
+            #iva-dettagli-modal #iva-compensazione-table td {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box;
             }
 
-            #iva-aliquote-table tr,
-            #iva-compensazione-table tr {
+            #iva-dettagli-modal #iva-aliquote-table tr,
+            #iva-dettagli-modal #iva-compensazione-table tr {
                 margin-bottom: 12px;
                 padding: 12px;
                 border: 1px solid #e2e8f0;
@@ -248,14 +336,14 @@
                 background: #f8fafc;
             }
 
-            #iva-aliquote-table td,
-            #iva-compensazione-table td {
+            #iva-dettagli-modal #iva-aliquote-table td,
+            #iva-dettagli-modal #iva-compensazione-table td {
                 padding: 6px 0 !important;
                 border: none;
             }
 
-            #iva-aliquote-table td::before,
-            #iva-compensazione-table td::before {
+            #iva-dettagli-modal #iva-aliquote-table td::before,
+            #iva-dettagli-modal #iva-compensazione-table td::before {
                 display: block;
                 font-size: 12px;
                 font-weight: 600;
@@ -263,26 +351,27 @@
                 margin-bottom: 4px;
             }
 
-            #iva-aliquote-table td:nth-child(1)::before { content: "Categoria"; }
-            #iva-aliquote-table td:nth-child(2)::before { content: "Tipo"; }
-            #iva-aliquote-table td:nth-child(3)::before { content: "Natura"; }
-            #iva-aliquote-table td:nth-child(4)::before { content: "Aliquota %"; }
-            #iva-aliquote-table td:nth-child(5)::before { content: none; }
+            #iva-dettagli-modal #iva-aliquote-table td:nth-child(1)::before { content: "Categoria"; }
+            #iva-dettagli-modal #iva-aliquote-table td:nth-child(2)::before { content: "Tipo"; }
+            #iva-dettagli-modal #iva-aliquote-table td:nth-child(3)::before { content: "Natura"; }
+            #iva-dettagli-modal #iva-aliquote-table td:nth-child(4)::before { content: "Aliquota %"; }
+            #iva-dettagli-modal #iva-aliquote-table td:nth-child(5)::before { content: none; }
 
-            #iva-compensazione-table td:nth-child(1)::before { content: "Prodotto"; }
-            #iva-compensazione-table td:nth-child(2)::before { content: "Compensazione %"; }
+            #iva-dettagli-modal #iva-compensazione-table td:nth-child(1)::before { content: "Prodotto"; }
+            #iva-dettagli-modal #iva-compensazione-table td:nth-child(2)::before { content: "Compensazione %"; }
 
-            #iva-aliquote-table input,
-            #iva-aliquote-table select,
-            #iva-compensazione-table input {
+            #iva-dettagli-modal #iva-aliquote-table input,
+            #iva-dettagli-modal #iva-aliquote-table select,
+            #iva-dettagli-modal #iva-compensazione-table input {
                 width: 100% !important;
                 min-width: 0 !important;
-                max-width: 100%;
+                max-width: 100% !important;
                 box-sizing: border-box;
             }
 
-            #iva-aliquote-table .btn {
+            #iva-dettagli-modal #iva-aliquote-table .btn {
                 width: 100%;
+                max-width: 100%;
             }
         }
 
@@ -776,23 +865,74 @@
                 </div>
             </div>
 
-            <!-- IVA (solo Manager/Amministratore) -->
+            <!-- IVA (solo Manager/Amministratore): in pagina solo regime + apertura dettagli -->
             <div class="card" id="iva-section" style="display: none;">
                 <h2>🧾 IVA</h2>
-                <p class="info-text" style="margin-bottom: 20px;">Regime e aliquote predefinite per categoria. I default valgono subito anche senza salvare; puoi modificarli in qualsiasi momento. Le categorie «costo» sono salvate qui per usi futuri (IVA costi).</p>
+                <p class="info-text" style="margin-bottom: 16px;">Scegli il regime. Aliquote e dettagli si aprono dall’ingranaggio. I default valgono subito anche senza salvare.</p>
 
-                <div class="form-group" style="max-width: 420px; margin-bottom: 24px;">
-                    <label for="iva-regime">Regime IVA</label>
-                    <select id="iva-regime">
-                        <option value="ordinario">Ordinario (recupero l'IVA)</option>
-                        <option value="speciale_agricolo">Speciale agricolo</option>
-                    </select>
+                <div class="iva-regime-row">
+                    <div class="form-group">
+                        <label for="iva-regime">Regime IVA</label>
+                        <select id="iva-regime">
+                            <option value="ordinario">Ordinario (recupero l'IVA)</option>
+                            <option value="speciale_agricolo">Speciale agricolo</option>
+                        </select>
+                    </div>
+                    <button type="button" class="iva-gear-btn" id="btn-iva-apri-dettagli"
+                        aria-label="Aliquote e dettagli IVA" title="Aliquote e dettagli IVA">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                    </button>
                 </div>
 
-                <h3 style="margin-bottom: 12px;">Aliquote per categoria</h3>
-                <!-- data-gfv-pelle-list="off": unico opt-out schede pelle (vedi filterPelleListHosts) -->
-                <div id="iva-aliquote-table-wrap" class="table-responsive" data-gfv-pelle-list="off" style="margin-bottom: 12px; overflow-x: auto;">
-                    <table class="data-table" id="iva-aliquote-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
+                <button type="button" class="btn btn-primary" id="btn-salva-iva">💾 Salva impostazioni IVA</button>
+            </div>
+
+            <!-- Coefficienti Morfologia Conto Terzi (solo Manager/Amministratore) -->
+            <div class="card" id="coefficienti-morfologia-section" style="display: none;">
+                <h2>⛰️ Coefficienti Morfologia Terreni (Conto Terzi)</h2>
+                <p class="info-text" style="margin-bottom: 20px;">Configura le maggiorazioni percentuali per le diverse morfologie del terreno rispetto alla pianura. Questi coefficienti verranno utilizzati automaticamente quando crei tariffe per tutte le morfologie. La tariffa finale sarà calcolata come: Tariffa Base × (1 + Maggiorazione%).</p>
+                
+                <form id="coefficienti-morfologia-form" onsubmit="handleSaveCoefficientiMorfologia(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="coeff-pianura">🏞️ Pianura</label>
+                            <input type="number" id="coeff-pianura" required step="1" min="0" max="1000" value="0" placeholder="0" readonly style="background-color: #f5f5f5;">
+                            <small>Base di riferimento (0% = nessuna maggiorazione)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="coeff-collina">⛰️ Collina</label>
+                            <input type="number" id="coeff-collina" required step="1" min="0" max="1000" value="20" placeholder="20">
+                            <small>Maggiorazione percentuale rispetto alla pianura (es: 20% = +20%)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="coeff-montagna">🏔️ Montagna</label>
+                            <input type="number" id="coeff-montagna" required step="1" min="0" max="1000" value="50" placeholder="50">
+                            <small>Maggiorazione percentuale rispetto alla pianura (es: 50% = +50%)</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">💾 Salva Coefficienti</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal IVA: aliquote + compensazione (fuori dalla card corta) -->
+    <div id="iva-dettagli-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="iva-dettagli-title" hidden>
+        <div class="modal-content iva-dettagli-content">
+            <div class="modal-header">
+                <h3 id="iva-dettagli-title">Aliquote e dettagli IVA</h3>
+                <button type="button" class="close-modal" id="btn-iva-chiudi-dettagli" aria-label="Chiudi">&times;</button>
+            </div>
+            <div class="iva-dettagli-body">
+                <h3 style="margin: 0 0 12px; font-size: 1.05rem;">Aliquote per categoria</h3>
+                <!-- data-gfv-pelle-list="off": opt-out schede pelle; class iva-stackable-table: layout impilato su phone -->
+                <div id="iva-aliquote-table-wrap" class="table-responsive" data-gfv-pelle-list="off" style="margin-bottom: 12px;">
+                    <table class="data-table iva-stackable-table" id="iva-aliquote-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
                             <tr style="text-align:left; border-bottom: 2px solid #e0e0e0;">
                                 <th style="padding:8px;">Categoria</th>
@@ -842,11 +982,11 @@
                     </div>
                 </div>
 
-                <div id="iva-compensazione-wrap" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
-                    <h3 style="margin-bottom: 8px;">Compensazione regime speciale</h3>
+                <div id="iva-compensazione-wrap" style="display: none; margin-top: 8px; padding-top: 16px; border-top: 2px solid #e0e0e0;">
+                    <h3 style="margin-bottom: 8px; font-size: 1.05rem;">Compensazione regime speciale</h3>
                     <p class="info-text" style="margin-bottom: 12px;">Percentuali di compensazione (solo salvate; non usate nei calcoli in questa versione). Verifica con il tuo commercialista.</p>
-                    <div id="iva-compensazione-table-wrap" class="table-responsive" data-gfv-pelle-list="off" style="overflow-x: auto;">
-                        <table class="data-table" id="iva-compensazione-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
+                    <div id="iva-compensazione-table-wrap" class="table-responsive" data-gfv-pelle-list="off">
+                        <table class="data-table iva-stackable-table" id="iva-compensazione-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
                             <thead>
                                 <tr style="text-align:left; border-bottom: 2px solid #e0e0e0;">
                                     <th style="padding:8px;">Prodotto</th>
@@ -857,36 +997,10 @@
                         </table>
                     </div>
                 </div>
-
-                <button type="button" class="btn btn-primary" id="btn-salva-iva" style="margin-top: 20px;">💾 Salva impostazioni IVA</button>
             </div>
-
-            <!-- Coefficienti Morfologia Conto Terzi (solo Manager/Amministratore) -->
-            <div class="card" id="coefficienti-morfologia-section" style="display: none;">
-                <h2>⛰️ Coefficienti Morfologia Terreni (Conto Terzi)</h2>
-                <p class="info-text" style="margin-bottom: 20px;">Configura le maggiorazioni percentuali per le diverse morfologie del terreno rispetto alla pianura. Questi coefficienti verranno utilizzati automaticamente quando crei tariffe per tutte le morfologie. La tariffa finale sarà calcolata come: Tariffa Base × (1 + Maggiorazione%).</p>
-                
-                <form id="coefficienti-morfologia-form" onsubmit="handleSaveCoefficientiMorfologia(event)">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="coeff-pianura">🏞️ Pianura</label>
-                            <input type="number" id="coeff-pianura" required step="1" min="0" max="1000" value="0" placeholder="0" readonly style="background-color: #f5f5f5;">
-                            <small>Base di riferimento (0% = nessuna maggiorazione)</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="coeff-collina">⛰️ Collina</label>
-                            <input type="number" id="coeff-collina" required step="1" min="0" max="1000" value="20" placeholder="20">
-                            <small>Maggiorazione percentuale rispetto alla pianura (es: 20% = +20%)</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="coeff-montagna">🏔️ Montagna</label>
-                            <input type="number" id="coeff-montagna" required step="1" min="0" max="1000" value="50" placeholder="50">
-                            <small>Maggiorazione percentuale rispetto alla pianura (es: 50% = +50%)</small>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">💾 Salva Coefficienti</button>
-                </form>
+            <div class="iva-dettagli-footer">
+                <button type="button" class="btn btn-primary" id="btn-salva-iva-modal">💾 Salva impostazioni IVA</button>
+                <button type="button" class="btn btn-secondary" id="btn-iva-chiudi-dettagli-footer">Chiudi</button>
             </div>
         </div>
     </div>
@@ -3940,11 +4054,91 @@
         }
         
         let ivaConfigCache = null;
+        let ivaDettagliSnapshot = null;
+        let ivaDettagliOpen = false;
+        let ivaResolveNaturaChange = null;
+        let ivaDefaultAliquotaForId = null;
+
+        async function ensureIvaNaturaHelpers() {
+            if (ivaResolveNaturaChange && ivaDefaultAliquotaForId) return;
+            const mod = await import('../models/IvaConfig.js');
+            ivaResolveNaturaChange = mod.resolveAliquotaAfterNaturaChange;
+            ivaDefaultAliquotaForId = mod.defaultAliquotaForCategoriaId;
+        }
 
         function toggleIvaCompensazioneVisibility() {
             const regime = document.getElementById('iva-regime')?.value || 'ordinario';
             const wrap = document.getElementById('iva-compensazione-wrap');
             if (wrap) wrap.style.display = regime === 'speciale_agricolo' ? 'block' : 'none';
+        }
+
+        function ivaDettagliSnapshotPayload() {
+            const payload = readIvaFormPayload();
+            return JSON.stringify({
+                aliquote: payload.aliquote,
+                compensazione: payload.compensazione
+            });
+        }
+
+        function ivaDettagliHasUnsavedChanges() {
+            if (ivaDettagliSnapshot == null) return false;
+            return ivaDettagliSnapshotPayload() !== ivaDettagliSnapshot;
+        }
+
+        function openIvaDettagliModal() {
+            const modal = document.getElementById('iva-dettagli-modal');
+            if (!modal) return;
+            toggleIvaCompensazioneVisibility();
+            if (!document.getElementById('iva-aliquote-tbody')?.children.length && ivaConfigCache) {
+                renderIvaAliquoteTable(ivaConfigCache.aliquote);
+                renderIvaCompensazioneTable(ivaConfigCache.compensazione);
+            }
+            ivaDettagliSnapshot = ivaDettagliSnapshotPayload();
+            modal.hidden = false;
+            modal.classList.add('active');
+            ivaDettagliOpen = true;
+            document.getElementById('btn-iva-chiudi-dettagli')?.focus();
+        }
+
+        function closeIvaDettagliModal(opts = {}) {
+            const force = !!opts.force;
+            if (!force && ivaDettagliHasUnsavedChanges()) {
+                if (!confirm('Ci sono modifiche non salvate. Chiudere comunque?')) {
+                    return false;
+                }
+            }
+            const modal = document.getElementById('iva-dettagli-modal');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.hidden = true;
+            }
+            ivaDettagliOpen = false;
+            ivaDettagliSnapshot = null;
+            toggleIvaAddForm(false);
+            return true;
+        }
+
+        function applyIvaNaturaChangeToInput(id, natura, input) {
+            if (!input || !ivaResolveNaturaChange) return;
+            const rememberedAttr = input.getAttribute('data-iva-remembered-aliquota');
+            const remembered =
+                rememberedAttr != null && rememberedAttr !== '' ? Number(rememberedAttr) : null;
+            const def =
+                typeof ivaDefaultAliquotaForId === 'function' ? ivaDefaultAliquotaForId(id) : null;
+            const next = ivaResolveNaturaChange({
+                natura,
+                currentValue: input.disabled ? null : input.value,
+                rememberedAliquota: Number.isFinite(remembered) ? remembered : null,
+                defaultAliquota: def
+            });
+            input.disabled = next.disabled;
+            input.value = next.value;
+            input.placeholder = next.placeholder;
+            if (next.rememberedAliquota != null) {
+                input.setAttribute('data-iva-remembered-aliquota', String(next.rememberedAliquota));
+            } else {
+                input.removeAttribute('data-iva-remembered-aliquota');
+            }
         }
 
         function renderIvaAliquoteTable(aliquote) {
@@ -3956,6 +4150,10 @@
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #eee';
                 const aliquotaDisabled = row.natura === 'esente' || row.natura === 'fuori_campo';
+                const remembered =
+                    row.aliquota != null && Number.isFinite(Number(row.aliquota))
+                        ? Number(row.aliquota)
+                        : '';
                 tr.innerHTML = `
                     <td style="padding:8px;">
                         <input type="text" data-iva-id="${escapeHtml(row.id)}" data-iva-field="label"
@@ -3981,6 +4179,7 @@
                             value="${aliquotaDisabled ? '' : (row.aliquota != null ? row.aliquota : '')}"
                             ${aliquotaDisabled ? 'disabled' : ''}
                             placeholder="${aliquotaDisabled ? (naturaLabels[row.natura] || '—') : ''}"
+                            ${remembered !== '' ? `data-iva-remembered-aliquota="${remembered}"` : ''}
                             style="width:90px;" />
                     </td>
                     <td style="padding:8px;">
@@ -3994,14 +4193,17 @@
                     const id = sel.getAttribute('data-iva-id');
                     const input = tbody.querySelector(`[data-iva-id="${CSS.escape(id)}"][data-iva-field="aliquota"]`);
                     if (!input) return;
-                    const nat = sel.value;
-                    const disabled = nat === 'esente' || nat === 'fuori_campo';
-                    input.disabled = disabled;
-                    if (disabled) {
-                        input.value = '';
-                        input.placeholder = naturaLabels[nat] || '—';
-                    } else if (input.value === '') {
-                        input.placeholder = '';
+                    ensureIvaNaturaHelpers().then(() => {
+                        applyIvaNaturaChangeToInput(id, sel.value, input);
+                    });
+                });
+            });
+            tbody.querySelectorAll('[data-iva-field="aliquota"]').forEach((input) => {
+                input.addEventListener('change', () => {
+                    if (input.disabled || input.value === '') return;
+                    const n = Number(input.value);
+                    if (Number.isFinite(n)) {
+                        input.setAttribute('data-iva-remembered-aliquota', String(n));
                     }
                 });
             });
@@ -4042,6 +4244,7 @@
 
         async function loadIvaImpostazioni() {
             try {
+                await ensureIvaNaturaHelpers();
                 const { getIvaImpostazioni } = await import('../services/iva-impostazioni-service.js');
                 const cfg = await getIvaImpostazioni();
                 ivaConfigCache = cfg;
@@ -4115,6 +4318,9 @@
                 ivaConfigCache = await saveIvaImpostazioni(payload);
                 renderIvaAliquoteTable(ivaConfigCache.aliquote);
                 renderIvaCompensazioneTable(ivaConfigCache.compensazione);
+                if (ivaDettagliOpen) {
+                    ivaDettagliSnapshot = ivaDettagliSnapshotPayload();
+                }
                 showAlert('Impostazioni IVA salvate', 'success');
             } catch (error) {
                 console.error('Errore salvataggio IVA:', error);
@@ -4190,6 +4396,28 @@
         document.getElementById('iva-regime')?.addEventListener('change', toggleIvaCompensazioneVisibility);
         document.getElementById('btn-salva-iva')?.addEventListener('click', () => {
             saveIvaImpostazioniUi();
+        });
+        document.getElementById('btn-salva-iva-modal')?.addEventListener('click', () => {
+            saveIvaImpostazioniUi();
+        });
+        document.getElementById('btn-iva-apri-dettagli')?.addEventListener('click', () => {
+            openIvaDettagliModal();
+        });
+        document.getElementById('btn-iva-chiudi-dettagli')?.addEventListener('click', () => {
+            closeIvaDettagliModal();
+        });
+        document.getElementById('btn-iva-chiudi-dettagli-footer')?.addEventListener('click', () => {
+            closeIvaDettagliModal();
+        });
+        document.getElementById('iva-dettagli-modal')?.addEventListener('click', (ev) => {
+            if (ev.target === ev.currentTarget) {
+                closeIvaDettagliModal();
+            }
+        });
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape' && ivaDettagliOpen) {
+                closeIvaDettagliModal();
+            }
         });
         document.getElementById('btn-iva-aggiungi')?.addEventListener('click', () => toggleIvaAddForm(true));
         document.getElementById('btn-iva-add-cancel')?.addEventListener('click', () => toggleIvaAddForm(false));

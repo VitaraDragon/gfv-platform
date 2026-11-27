@@ -326,8 +326,75 @@ html[data-pelle="proposta"][data-shell="phone"] [data-gfv-pelle-list="off"] > .g
   display: none !important;
 }
 
-html[data-pelle="proposta"][data-shell="phone"] .modal table {
+/* Modal generiche: tabella classica; IVA stackable gestita sotto (non forzare table) */
+html[data-pelle="proposta"][data-shell="phone"] .modal table:not(.iva-stackable-table) {
   display: table !important;
+}
+
+/*
+ * IVA dettagli in modal: layout impilato su phone.
+ * Specificità > [data-gfv-pelle-list="off"] table e .modal table { display:table !important }
+ */
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table-wrap,
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-compensazione-table-wrap {
+  overflow-x: hidden !important;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table thead {
+  display: none !important;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table,
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table tbody,
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table tr,
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table td {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table tr {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--gfv-pelle-line, #e2e8f0);
+  border-radius: 8px;
+  background: var(--gfv-pelle-panel, #f8fafc);
+}
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table td {
+  padding: 6px 0 !important;
+  border: none;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table td::before,
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-compensazione-table td::before {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gfv-pelle-muted, #64748b);
+  margin-bottom: 4px;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table td:nth-child(1)::before { content: "Categoria"; }
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table td:nth-child(2)::before { content: "Tipo"; }
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table td:nth-child(3)::before { content: "Natura"; }
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table td:nth-child(4)::before { content: "Aliquota %"; }
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table td:nth-child(5)::before { content: none; }
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-compensazione-table td:nth-child(1)::before { content: "Prodotto"; }
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-compensazione-table td:nth-child(2)::before { content: "Compensazione %"; }
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table input,
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table select {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table .btn {
+  width: 100%;
+  max-width: 100%;
 }
 
 html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-cards,

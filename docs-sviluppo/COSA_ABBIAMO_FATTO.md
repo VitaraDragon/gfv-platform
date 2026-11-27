@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-26 — Regime IVA e aliquote nelle entrate.**
+**Ultimo aggiornamento documentazione: 2026-11-27 — Impostazioni IVA: sezione corta + dettagli in finestra.**
+
+## 2026-11-27 — Impostazioni IVA: sezione corta + dettagli in finestra
+
+Su `fix/iva-impostazioni-modal` (PR verso develop, decisione Pier 27/11). Nessun merge, nessun deploy. Niente functions/rules/indici. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO / DOMINIO_CONFERMATO invariati.
+
+- Impostazioni → **IVA**: in pagina solo titolo, spiegazione breve, menu Regime e icona ingranaggio («Aliquote e dettagli IVA»).
+- Tabelle aliquote / compensazione, Aggiungi / Ripristina e scorrimento in **modal** (quasi fullscreen su telefono; chiusura X / Esc / fuori; avviso se modifiche non salvate).
+- Fix mobile: layout impilato con specificità sopra `display:table !important` della pelle sui `.modal` / `data-gfv-pelle-list=off`.
+- Cambio Natura → Imponibile: ripristina aliquota ricordata o default categoria (`resolveAliquotaAfterNaturaChange`). Stessi dati Firestore e calcoli.
 
 ## 2026-11-26 — Regime IVA e aliquote nelle entrate
 

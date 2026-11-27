@@ -9,6 +9,8 @@ import {
   normalizeCompensazione,
   newCategoriaIvaId,
   ripristinaIvaDefaults,
+  defaultAliquotaForCategoriaId,
+  resolveAliquotaAfterNaturaChange,
   categoriaProdottoDaRaccoltaModulo,
   suggerisciAliquotaPerTipo,
   risolviIvaEntrataInLettura,
@@ -21,6 +23,67 @@ import {
   COMPENSAZIONE_DEFAULT
 } from '../core/models/IvaConfig.js';
 import { Entrata, totaliEntrate } from '../core/models/Entrata.js';
+
+describe('resolveAliquotaAfterNaturaChange', () => {
+  it('Esente/Fuori campo: disabilita, svuota e ricorda il valore corrente', () => {
+    const toEsente = resolveAliquotaAfterNaturaChange({
+      natura: 'esente',
+      currentValue: 10,
+      rememberedAliquota: null,
+      defaultAliquota: 10
+    });
+    expect(toEsente).toEqual({
+      disabled: true,
+      value: '',
+      placeholder: 'Esente',
+      rememberedAliquota: 10
+    });
+    const toFuori = resolveAliquotaAfterNaturaChange({
+      natura: 'fuori_campo',
+      currentValue: 4,
+      rememberedAliquota: 22,
+      defaultAliquota: 4
+    });
+    expect(toFuori.disabled).toBe(true);
+    expect(toFuori.value).toBe('');
+    expect(toFuori.placeholder).toBe('Fuori campo');
+    expect(toFuori.rememberedAliquota).toBe(4);
+  });
+
+  it('tornando a Imponibile ripristina il valore ricordato', () => {
+    const next = resolveAliquotaAfterNaturaChange({
+      natura: 'imponibile',
+      currentValue: '',
+      rememberedAliquota: 10,
+      defaultAliquota: 4
+    });
+    expect(next).toEqual({
+      disabled: false,
+      value: '10',
+      placeholder: '',
+      rememberedAliquota: 10
+    });
+  });
+
+  it('tornando a Imponibile senza ricordo usa il predefinito categoria, altrimenti 0', () => {
+    expect(
+      resolveAliquotaAfterNaturaChange({
+        natura: 'imponibile',
+        rememberedAliquota: null,
+        defaultAliquota: 22
+      }).value
+    ).toBe('22');
+    expect(
+      resolveAliquotaAfterNaturaChange({
+        natura: 'imponibile',
+        rememberedAliquota: null,
+        defaultAliquota: null
+      }).value
+    ).toBe('0');
+    expect(defaultAliquotaForCategoriaId('uva_da_vino')).toBe(10);
+    expect(defaultAliquotaForCategoriaId('affitto_terreni')).toBeNull();
+  });
+});
 
 describe('calcolaIva', () => {
   it('calcola IVA e totale a 2 decimali', () => {
