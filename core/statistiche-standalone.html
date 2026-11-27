@@ -249,9 +249,24 @@
         }
 
         /* Ciambelle con legenda sotto: più altezza così le etichette lunghe restano intere */
-        .chart-card:has(#chart-ore-tipo) .chart-container,
-        .chart-card:has(#chart-ore-macchina-vs-lavoratore) .chart-container {
+        .chart-container[data-chart-id="chart-ore-tipo"],
+        .chart-container[data-chart-id="chart-ore-macchina-vs-lavoratore"] {
             height: 360px;
+        }
+
+        #statistiche-index-warning {
+            display: none;
+            margin: 0 0 16px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            color: #664d03;
+            font-size: 0.95rem;
+        }
+
+        #statistiche-index-warning.is-visible {
+            display: block;
         }
 
         .chart-container.tall {
@@ -345,8 +360,8 @@
                 height: 280px;
             }
 
-            .chart-card:has(#chart-ore-tipo) .chart-container,
-            .chart-card:has(#chart-ore-macchina-vs-lavoratore) .chart-container {
+            .chart-container[data-chart-id="chart-ore-tipo"],
+            .chart-container[data-chart-id="chart-ore-macchina-vs-lavoratore"] {
                 height: 300px;
             }
 
@@ -477,6 +492,8 @@
                 </div>
             </div>
 
+            <div id="statistiche-index-warning" role="status" aria-live="polite"></div>
+
             <!-- Metriche -->
             <div class="metrics-grid">
                 <div class="metric-card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);">
@@ -509,25 +526,25 @@
             <div class="charts-grid">
                 <div class="chart-card">
                     <h3>Ore per Tipo Lavoro</h3>
-                    <div class="chart-container">
+                    <div class="chart-container" data-chart-id="chart-ore-tipo">
                         <canvas id="chart-ore-tipo"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
                     <h3>Attività per Terreno</h3>
-                    <div class="chart-container">
+                    <div class="chart-container" data-chart-id="chart-attivita-terreno">
                         <canvas id="chart-attivita-terreno"></canvas>
                     </div>
                 </div>
                 <div class="chart-card" style="grid-column: 1 / -1;">
                     <h3>Ore Lavorate per Mese</h3>
-                    <div class="chart-container tall">
+                    <div class="chart-container tall" data-chart-id="chart-ore-mese">
                         <canvas id="chart-ore-mese"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
                     <h3>Top 5 Tipi Lavoro</h3>
-                    <div class="chart-container">
+                    <div class="chart-container" data-chart-id="chart-top-lavori">
                         <canvas id="chart-top-lavori"></canvas>
                     </div>
                 </div>
@@ -630,25 +647,25 @@
                 <div class="charts-grid">
                     <div class="chart-card">
                         <h3>Top 5 Macchine Più Utilizzate</h3>
-                        <div class="chart-container">
+                        <div class="chart-container" data-chart-id="chart-top-macchine">
                             <canvas id="chart-top-macchine"></canvas>
                         </div>
                     </div>
                     <div class="chart-card">
                         <h3>Ore Macchina per Terreno</h3>
-                        <div class="chart-container">
+                        <div class="chart-container" data-chart-id="chart-ore-macchina-terreno">
                             <canvas id="chart-ore-macchina-terreno"></canvas>
                         </div>
                     </div>
                     <div class="chart-card">
                         <h3>Ore Macchina vs Ore Lavoratore</h3>
-                        <div class="chart-container">
+                        <div class="chart-container" data-chart-id="chart-ore-macchina-vs-lavoratore">
                             <canvas id="chart-ore-macchina-vs-lavoratore"></canvas>
                         </div>
                     </div>
                     <div class="chart-card" style="grid-column: 1 / -1;">
                         <h3>Ore Macchine per Mese</h3>
-                        <div class="chart-container tall">
+                        <div class="chart-container tall" data-chart-id="chart-ore-macchine-mese">
                             <canvas id="chart-ore-macchine-mese"></canvas>
                         </div>
                     </div>
