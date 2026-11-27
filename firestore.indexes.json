@@ -25,6 +25,31 @@
       ]
     },
     {
+      "collectionGroup": "attivita",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "terrenoId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "attivita",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipoLavoro", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "attivita",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "terrenoId", "order": "ASCENDING" },
+        { "fieldPath": "tipoLavoro", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "movimentiMagazzino",
       "queryScope": "COLLECTION",
       "fields": [

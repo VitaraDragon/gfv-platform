@@ -53,6 +53,75 @@ function yTickTruncateOptions() {
     };
 }
 
+/**
+ * Trova il `.chart-container` stabile per un grafico (data-chart-id o canvas/id residuo).
+ * L'empty-state non deve rimuovere questo ancoraggio.
+ * @param {string} chartId
+ * @param {number} [fallbackCardIndex]
+ * @returns {HTMLElement|null}
+ */
+export function resolveChartMount(chartId, fallbackCardIndex) {
+    let mount = document.querySelector(`.chart-container[data-chart-id="${chartId}"]`);
+    if (mount) return mount;
+
+    const byId = document.getElementById(chartId);
+    if (byId) {
+        if (byId.classList && byId.classList.contains('chart-container')) {
+            if (!byId.dataset.chartId) byId.dataset.chartId = chartId;
+            return byId;
+        }
+        mount = byId.closest('.chart-container');
+        if (mount) {
+            if (!mount.dataset.chartId) mount.dataset.chartId = chartId;
+            return mount;
+        }
+        const card = byId.closest('.chart-card');
+        mount = card?.querySelector('.chart-container') || null;
+        if (mount) {
+            if (!mount.dataset.chartId) mount.dataset.chartId = chartId;
+            return mount;
+        }
+    }
+
+    if (typeof fallbackCardIndex === 'number') {
+        const cards = document.querySelectorAll('.charts-grid .chart-card, .chart-card');
+        const card = cards[fallbackCardIndex];
+        mount = card?.querySelector('.chart-container') || null;
+        if (mount && !mount.dataset.chartId) mount.dataset.chartId = chartId;
+        return mount;
+    }
+
+    return null;
+}
+
+/**
+ * Assicura un canvas con id stabile dentro il mount.
+ * @param {HTMLElement} mount
+ * @param {string} chartId
+ * @returns {HTMLCanvasElement|null}
+ */
+export function ensureChartCanvas(mount, chartId) {
+    if (!mount) return null;
+    let canvas = mount.querySelector(`canvas[id="${chartId}"]`) || mount.querySelector('canvas');
+    if (!canvas || canvas.tagName !== 'CANVAS') {
+        mount.innerHTML = `<canvas id="${chartId}"></canvas>`;
+        canvas = mount.querySelector('canvas');
+    } else if (canvas.id !== chartId) {
+        canvas.id = chartId;
+    }
+    return canvas;
+}
+
+/**
+ * Sostituisce solo il contenuto del mount con empty-state (l'id/data-chart-id resta sul container).
+ * @param {HTMLElement} mount
+ * @param {string} [icon='📊']
+ */
+export function renderChartEmpty(mount, icon = '📊') {
+    if (!mount) return;
+    mount.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon}</div><p>Nessun dato disponibile</p></div>`;
+}
+
 // ============================================
 // FUNZIONI AGGIORNAMENTO GRAFICI BASE
 // ============================================
@@ -65,36 +134,24 @@ function yTickTruncateOptions() {
  * @param {Function} formatOre - Funzione per formattare ore
  */
 export function updateChartOreTipo(data, state, updateState, formatOre) {
-    let chartContainer = document.querySelector('.chart-card:has(canvas#chart-ore-tipo)') ||
-                         document.querySelector('.chart-card:has([id*="chart-ore-tipo"])') ||
-                         document.querySelector('#chart-ore-tipo')?.closest('.chart-card');
-
-    if (!chartContainer) {
-        const containers = document.querySelectorAll('.chart-card');
-        chartContainer = containers[0];
-    }
-
-    if (!chartContainer) {
+    const mount = resolveChartMount('chart-ore-tipo', 0);
+    if (!mount) {
         console.error('Container per chart-ore-tipo non trovato');
         return;
-    }
-
-    let canvas = chartContainer.querySelector('canvas#chart-ore-tipo');
-
-    if (!canvas || canvas.tagName !== 'CANVAS') {
-        chartContainer.innerHTML = '<canvas id="chart-ore-tipo"></canvas>';
-        canvas = document.getElementById('chart-ore-tipo');
     }
 
     if (state.chartOreTipo) {
         state.chartOreTipo.destroy();
     }
 
-    if (data.length === 0) {
-        chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+    if (!data || data.length === 0) {
+        renderChartEmpty(mount, '📊');
         updateState({ chartOreTipo: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-ore-tipo');
+    if (!canvas) return;
 
     const colors = palette();
     const labels = data.map(d => d.tipoLavoro);
@@ -141,35 +198,24 @@ export function updateChartOreTipo(data, state, updateState, formatOre) {
  * @param {Function} updateState - Funzione per aggiornare state
  */
 export function updateChartAttivitaTerreno(data, state, updateState) {
-    let chartContainer = document.querySelector('.chart-card:has(canvas#chart-attivita-terreno)') ||
-                         document.querySelector('#chart-attivita-terreno')?.closest('.chart-card');
-
-    if (!chartContainer) {
-        const containers = document.querySelectorAll('.chart-card');
-        chartContainer = containers[1];
-    }
-
-    if (!chartContainer) {
+    const mount = resolveChartMount('chart-attivita-terreno', 1);
+    if (!mount) {
         console.error('Container per chart-attivita-terreno non trovato');
         return;
-    }
-
-    let canvas = chartContainer.querySelector('canvas#chart-attivita-terreno');
-
-    if (!canvas || canvas.tagName !== 'CANVAS') {
-        chartContainer.innerHTML = '<canvas id="chart-attivita-terreno"></canvas>';
-        canvas = document.getElementById('chart-attivita-terreno');
     }
 
     if (state.chartAttivitaTerreno) {
         state.chartAttivitaTerreno.destroy();
     }
 
-    if (data.length === 0) {
-        chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+    if (!data || data.length === 0) {
+        renderChartEmpty(mount, '📊');
         updateState({ chartAttivitaTerreno: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-attivita-terreno');
+    if (!canvas) return;
 
     const colors = palette();
     const labels = data.map(d => d.terrenoNome);
@@ -215,35 +261,24 @@ export function updateChartAttivitaTerreno(data, state, updateState) {
  * @param {Function} formatMese - Funzione per formattare mese
  */
 export function updateChartOreMese(data, state, updateState, formatOre, formatMese) {
-    let chartContainer = document.querySelector('.chart-card:has(canvas#chart-ore-mese)') ||
-                         document.querySelector('#chart-ore-mese')?.closest('.chart-card');
-
-    if (!chartContainer) {
-        const containers = document.querySelectorAll('.chart-card');
-        chartContainer = containers[2];
-    }
-
-    if (!chartContainer) {
+    const mount = resolveChartMount('chart-ore-mese', 2);
+    if (!mount) {
         console.error('Container per chart-ore-mese non trovato');
         return;
-    }
-
-    let canvas = chartContainer.querySelector('canvas#chart-ore-mese');
-
-    if (!canvas || canvas.tagName !== 'CANVAS') {
-        chartContainer.innerHTML = '<canvas id="chart-ore-mese"></canvas>';
-        canvas = document.getElementById('chart-ore-mese');
     }
 
     if (state.chartOreMese) {
         state.chartOreMese.destroy();
     }
 
-    if (data.length === 0) {
-        chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+    if (!data || data.length === 0) {
+        renderChartEmpty(mount, '📊');
         updateState({ chartOreMese: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-ore-mese');
+    if (!canvas) return;
 
     const colors = palette();
     const line = seriesColorAt(0, colors);
@@ -299,35 +334,24 @@ export function updateChartOreMese(data, state, updateState, formatOre, formatMe
  * @param {Function} updateState - Funzione per aggiornare state
  */
 export function updateChartTopLavori(data, state, updateState) {
-    let chartContainer = document.querySelector('.chart-card:has(canvas#chart-top-lavori)') ||
-                         document.querySelector('#chart-top-lavori')?.closest('.chart-card');
-
-    if (!chartContainer) {
-        const containers = document.querySelectorAll('.chart-card');
-        chartContainer = containers[3];
-    }
-
-    if (!chartContainer) {
+    const mount = resolveChartMount('chart-top-lavori', 3);
+    if (!mount) {
         console.error('Container per chart-top-lavori non trovato');
         return;
-    }
-
-    let canvas = chartContainer.querySelector('canvas#chart-top-lavori');
-
-    if (!canvas || canvas.tagName !== 'CANVAS') {
-        chartContainer.innerHTML = '<canvas id="chart-top-lavori"></canvas>';
-        canvas = document.getElementById('chart-top-lavori');
     }
 
     if (state.chartTopLavori) {
         state.chartTopLavori.destroy();
     }
 
-    if (data.length === 0) {
-        chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+    if (!data || data.length === 0) {
+        renderChartEmpty(mount, '📊');
         updateState({ chartTopLavori: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-top-lavori');
+    if (!canvas) return;
 
     const colors = palette();
     const labels = data.map(d => d.tipoLavoro);
@@ -383,22 +407,19 @@ export function updateChartTopLavori(data, state, updateState) {
  * @param {Function} formatOre - Funzione per formattare ore
  */
 export function updateChartTopMacchine(data, state, updateState, formatOre) {
-    const chartContainer = document.querySelector('#chart-top-macchine')?.closest('.chart-card');
-    if (!chartContainer) return;
-
-    let canvas = chartContainer.querySelector('canvas#chart-top-macchine');
-    if (!canvas) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-top-macchine"></canvas>';
-        canvas = document.getElementById('chart-top-macchine');
-    }
+    const mount = resolveChartMount('chart-top-macchine');
+    if (!mount) return;
 
     if (state.chartTopMacchine) state.chartTopMacchine.destroy();
 
-    if (data.length === 0) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+    if (!data || data.length === 0) {
+        renderChartEmpty(mount, '🚜');
         updateState({ chartTopMacchine: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-top-macchine');
+    if (!canvas) return;
 
     const colors = palette();
     const labels = data.map(d => d.nome);
@@ -457,22 +478,19 @@ export function updateChartTopMacchine(data, state, updateState, formatOre) {
  * @param {Function} formatOre - Funzione per formattare ore
  */
 export function updateChartOreMacchinaTerreno(data, state, updateState, formatOre) {
-    const chartContainer = document.querySelector('#chart-ore-macchina-terreno')?.closest('.chart-card');
-    if (!chartContainer) return;
-
-    let canvas = chartContainer.querySelector('canvas#chart-ore-macchina-terreno');
-    if (!canvas) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-ore-macchina-terreno"></canvas>';
-        canvas = document.getElementById('chart-ore-macchina-terreno');
-    }
+    const mount = resolveChartMount('chart-ore-macchina-terreno');
+    if (!mount) return;
 
     if (state.chartOreMacchinaTerreno) state.chartOreMacchinaTerreno.destroy();
 
-    if (data.length === 0) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+    if (!data || data.length === 0) {
+        renderChartEmpty(mount, '🚜');
         updateState({ chartOreMacchinaTerreno: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-ore-macchina-terreno');
+    if (!canvas) return;
 
     const colors = palette();
     const labels = data.map(d => d.terrenoNome);
@@ -524,22 +542,19 @@ export function updateChartOreMacchinaTerreno(data, state, updateState, formatOr
  * @param {Function} formatOre - Funzione per formattare ore
  */
 export function updateChartOreMacchinaVsLavoratore(data, state, updateState, formatOre) {
-    const chartContainer = document.querySelector('#chart-ore-macchina-vs-lavoratore')?.closest('.chart-card');
-    if (!chartContainer) return;
-
-    let canvas = chartContainer.querySelector('canvas#chart-ore-macchina-vs-lavoratore');
-    if (!canvas) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-ore-macchina-vs-lavoratore"></canvas>';
-        canvas = document.getElementById('chart-ore-macchina-vs-lavoratore');
-    }
+    const mount = resolveChartMount('chart-ore-macchina-vs-lavoratore');
+    if (!mount) return;
 
     if (state.chartOreMacchinaVsLavoratore) state.chartOreMacchinaVsLavoratore.destroy();
 
-    if (data.oreLavoratore === 0 && data.oreMacchina === 0) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+    if (!data || (data.oreLavoratore === 0 && data.oreMacchina === 0)) {
+        renderChartEmpty(mount, '🚜');
         updateState({ chartOreMacchinaVsLavoratore: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-ore-macchina-vs-lavoratore');
+    if (!canvas) return;
 
     const colors = palette();
     const labels = ['Ore Lavoratore', 'Ore Macchina'];
@@ -588,22 +603,19 @@ export function updateChartOreMacchinaVsLavoratore(data, state, updateState, for
  * @param {Function} formatMese - Funzione per formattare mese
  */
 export function updateChartOreMacchineMese(data, state, updateState, formatOre, formatMese) {
-    const chartContainer = document.querySelector('#chart-ore-macchine-mese')?.closest('.chart-card');
-    if (!chartContainer) return;
-
-    let canvas = chartContainer.querySelector('canvas#chart-ore-macchine-mese');
-    if (!canvas) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-ore-macchine-mese"></canvas>';
-        canvas = document.getElementById('chart-ore-macchine-mese');
-    }
+    const mount = resolveChartMount('chart-ore-macchine-mese');
+    if (!mount) return;
 
     if (state.chartOreMacchineMese) state.chartOreMacchineMese.destroy();
 
-    if (data.length === 0) {
-        chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+    if (!data || data.length === 0) {
+        renderChartEmpty(mount, '🚜');
         updateState({ chartOreMacchineMese: null });
         return;
     }
+
+    const canvas = ensureChartCanvas(mount, 'chart-ore-macchine-mese');
+    if (!canvas) return;
 
     const colors = palette();
     const line = seriesColorAt(2, colors);

@@ -35,11 +35,54 @@ let _macchineSnapshotCache = {
     promise: null
 };
 
+/** Evita alert/banner ripetuti quando getAllAttivita è chiamata in parallelo nello stesso carico. */
+let _indexWarningShownForLoad = false;
+
 /**
  * Invalida la cache snapshot Statistiche Macchine (es. dopo cambio dati).
  */
 export function invalidateStatisticheMacchineCache() {
     _macchineSnapshotCache = { key: null, data: null, promise: null };
+}
+
+/**
+ * Reset avviso indice Firestore all'inizio di un nuovo tentativo di carico.
+ */
+export function resetStatisticheIndexWarning() {
+    _indexWarningShownForLoad = false;
+    const el = typeof document !== 'undefined'
+        ? document.getElementById('statistiche-index-warning')
+        : null;
+    if (el) {
+        el.classList.remove('is-visible');
+        el.textContent = '';
+        el.removeAttribute('data-index-link');
+    }
+}
+
+/**
+ * Mostra una sola volta (per tentativo di carico) l'avviso indice mancante in pagina.
+ * @param {string|null} indexLink
+ */
+export function notifyMissingFirestoreIndex(indexLink) {
+    if (_indexWarningShownForLoad) return;
+    _indexWarningShownForLoad = true;
+
+    const base =
+        'Necessario creare un indice Firestore per i filtri multipli. Dopo la pubblicazione dell\'indice attendi qualche minuto e riprova.';
+    const el = typeof document !== 'undefined'
+        ? document.getElementById('statistiche-index-warning')
+        : null;
+
+    if (el) {
+        el.textContent = indexLink ? `${base} Link: ${indexLink}` : base;
+        if (indexLink) el.setAttribute('data-index-link', indexLink);
+        else el.removeAttribute('data-index-link');
+        el.classList.add('is-visible');
+        return;
+    }
+
+    console.warn(base, indexLink || '');
 }
 
 /**
@@ -444,19 +487,17 @@ export async function getAllAttivita(currentTenantId, filters = {}, dependencies
                     results = results.filter(att => att.data <= filters.dataA);
                 }
                 
-                // Mostra messaggio informativo
                 const indexLink = error.message.match(/https:\/\/[^\s]+/);
                 if (indexLink) {
                     console.warn('Per migliorare le prestazioni, crea l\'indice Firestore:', indexLink[0]);
+                    notifyMissingFirestoreIndex(indexLink[0]);
                 }
-                
+
                 return results;
             } catch (retryError) {
                 console.error('Errore anche senza orderBy:', retryError);
                 const indexLink = error.message.match(/https:\/\/[^\s]+/);
-                if (indexLink) {
-                    alert(`È necessario creare un indice Firestore per i filtri multipli.\n\nApri questo link per crearlo automaticamente:\n\n${indexLink[0]}\n\nDopo aver creato l'indice, attendi qualche minuto e riprova.`);
-                }
+                notifyMissingFirestoreIndex(indexLink ? indexLink[0] : null);
                 return [];
             }
         } else {
@@ -809,6 +850,8 @@ export async function getOreMacchinePerMese(periodo, hasParcoMacchineModule, cur
  */
 export async function loadStatistiche(currentTenantId, dependencies, callbacks, utils, hasParcoMacchineModule) {
     try {
+        resetStatisticheIndexWarning();
+
         // Ottieni filtri
         const dataDa = document.getElementById('filter-data-da')?.value || '';
         const dataA = document.getElementById('filter-data-a')?.value || '';
