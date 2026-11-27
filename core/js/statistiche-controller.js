@@ -10,12 +10,134 @@ import {
     nomeTerrenoPerStorico
 } from '../../shared/js/terreno-archivio.js';
 import { formatIsoDateToItalianShort } from './date-format-it.js';
+import { fetchLavoriWithOreOperai } from '../services/manodopera-lavori-ore-loader.js';
+import {
+    periodoCacheKey,
+    collectOreValidateFiltrate,
+    aggregaOreMacchineTotali,
+    aggregaMacchinePiuUtilizzate,
+    aggregaOreMacchinaPerTerreno,
+    aggregaOreMacchinaVsLavoratore,
+    aggregaOreMacchinePerMese
+} from './statistiche-macchine-aggregazioni.js';
 
 function formatPeriodoFiltroText(dataDa, dataA) {
     if (dataDa && dataA) {
         return `${formatIsoDateToItalianShort(dataDa)} - ${formatIsoDateToItalianShort(dataA)}`;
     }
     return 'Tutti i periodi';
+}
+
+/** Cache snapshot Macchine: tenant + filtri. Dedup in-flight per evitare stampede in Promise.all. */
+let _macchineSnapshotCache = {
+    key: null,
+    data: null,
+    promise: null
+};
+
+/**
+ * Invalida la cache snapshot Statistiche Macchine (es. dopo cambio dati).
+ */
+export function invalidateStatisticheMacchineCache() {
+    _macchineSnapshotCache = { key: null, data: null, promise: null };
+}
+
+/**
+ * Carica una sola volta attivita filtrate + lavori/oreOperai validate (+ mappa terreni).
+ * @param {Object} periodo
+ * @param {boolean} hasParcoMacchineModule
+ * @param {string} currentTenantId
+ * @param {Function} getAllAttivitaCallback
+ * @param {Object} dependencies
+ * @returns {Promise<{ attivita: Array, oreRows: Array, terreniMap: Object, hasManodopera: boolean, fetchStats: Object }>}
+ */
+export async function loadStatisticheMacchineSnapshot(periodo, hasParcoMacchineModule, currentTenantId, getAllAttivitaCallback, dependencies) {
+    if (!hasParcoMacchineModule) {
+        return { attivita: [], oreRows: [], terreniMap: {}, hasManodopera: false, fetchStats: { lavoriReads: 0, oreOperaiReads: 0, fromCache: true } };
+    }
+
+    const key = `${currentTenantId || ''}|${periodoCacheKey(periodo || {})}`;
+    if (_macchineSnapshotCache.key === key && _macchineSnapshotCache.data) {
+        return {
+            ..._macchineSnapshotCache.data,
+            fetchStats: { ...(_macchineSnapshotCache.data.fetchStats || {}), fromCache: true }
+        };
+    }
+    if (_macchineSnapshotCache.key === key && _macchineSnapshotCache.promise) {
+        return _macchineSnapshotCache.promise;
+    }
+
+    _macchineSnapshotCache.key = key;
+    _macchineSnapshotCache.promise = (async () => {
+        const fetchStats = { lavoriReads: 0, oreOperaiReads: 0, tenantReads: 0, terreniReads: 0, fromCache: false };
+        const attivita = getAllAttivitaCallback ? await getAllAttivitaCallback(periodo || {}) : [];
+        let oreRows = [];
+        let terreniMap = {};
+        let hasManodopera = false;
+
+        if (currentTenantId && dependencies?.db) {
+            try {
+                const { getDoc, doc, collection, getDocs } = dependencies;
+                const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
+                fetchStats.tenantReads = 1;
+                if (tenantDoc.exists()) {
+                    hasManodopera = resolveEffectiveModules(tenantDoc.data()).includes('manodopera');
+                }
+
+                if (hasManodopera) {
+                    const bundle = await fetchLavoriWithOreOperai(currentTenantId, dependencies, {
+                        statoFilter: 'validate'
+                    });
+                    fetchStats.lavoriReads = 1;
+                    fetchStats.oreOperaiReads = (bundle.lavoriDocs || []).length;
+                    oreRows = collectOreValidateFiltrate(bundle, periodo || {});
+
+                    const terreniSnap = await getDocs(collection(dependencies.db, `tenants/${currentTenantId}/terreni`));
+                    fetchStats.terreniReads = 1;
+                    terreniSnap.docs.forEach((tDoc) => {
+                        terreniMap[tDoc.id] = tDoc.data() || {};
+                    });
+                }
+            } catch (error) {
+                console.warn('Errore caricamento snapshot ore macchine Manodopera:', error);
+            }
+        }
+
+        const data = { attivita, oreRows, terreniMap, hasManodopera, fetchStats };
+        _macchineSnapshotCache.data = data;
+        return data;
+    })();
+
+    try {
+        return await _macchineSnapshotCache.promise;
+    } finally {
+        if (_macchineSnapshotCache.key === key) {
+            _macchineSnapshotCache.promise = null;
+        }
+    }
+}
+
+function safeUpdateChart(fn, chartCanvasId, label) {
+    try {
+        if (typeof fn === 'function') fn();
+    } catch (error) {
+        console.error(`Errore grafico ${label}:`, error);
+        const canvas = document.getElementById(chartCanvasId);
+        const container = canvas?.closest('.chart-card')?.querySelector('.chart-container')
+            || canvas?.parentElement;
+        if (container) {
+            const msg = (error && error.message) ? String(error.message) : 'errore sconosciuto';
+            container.innerHTML = `<div class="empty-state"><p>Errore caricamento grafico (${label}): ${msg}</p></div>`;
+        }
+    }
+}
+
+function setMacchineKpiLoading() {
+    ['metric-ore-macchine-totali', 'metric-macchine-utilizzate', 'metric-utilizzo-medio', 'metric-manutenzioni-scadenza']
+        .forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = 'Caricamento…';
+        });
 }
 
 // ============================================
@@ -506,60 +628,10 @@ export async function getOreMacchineTotali(periodo, hasParcoMacchineModule, curr
     if (!hasParcoMacchineModule) return 0;
     
     try {
-        const attivita = await getAllAttivitaCallback(periodo);
-        let totaleOre = 0;
-        
-        // Somma ore macchina da attività Core Base
-        attivita.forEach(att => {
-            if (att.oreMacchina && att.oreMacchina > 0) {
-                totaleOre += att.oreMacchina;
-            }
-        });
-        
-        // Se modulo Manodopera attivo, aggiungi anche ore da lavori
-        try {
-            const { getDoc, doc, collection, getDocs, query, where } = dependencies;
-            const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
-            if (tenantDoc.exists()) {
-                const tenantData = tenantDoc.data();
-                const hasManodoperaModule = resolveEffectiveModules(tenantData).includes('manodopera');
-                
-                if (hasManodoperaModule) {
-                    const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);
-                    const lavoriSnapshot = await getDocs(lavoriRef);
-                    
-                    for (const lavoroDoc of lavoriSnapshot.docs) {
-                        const lavoro = lavoroDoc.data();
-                        const lavoroId = lavoroDoc.id;
-                        
-                        // Filtra per periodo se necessario
-                        if (periodo.dataDa || periodo.dataA) {
-                            const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
-                            const dataInizioString = dataInizio.toISOString().split('T')[0];
-                            
-                            if (periodo.dataDa && dataInizioString < periodo.dataDa) continue;
-                            if (periodo.dataA && dataInizioString > periodo.dataA) continue;
-                        }
-                        
-                        // Carica ore validate per questo lavoro
-                        const oreRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`);
-                        const oreQuery = query(oreRef, where('stato', '==', 'validate'));
-                        const oreSnapshot = await getDocs(oreQuery);
-                        
-                        oreSnapshot.forEach(oraDoc => {
-                            const ora = oraDoc.data();
-                            if (ora.oreMacchina && ora.oreMacchina > 0) {
-                                totaleOre += ora.oreMacchina;
-                            }
-                        });
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('Errore caricamento ore macchine da Manodopera:', error);
-        }
-        
-        return parseFloat(totaleOre.toFixed(2));
+        const snapshot = await loadStatisticheMacchineSnapshot(
+            periodo, hasParcoMacchineModule, currentTenantId, getAllAttivitaCallback, dependencies
+        );
+        return aggregaOreMacchineTotali(snapshot.attivita, snapshot.oreRows);
     } catch (error) {
         console.error('Errore calcolo ore macchine totali:', error);
         return 0;
@@ -582,101 +654,14 @@ export async function getMacchinePiuUtilizzate(periodo, limit, hasParcoMacchineM
     if (!hasParcoMacchineModule) return [];
     
     try {
-        const attivita = await getAllAttivitaCallback(periodo);
-        const orePerMacchina = {};
-        
-        // Conta ore per macchina da attività Core Base
-        attivita.forEach(att => {
-            if (att.macchinaId && att.oreMacchina && att.oreMacchina > 0) {
-                if (!orePerMacchina[att.macchinaId]) {
-                    orePerMacchina[att.macchinaId] = 0;
-                }
-                orePerMacchina[att.macchinaId] += att.oreMacchina;
-            }
-            if (att.attrezzoId && att.oreMacchina && att.oreMacchina > 0) {
-                if (!orePerMacchina[att.attrezzoId]) {
-                    orePerMacchina[att.attrezzoId] = 0;
-                }
-                orePerMacchina[att.attrezzoId] += att.oreMacchina;
-            }
-        });
-        
-        // Se modulo Manodopera attivo, aggiungi anche ore da lavori
-        try {
-            const { getDoc, doc, collection, getDocs, query, where } = dependencies;
-            const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
-            if (tenantDoc.exists()) {
-                const tenantData = tenantDoc.data();
-                const hasManodoperaModule = resolveEffectiveModules(tenantData).includes('manodopera');
-                
-                if (hasManodoperaModule) {
-                    const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);
-                    const lavoriSnapshot = await getDocs(lavoriRef);
-                    
-                    for (const lavoroDoc of lavoriSnapshot.docs) {
-                        const lavoro = lavoroDoc.data();
-                        const lavoroId = lavoroDoc.id;
-                        
-                        // Filtra per periodo se necessario
-                        if (periodo.dataDa || periodo.dataA) {
-                            const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
-                            const dataInizioString = dataInizio.toISOString().split('T')[0];
-                            
-                            if (periodo.dataDa && dataInizioString < periodo.dataDa) continue;
-                            if (periodo.dataA && dataInizioString > periodo.dataA) continue;
-                        }
-                        
-                        // Carica ore validate per questo lavoro
-                        const oreRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`);
-                        const oreQuery = query(oreRef, where('stato', '==', 'validate'));
-                        const oreSnapshot = await getDocs(oreQuery);
-                        
-                        oreSnapshot.forEach(oraDoc => {
-                            const ora = oraDoc.data();
-                            if (ora.macchinaId && ora.oreMacchina && ora.oreMacchina > 0) {
-                                if (!orePerMacchina[ora.macchinaId]) {
-                                    orePerMacchina[ora.macchinaId] = 0;
-                                }
-                                orePerMacchina[ora.macchinaId] += ora.oreMacchina;
-                            }
-                            if (ora.attrezzoId && ora.oreMacchina && ora.oreMacchina > 0) {
-                                if (!orePerMacchina[ora.attrezzoId]) {
-                                    orePerMacchina[ora.attrezzoId] = 0;
-                                }
-                                orePerMacchina[ora.attrezzoId] += ora.oreMacchina;
-                            }
-                        });
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('Errore caricamento ore macchine da Manodopera:', error);
-        }
-        
-        // Assicurati che le macchine siano caricate
-        let macchine = macchineList;
+        const snapshot = await loadStatisticheMacchineSnapshot(
+            periodo, hasParcoMacchineModule, currentTenantId, getAllAttivitaCallback, dependencies
+        );
+        let macchine = macchineList || [];
         if (macchine.length === 0 && loadMacchineCallback) {
             macchine = await loadMacchineCallback();
         }
-        
-        // Crea mappa macchine
-        const macchineMap = {};
-        macchine.forEach(m => {
-            macchineMap[m.id] = m;
-        });
-        
-        return Object.entries(orePerMacchina)
-            .map(([macchinaId, ore]) => {
-                const macchina = macchineMap[macchinaId];
-                return {
-                    macchinaId,
-                    nome: macchina?.nome || `Macchina ${macchinaId.substring(0, 8)}...`,
-                    tipo: macchina?.tipoMacchina || macchina?.tipo || 'macchina',
-                    ore: parseFloat(ore.toFixed(2))
-                };
-            })
-            .sort((a, b) => b.ore - a.ore)
-            .slice(0, limit || 5);
+        return aggregaMacchinePiuUtilizzate(snapshot.attivita, snapshot.oreRows, macchine, limit || 5);
     } catch (error) {
         console.error('Errore calcolo macchine più utilizzate:', error);
         return [];
@@ -749,81 +734,15 @@ export async function getOreMacchinaPerTerreno(periodo, hasParcoMacchineModule, 
     if (!hasParcoMacchineModule) return [];
     
     try {
-        const attivita = await getAllAttivitaCallback(periodo);
-        const orePerTerreno = {};
-        
-        attivita.forEach(att => {
-            if (att.terrenoNome && att.oreMacchina && att.oreMacchina > 0) {
-                if (!orePerTerreno[att.terrenoNome]) {
-                    orePerTerreno[att.terrenoNome] = 0;
-                }
-                orePerTerreno[att.terrenoNome] += att.oreMacchina;
-            }
-        });
-        
-        // Se modulo Manodopera attivo, aggiungi anche ore da lavori
-        try {
-            const { getDoc, doc, collection, getDocs, query, where } = dependencies;
-            const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
-            if (tenantDoc.exists()) {
-                const tenantData = tenantDoc.data();
-                const hasManodoperaModule = resolveEffectiveModules(tenantData).includes('manodopera');
-                
-                if (hasManodoperaModule) {
-                    const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);
-                    const lavoriSnapshot = await getDocs(lavoriRef);
-                    
-                    for (const lavoroDoc of lavoriSnapshot.docs) {
-                        const lavoro = lavoroDoc.data();
-                        const lavoroId = lavoroDoc.id;
-                        
-                        // Filtra per periodo se necessario
-                        if (periodo.dataDa || periodo.dataA) {
-                            const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
-                            const dataInizioString = dataInizio.toISOString().split('T')[0];
-                            
-                            if (periodo.dataDa && dataInizioString < periodo.dataDa) continue;
-                            if (periodo.dataA && dataInizioString > periodo.dataA) continue;
-                        }
-                        
-                        // Carica terreno (solo azienda: niente clienti conto terzi né archiviati)
-                        const terrenoId = lavoro.terrenoId;
-                        if (!terrenoId) continue;
-                        
-                        const terrenoDoc = await getDoc(doc(dependencies.db, `tenants/${currentTenantId}/terreni`, terrenoId));
-                        if (!terrenoDoc.exists()) continue;
-                        const terrenoData = terrenoDoc.data() || {};
-                        if (terrenoData.clienteId) continue;
-                        if (isTerrenoArchiviato(terrenoData)) continue;
-                        const terrenoNome = terrenoData.nome || 'Terreno sconosciuto';
-                        
-                        // Carica ore validate per questo lavoro
-                        const oreRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`);
-                        const oreQuery = query(oreRef, where('stato', '==', 'validate'));
-                        const oreSnapshot = await getDocs(oreQuery);
-                        
-                        oreSnapshot.forEach(oraDoc => {
-                            const ora = oraDoc.data();
-                            if (ora.oreMacchina && ora.oreMacchina > 0) {
-                                if (!orePerTerreno[terrenoNome]) {
-                                    orePerTerreno[terrenoNome] = 0;
-                                }
-                                orePerTerreno[terrenoNome] += ora.oreMacchina;
-                            }
-                        });
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('Errore caricamento ore macchine da Manodopera:', error);
-        }
-        
-        return Object.entries(orePerTerreno)
-            .map(([terrenoNome, ore]) => ({
-                terrenoNome,
-                ore: parseFloat(ore.toFixed(2))
-            }))
-            .sort((a, b) => b.ore - a.ore);
+        const snapshot = await loadStatisticheMacchineSnapshot(
+            periodo, hasParcoMacchineModule, currentTenantId, getAllAttivitaCallback, dependencies
+        );
+        return aggregaOreMacchinaPerTerreno(
+            snapshot.attivita,
+            snapshot.oreRows,
+            snapshot.terreniMap,
+            isTerrenoArchiviato
+        );
     } catch (error) {
         console.error('Errore calcolo ore macchina per terreno:', error);
         return [];
@@ -831,29 +750,22 @@ export async function getOreMacchinaPerTerreno(periodo, hasParcoMacchineModule, 
 }
 
 /**
- * Calcola ore macchina vs ore lavoratore
+ * Calcola ore macchina vs ore lavoratore (stesse fonti del KPI: Diario + Manodopera).
  * @param {Object} periodo - Periodo con filtri opzionali
  * @param {boolean} hasParcoMacchineModule - Se modulo Parco Macchine è attivo
  * @param {Function} getAllAttivitaCallback - Callback per ottenere tutte le attività
+ * @param {string} [currentTenantId]
+ * @param {Object} [dependencies]
  * @returns {Promise<Object>} Oggetto con oreLavoratore e oreMacchina
  */
-export async function getOreMacchinaVsLavoratore(periodo, hasParcoMacchineModule, getAllAttivitaCallback) {
+export async function getOreMacchinaVsLavoratore(periodo, hasParcoMacchineModule, getAllAttivitaCallback, currentTenantId = null, dependencies = null) {
     if (!hasParcoMacchineModule) return { oreLavoratore: 0, oreMacchina: 0 };
     
     try {
-        const attivita = await getAllAttivitaCallback(periodo);
-        let oreLavoratore = 0;
-        let oreMacchina = 0;
-        
-        attivita.forEach(att => {
-            if (att.oreNette) oreLavoratore += att.oreNette;
-            if (att.oreMacchina) oreMacchina += att.oreMacchina;
-        });
-        
-        return {
-            oreLavoratore: parseFloat(oreLavoratore.toFixed(2)),
-            oreMacchina: parseFloat(oreMacchina.toFixed(2))
-        };
+        const snapshot = await loadStatisticheMacchineSnapshot(
+            periodo, hasParcoMacchineModule, currentTenantId, getAllAttivitaCallback, dependencies
+        );
+        return aggregaOreMacchinaVsLavoratore(snapshot.attivita, snapshot.oreRows);
     } catch (error) {
         console.error('Errore calcolo ore macchina vs lavoratore:', error);
         return { oreLavoratore: 0, oreMacchina: 0 };
@@ -873,68 +785,10 @@ export async function getOreMacchinePerMese(periodo, hasParcoMacchineModule, cur
     if (!hasParcoMacchineModule) return [];
     
     try {
-        const attivita = await getAllAttivitaCallback(periodo);
-        const orePerMese = {};
-        
-        attivita.forEach(att => {
-            if (!att.data || !att.oreMacchina) return;
-            const mese = att.data.substring(0, 7);
-            if (!orePerMese[mese]) {
-                orePerMese[mese] = 0;
-            }
-            orePerMese[mese] += att.oreMacchina;
-        });
-        
-        // Se modulo Manodopera attivo, aggiungi anche ore da lavori
-        try {
-            const { getDoc, doc, collection, getDocs, query, where } = dependencies;
-            const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
-            if (tenantDoc.exists()) {
-                const tenantData = tenantDoc.data();
-                const hasManodoperaModule = resolveEffectiveModules(tenantData).includes('manodopera');
-                
-                if (hasManodoperaModule) {
-                    const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);
-                    const lavoriSnapshot = await getDocs(lavoriRef);
-                    
-                    for (const lavoroDoc of lavoriSnapshot.docs) {
-                        const lavoro = lavoroDoc.data();
-                        const lavoroId = lavoroDoc.id;
-                        
-                        // Carica ore validate per questo lavoro
-                        const oreRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`);
-                        const oreQuery = query(oreRef, where('stato', '==', 'validate'));
-                        const oreSnapshot = await getDocs(oreQuery);
-                        
-                        oreSnapshot.forEach(oraDoc => {
-                            const ora = oraDoc.data();
-                            if (ora.data && ora.oreMacchina && ora.oreMacchina > 0) {
-                                const dataOra = ora.data.toDate ? ora.data.toDate() : new Date(ora.data);
-                                const mese = dataOra.toISOString().substring(0, 7);
-                                
-                                // Filtra per periodo se necessario
-                                if (periodo.dataDa && mese < periodo.dataDa.substring(0, 7)) return;
-                                if (periodo.dataA && mese > periodo.dataA.substring(0, 7)) return;
-                                
-                                if (!orePerMese[mese]) {
-                                    orePerMese[mese] = 0;
-                                }
-                                orePerMese[mese] += ora.oreMacchina;
-                            }
-                        });
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('Errore caricamento ore macchine da Manodopera:', error);
-        }
-        
-        return Object.entries(orePerMese)
-            .map(([mese, ore]) => ({
-                mese,
-                ore: parseFloat(ore.toFixed(2))
-            }))
-            .sort((a, b) => a.mese.localeCompare(b.mese));
+        const snapshot = await loadStatisticheMacchineSnapshot(
+            periodo, hasParcoMacchineModule, currentTenantId, getAllAttivitaCallback, dependencies
+        );
+        return aggregaOreMacchinePerMese(snapshot.attivita, snapshot.oreRows);
     } catch (error) {
         console.error('Errore calcolo ore macchine per mese:', error);
         return [];
@@ -1002,20 +856,38 @@ export async function loadStatistiche(currentTenantId, dependencies, callbacks, 
         if (metricAttivitaSubtitle) metricAttivitaSubtitle.textContent = periodoText;
         if (metricOreMeseSubtitle) metricOreMeseSubtitle.textContent = periodoText;
 
-        // Aggiorna grafici
-        if (callbacks.updateChartOreTipo) callbacks.updateChartOreTipo(orePerTipoLavoro || []);
-        if (callbacks.updateChartAttivitaTerreno) callbacks.updateChartAttivitaTerreno(attivitaPerTerreno || []);
-        if (callbacks.updateChartOreMese) callbacks.updateChartOreMese(orePerMese || []);
-        if (callbacks.updateChartTopLavori) callbacks.updateChartTopLavori(tipiLavoroPiuFrequenti || []);
+        // Aggiorna grafici (isolati: un fallimento non blocca il resto né le Macchine)
+        safeUpdateChart(
+            () => callbacks.updateChartOreTipo?.(orePerTipoLavoro || []),
+            'chart-ore-tipo',
+            'Ore per tipo'
+        );
+        safeUpdateChart(
+            () => callbacks.updateChartAttivitaTerreno?.(attivitaPerTerreno || []),
+            'chart-attivita-terreno',
+            'Attività per terreno'
+        );
+        safeUpdateChart(
+            () => callbacks.updateChartOreMese?.(orePerMese || []),
+            'chart-ore-mese',
+            'Ore per mese'
+        );
+        safeUpdateChart(
+            () => callbacks.updateChartTopLavori?.(tipiLavoroPiuFrequenti || []),
+            'chart-top-lavori',
+            'Top lavori'
+        );
 
-        // Carica statistiche terreni
+        // Terreni e Macchine in parallelo
+        const sideLoads = [];
         if (callbacks.loadStatisticheTerreni) {
-            await callbacks.loadStatisticheTerreni();
+            sideLoads.push(callbacks.loadStatisticheTerreni());
         }
-        
-        // Carica statistiche macchine se modulo attivo
         if (hasParcoMacchineModule && callbacks.loadStatisticheMacchine) {
-            await callbacks.loadStatisticheMacchine(periodo);
+            sideLoads.push(callbacks.loadStatisticheMacchine(periodo));
+        }
+        if (sideLoads.length) {
+            await Promise.all(sideLoads);
         }
     } catch (error) {
         console.error('Errore caricamento statistiche:', error);
@@ -1150,30 +1022,37 @@ export async function loadStatisticheTerreni(currentTenantId, dependencies, getA
  * @param {Object} utils - Funzioni utility (formatOre)
  */
 export async function loadStatisticheMacchine(periodo, hasParcoMacchineModule, currentTenantId, macchineList, dependencies, callbacks, utils) {
+    const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    setMacchineKpiLoading();
+
     try {
-        // Assicurati che le macchine siano caricate
-        let macchine = macchineList;
+        let macchine = macchineList || [];
         if (macchine.length === 0 && callbacks.loadMacchine) {
             macchine = await callbacks.loadMacchine();
         }
-        
-        const [
-            oreMacchineTotali,
-            macchinePiuUtilizzate,
-            manutenzioniScadenza,
-            oreMacchinaPerTerreno,
-            oreMacchinaVsLavoratore,
-            oreMacchinePerMese
-        ] = await Promise.all([
-            callbacks.getOreMacchineTotali?.(periodo, hasParcoMacchineModule, currentTenantId, callbacks.getAllAttivita, dependencies),
-            callbacks.getMacchinePiuUtilizzate?.(periodo, 5, hasParcoMacchineModule, currentTenantId, macchine, callbacks.getAllAttivita, callbacks.loadMacchine, dependencies),
-            callbacks.getManutenzioniInScadenza?.(hasParcoMacchineModule, macchine),
-            callbacks.getOreMacchinaPerTerreno?.(periodo, hasParcoMacchineModule, currentTenantId, callbacks.getAllAttivita, dependencies),
-            callbacks.getOreMacchinaVsLavoratore?.(periodo, hasParcoMacchineModule, callbacks.getAllAttivita),
-            callbacks.getOreMacchinePerMese?.(periodo, hasParcoMacchineModule, currentTenantId, callbacks.getAllAttivita, dependencies)
-        ]);
 
-        // Aggiorna metriche
+        const snapshot = await loadStatisticheMacchineSnapshot(
+            periodo,
+            hasParcoMacchineModule,
+            currentTenantId,
+            callbacks.getAllAttivita,
+            dependencies
+        );
+
+        const oreMacchineTotali = aggregaOreMacchineTotali(snapshot.attivita, snapshot.oreRows);
+        const macchinePiuUtilizzate = aggregaMacchinePiuUtilizzate(snapshot.attivita, snapshot.oreRows, macchine, 5);
+        const oreMacchinaPerTerreno = aggregaOreMacchinaPerTerreno(
+            snapshot.attivita,
+            snapshot.oreRows,
+            snapshot.terreniMap,
+            isTerrenoArchiviato
+        );
+        const oreMacchinaVsLavoratore = aggregaOreMacchinaVsLavoratore(snapshot.attivita, snapshot.oreRows);
+        const oreMacchinePerMese = aggregaOreMacchinePerMese(snapshot.attivita, snapshot.oreRows);
+        const manutenzioniScadenza = callbacks.getManutenzioniInScadenza
+            ? await callbacks.getManutenzioniInScadenza(hasParcoMacchineModule, macchine)
+            : 0;
+
         const metricOreMacchineTotali = document.getElementById('metric-ore-macchine-totali');
         const metricMacchineUtilizzate = document.getElementById('metric-macchine-utilizzate');
         const metricUtilizzoMedio = document.getElementById('metric-utilizzo-medio');
@@ -1187,7 +1066,6 @@ export async function loadStatisticheMacchine(periodo, hasParcoMacchineModule, c
         if (metricUtilizzoMedio) metricUtilizzoMedio.textContent = utils.formatOre(parseFloat(utilizzoMedio));
         if (metricManutenzioniScadenza) metricManutenzioniScadenza.textContent = manutenzioniScadenza || 0;
 
-        // Aggiorna sottotitoli (gg/mm/aaaa; i filtri restano YYYY-MM-DD)
         const periodoText = formatPeriodoFiltroText(periodo.dataDa, periodo.dataA);
         const metricOreMacchineSubtitle = document.getElementById('metric-ore-macchine-subtitle');
         const metricMacchineUtilizzateSubtitle = document.getElementById('metric-macchine-utilizzate-subtitle');
@@ -1195,11 +1073,30 @@ export async function loadStatisticheMacchine(periodo, hasParcoMacchineModule, c
         if (metricOreMacchineSubtitle) metricOreMacchineSubtitle.textContent = periodoText;
         if (metricMacchineUtilizzateSubtitle) metricMacchineUtilizzateSubtitle.textContent = periodoText;
 
-        // Aggiorna grafici
-        if (callbacks.updateChartTopMacchine) callbacks.updateChartTopMacchine(macchinePiuUtilizzate || []);
-        if (callbacks.updateChartOreMacchinaTerreno) callbacks.updateChartOreMacchinaTerreno(oreMacchinaPerTerreno || []);
-        if (callbacks.updateChartOreMacchinaVsLavoratore) callbacks.updateChartOreMacchinaVsLavoratore(oreMacchinaVsLavoratore || {});
-        if (callbacks.updateChartOreMacchineMese) callbacks.updateChartOreMacchineMese(oreMacchinePerMese || []);
+        safeUpdateChart(
+            () => callbacks.updateChartTopMacchine?.(macchinePiuUtilizzate || []),
+            'chart-top-macchine',
+            'Top macchine'
+        );
+        safeUpdateChart(
+            () => callbacks.updateChartOreMacchinaTerreno?.(oreMacchinaPerTerreno || []),
+            'chart-ore-macchina-terreno',
+            'Ore macchina per terreno'
+        );
+        safeUpdateChart(
+            () => callbacks.updateChartOreMacchinaVsLavoratore?.(oreMacchinaVsLavoratore || {}),
+            'chart-ore-macchina-vs-lavoratore',
+            'Ore macchina vs lavoratore'
+        );
+        safeUpdateChart(
+            () => callbacks.updateChartOreMacchineMese?.(oreMacchinePerMese || []),
+            'chart-ore-macchine-mese',
+            'Ore macchine per mese'
+        );
+
+        const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const ms = Math.round(t1 - t0);
+        console.info('[statistiche-macchine] caricamento ms=', ms, 'fetchStats=', snapshot.fetchStats);
     } catch (error) {
         console.error('Errore caricamento statistiche macchine:', error);
     }

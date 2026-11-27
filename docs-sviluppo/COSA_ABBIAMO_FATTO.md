@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-27 — Statistiche PR2 mobile + palette + loading filtri.**
+**Ultimo aggiornamento documentazione: 2026-11-27 — Statistiche Macchine KPI/filtri/una lettura.**
+
+## 2026-11-27 — Statistiche Macchine: KPI che si aggiornano, filtri giusti, una sola lettura
+
+Su `fix/statistiche-macchine-kpi-filtri-cache` (PR verso develop). Nessun merge, nessun deploy. Niente functions/rules/indici. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO / DOMINIO_CONFERMATO invariati. Tony non toccato.
+
+- **Causa «-» post-#530:** non regressione id/grafici nel diff 530 (`statistiche-controller.js` assente). La sezione Macchine restava su «-» perché `loadStatisticheMacchine` era ancora in attesa di ~4× N+1 `getDocs(oreOperai)` seriali (stesso carico rifatto da quattro aggregazioni in `Promise.all`); i KPI si scrivevano solo a fine `Promise.all`.
+- KPI: subito «Caricamento…»; filtri Manodopera su `ora.data` (calendario locale) + terreno/tipo; errore su un documento non azzera la fonte.
+- Ciambella macchina vs lavoratore = stesse fonti del KPI (Diario + `oreOperai` validate).
+- Snapshot unico (`loadStatisticheMacchineSnapshot` + `manodopera-lavori-ore-loader`) con cache tenant+filtri; aggregazioni pure in `statistiche-macchine-aggregazioni.js`; grafici Diario/Macchine in `try/catch` isolati; terreni∥macchine.
+- Test: `tests/statistiche-macchine-aggregazioni.test.js` (filtri, ciambella, letture/cache, difesa UI).
 
 ## 2026-11-27 — Statistiche: mobile come il resto, palette Report, loading filtri ore
 
