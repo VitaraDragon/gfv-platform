@@ -45,6 +45,18 @@ export function formatIsoDateToItalianLong(isoDateStr) {
 }
 
 /**
+ * ISO YYYY-MM-DD → "10/04/2026" (gg/mm/aaaa, senza locale browser).
+ * @param {string} isoDateStr
+ * @returns {string}
+ */
+export function formatIsoDateToItalianShort(isoDateStr) {
+  if (!isoDateStr || typeof isoDateStr !== 'string') return '';
+  const m = isoDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return String(isoDateStr);
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+/**
  * Qualsiasi valore data (Timestamp Firestore, Date, ISO, millis, {seconds}/{_seconds} da callable) → Date oppure null.
  * @param {*} val
  * @returns {Date|null}

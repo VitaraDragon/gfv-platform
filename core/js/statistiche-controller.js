@@ -9,6 +9,14 @@ import {
     isTerrenoArchiviato,
     nomeTerrenoPerStorico
 } from '../../shared/js/terreno-archivio.js';
+import { formatIsoDateToItalianShort } from './date-format-it.js';
+
+function formatPeriodoFiltroText(dataDa, dataA) {
+    if (dataDa && dataA) {
+        return `${formatIsoDateToItalianShort(dataDa)} - ${formatIsoDateToItalianShort(dataA)}`;
+    }
+    return 'Tutti i periodi';
+}
 
 // ============================================
 // FUNZIONI HELPER
@@ -984,8 +992,8 @@ export async function loadStatistiche(currentTenantId, dependencies, callbacks, 
         const mediaOreMese = orePerMese && orePerMese.length > 0 ? (totaleOre / orePerMese.length).toFixed(1) : 0;
         if (metricOreMese) metricOreMese.textContent = utils.formatOre(parseFloat(mediaOreMese));
 
-        // Aggiorna sottotitoli
-        const periodoText = dataDa && dataA ? `${dataDa} - ${dataA}` : 'Tutti i periodi';
+        // Aggiorna sottotitoli (gg/mm/aaaa; i filtri restano YYYY-MM-DD)
+        const periodoText = formatPeriodoFiltroText(dataDa, dataA);
         const metricOreSubtitle = document.getElementById('metric-ore-subtitle');
         const metricAttivitaSubtitle = document.getElementById('metric-attivita-subtitle');
         const metricOreMeseSubtitle = document.getElementById('metric-ore-mese-subtitle');
@@ -1179,8 +1187,8 @@ export async function loadStatisticheMacchine(periodo, hasParcoMacchineModule, c
         if (metricUtilizzoMedio) metricUtilizzoMedio.textContent = utils.formatOre(parseFloat(utilizzoMedio));
         if (metricManutenzioniScadenza) metricManutenzioniScadenza.textContent = manutenzioniScadenza || 0;
 
-        // Aggiorna sottotitoli
-        const periodoText = periodo.dataDa && periodo.dataA ? `${periodo.dataDa} - ${periodo.dataA}` : 'Tutti i periodi';
+        // Aggiorna sottotitoli (gg/mm/aaaa; i filtri restano YYYY-MM-DD)
+        const periodoText = formatPeriodoFiltroText(periodo.dataDa, periodo.dataA);
         const metricOreMacchineSubtitle = document.getElementById('metric-ore-macchine-subtitle');
         const metricMacchineUtilizzateSubtitle = document.getElementById('metric-macchine-utilizzate-subtitle');
         
