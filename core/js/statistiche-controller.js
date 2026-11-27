@@ -778,12 +778,16 @@ export async function getOreMacchinaPerTerreno(periodo, hasParcoMacchineModule, 
                             if (periodo.dataA && dataInizioString > periodo.dataA) continue;
                         }
                         
-                        // Carica terreno
+                        // Carica terreno (solo azienda: niente clienti conto terzi né archiviati)
                         const terrenoId = lavoro.terrenoId;
                         if (!terrenoId) continue;
                         
                         const terrenoDoc = await getDoc(doc(dependencies.db, `tenants/${currentTenantId}/terreni`, terrenoId));
-                        const terrenoNome = terrenoDoc.exists() ? terrenoDoc.data().nome : 'Terreno sconosciuto';
+                        if (!terrenoDoc.exists()) continue;
+                        const terrenoData = terrenoDoc.data() || {};
+                        if (terrenoData.clienteId) continue;
+                        if (isTerrenoArchiviato(terrenoData)) continue;
+                        const terrenoNome = terrenoData.nome || 'Terreno sconosciuto';
                         
                         // Carica ore validate per questo lavoro
                         const oreRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`);

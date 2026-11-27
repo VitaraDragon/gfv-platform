@@ -173,4 +173,25 @@ describe('calcolaSuperficieStats', () => {
     expect(STATI_ESCLUSI_SUPERFICIE).toEqual(['annullato']);
     expect(Object.isFrozen(STATI_ESCLUSI_SUPERFICIE)).toBe(true);
   });
+
+  test('terreno cliente e terreno cliente archiviato esclusi dalla superficie totale', () => {
+    const stats = calcolaSuperficieStats(
+      [
+        { stato: 'completato', terrenoId: 'azienda', superficieTotaleLavorata: 1 },
+        { stato: 'completato', terrenoId: 'cliente', superficieTotaleLavorata: 9 },
+        { stato: 'completato', terrenoId: 'cliente-arch', superficieTotaleLavorata: 5 }
+      ],
+      [
+        { id: 'azienda', superficie: 10 },
+        { id: 'cliente', superficie: 8.51, clienteId: 'cli-1' },
+        { id: 'cliente-arch', superficie: 3, clienteId: 'cli-2', stato: 'archiviato' },
+        { id: 'archiviato-azienda', superficie: 2, stato: 'archiviato' }
+      ]
+    );
+    expect(stats.superficieTotale).toBe(10);
+    expect(stats.superficieCoperta).toBe(10);
+    expect(stats.terreniCoperti).toBe(1);
+    // Gli ettari sui lavori restano nella somma passaggi; i terreni cliente non entrano nei coperti.
+    expect(stats.sommaPassaggi).toBe(15);
+  });
 });
