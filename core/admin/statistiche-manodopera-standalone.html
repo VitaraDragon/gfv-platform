@@ -166,6 +166,14 @@
                         <div class="stat-value" id="stat-lavori-pianificati" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Lavori Pianificati</div>
                     </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white;">
+                        <div class="stat-value" id="stat-lavori-sospesi" style="color: white;">-</div>
+                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Lavori Sospesi</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #546e7a 0%, #37474f 100%); color: white;">
+                        <div class="stat-value" id="stat-lavori-altri" style="color: white;">-</div>
+                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Altri</div>
+                    </div>
                 </div>
             </div>
 
@@ -175,7 +183,7 @@
                 <div class="stats-grid">
                     <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
                         <div class="stat-value" id="stat-ore-validate-mese" style="color: white;">-</div>
-                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Ore Validate (Mese)</div>
+                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Ore validate – questo mese</div>
                     </div>
                     <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
                         <div class="stat-value" id="stat-ore-validate-totale" style="color: white;">-</div>
@@ -262,6 +270,7 @@
                                 <option value="meccanico">Meccanico</option>
                                 <option value="elettricista">Elettricista</option>
                                 <option value="altro">Altro</option>
+                                <option value="">Non specificato</option>
                             </select>
                         </div>
                         <div>
@@ -430,6 +439,12 @@
         } from '../services/manodopera-lavori-ore-loader.js';
         import { calcolaSuperficieStats } from '../services/statistiche-superficie.js?v=2026-10-18c';
         import { calcolaMetricheTerreniAttivi } from '../js/statistiche-controller.js';
+        import { calcolaLavoriPerStato } from '../js/statistiche-lavori-stato.js';
+        import {
+            aggregaOreReport,
+            riepilogoMediaOrePerPersona
+        } from '../js/statistiche-ore-report.js';
+        import { dateLikeToLocalCalendarIso } from '../js/date-format-it.js';
         import { isLavoroSolaLettura } from '../../shared/js/storico-sola-lettura.js';
 
         const app = getAppInstance();
@@ -707,7 +722,7 @@
                 return tipoOperaio;
             }
             
-            return '-';
+            return 'Non specificato';
         }
         
         // Carica report ore operai (usa cache lavori+ore se disponibile)
@@ -767,52 +782,29 @@
                     cachedTenantId = tenantId;
                 }
 
-                const orePerOperaio = {};
-                const giorniLavoratiSet = new Set();
-                let oreTotali = 0;
-                let oreValidateTotali = 0;
-                let oreDaValidareTotali = 0;
-
+                const righePeriodo = [];
                 forEachOraInBundle(bundle, function (ctx) {
                     const ora = ctx.oraData;
                     const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
-
                     if (dataOra < dataInizio || dataOra > dataFine) return;
+                    righePeriodo.push(ora);
+                });
 
-                    const operaioId = ora.operaioId;
-                    if (!operaioId) return;
-
-                    const oreNette = ora.oreNette || 0;
-                    const stato = ora.stato || 'da_validare';
-
-                    if (!orePerOperaio[operaioId]) {
-                        orePerOperaio[operaioId] = {
-                            operaioId: operaioId,
-                            nome: '',
-                            cognome: '',
-                            tipoOperaio: '',
-                            ruoli: [],
-                            oreTotali: 0,
-                            oreValidate: 0,
-                            oreDaValidare: 0,
-                            giorniLavorati: new Set()
-                        };
-                    }
-
-                    orePerOperaio[operaioId].oreTotali += oreNette;
-                    oreTotali += oreNette;
-
-                    if (stato === 'validate') {
-                        orePerOperaio[operaioId].oreValidate += oreNette;
-                        oreValidateTotali += oreNette;
-                    } else if (stato === 'da_validare') {
-                        orePerOperaio[operaioId].oreDaValidare += oreNette;
-                        oreDaValidareTotali += oreNette;
-                    }
-
-                    const giornoKey = dataOra.toISOString().split('T')[0];
-                    orePerOperaio[operaioId].giorniLavorati.add(giornoKey);
-                    giorniLavoratiSet.add(giornoKey);
+                const aggregato = aggregaOreReport(righePeriodo);
+                const orePerOperaio = {};
+                Object.keys(aggregato.orePerOperaio).forEach(function (operaioId) {
+                    const base = aggregato.orePerOperaio[operaioId];
+                    orePerOperaio[operaioId] = {
+                        operaioId: operaioId,
+                        nome: '',
+                        cognome: '',
+                        tipoOperaio: '',
+                        ruoli: [],
+                        oreTotali: base.oreTotali,
+                        oreValidate: base.oreValidate,
+                        oreDaValidare: base.oreDaValidare,
+                        giorniLavorati: base.giorniLavorati
+                    };
                 });
 
                 const usersMap = await fetchUsersByIds(Object.keys(orePerOperaio), { db, doc, getDoc });
@@ -842,7 +834,6 @@
                 // Filtro per tipo operaio (usa la funzione helper per confrontare il display)
                 if (filtroTipoOperaio !== 'tutti') {
                     Object.keys(orePerOperaioFiltrate).forEach(operaioId => {
-                        const tipoDisplay = getTipoOperaioDisplay(orePerOperaioFiltrate[operaioId]);
                         const operaio = orePerOperaioFiltrate[operaioId];
                         const ruoli = operaio.ruoli || [];
                         const isCaposquadra = ruoli.some(r => r.toLowerCase() === 'caposquadra');
@@ -854,6 +845,7 @@
                             }
                         } else {
                             // Per gli altri filtri, confronta con tipoOperaio (non con il display)
+                            // value="" = «Non specificato»
                             if (operaio.tipoOperaio !== filtroTipoOperaio) {
                                 delete orePerOperaioFiltrate[operaioId];
                             }
@@ -871,21 +863,11 @@
                 }
                 
                 // Ricalcola statistiche aggregate solo per operai filtrati
-                let oreTotaliFiltrate = 0;
-                let oreValidateTotaliFiltrate = 0;
-                let oreDaValidareTotaliFiltrate = 0;
-                let giorniLavoratiFiltrati = 0;
-                
-                Object.values(orePerOperaioFiltrate).forEach(operaio => {
-                    oreTotaliFiltrate += operaio.oreTotali;
-                    oreValidateTotaliFiltrate += operaio.oreValidate;
-                    oreDaValidareTotaliFiltrate += operaio.oreDaValidare;
-                    giorniLavoratiFiltrati = Math.max(giorniLavoratiFiltrati, operaio.giorniLavorati);
-                });
-                
-                // Calcola statistiche aggregate (usando dati filtrati)
-                const giorniLavorati = giorniLavoratiFiltrati || giorniLavoratiSet.size;
-                const mediaOreGiorno = giorniLavorati > 0 ? oreTotaliFiltrate / giorniLavorati : 0;
+                // Media = ore totali ÷ somma giorni di ciascun operaio (non max giorni di uno solo)
+                const riepilogo = riepilogoMediaOrePerPersona(Object.values(orePerOperaioFiltrate));
+                const oreTotaliFiltrate = riepilogo.oreTotali;
+                const giorniLavorati = riepilogo.giorniLavoratiSum;
+                const mediaOreGiorno = riepilogo.mediaOreGiorno;
                 const operaiAttivi = Object.keys(orePerOperaioFiltrate).length;
                 
                 // Aggiorna statistiche aggregate
@@ -1006,25 +988,17 @@
         // Statistiche lavori (da docs già caricati)
         function applyLavoriStatsFromDocs(lavoriDocs) {
             try {
-                let totali = 0;
-                let attivi = 0;
-                let completati = 0;
-                let pianificati = 0;
-
-                (lavoriDocs || []).forEach(function (lavoroDoc) {
-                    totali++;
-                    const lavoro = lavoroDoc.data();
-                    const stato = lavoro.stato || 'pianificato';
-
-                    if (stato === 'attivo') attivi++;
-                    else if (stato === 'completato') completati++;
-                    else if (stato === 'pianificato') pianificati++;
+                const lavori = (lavoriDocs || []).map(function (lavoroDoc) {
+                    return lavoroDoc.data() || {};
                 });
+                const stats = calcolaLavoriPerStato(lavori);
 
-                document.getElementById('stat-lavori-totali').textContent = totali;
-                document.getElementById('stat-lavori-attivi').textContent = attivi;
-                document.getElementById('stat-lavori-completati').textContent = completati;
-                document.getElementById('stat-lavori-pianificati').textContent = pianificati;
+                document.getElementById('stat-lavori-totali').textContent = stats.totali;
+                document.getElementById('stat-lavori-attivi').textContent = stats.attivi;
+                document.getElementById('stat-lavori-completati').textContent = stats.completati;
+                document.getElementById('stat-lavori-pianificati').textContent = stats.pianificati;
+                document.getElementById('stat-lavori-sospesi').textContent = stats.sospesi;
+                document.getElementById('stat-lavori-altri').textContent = stats.altri;
             } catch (error) {
                 console.error('Errore statistiche lavori:', error);
             }
@@ -1059,7 +1033,8 @@
                                 const dataOra = ora.data.toDate ? ora.data.toDate() : new Date(ora.data);
                                 if (dataOra >= primoGiornoMese) {
                                     oreValidateMese += oreNette;
-                                    giorniConOre.add(dataOra.toISOString().split('T')[0]);
+                                    const giornoKey = dateLikeToLocalCalendarIso(dataOra);
+                                    if (giornoKey) giorniConOre.add(giornoKey);
                                 }
                             } catch (e) {
                                 // Ignora errori conversione data
