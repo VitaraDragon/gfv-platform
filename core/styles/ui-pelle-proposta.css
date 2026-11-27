@@ -338,12 +338,18 @@ html[data-pelle="proposta"][data-shell="phone"] .modal table:not(.iva-stackable-
 html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-aliquote-table-wrap,
 html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal #iva-compensazione-table-wrap {
   overflow-x: hidden !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: 100%;
 }
 
 html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table thead {
   display: none !important;
 }
 
+/* Azzera min-width:700px di .table-responsive table (responsive-standalone.css) */
 html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table,
 html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table tbody,
 html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackable-table tr,
@@ -351,6 +357,7 @@ html[data-pelle="proposta"][data-shell="phone"] #iva-dettagli-modal .iva-stackab
   display: block !important;
   width: 100% !important;
   max-width: 100% !important;
+  min-width: 0 !important;
   box-sizing: border-box;
 }
 

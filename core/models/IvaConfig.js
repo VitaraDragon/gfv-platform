@@ -239,6 +239,67 @@ export function ripristinaIvaDefaults() {
 }
 
 /**
+ * Normalizza aliquote+compensazione per confronto «sporco» (numeri vs stringhe, trim label).
+ * @param {{ aliquote?: Array<object>, compensazione?: Array<object> }|null|undefined} state
+ * @returns {{ aliquote: Array<object>, compensazione: Array<object> }}
+ */
+export function canonicalizeIvaDettagliState(state) {
+  const toNumOrNull = (v) => {
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const aliquote = Array.isArray(state && state.aliquote)
+    ? state.aliquote.map((r) => {
+        const natura = r && r.natura != null ? String(r.natura) : 'imponibile';
+        const aliquota =
+          natura === 'imponibile' ? toNumOrNull(r && r.aliquota) : null;
+        return {
+          id: r && r.id != null ? String(r.id) : '',
+          label: r && r.label != null ? String(r.label).trim() : '',
+          tipo: r && r.tipo != null ? String(r.tipo) : '',
+          natura,
+          aliquota
+        };
+      })
+    : [];
+  const compensazione = Array.isArray(state && state.compensazione)
+    ? state.compensazione.map((r) => ({
+        id: r && r.id != null ? String(r.id) : '',
+        label: r && r.label != null ? String(r.label).trim() : '',
+        percentuale: toNumOrNull(r && r.percentuale)
+      }))
+    : [];
+  return { aliquote, compensazione };
+}
+
+/**
+ * @param {{ aliquote?: Array<object>, compensazione?: Array<object> }|null|undefined} state
+ * @returns {string}
+ */
+export function serializeIvaDettagliState(state) {
+  return JSON.stringify(canonicalizeIvaDettagliState(state));
+}
+
+/**
+ * @param {{ aliquote?: Array<object>, compensazione?: Array<object> }|null|undefined} a
+ * @param {{ aliquote?: Array<object>, compensazione?: Array<object> }|null|undefined} b
+ * @returns {boolean}
+ */
+export function ivaDettagliStatesEqual(a, b) {
+  return serializeIvaDettagliState(a) === serializeIvaDettagliState(b);
+}
+
+/**
+ * Copia profonda canonicalizzata (per baseline discard alla chiusura).
+ * @param {{ aliquote?: Array<object>, compensazione?: Array<object> }|null|undefined} state
+ * @returns {{ aliquote: Array<object>, compensazione: Array<object> }}
+ */
+export function cloneIvaDettagliState(state) {
+  return canonicalizeIvaDettagliState(state);
+}
+
+/**
  * Aliquota predefinita di fabbrica per id categoria (solo se imponibile).
  * @param {string} id
  * @returns {number|null}
