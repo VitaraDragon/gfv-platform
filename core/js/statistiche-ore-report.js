@@ -118,3 +118,69 @@ export function riepilogoMediaOrePerPersona(operai) {
     mediaOreGiorno: giorniLavoratiSum > 0 ? oreTotali / giorniLavoratiSum : 0
   };
 }
+
+const TIPO_OPERAIO_LABELS = {
+  semplice: 'Operaio Semplice',
+  specializzato: 'Operaio Specializzato',
+  trattorista: 'Trattorista',
+  meccanico: 'Meccanico',
+  elettricista: 'Elettricista',
+  altro: 'Altro'
+};
+
+/**
+ * Etichetta Tipo in tabella report ore: ruolo caposquadra + tipoOperaio.
+ * Stesso testo usato dal filtro Tipo (incluso «Non specificato»).
+ *
+ * @param {{ ruoli?: string[], tipoOperaio?: string }|null|undefined} operaio
+ * @returns {string}
+ */
+export function getTipoOperaioDisplay(operaio) {
+  const ruoli = (operaio && Array.isArray(operaio.ruoli)) ? operaio.ruoli : [];
+  const tipoOperaio = (operaio && operaio.tipoOperaio) ? String(operaio.tipoOperaio) : '';
+  const isCaposquadra = ruoli.some((r) => String(r || '').toLowerCase() === 'caposquadra');
+
+  if (isCaposquadra) {
+    if (tipoOperaio && TIPO_OPERAIO_LABELS[tipoOperaio]) {
+      return `Caposquadra - ${TIPO_OPERAIO_LABELS[tipoOperaio]}`;
+    }
+    if (tipoOperaio) {
+      return `Caposquadra - ${tipoOperaio}`;
+    }
+    return 'Caposquadra';
+  }
+
+  if (tipoOperaio && TIPO_OPERAIO_LABELS[tipoOperaio]) {
+    return TIPO_OPERAIO_LABELS[tipoOperaio];
+  }
+  if (tipoOperaio) {
+    return tipoOperaio;
+  }
+  return 'Non specificato';
+}
+
+/**
+ * True se l'operaio passa il filtro Tipo del report ore.
+ * «non_specificato» allinea al display «Non specificato» (non caposquadra senza tipo).
+ *
+ * @param {{ ruoli?: string[], tipoOperaio?: string }|null|undefined} operaio
+ * @param {string} filtroTipo valore select (`tutti` | `Caposquadra` | `non_specificato` | codice tipo)
+ * @returns {boolean}
+ */
+export function matchesTipoOperaioFilter(operaio, filtroTipo) {
+  if (!filtroTipo || filtroTipo === 'tutti') return true;
+
+  const ruoli = (operaio && Array.isArray(operaio.ruoli)) ? operaio.ruoli : [];
+  const isCaposquadra = ruoli.some((r) => String(r || '').toLowerCase() === 'caposquadra');
+
+  if (filtroTipo === 'Caposquadra') {
+    return isCaposquadra;
+  }
+
+  if (filtroTipo === 'non_specificato') {
+    return getTipoOperaioDisplay(operaio) === 'Non specificato';
+  }
+
+  const tipoOperaio = (operaio && operaio.tipoOperaio) ? String(operaio.tipoOperaio) : '';
+  return tipoOperaio === filtroTipo;
+}

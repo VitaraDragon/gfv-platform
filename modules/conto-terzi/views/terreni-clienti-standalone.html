@@ -523,7 +523,7 @@
             <div class="section-header">
                 <h2>Elenco Terreni</h2>
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                    <input type="checkbox" id="filter-mostra-archiviati" onchange="loadTerreni()">
+                    <input type="checkbox" id="filter-mostra-archiviati">
                     Mostra archiviati
                 </label>
                 <div id="terreni-count">0 terreni</div>
@@ -1026,6 +1026,11 @@ import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection,
                                 if (select) {
                                     select.innerHTML = '<option value="">-- Seleziona prima un cliente --</option>';
                                 }
+                            }
+                        });
+                        document.getElementById('filter-mostra-archiviati')?.addEventListener('change', async () => {
+                            if (currentClienteId) {
+                                await loadTerreni();
                             }
                         });
                     } else {
