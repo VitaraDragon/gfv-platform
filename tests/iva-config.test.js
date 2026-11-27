@@ -11,6 +11,10 @@ import {
   ripristinaIvaDefaults,
   defaultAliquotaForCategoriaId,
   resolveAliquotaAfterNaturaChange,
+  canonicalizeIvaDettagliState,
+  serializeIvaDettagliState,
+  ivaDettagliStatesEqual,
+  cloneIvaDettagliState,
   categoriaProdottoDaRaccoltaModulo,
   suggerisciAliquotaPerTipo,
   risolviIvaEntrataInLettura,
@@ -23,6 +27,62 @@ import {
   COMPENSAZIONE_DEFAULT
 } from '../core/models/IvaConfig.js';
 import { Entrata, totaliEntrate } from '../core/models/Entrata.js';
+
+describe('canonicalizeIvaDettagliState / dirty compare', () => {
+  const base = {
+    aliquote: [
+      { id: 'frutta', label: 'Frutta', tipo: 'entrata', natura: 'imponibile', aliquota: 4 },
+      { id: 'affitto_terreni', label: 'Affitto', tipo: 'entrata', natura: 'esente', aliquota: null }
+    ],
+    compensazione: [{ id: 'cereali', label: 'Cereali', percentuale: 4 }]
+  };
+
+  it('tratta numeri e stringhe numeriche come uguali (niente falso sporco)', () => {
+    const asStrings = {
+      aliquote: [
+        { id: 'frutta', label: 'Frutta', tipo: 'entrata', natura: 'imponibile', aliquota: '4' },
+        { id: 'affitto_terreni', label: 'Affitto', tipo: 'entrata', natura: 'esente', aliquota: '' }
+      ],
+      compensazione: [{ id: 'cereali', label: 'Cereali', percentuale: '4' }]
+    };
+    expect(ivaDettagliStatesEqual(base, asStrings)).toBe(true);
+    expect(serializeIvaDettagliState(base)).toBe(serializeIvaDettagliState(asStrings));
+  });
+
+  it('trim delle label e aliquota non imponibile → null', () => {
+    const messy = {
+      aliquote: [
+        { id: 'frutta', label: '  Frutta  ', tipo: 'entrata', natura: 'imponibile', aliquota: 4 },
+        { id: 'affitto_terreni', label: 'Affitto', tipo: 'entrata', natura: 'esente', aliquota: '10' }
+      ],
+      compensazione: [{ id: 'cereali', label: ' Cereali ', percentuale: 4 }]
+    };
+    expect(canonicalizeIvaDettagliState(messy).aliquote[1].aliquota).toBeNull();
+    expect(ivaDettagliStatesEqual(base, messy)).toBe(true);
+  });
+
+  it('rileva una modifica reale di aliquota o percentuale', () => {
+    expect(
+      ivaDettagliStatesEqual(base, {
+        ...base,
+        aliquote: [{ ...base.aliquote[0], aliquota: 10 }, base.aliquote[1]]
+      })
+    ).toBe(false);
+    expect(
+      ivaDettagliStatesEqual(base, {
+        ...base,
+        compensazione: [{ ...base.compensazione[0], percentuale: 10 }]
+      })
+    ).toBe(false);
+  });
+
+  it('cloneIvaDettagliState è indipendente dall’originale', () => {
+    const cloned = cloneIvaDettagliState(base);
+    cloned.aliquote[0].aliquota = 22;
+    expect(base.aliquote[0].aliquota).toBe(4);
+    expect(ivaDettagliStatesEqual(base, cloned)).toBe(false);
+  });
+});
 
 describe('resolveAliquotaAfterNaturaChange', () => {
   it('Esente/Fuori campo: disabilita, svuota e ricorda il valore corrente', () => {

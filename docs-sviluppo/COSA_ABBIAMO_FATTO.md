@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-27 — Impostazioni IVA: sezione corta + dettagli in finestra.**
+**Ultimo aggiornamento documentazione: 2026-11-27 — Fix modal IVA post-#518 (min-width, discard, footer).**
+
+## 2026-11-27 — Fix modal IVA post-#518 (min-width mobile, discard, footer)
+
+Su `fix/iva-modal-mobile-minwidth` (PR verso develop). Nessun merge. Niente functions/rules/indici. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO / DOMINIO_CONFERMATO invariati.
+
+- Tabelle IVA in modal: tolto `table-responsive` (evita `min-width:700px`); `min-width:0 !important` su `.iva-stackable-table` (+ tbody/tr/td) in `ui-pelle-proposta.css` e media ≤640px; azzerato margine negativo del wrapper.
+- Chiusura con conferma «Chiudere comunque?»: ripristina baseline (scarta modifiche in pagina/cache).
+- Dirty check tipizzato (`canonicalizeIvaDettagliState` / `ivaDettagliStatesEqual`): numeri vs stringhe non generano falso sporco; unit in `tests/iva-config.test.js`.
+- Desktop: modal a altezza fissa `min(92vh,900px)` + `min-height:0` sul body scrollabile → footer Salva/Chiudi sempre visibile.
 
 ## 2026-11-27 — Impostazioni IVA: sezione corta + dettagli in finestra
 
