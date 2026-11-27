@@ -239,6 +239,68 @@ export function ripristinaIvaDefaults() {
 }
 
 /**
+ * Aliquota predefinita di fabbrica per id categoria (solo se imponibile).
+ * @param {string} id
+ * @returns {number|null}
+ */
+export function defaultAliquotaForCategoriaId(id) {
+  const row = ALIQUOTE_DEFAULT.find((a) => a && a.id === id);
+  if (!row || row.natura !== 'imponibile') return null;
+  return row.aliquota != null && Number.isFinite(Number(row.aliquota)) ? Number(row.aliquota) : null;
+}
+
+/**
+ * Cambio Natura in UI aliquote: svuota/disabilita per esente/fuori campo;
+ * tornando a Imponibile ripristina il valore ricordato o il default categoria.
+ *
+ * @param {{
+ *   natura: string,
+ *   currentValue?: string|number|null,
+ *   rememberedAliquota?: number|string|null,
+ *   defaultAliquota?: number|string|null
+ * }} opts
+ * @returns {{
+ *   disabled: boolean,
+ *   value: string,
+ *   placeholder: string,
+ *   rememberedAliquota: number|null
+ * }}
+ */
+export function resolveAliquotaAfterNaturaChange(opts = {}) {
+  const natura = opts.natura || 'imponibile';
+  const labels = { esente: 'Esente', fuori_campo: 'Fuori campo' };
+
+  const toNumOrNull = (v) => {
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  let remembered = toNumOrNull(opts.rememberedAliquota);
+
+  if (natura === 'esente' || natura === 'fuori_campo') {
+    const cur = toNumOrNull(opts.currentValue);
+    if (cur != null) remembered = cur;
+    return {
+      disabled: true,
+      value: '',
+      placeholder: labels[natura] || '—',
+      rememberedAliquota: remembered
+    };
+  }
+
+  let next = remembered;
+  if (next == null) next = toNumOrNull(opts.defaultAliquota);
+  if (next == null) next = 0;
+  return {
+    disabled: false,
+    value: String(next),
+    placeholder: '',
+    rememberedAliquota: next
+  };
+}
+
+/**
  * @param {object|null|undefined} data documento Firestore o parziale
  * @returns {{ regime: string, aliquote: Array<object>, compensazione: Array<object> }}
  */
@@ -592,6 +654,8 @@ export default {
   normalizeAliquote,
   normalizeCompensazione,
   ripristinaIvaDefaults,
+  defaultAliquotaForCategoriaId,
+  resolveAliquotaAfterNaturaChange,
   mergeIvaConfig,
   aliquotePerEntrate,
   labelAliquotaOption,
