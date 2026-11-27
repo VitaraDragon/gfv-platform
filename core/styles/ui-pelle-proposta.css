@@ -317,6 +317,15 @@ html[data-pelle="proposta"][data-shell="phone"] .table-container table {
   display: none !important;
 }
 
+/* Opt-out unico: data-gfv-pelle-list="off" → tabella resta visibile (niente schede) */
+html[data-pelle="proposta"][data-shell="phone"] [data-gfv-pelle-list="off"] table {
+  display: table !important;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] [data-gfv-pelle-list="off"] > .gfv-pelle-cards {
+  display: none !important;
+}
+
 html[data-pelle="proposta"][data-shell="phone"] .modal table {
   display: table !important;
 }
