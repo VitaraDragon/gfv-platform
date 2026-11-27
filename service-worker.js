@@ -4,7 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia; in activate() si cancellano le cache gfv-platform-* precedenti.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1795765906913';
+const SW_CACHE_BUILD_ID = 't1795769831201';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 // Scelta della strategia e pulizia cache: funzioni pure in sw-strategy.js (test vitest).
@@ -19,10 +19,20 @@ function swTestLocaleAttivo() {
   }
 }
 
-// Installazione: nessun precache e nessuna cache creata qui. La cache della build nasce
-// al primo fetch dopo l'attivazione, così un worker rimasto in attesa e poi superato
-// non lascia una cache vuota che activate() prenderebbe per «la precedente».
-self.addEventListener('install', () => {});
+// Installazione: precache solo dell'icona FAB Tony (evita flash emoji/lettera a rete lenta).
+// Il resto della cache nasce al primo fetch dopo activate, così un worker in attesa poi
+// superato non lascia una cache vuota che activate() prenderebbe per «la precedente».
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      let iconUrl = 'core/images/tony-icon.png';
+      try {
+        iconUrl = new URL('core/images/tony-icon.png', self.registration.scope).href;
+      } catch (e) { /* keep relative */ }
+      return cache.add(iconUrl).catch(() => { /* icona opzionale: non blocca install */ });
+    })
+  );
+});
 
 // skipRichiesto: un client ha chiesto l'attivazione. paginaGestisceReload: la pagina di
 // questa build ricarica da sola su controllerchange. I client vecchi non mandano il flag:

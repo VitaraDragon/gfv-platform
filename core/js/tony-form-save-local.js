@@ -9,7 +9,7 @@ import {
   readSegnaOreDomState,
   getSegnaOreLavoroElement,
   userBlobAcknowledgesZeroPause,
-} from './tony/tony-segna-ora-local-engine.js?v=2026-11-05a';
+} from './tony/tony-segna-ora-local-engine.js?v=2026-11-27a';
 
 /** @typedef {{
  *   formId: string,

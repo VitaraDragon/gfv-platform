@@ -293,6 +293,37 @@
             margin-top: 12px;
             background: #fff;
         }
+        /* .btn-secondary globale è per header scuro (testo bianco): dentro il modal bianco serve contrasto */
+        #iva-dettagli-modal .btn-secondary {
+            background: #f1f3f5;
+            color: #333;
+            border: 1px solid #ced4da;
+        }
+        #iva-dettagli-modal .btn-secondary:hover {
+            background: #e9ecef;
+            color: #222;
+        }
+        #iva-dettagli-modal .btn-secondary[data-iva-remove] {
+            background: #fff5f5;
+            color: #b42318;
+            border-color: #f5c2c7;
+        }
+        #iva-dettagli-modal .btn-secondary[data-iva-remove]:hover {
+            background: #ffe3e3;
+            color: #912018;
+        }
+        #iva-dettagli-modal .iva-dettagli-loading {
+            padding: 24px 8px;
+            color: #64748b;
+            font-size: 14px;
+            text-align: center;
+        }
+        /* FAB Tony sopra il modal (z-index 9998 > 1000): nascosto finché la finestra IVA è aperta */
+        body.iva-dettagli-modal-open #tony-fab,
+        body.iva-dettagli-modal-open #tony-fab-placeholder {
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
         @media (min-width: 641px) {
             #iva-dettagli-modal.modal.active {
                 align-items: center;
@@ -4070,13 +4101,13 @@
         }
         
         let ivaConfigCache = null;
+        let ivaLoadPromise = null;
         let ivaDettagliBaseline = null;
         let ivaDettagliOpen = false;
         let ivaResolveNaturaChange = null;
         let ivaDefaultAliquotaForId = null;
         let ivaDettagliStatesEqual = null;
         let ivaCloneDettagliState = null;
-
         async function ensureIvaNaturaHelpers() {
             if (ivaResolveNaturaChange && ivaDefaultAliquotaForId && ivaDettagliStatesEqual) return;
             const mod = await import('../models/IvaConfig.js');
@@ -4084,6 +4115,29 @@
             ivaDefaultAliquotaForId = mod.defaultAliquotaForCategoriaId;
             ivaDettagliStatesEqual = mod.ivaDettagliStatesEqual;
             ivaCloneDettagliState = mod.cloneIvaDettagliState;
+        }
+
+        function setTonyFabHiddenForIvaModal(hidden) {
+            document.body.classList.toggle('iva-dettagli-modal-open', !!hidden);
+        }
+
+        function setIvaDettagliLoading(show) {
+            const body = document.querySelector('#iva-dettagli-modal .iva-dettagli-body');
+            if (!body) return;
+            let el = document.getElementById('iva-dettagli-loading');
+            if (show) {
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'iva-dettagli-loading';
+                    el.className = 'iva-dettagli-loading';
+                    el.setAttribute('role', 'status');
+                    el.textContent = 'Caricamento…';
+                    body.insertBefore(el, body.firstChild);
+                }
+                el.hidden = false;
+            } else if (el) {
+                el.hidden = true;
+            }
         }
 
         function toggleIvaCompensazioneVisibility() {
@@ -4122,16 +4176,31 @@
         async function openIvaDettagliModal() {
             const modal = document.getElementById('iva-dettagli-modal');
             if (!modal) return;
-            await ensureIvaNaturaHelpers();
-            toggleIvaCompensazioneVisibility();
-            if (ivaConfigCache) {
-                renderIvaAliquoteTable(ivaConfigCache.aliquote);
-                renderIvaCompensazioneTable(ivaConfigCache.compensazione);
-            }
-            captureIvaDettagliBaseline();
+            ivaDettagliBaseline = null;
+            setTonyFabHiddenForIvaModal(true);
             modal.hidden = false;
             modal.classList.add('active');
             ivaDettagliOpen = true;
+            setIvaDettagliLoading(true);
+            try {
+                await ensureIvaNaturaHelpers();
+                await loadIvaImpostazioni();
+                if (!ivaConfigCache) {
+                    closeIvaDettagliModal({ force: true });
+                    return;
+                }
+                toggleIvaCompensazioneVisibility();
+                renderIvaAliquoteTable(ivaConfigCache.aliquote);
+                renderIvaCompensazioneTable(ivaConfigCache.compensazione);
+                captureIvaDettagliBaseline();
+            } catch (error) {
+                console.error('Errore apertura dettagli IVA:', error);
+                showAlert(error.message || 'Errore caricamento impostazioni IVA', 'error');
+                closeIvaDettagliModal({ force: true });
+                return;
+            } finally {
+                setIvaDettagliLoading(false);
+            }
             document.getElementById('btn-iva-chiudi-dettagli')?.focus();
         }
 
@@ -4153,6 +4222,8 @@
             }
             ivaDettagliOpen = false;
             ivaDettagliBaseline = null;
+            setIvaDettagliLoading(false);
+            setTonyFabHiddenForIvaModal(false);
             toggleIvaAddForm(false);
             return true;
         }
@@ -4282,20 +4353,27 @@
         }
 
         async function loadIvaImpostazioni() {
-            try {
+            if (ivaLoadPromise) return ivaLoadPromise;
+            ivaLoadPromise = (async () => {
                 await ensureIvaNaturaHelpers();
                 const { getIvaImpostazioni } = await import('../services/iva-impostazioni-service.js');
                 const cfg = await getIvaImpostazioni();
                 ivaConfigCache = cfg;
                 const regimeEl = document.getElementById('iva-regime');
                 if (regimeEl) regimeEl.value = cfg.regime || 'ordinario';
-                renderIvaAliquoteTable(cfg.aliquote);
-                renderIvaCompensazioneTable(cfg.compensazione);
+                if (!ivaDettagliOpen) {
+                    renderIvaAliquoteTable(cfg.aliquote);
+                    renderIvaCompensazioneTable(cfg.compensazione);
+                }
                 toggleIvaCompensazioneVisibility();
-            } catch (error) {
+                return cfg;
+            })().catch((error) => {
+                ivaLoadPromise = null;
                 console.error('Errore caricamento IVA:', error);
                 showAlert('Errore caricamento impostazioni IVA', 'error');
-            }
+                return null;
+            });
+            return ivaLoadPromise;
         }
 
         function ivaField(id, field) {

@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-27 — Fix modal IVA post-#518 (min-width, discard, footer).**
+**Ultimo aggiornamento documentazione: 2026-11-27 — Ritocco IVA modal + icona Tony (post-#520).**
+
+## 2026-11-27 — Ritocco modal IVA + FAB Tony senza emoji (post-#520)
+
+Su `fix/iva-modal-tony-icon` (PR verso develop). Nessun merge. Niente functions/rules/indici. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO / DOMINIO_CONFERMATO invariati.
+
+- `#iva-dettagli-modal .btn-secondary`: testo scuro su fondo chiaro (Togli / Chiudi / Annulla leggibili); header `.btn-secondary` invariato.
+- Apertura dettagli IVA attende la stessa promessa di `loadIvaImpostazioni` («Caricamento…»); baseline solo dopo il render; niente avviso dirty senza baseline.
+- Con modal IVA aperto: `body.iva-dettagli-modal-open` nasconde `#tony-fab` / placeholder (non copre Chiudi).
+- Tony: niente 🤖 al boot — placeholder e FAB restano nascosti finché `tony-icon.png` è pronta (fallback «T»); preload + precache SW dell’icona. Build client `2026-11-27a`.
 
 ## 2026-11-27 — Fix modal IVA post-#518 (min-width mobile, discard, footer)
 

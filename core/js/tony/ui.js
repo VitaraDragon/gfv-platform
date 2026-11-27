@@ -36,6 +36,80 @@ export function setTonyMsgContent(el, text, type) {
     }
 }
 
+/**
+ * URL assoluto di core/images/tony-icon.png da scriptBase
+ * (loader in core/js/ oppure main in core/js/tony/).
+ * @param {string} scriptBase
+ * @returns {string}
+ */
+export function resolveTonyIconUrl(scriptBase) {
+    try {
+        if (scriptBase) {
+            var path = String(scriptBase).split('?')[0].replace(/\\/g, '/');
+            if (/\/tony\/[^/]+$/i.test(path)) {
+                return new URL('../../images/tony-icon.png', scriptBase).href;
+            }
+            return new URL('../images/tony-icon.png', scriptBase).href;
+        }
+    } catch (e) { /* fall through */ }
+    try {
+        var loc = (typeof window !== 'undefined' && window.location && window.location.href) || '';
+        if (!loc) return '';
+        var u = new URL(loc);
+        var p = u.pathname.replace(/\\/g, '/');
+        if (p.indexOf('/gfv-platform/') >= 0) {
+            return u.origin + '/gfv-platform/core/images/tony-icon.png';
+        }
+        if (p.indexOf('/core/') >= 0) {
+            return new URL(p.replace(/\/core\/.*$/, '/core/images/tony-icon.png'), u.origin).href;
+        }
+        if (p.indexOf('/modules/') >= 0) {
+            return new URL('../../../core/images/tony-icon.png', loc).href;
+        }
+    } catch (e2) { /* ignore */ }
+    return '';
+}
+
+/**
+ * Mostra il FAB solo con icona già caricata; in fallimento «T» (mai emoji).
+ * @param {HTMLElement} fab
+ * @param {string} tonyIconUrl
+ * @param {{ imgClass?: string, alt?: string }} [opts]
+ */
+function mountTonyFabIcon(fab, tonyIconUrl, opts) {
+    opts = opts || {};
+    fab.style.visibility = 'hidden';
+    fab.setAttribute('aria-busy', 'true');
+
+    function revealWithLetter() {
+        fab.innerHTML = '';
+        fab.textContent = 'T';
+        fab.style.visibility = '';
+        fab.removeAttribute('aria-busy');
+    }
+
+    function revealWithImg(src) {
+        fab.innerHTML = '';
+        var img = document.createElement('img');
+        img.src = src;
+        img.alt = opts.alt || 'Tony';
+        img.className = opts.imgClass || 'tony-fab-icon';
+        img.decode && img.decode().catch(function () { /* ignore */ });
+        fab.appendChild(img);
+        fab.style.visibility = '';
+        fab.removeAttribute('aria-busy');
+    }
+
+    if (!tonyIconUrl) {
+        revealWithLetter();
+        return;
+    }
+
+    var pre = new Image();
+    pre.onload = function () { revealWithImg(tonyIconUrl); };
+    pre.onerror = function () { revealWithLetter(); };
+    pre.src = tonyIconUrl;
+}
 
 /**
  * Crea e inietta il widget (FAB, pannello, overlay). Restituisce l'API per appendMessage, removeTyping, showMessageInChat e setSendHandler.
@@ -81,23 +155,26 @@ export function injectWidget(scriptBase) {
         };
     }
 
-    var tonyIconUrl = scriptBase ? new URL('../images/tony-icon.png', scriptBase).href : '';
+    var tonyIconUrl = resolveTonyIconUrl(scriptBase);
+    if (tonyIconUrl && typeof document !== 'undefined' && document.head) {
+        try {
+            if (!document.querySelector('link[rel="preload"][href="' + tonyIconUrl + '"]')) {
+                var preload = document.createElement('link');
+                preload.rel = 'preload';
+                preload.as = 'image';
+                preload.href = tonyIconUrl;
+                document.head.appendChild(preload);
+            }
+        } catch (ePre) { /* ignore */ }
+    }
+
     var fab = document.createElement('button');
     fab.type = 'button';
     fab.className = 'tony-widget-fab';
     fab.id = 'tony-fab';
     fab.title = 'Chiedi a Tony';
     fab.setAttribute('aria-label', 'Apri assistente Tony');
-    if (tonyIconUrl) {
-        var fabImg = document.createElement('img');
-        fabImg.src = tonyIconUrl;
-        fabImg.alt = 'Tony';
-        fabImg.className = 'tony-fab-icon';
-        fabImg.onerror = function() { fab.innerHTML = ''; fab.textContent = '\uD83E\uDD16'; };
-        fab.appendChild(fabImg);
-    } else {
-        fab.textContent = '\uD83E\uDD16';
-    }
+    mountTonyFabIcon(fab, tonyIconUrl);
 
     var panel = document.createElement('div');
     panel.className = 'tony-widget-panel';
@@ -106,7 +183,7 @@ export function injectWidget(scriptBase) {
     panel.setAttribute('aria-label', 'Chat con Tony');
     var headerContent = tonyIconUrl
         ? '<img src="' + tonyIconUrl + '" alt="" class="tony-header-icon" onerror="this.style.display=\'none\'"> Tony – Assistente'
-        : '\uD83E\uDD16 Tony – Assistente';
+        : 'Tony – Assistente';
     panel.innerHTML = '<div class="tony-widget-header">' +
         '<h2>' + headerContent + '</h2>' +
         '<button type="button" class="tony-widget-close" id="tony-close" aria-label="Chiudi">×</button>' +
@@ -159,6 +236,11 @@ export function injectWidget(scriptBase) {
         '<button type="button" class="tony-confirm-btn tony-confirm-cancel" id="tony-confirm-cancel">Annulla</button>' +
         '<button type="button" class="tony-confirm-btn tony-confirm-ok" id="tony-confirm-ok">Apri</button>' +
         '</div></div>';
+
+    var placeholder = document.getElementById('tony-fab-placeholder');
+    if (placeholder && placeholder.parentNode) {
+        placeholder.parentNode.removeChild(placeholder);
+    }
 
     document.body.appendChild(fab);
     document.body.appendChild(panel);
