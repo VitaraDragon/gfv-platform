@@ -7,7 +7,7 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-11-05a';
+    var TONY_LOADER_QUERY = '2026-11-27a';
     if (window.__gfvTonyLoaderBuild) {
         if (window.__gfvTonyLoaderBuild !== TONY_LOADER_QUERY) console.warn('[Tony] loader doppio ignorato', TONY_LOADER_QUERY, 'già attivo', window.__gfvTonyLoaderBuild);
         return;
@@ -230,6 +230,19 @@
         document.addEventListener('DOMContentLoaded', fn);
     }
 
+    function resolveTonyIconUrl() {
+        var base = resolveCoreBase();
+        var sep = (base && !base.endsWith('/')) ? '/' : '';
+        if (base === '' || base === '../') {
+            try {
+                return new URL((base || '') + 'images/tony-icon.png', window.location.href).href;
+            } catch (e) {
+                return (base || '') + 'images/tony-icon.png';
+            }
+        }
+        return (base ? base + sep : '') + 'images/tony-icon.png';
+    }
+
     function injectPlaceholderFab() {
         if (document.getElementById('tony-fab') || document.getElementById('tony-fab-placeholder')) return;
         var btn = document.createElement('button');
@@ -239,12 +252,53 @@
         btn.title = 'Chiedi a Tony';
         btn.setAttribute('aria-label', 'Apri assistente Tony');
         btn.setAttribute('aria-busy', 'true');
-        btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9998;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#2E8B57 0%,#228B22 100%);color:#fff;border:none;box-shadow:0 4px 12px rgba(46,139,87,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;padding:0;';
-        btn.textContent = '\uD83E\uDD16';
+        btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9998;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#2E8B57 0%,#228B22 100%);color:#fff;border:none;box-shadow:0 4px 12px rgba(46,139,87,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;padding:0;visibility:hidden;';
         btn.addEventListener('click', function () {
             window.__gfvTonyOpenAfterLoad = true;
             loadTonyWidgetScript();
         });
+
+        var iconUrl = resolveTonyIconUrl();
+        try {
+            if (iconUrl && document.head && !document.querySelector('link[rel="preload"][as="image"][data-tony-icon="1"]')) {
+                var preload = document.createElement('link');
+                preload.rel = 'preload';
+                preload.as = 'image';
+                preload.href = iconUrl;
+                preload.setAttribute('data-tony-icon', '1');
+                document.head.appendChild(preload);
+            }
+        } catch (ePre) { /* ignore */ }
+
+        function revealLetter() {
+            btn.innerHTML = '';
+            btn.textContent = 'T';
+            btn.style.visibility = '';
+            btn.removeAttribute('aria-busy');
+        }
+        function revealIcon() {
+            btn.innerHTML = '';
+            var img = document.createElement('img');
+            img.src = iconUrl;
+            img.alt = 'Tony';
+            img.className = 'tony-fab-icon';
+            img.width = 54;
+            img.height = 54;
+            img.style.cssText = 'width:54px;height:54px;border-radius:50%;object-fit:cover;';
+            btn.appendChild(img);
+            btn.style.visibility = '';
+            btn.removeAttribute('aria-busy');
+        }
+
+        if (!iconUrl) {
+            revealLetter();
+        } else {
+            var pre = new Image();
+            pre.onload = revealIcon;
+            pre.onerror = revealLetter;
+            pre.src = iconUrl;
+        }
+
         document.body.appendChild(btn);
     }
 
