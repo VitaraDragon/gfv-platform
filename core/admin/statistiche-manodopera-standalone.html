@@ -270,7 +270,7 @@
                                 <option value="meccanico">Meccanico</option>
                                 <option value="elettricista">Elettricista</option>
                                 <option value="altro">Altro</option>
-                                <option value="">Non specificato</option>
+                                <option value="non_specificato">Non specificato</option>
                             </select>
                         </div>
                         <div>
@@ -442,6 +442,8 @@
         import { calcolaLavoriPerStato } from '../js/statistiche-lavori-stato.js';
         import {
             aggregaOreReport,
+            getTipoOperaioDisplay,
+            matchesTipoOperaioFilter,
             riepilogoMediaOrePerPersona
         } from '../js/statistiche-ore-report.js';
         import { dateLikeToLocalCalendarIso } from '../js/date-format-it.js';
@@ -686,45 +688,6 @@
             loadReportOreOperai();
         }
         
-        // Funzione helper per determinare il tipo operaio da visualizzare
-        // Combina ruolo (caposquadra) e tipoOperaio (trattorista, semplice, ecc.)
-        function getTipoOperaioDisplay(operaio) {
-            const tipoOperaioNames = {
-                'semplice': 'Operaio Semplice',
-                'specializzato': 'Operaio Specializzato',
-                'trattorista': 'Trattorista',
-                'meccanico': 'Meccanico',
-                'elettricista': 'Elettricista',
-                'altro': 'Altro'
-            };
-            
-            const ruoli = operaio.ruoli || [];
-            const tipoOperaio = operaio.tipoOperaio || '';
-            const isCaposquadra = ruoli.some(r => r.toLowerCase() === 'caposquadra');
-            
-            // Se è caposquadra
-            if (isCaposquadra) {
-                // Se ha anche un tipoOperaio, mostra entrambi
-                if (tipoOperaio && tipoOperaioNames[tipoOperaio]) {
-                    return `Caposquadra - ${tipoOperaioNames[tipoOperaio]}`;
-                } else if (tipoOperaio) {
-                    return `Caposquadra - ${tipoOperaio}`;
-                } else {
-                    // Solo caposquadra, senza tipoOperaio
-                    return 'Caposquadra';
-                }
-            }
-            
-            // Se non è caposquadra, usa solo tipoOperaio
-            if (tipoOperaio && tipoOperaioNames[tipoOperaio]) {
-                return tipoOperaioNames[tipoOperaio];
-            } else if (tipoOperaio) {
-                return tipoOperaio;
-            }
-            
-            return 'Non specificato';
-        }
-        
         // Carica report ore operai (usa cache lavori+ore se disponibile)
         async function loadReportOreOperai(tenantId) {
             if (!tenantId) {
@@ -831,24 +794,11 @@
                 
                 let orePerOperaioFiltrate = { ...orePerOperaio };
                 
-                // Filtro per tipo operaio (usa la funzione helper per confrontare il display)
+                // Filtro per tipo operaio (allineato a getTipoOperaioDisplay)
                 if (filtroTipoOperaio !== 'tutti') {
                     Object.keys(orePerOperaioFiltrate).forEach(operaioId => {
-                        const operaio = orePerOperaioFiltrate[operaioId];
-                        const ruoli = operaio.ruoli || [];
-                        const isCaposquadra = ruoli.some(r => r.toLowerCase() === 'caposquadra');
-                        
-                        // Se il filtro è "Caposquadra", mostra solo i caposquadra
-                        if (filtroTipoOperaio === 'Caposquadra') {
-                            if (!isCaposquadra) {
-                                delete orePerOperaioFiltrate[operaioId];
-                            }
-                        } else {
-                            // Per gli altri filtri, confronta con tipoOperaio (non con il display)
-                            // value="" = «Non specificato»
-                            if (operaio.tipoOperaio !== filtroTipoOperaio) {
-                                delete orePerOperaioFiltrate[operaioId];
-                            }
+                        if (!matchesTipoOperaioFilter(orePerOperaioFiltrate[operaioId], filtroTipoOperaio)) {
+                            delete orePerOperaioFiltrate[operaioId];
                         }
                     });
                 }
