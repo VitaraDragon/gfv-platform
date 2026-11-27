@@ -9,6 +9,24 @@ import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { richiediModulo } from '../../../core/js/module-page-guard.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import {
+    chartColorsForItems,
+    readReportChartColors,
+    seriesColorAt
+} from '../../report/js/report-chart-colors.js';
+
+function reportPalette() {
+    return readReportChartColors();
+}
+
+function hexWithAlpha(hex, alpha) {
+    const raw = String(hex || '').replace('#', '');
+    if (raw.length !== 6) return hex;
+    const r = parseInt(raw.slice(0, 2), 16);
+    const g = parseInt(raw.slice(2, 4), 16);
+    const b = parseInt(raw.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 try {
     await window.GFVStandaloneReady;
@@ -244,6 +262,7 @@ function updateChartProduzioneTempo(data) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato</p></div>';
         return;
     }
+    const line = seriesColorAt(0, reportPalette());
     charts.produzioneTempo = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
@@ -251,8 +270,8 @@ function updateChartProduzioneTempo(data) {
             datasets: [{
                 label: 'Produzione (kg)',
                 data: data.produzione,
-                borderColor: '#FF6F00',
-                backgroundColor: 'rgba(255, 111, 0, 0.1)',
+                borderColor: line,
+                backgroundColor: hexWithAlpha(line, 0.1),
                 tension: 0.4,
                 fill: true
             }]
@@ -278,6 +297,7 @@ function updateChartResaSpecie(data) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍎</div><p>Nessun dato</p></div>';
         return;
     }
+    const palette = reportPalette();
     charts.resaSpecie = new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: {
@@ -285,8 +305,7 @@ function updateChartResaSpecie(data) {
             datasets: [{
                 label: 'Resa (kg/Ha)',
                 data: specie.map(s => data[s].resaKgHa || 0),
-                backgroundColor: '#FF6F00',
-                borderColor: '#E65100',
+                backgroundColor: chartColorsForItems(specie, palette),
                 borderWidth: 1
             }]
         },
@@ -312,11 +331,17 @@ function updateChartProduzioneMensile(data, anno) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>Nessun dato</p></div>';
         return;
     }
+    const palette = reportPalette();
     charts.produzioneMensile = new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: {
             labels: mesi,
-            datasets: [{ label: 'Produzione (kg)', data: valori, backgroundColor: '#FF6F00', borderColor: '#E65100', borderWidth: 1 }]
+            datasets: [{
+                label: 'Produzione (kg)',
+                data: valori,
+                backgroundColor: chartColorsForItems(mesi, palette),
+                borderWidth: 1
+            }]
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
@@ -344,11 +369,17 @@ function updateChartCalibro(qualitaFrutta) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📏</div><p>Nessun dato</p></div>';
         return;
     }
+    const palette = reportPalette();
     charts.calibro = new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: {
             labels,
-            datasets: [{ label: 'kg', data: labels.map(l => flat[l]), backgroundColor: '#FFB74D', borderColor: '#FF6F00', borderWidth: 1 }]
+            datasets: [{
+                label: 'kg',
+                data: labels.map(l => flat[l]),
+                backgroundColor: chartColorsForItems(labels, palette),
+                borderWidth: 1
+            }]
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
@@ -364,11 +395,17 @@ function updateChartMaturazione(qualitaFrutta) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍎</div><p>Nessun dato</p></div>';
         return;
     }
+    const palette = reportPalette();
     charts.maturazione = new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: {
             labels,
-            datasets: [{ label: 'kg', data: labels.map(l => flat[l]), backgroundColor: '#FFCC80', borderColor: '#FF6F00', borderWidth: 1 }]
+            datasets: [{
+                label: 'kg',
+                data: labels.map(l => flat[l]),
+                backgroundColor: chartColorsForItems(labels, palette),
+                borderWidth: 1
+            }]
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
@@ -384,11 +421,17 @@ function updateChartColore(qualitaFrutta) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎨</div><p>Nessun dato</p></div>';
         return;
     }
+    const palette = reportPalette();
     charts.colore = new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: {
             labels,
-            datasets: [{ label: 'kg', data: labels.map(l => flat[l]), backgroundColor: '#FFA726', borderColor: '#FF6F00', borderWidth: 1 }]
+            datasets: [{
+                label: 'kg',
+                data: labels.map(l => flat[l]),
+                backgroundColor: chartColorsForItems(labels, palette),
+                borderWidth: 1
+            }]
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
@@ -452,12 +495,17 @@ function updateChartScartoCategoria(scartoPerCategoria) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>Nessun dato</p></div>';
         return;
     }
-    const colors = ['#FF6F00', '#FFB74D', '#FFCC80', '#FFA726', '#E65100'];
+    const palette = reportPalette();
     charts.scartoCategoria = new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: {
             labels,
-            datasets: [{ label: 'kg', data: values, backgroundColor: labels.map((_, i) => colors[i % colors.length]), borderColor: '#E65100', borderWidth: 1 }]
+            datasets: [{
+                label: 'kg',
+                data: values,
+                backgroundColor: chartColorsForItems(labels, palette),
+                borderWidth: 1
+            }]
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(0) + ' kg' } } } }
     });
@@ -476,15 +524,16 @@ function updateChartCostiTempo(data) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Nessun dato</p></div>';
         return;
     }
+    const palette = reportPalette();
     charts.costiTempo = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
             labels: data.anni.map(a => a.toString()),
             datasets: [
-                { label: 'Manodopera', data: data.manodopera || [], borderColor: '#2E8B57', tension: 0.4, fill: false },
-                { label: 'Macchine', data: data.macchine || [], borderColor: '#007bff', tension: 0.4, fill: false },
-                { label: 'Prodotti', data: data.prodotti || [], borderColor: '#ffc107', tension: 0.4, fill: false },
-                { label: 'Totale', data: data.totale || [], borderColor: '#FF6F00', tension: 0.4, fill: false }
+                { label: 'Manodopera', data: data.manodopera || [], borderColor: seriesColorAt(0, palette), tension: 0.4, fill: false },
+                { label: 'Macchine', data: data.macchine || [], borderColor: seriesColorAt(1, palette), tension: 0.4, fill: false },
+                { label: 'Prodotti', data: data.prodotti || [], borderColor: seriesColorAt(2, palette), tension: 0.4, fill: false },
+                { label: 'Totale', data: data.totale || [], borderColor: seriesColorAt(3, palette), tension: 0.4, fill: false }
             ]
         },
         options: {
@@ -510,18 +559,19 @@ function updateChartSpeseCategoria(stats) {
     const labels = [];
     const values = [];
     if (raccolta > 0) { labels.push('Raccolta'); values.push(raccolta); }
-    if (altri > 0) { labels.push('Altri costi'); values.push(altri); }
+    if (altri > 0) { labels.push('Altri'); values.push(altri); }
     if (labels.length === 0) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💳</div><p>Nessun dato</p></div>';
         return;
     }
+    const palette = reportPalette();
     charts.speseCategoria = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
             labels,
             datasets: [{
                 data: values,
-                backgroundColor: ['#FF6F00', '#FFCC80'],
+                backgroundColor: chartColorsForItems(labels, palette),
                 borderColor: '#fff',
                 borderWidth: 2
             }]
@@ -555,6 +605,7 @@ function updateChartSpeseMensili(data, anno) {
         canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato</p></div>';
         return;
     }
+    const line = seriesColorAt(1, reportPalette());
     charts.speseMensili = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
@@ -562,8 +613,8 @@ function updateChartSpeseMensili(data, anno) {
             datasets: [{
                 label: 'Spese (€)',
                 data: valori,
-                borderColor: '#FF6F00',
-                backgroundColor: 'rgba(255, 111, 0, 0.1)',
+                borderColor: line,
+                backgroundColor: hexWithAlpha(line, 0.1),
                 tension: 0.4,
                 fill: true
             }]

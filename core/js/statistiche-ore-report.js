@@ -184,3 +184,89 @@ export function matchesTipoOperaioFilter(operaio, filtroTipo) {
   const tipoOperaio = (operaio && operaio.tipoOperaio) ? String(operaio.tipoOperaio) : '';
   return tipoOperaio === filtroTipo;
 }
+
+/**
+ * Modelli scheda mobile per il report ore operai (pattern Report manodopera).
+ *
+ * @param {{
+ *   nome?: string,
+ *   cognome?: string,
+ *   oreTotali?: number,
+ *   oreValidate?: number,
+ *   oreDaValidare?: number,
+ *   giorniLavorati?: number,
+ *   ruoli?: string[],
+ *   tipoOperaio?: string
+ * }[]|null|undefined} operai
+ * @param {(ore: number) => string} formatOre
+ * @returns {{
+ *   nomeCompleto: string,
+ *   tipoDisplay: string,
+ *   oreTotaliLabel: string,
+ *   oreValidateLabel: string,
+ *   oreDaValidareLabel: string,
+ *   giorni: number,
+ *   mediaGiornoLabel: string
+ * }[]}
+ */
+export function buildReportOreMobileCardModels(operai, formatOre) {
+  const fmt = typeof formatOre === 'function'
+    ? formatOre
+    : (ore) => String(ore ?? 0);
+  const lista = Array.isArray(operai) ? operai : [];
+  return lista.map((operaio) => {
+    const nomeCompleto = `${operaio?.nome || ''} ${operaio?.cognome || ''}`.trim() || 'N/A';
+    const giorni = typeof operaio?.giorniLavorati === 'number' && Number.isFinite(operaio.giorniLavorati)
+      ? operaio.giorniLavorati
+      : 0;
+    const oreTotali = typeof operaio?.oreTotali === 'number' && Number.isFinite(operaio.oreTotali)
+      ? operaio.oreTotali
+      : 0;
+    const mediaGiorno = giorni > 0 ? oreTotali / giorni : 0;
+    return {
+      nomeCompleto,
+      tipoDisplay: getTipoOperaioDisplay(operaio),
+      oreTotaliLabel: fmt(oreTotali),
+      oreValidateLabel: fmt(
+        typeof operaio?.oreValidate === 'number' && Number.isFinite(operaio.oreValidate)
+          ? operaio.oreValidate
+          : 0
+      ),
+      oreDaValidareLabel: fmt(
+        typeof operaio?.oreDaValidare === 'number' && Number.isFinite(operaio.oreDaValidare)
+          ? operaio.oreDaValidare
+          : 0
+      ),
+      giorni,
+      mediaGiornoLabel: fmt(mediaGiorno)
+    };
+  });
+}
+
+/**
+ * HTML schede mobile report ore (escape obbligatorio via callback).
+ *
+ * @param {ReturnType<typeof buildReportOreMobileCardModels>} cards
+ * @param {(s: string) => string} escapeHtml
+ * @returns {string}
+ */
+export function renderReportOreMobileCardsHtml(cards, escapeHtml) {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (s) => String(s ?? '');
+  const list = Array.isArray(cards) ? cards : [];
+  if (!list.length) {
+    return '<div class="empty-state" style="padding:24px;">Nessun dato disponibile per il periodo selezionato</div>';
+  }
+  return list.map((c) => `
+    <div class="m-card">
+      <div class="title">${esc(c.nomeCompleto)}</div>
+      <div class="meta">${esc(c.tipoDisplay)} · ${esc(String(c.giorni))} giorni</div>
+      <div class="tot">${esc(c.oreTotaliLabel)}</div>
+      <div class="amounts">
+        <div><span>Validate</span><br>${esc(c.oreValidateLabel)}</div>
+        <div><span>Da validare</span><br>${esc(c.oreDaValidareLabel)}</div>
+        <div><span>Media/Giorno</span><br>${esc(c.mediaGiornoLabel)}</div>
+        <div><span>Giorni</span><br>${esc(String(c.giorni))}</div>
+      </div>
+    </div>
+  `).join('');
+}

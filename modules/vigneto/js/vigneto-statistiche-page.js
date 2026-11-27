@@ -9,6 +9,24 @@ import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { richiediModulo } from '../../../core/js/module-page-guard.js';
+import {
+    chartColorsForItems,
+    readReportChartColors,
+    seriesColorAt
+} from '../../report/js/report-chart-colors.js';
+
+function reportPalette() {
+    return readReportChartColors();
+}
+
+function hexWithAlpha(hex, alpha) {
+    const raw = String(hex || '').replace('#', '');
+    if (raw.length !== 6) return hex;
+    const r = parseInt(raw.slice(0, 2), 16);
+    const g = parseInt(raw.slice(2, 4), 16);
+    const b = parseInt(raw.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 try {
     await window.GFVStandaloneReady;
@@ -543,6 +561,7 @@ function updateChartResaVarieta(data) {
     }
     
     
+    const palette = reportPalette();
     charts.resaVarieta = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -550,8 +569,7 @@ function updateChartResaVarieta(data) {
             datasets: [{
                 label: 'Resa (Qli/Ha)',
                 data: varieta.map(v => data[v].resaQliHa || 0),
-                backgroundColor: '#6A1B9A',
-                borderColor: '#4A148C',
+                backgroundColor: chartColorsForItems(varieta, palette),
                 borderWidth: 1
             }]
         },
@@ -606,6 +624,7 @@ function updateChartProduzioneMensile(data, anno) {
     
     const ctx = canvas.getContext('2d');
     
+    const palette = reportPalette();
     charts.produzioneMensile = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -613,8 +632,7 @@ function updateChartProduzioneMensile(data, anno) {
             datasets: [{
                 label: 'Produzione (Qli)',
                 data: datiMensili,
-                backgroundColor: '#6A1B9A',
-                borderColor: '#4A148C',
+                backgroundColor: chartColorsForItems(mesi, palette),
                 borderWidth: 1
             }]
         },
@@ -860,6 +878,12 @@ function updateChartCostiTempo(data) {
     }
     
     try {
+        const palette = reportPalette();
+        const c0 = seriesColorAt(0, palette);
+        const c1 = seriesColorAt(1, palette);
+        const c2 = seriesColorAt(2, palette);
+        const c3 = seriesColorAt(3, palette);
+        const cAltri = palette.altri;
         const chartConfig = {
             type: 'line',
             data: {
@@ -868,40 +892,40 @@ function updateChartCostiTempo(data) {
                     {
                         label: 'Manodopera',
                         data: data.manodopera,
-                    borderColor: '#2E8B57',
-                    backgroundColor: 'rgba(46, 139, 87, 0.1)',
+                    borderColor: c0,
+                    backgroundColor: hexWithAlpha(c0, 0.1),
                     tension: 0.4,
                     fill: false
                 },
                 {
                     label: 'Macchine',
                     data: data.macchine,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderColor: c1,
+                    backgroundColor: hexWithAlpha(c1, 0.1),
                     tension: 0.4,
                     fill: false
                 },
                 {
                     label: 'Prodotti',
                     data: data.prodotti,
-                    borderColor: '#ffc107',
-                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    borderColor: c2,
+                    backgroundColor: hexWithAlpha(c2, 0.1),
                     tension: 0.4,
                     fill: false
                 },
                 {
                     label: 'Cantina',
                     data: data.cantina,
-                    borderColor: '#dc3545',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderColor: c3,
+                    backgroundColor: hexWithAlpha(c3, 0.1),
                     tension: 0.4,
                     fill: false
                 },
                 {
-                    label: 'Altro',
+                    label: 'Altri',
                     data: data.altro,
-                    borderColor: '#6c757d',
-                    backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                    borderColor: cAltri,
+                    backgroundColor: hexWithAlpha(cAltri, 0.1),
                     tension: 0.4,
                     fill: false
                 }
@@ -965,14 +989,15 @@ function updateChartSpeseCategoria(stats) {
         return;
     }
     
-    // Per ora mostriamo solo spese vendemmia, in futuro possiamo aggiungere altre categorie
+    const palette = reportPalette();
+    const labels = ['Spese Vendemmia'];
     charts.speseCategoria = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Spese Vendemmia'],
+            labels,
             datasets: [{
                 data: [speseVendemmia],
-                backgroundColor: ['#6A1B9A'],
+                backgroundColor: chartColorsForItems(labels, palette),
                 borderColor: '#fff',
                 borderWidth: 2
             }]

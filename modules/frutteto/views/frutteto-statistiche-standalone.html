@@ -10,6 +10,7 @@
     <meta name="theme-color" content="#FF6F00">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="../../report/styles/report-chart-palette.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -17,8 +18,9 @@
             background: linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%);
             color: #333;
             min-height: 100vh;
+            overflow-x: clip;
         }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .container { max-width: min(1400px, 100%); margin: 0 auto; padding: 20px; width: 100%; }
         .header {
             background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%);
             color: white;
@@ -83,7 +85,7 @@
         }
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
             gap: 30px;
             margin-bottom: 30px;
         }
@@ -93,9 +95,12 @@
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 100%;
+            min-width: 0;
+            overflow: hidden;
         }
         .chart-card h3 { color: #FF6F00; margin-bottom: 15px; font-size: 18px; }
-        .chart-container { position: relative; height: 300px; }
+        .chart-container { position: relative; height: 300px; width: 100%; max-width: 100%; min-width: 0; }
         .chart-container.full-height { height: 400px; }
         .loading {
             text-align: center;
@@ -114,8 +119,21 @@
         .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
         .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         @media (max-width: 768px) {
-            .charts-grid { grid-template-columns: 1fr; }
+            body { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+            .container { padding: 12px; }
+            .content { padding: 16px; }
+            .charts-grid { grid-template-columns: 1fr; gap: 16px; }
+            .chart-card { padding: 14px; }
+            .chart-container { height: 240px; }
+            .chart-container.full-height { height: 280px; }
             .filters { flex-direction: column; align-items: stretch; }
+            .filter-group { width: 100%; min-width: 0; }
+            .filter-group select { width: 100%; min-width: 0; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 8px; }
+            .header { padding: 20px 16px; }
+            .header h1 { font-size: 24px; }
         }
     </style>
 </head>
