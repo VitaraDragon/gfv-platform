@@ -46,6 +46,8 @@ export function calcolaSuperficieStats(lavori, terreni) {
   for (const terreno of listaTerreni) {
     if (!terreno || typeof terreno !== 'object') continue;
     if (terreno.stato === 'archiviato') continue;
+    // Terreni clienti (conto terzi): esclusi dalle stats azienda; avranno un blocco dedicato.
+    if (terreno.clienteId) continue;
     const ha = num(terreno.superficie);
     superficieTotale += ha;
     const id = terreno.id;
