@@ -8,6 +8,7 @@
     <title>Statistiche Manodopera - GFV</title>
     <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
+    <link rel="stylesheet" href="../../modules/report/styles/report-chart-palette.css">
     <style>
         * {
             margin: 0;
@@ -19,12 +20,14 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f7fa;
             color: #333;
+            overflow-x: clip;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: min(1400px, 100%);
             margin: 0 auto;
             padding: 20px;
+            width: 100%;
         }
 
         .header {
@@ -89,7 +92,7 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
             gap: 20px;
         }
 
@@ -99,6 +102,88 @@
             border-radius: 8px;
             text-align: center;
             border-left: 4px solid #2E8B57;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .report-ore-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+        }
+
+        .report-ore-table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .mobile-cards {
+            display: none;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .m-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 14px;
+            background: #fff;
+        }
+
+        .m-card .title {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .m-card .meta {
+            color: #666;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .m-card .tot {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .m-card .amounts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 10px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .m-card .amounts span {
+            color: #666;
+        }
+
+        .filters-ore {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .filters-ore-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filters-ore-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .stat-value {
@@ -132,6 +217,72 @@
         .empty-state-icon {
             font-size: 64px;
             margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+            }
+
+            .container {
+                padding: 12px;
+            }
+
+            .header {
+                padding: 20px 16px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .stats-section {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+
+            .filters-ore-actions .btn {
+                flex: 1 1 auto;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .desktop-only {
+                display: none !important;
+            }
+
+            .mobile-cards {
+                display: grid;
+            }
+        }
+
+        @media (min-width: 601px) {
+            .mobile-only {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 8px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
         }
     </style>
 </head>
@@ -170,7 +321,7 @@
                         <div class="stat-value" id="stat-lavori-sospesi" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Lavori Sospesi</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #546e7a 0%, #37474f 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-altri); color: white;">
                         <div class="stat-value" id="stat-lavori-altri" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Altri</div>
                     </div>
@@ -181,19 +332,19 @@
             <div class="stats-section">
                 <h2>⏱️ Statistiche Ore</h2>
                 <div class="stats-grid">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-1); color: white;">
                         <div class="stat-value" id="stat-ore-validate-mese" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Ore validate – questo mese</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-3); color: white;">
                         <div class="stat-value" id="stat-ore-validate-totale" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Ore Validate (Totale)</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-2); color: white;">
                         <div class="stat-value" id="stat-ore-da-validare" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Ore da Validare</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-6); color: white;">
                         <div class="stat-value" id="stat-media-ore-giorno" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Media Ore/Giorno</div>
                     </div>
@@ -204,19 +355,19 @@
             <div class="stats-section">
                 <h2>👥 Statistiche Squadre</h2>
                 <div class="stats-grid">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-3); color: white;">
                         <div class="stat-value" id="stat-squadre-totali" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Squadre Totali</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-1); color: white;">
                         <div class="stat-value" id="stat-squadre-attive" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Squadre Attive</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-5); color: white;">
                         <div class="stat-value" id="stat-operai-totali" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Operai Totali</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-4); color: white;">
                         <div class="stat-value" id="stat-operai-online" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Operai Online</div>
                     </div>
@@ -251,11 +402,11 @@
                 <h2>⏱️ Report Ore Operai</h2>
                 
                 <!-- Filtri periodo -->
-                <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                <div class="filters-ore">
+                    <div class="filters-ore-grid">
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Periodo:</label>
-                            <select id="filter-periodo-ore" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                            <select id="filter-periodo-ore" style="width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
                                 <option value="mese">Questo Mese</option>
                                 <option value="settimana">Questa Settimana</option>
                                 <option value="oggi">Oggi</option>
@@ -264,7 +415,7 @@
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Tipo Operaio:</label>
-                            <select id="filter-tipo-operaio-ore" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                            <select id="filter-tipo-operaio-ore" style="width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
                                 <option value="tutti">Tutti</option>
                                 <option value="Caposquadra">Caposquadra</option>
                                 <option value="semplice">Operaio Semplice</option>
@@ -278,24 +429,24 @@
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Operaio:</label>
-                            <select id="filter-operaio-ore" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                            <select id="filter-operaio-ore" style="width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
                                 <option value="tutti">Tutti gli operai</option>
                             </select>
                         </div>
                     </div>
                     <div id="date-range-group" style="display: none; margin-bottom: 15px;">
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <div>
+                            <div style="flex: 1 1 140px; min-width: 0;">
                                 <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Da:</label>
-                                <input type="date" id="date-from-ore" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                                <input type="date" id="date-from-ore" style="width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
                             </div>
-                            <div>
+                            <div style="flex: 1 1 140px; min-width: 0;">
                                 <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">A:</label>
-                                <input type="date" id="date-to-ore" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                                <input type="date" id="date-to-ore" style="width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
                             </div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px;">
+                    <div class="filters-ore-actions">
                         <button onclick="loadReportOreOperai()" class="btn btn-primary" style="background: #2E8B57; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;" title="Aggiorna immediatamente il report">Aggiorna</button>
                         <button onclick="resetFiltriOre()" class="btn btn-secondary" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Pulisci Filtri</button>
                     </div>
@@ -306,19 +457,19 @@
 
                 <!-- Statistiche aggregate -->
                 <div class="stats-grid" style="margin-bottom: 25px;">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-3); color: white;">
                         <div class="stat-value" id="stat-ore-totali-operai" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Ore Totali</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-6); color: white;">
                         <div class="stat-value" id="stat-media-ore-giorno-report" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Media Ore/Giorno</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-5); color: white;">
                         <div class="stat-value" id="stat-giorni-lavorati" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Giornate-uomo</div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
+                    <div class="stat-card" style="background: var(--report-chart-1); color: white;">
                         <div class="stat-value" id="stat-operai-attivi" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Operai Attivi</div>
                     </div>
@@ -327,14 +478,17 @@
                 <!-- Statistiche per tipo operaio -->
                 <div style="margin-bottom: 25px;">
                     <h3 style="color: #495057; font-size: 16px; margin-bottom: 15px;">Ore per Tipo Operaio</h3>
-                    <div id="ore-per-tipo-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div id="ore-per-tipo-container" class="stats-grid">
                         <div class="loading">Caricamento...</div>
                     </div>
                 </div>
 
-                <!-- Tabella report operai -->
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <!-- Tabella report operai (desktop) + schede (mobile) -->
+                <div id="report-ore-mobile-host" class="mobile-cards mobile-only">
+                    <div class="loading">Caricamento report...</div>
+                </div>
+                <div class="report-ore-table-wrap desktop-only">
+                    <table>
                         <thead>
                             <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                                 <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Operaio</th>
@@ -445,10 +599,16 @@
         import { calcolaLavoriPerStato } from '../js/statistiche-lavori-stato.js';
         import {
             aggregaOreReport,
+            buildReportOreMobileCardModels,
             getTipoOperaioDisplay,
             matchesTipoOperaioFilter,
+            renderReportOreMobileCardsHtml,
             riepilogoMediaOrePerPersona
         } from '../js/statistiche-ore-report.js';
+        import {
+            chartColorsForItems,
+            readReportChartColors
+        } from '../../modules/report/js/report-chart-colors.js';
         import { dateLikeToLocalCalendarIso } from '../js/date-format-it.js';
         import { isLavoroSolaLettura } from '../../shared/js/storico-sola-lettura.js';
 
@@ -691,6 +851,35 @@
             loadReportOreOperai();
         }
         
+        function setReportOreLoading() {
+            const dash = '-';
+            const elOre = document.getElementById('stat-ore-totali-operai');
+            const elMedia = document.getElementById('stat-media-ore-giorno-report');
+            const elGiorni = document.getElementById('stat-giorni-lavorati');
+            const elAttivi = document.getElementById('stat-operai-attivi');
+            if (elOre) elOre.textContent = dash;
+            if (elMedia) elMedia.textContent = dash;
+            if (elGiorni) elGiorni.textContent = dash;
+            if (elAttivi) elAttivi.textContent = dash;
+
+            const tipoBox = document.getElementById('ore-per-tipo-container');
+            if (tipoBox) tipoBox.innerHTML = '<div class="loading">Caricamento...</div>';
+
+            const tbody = document.getElementById('report-ore-operai-body');
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="padding: 40px; text-align: center; color: #999;">
+                            <div class="loading">Caricamento report...</div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            const mobileHost = document.getElementById('report-ore-mobile-host');
+            if (mobileHost) mobileHost.innerHTML = '<div class="loading">Caricamento report...</div>';
+        }
+
         // Carica report ore operai (usa cache lavori+ore se disponibile)
         async function loadReportOreOperai(tenantId) {
             if (!tenantId) {
@@ -740,6 +929,8 @@
                     dataFine = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
                     dataFine.setHours(23, 59, 59, 999);
                 }
+
+                setReportOreLoading();
 
                 let bundle = cachedLavoriOreBundle;
                 if (!bundle || cachedTenantId !== tenantId) {
@@ -847,21 +1038,25 @@
                 });
                 
                 let orePerTipoHTML = '';
-                if (Object.keys(orePerTipo).length === 0) {
+                const tipiSorted = Object.keys(orePerTipo).sort((a, b) => orePerTipo[b] - orePerTipo[a]);
+                if (tipiSorted.length === 0) {
                     orePerTipoHTML = '<div style="padding: 20px; text-align: center; color: #999;">Nessun dato disponibile</div>';
                 } else {
-                    Object.keys(orePerTipo).sort((a, b) => orePerTipo[b] - orePerTipo[a]).forEach(tipo => {
+                    const palette = readReportChartColors();
+                    const tipoColors = chartColorsForItems(tipiSorted, palette);
+                    tipiSorted.forEach((tipo, idx) => {
+                        const bg = tipoColors[idx] || palette.altri;
                         orePerTipoHTML += `
-                            <div class="stat-card" style="text-align: center;">
-                                <div class="stat-value" style="font-size: 24px;">${formatOre(orePerTipo[tipo])}</div>
-                                <div class="stat-label">${tipo}</div>
+                            <div class="stat-card" style="text-align: center; background: ${bg}; color: white; border-left-color: ${bg};">
+                                <div class="stat-value" style="font-size: 24px; color: white;">${formatOre(orePerTipo[tipo])}</div>
+                                <div class="stat-label" style="color: rgba(255,255,255,0.9);">${escapeHtml(tipo)}</div>
                             </div>
                         `;
                     });
                 }
                 document.getElementById('ore-per-tipo-container').innerHTML = orePerTipoHTML;
                 
-                // Renderizza tabella (con dati filtrati)
+                // Renderizza tabella + schede mobile (con dati filtrati)
                 renderReportOreOperai(orePerOperaioFiltrate);
                 
             } catch (error) {
@@ -873,13 +1068,26 @@
                         </td>
                     </tr>
                 `;
+                const mobileHost = document.getElementById('report-ore-mobile-host');
+                if (mobileHost) {
+                    mobileHost.innerHTML = '<div class="empty-state" style="color:#dc3545;">Errore caricamento report</div>';
+                }
+                const tipoBox = document.getElementById('ore-per-tipo-container');
+                if (tipoBox) tipoBox.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">Errore caricamento</div>';
             }
         }
         
-        // Renderizza tabella report ore operai
+        // Renderizza tabella + schede mobile report ore operai
         function renderReportOreOperai(orePerOperaio) {
             const tbody = document.getElementById('report-ore-operai-body');
+            const mobileHost = document.getElementById('report-ore-mobile-host');
             
+            const formatOre = (ore) => {
+                const oreInt = Math.floor(ore);
+                const minuti = Math.round((ore - oreInt) * 60);
+                return minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
+            };
+
             if (Object.keys(orePerOperaio).length === 0) {
                 tbody.innerHTML = `
                     <tr>
@@ -888,14 +1096,11 @@
                         </td>
                     </tr>
                 `;
+                if (mobileHost) {
+                    mobileHost.innerHTML = renderReportOreMobileCardsHtml([], escapeHtml);
+                }
                 return;
             }
-            
-            const formatOre = (ore) => {
-                const oreInt = Math.floor(ore);
-                const minuti = Math.round((ore - oreInt) * 60);
-                return minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
-            };
             
             // Ordina per ore totali (decrescente)
             const operaiArray = Object.values(orePerOperaio).sort((a, b) => b.oreTotali - a.oreTotali);
@@ -908,8 +1113,8 @@
                 
                 html += `
                     <tr style="border-bottom: 1px solid #e9ecef;">
-                        <td style="padding: 12px;">${nomeCompleto}</td>
-                        <td style="padding: 12px;">${tipoOperaioDisplay}</td>
+                        <td style="padding: 12px;">${escapeHtml(nomeCompleto)}</td>
+                        <td style="padding: 12px;">${escapeHtml(tipoOperaioDisplay)}</td>
                         <td style="padding: 12px; text-align: right; font-weight: 600;">${formatOre(operaio.oreTotali)}</td>
                         <td style="padding: 12px; text-align: right; color: #28a745;">${formatOre(operaio.oreValidate)}</td>
                         <td style="padding: 12px; text-align: right; color: #ffc107;">${formatOre(operaio.oreDaValidare)}</td>
@@ -920,6 +1125,10 @@
             });
             
             tbody.innerHTML = html;
+            if (mobileHost) {
+                const cards = buildReportOreMobileCardModels(operaiArray, formatOre);
+                mobileHost.innerHTML = renderReportOreMobileCardsHtml(cards, escapeHtml);
+            }
         }
         
         // Export funzioni globali

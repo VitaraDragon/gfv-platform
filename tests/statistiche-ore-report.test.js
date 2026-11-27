@@ -6,9 +6,11 @@ import { describe, expect, test } from 'vitest';
 import { dateLikeToLocalCalendarIso } from '../core/js/date-format-it.js';
 import {
   aggregaOreReport,
+  buildReportOreMobileCardModels,
   getTipoOperaioDisplay,
   isOraRifiutata,
   matchesTipoOperaioFilter,
+  renderReportOreMobileCardsHtml,
   riepilogoMediaOrePerPersona
 } from '../core/js/statistiche-ore-report.js';
 
@@ -50,6 +52,44 @@ describe('statistiche-ore-report', () => {
     expect(matchesTipoOperaioFilter(senzaTipo, 'non_specificato')).toBe(true);
     expect(matchesTipoOperaioFilter(caposquadraSenzaTipo, 'non_specificato')).toBe(false);
     expect(matchesTipoOperaioFilter(conTipo, 'non_specificato')).toBe(false);
+  });
+
+  test('schede mobile report ore: modelli e HTML con escape', () => {
+    const formatOre = (ore) => `${ore}h`;
+    const cards = buildReportOreMobileCardModels([
+      {
+        nome: 'Mario',
+        cognome: 'Rossi',
+        tipoOperaio: 'semplice',
+        ruoli: ['operaio'],
+        oreTotali: 16,
+        oreValidate: 12,
+        oreDaValidare: 4,
+        giorniLavorati: 2
+      }
+    ], formatOre);
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0].nomeCompleto).toBe('Mario Rossi');
+    expect(cards[0].tipoDisplay).toBe('Operaio Semplice');
+    expect(cards[0].oreTotaliLabel).toBe('16h');
+    expect(cards[0].mediaGiornoLabel).toBe('8h');
+
+    const html = renderReportOreMobileCardsHtml(
+      [{
+        nomeCompleto: '<b>X</b>',
+        tipoDisplay: 'Tipo',
+        oreTotaliLabel: '1h',
+        oreValidateLabel: '1h',
+        oreDaValidareLabel: '0h',
+        giorni: 1,
+        mediaGiornoLabel: '1h'
+      }],
+      (s) => String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    );
+    expect(html).toContain('&lt;b&gt;X&lt;/b&gt;');
+    expect(html).not.toContain('<b>X</b>');
+    expect(renderReportOreMobileCardsHtml([], (s) => s)).toContain('Nessun dato');
   });
 
   test('giorno locale a cavallo della mezzanotte UTC (non toISOString)', () => {
