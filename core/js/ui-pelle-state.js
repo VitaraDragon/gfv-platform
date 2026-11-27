@@ -315,6 +315,42 @@ export function mapMenuEntries() {
 }
 
 /**
+ * Opt-out schede pelle: un solo attributo, `data-gfv-pelle-list="off"` sull’host
+ * (tipicamente `.table-responsive` / `.table-container`). Con "off" la tabella resta
+ * editabile; non usare altri flag (es. data-gfv-pelle-cards).
+ * @param {Element|{ getAttribute?: Function, closest?: Function }|null|undefined} el
+ * @returns {boolean}
+ */
+export function isPelleListHostEnabled(el) {
+  if (!el || typeof el.getAttribute !== 'function') return true;
+  if (el.getAttribute('data-gfv-pelle-list') === 'off') return false;
+  if (typeof el.closest === 'function' && el.closest('[data-gfv-pelle-list="off"]')) return false;
+  return true;
+}
+
+/**
+ * Filtra gli host candidati alle schede lista (stessa logica di listHosts in ui-pelle.js).
+ * Esclude modal, nest, e host con data-gfv-pelle-list="off".
+ * @param {ArrayLike<Element|{ closest?: Function, parentElement?: Element|null, getAttribute?: Function }>|null|undefined} nodes
+ * @returns {Array}
+ */
+export function filterPelleListHosts(nodes) {
+  const list = Array.from(nodes || []);
+  return list.filter((el) => {
+    if (!el) return false;
+    if (typeof el.closest === 'function') {
+      if (el.closest('.modal') || el.closest('.gfv-pelle-cards')) return false;
+      const parent = el.parentElement;
+      if (parent && typeof parent.closest === 'function'
+        && parent.closest('[data-gfv-pelle-list], .table-responsive, .table-container')) {
+        return false;
+      }
+    }
+    return isPelleListHostEnabled(el);
+  });
+}
+
+/**
  * Scheda da una riga tabella: titolo, fino a 3 fatti, stato, azioni.
  * @param {string[]} headers
  * @param {Array<{ alert?: boolean, cells: Array<{ text?: string, html?: string }> }>} rows

@@ -16,6 +16,8 @@ import {
   accountMenuEntries,
   mapMenuEntries,
   cardsModelFromRows,
+  filterPelleListHosts,
+  isPelleListHostEnabled,
   PELLE_ACCENT
 } from '../core/js/ui-pelle-state.js';
 
@@ -127,6 +129,43 @@ describe('ui-pelle stato', () => {
     expect(actions.map((a) => a.id)).not.toContain('impostazioni');
     expect(actions[0].id).toBe('terreni');
     expect(actions[1].id).toBe('lavori');
+  });
+
+  test('host con data-gfv-pelle-list=off escluso dalle schede; altri invariati', () => {
+    const offHost = {
+      getAttribute: (name) => (name === 'data-gfv-pelle-list' ? 'off' : null),
+      closest: () => null,
+      parentElement: null
+    };
+    const onHost = {
+      getAttribute: (name) => (name === 'data-gfv-pelle-list' ? '' : null),
+      closest: () => null,
+      parentElement: null
+    };
+    const plainHost = {
+      getAttribute: () => null,
+      closest: () => null,
+      parentElement: null
+    };
+    const nestedChild = {
+      getAttribute: () => null,
+      closest: () => null,
+      parentElement: {
+        closest: (sel) => (String(sel).includes('table-responsive') ? {} : null)
+      }
+    };
+    const inModal = {
+      getAttribute: () => null,
+      closest: (sel) => (sel === '.modal' ? {} : null),
+      parentElement: null
+    };
+
+    expect(isPelleListHostEnabled(offHost)).toBe(false);
+    expect(isPelleListHostEnabled(onHost)).toBe(true);
+    expect(isPelleListHostEnabled(plainHost)).toBe(true);
+
+    const filtered = filterPelleListHosts([offHost, onHost, plainHost, nestedChild, inModal]);
+    expect(filtered).toEqual([onHost, plainHost]);
   });
 
   test('scheda lista: titolo, 3 fatti, stato e azioni', () => {
