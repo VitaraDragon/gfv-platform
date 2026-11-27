@@ -272,8 +272,12 @@
             box-sizing: border-box;
             overflow: hidden;
         }
+        #iva-dettagli-modal .modal-header {
+            flex-shrink: 0;
+        }
         #iva-dettagli-modal .iva-dettagli-body {
             flex: 1 1 auto;
+            min-height: 0;
             overflow-x: hidden;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
@@ -287,6 +291,7 @@
             padding-top: 12px;
             border-top: 1px solid #e9ecef;
             margin-top: 12px;
+            background: #fff;
         }
         @media (min-width: 641px) {
             #iva-dettagli-modal.modal.active {
@@ -294,7 +299,7 @@
                 padding: 24px 16px;
             }
             #iva-dettagli-modal .modal-content.iva-dettagli-content {
-                height: auto;
+                height: min(92vh, 900px);
                 max-height: min(92vh, 900px);
                 border-radius: 12px;
                 padding: 24px 28px;
@@ -306,6 +311,11 @@
             #iva-dettagli-modal #iva-aliquote-table-wrap,
             #iva-dettagli-modal #iva-compensazione-table-wrap {
                 overflow-x: hidden !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                max-width: 100%;
             }
 
             #iva-dettagli-modal #iva-aliquote-table thead,
@@ -313,6 +323,11 @@
                 display: none !important;
             }
 
+            /* Azzera min-width:700px ereditato da .table-responsive table */
+            #iva-dettagli-modal .iva-stackable-table,
+            #iva-dettagli-modal .iva-stackable-table tbody,
+            #iva-dettagli-modal .iva-stackable-table tr,
+            #iva-dettagli-modal .iva-stackable-table td,
             #iva-dettagli-modal #iva-aliquote-table,
             #iva-dettagli-modal #iva-aliquote-table tbody,
             #iva-dettagli-modal #iva-aliquote-table tr,
@@ -324,6 +339,7 @@
                 display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
+                min-width: 0 !important;
                 box-sizing: border-box;
             }
 
@@ -930,8 +946,8 @@
             </div>
             <div class="iva-dettagli-body">
                 <h3 style="margin: 0 0 12px; font-size: 1.05rem;">Aliquote per categoria</h3>
-                <!-- data-gfv-pelle-list="off": opt-out schede pelle; class iva-stackable-table: layout impilato su phone -->
-                <div id="iva-aliquote-table-wrap" class="table-responsive" data-gfv-pelle-list="off" style="margin-bottom: 12px;">
+                <!-- data-gfv-pelle-list="off": opt-out schede pelle; niente table-responsive (evita min-width:700px); iva-stackable-table: layout impilato su phone -->
+                <div id="iva-aliquote-table-wrap" data-gfv-pelle-list="off" style="margin-bottom: 12px;">
                     <table class="data-table iva-stackable-table" id="iva-aliquote-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
                             <tr style="text-align:left; border-bottom: 2px solid #e0e0e0;">
@@ -985,7 +1001,7 @@
                 <div id="iva-compensazione-wrap" style="display: none; margin-top: 8px; padding-top: 16px; border-top: 2px solid #e0e0e0;">
                     <h3 style="margin-bottom: 8px; font-size: 1.05rem;">Compensazione regime speciale</h3>
                     <p class="info-text" style="margin-bottom: 12px;">Percentuali di compensazione (solo salvate; non usate nei calcoli in questa versione). Verifica con il tuo commercialista.</p>
-                    <div id="iva-compensazione-table-wrap" class="table-responsive" data-gfv-pelle-list="off">
+                    <div id="iva-compensazione-table-wrap" data-gfv-pelle-list="off">
                         <table class="data-table iva-stackable-table" id="iva-compensazione-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
                             <thead>
                                 <tr style="text-align:left; border-bottom: 2px solid #e0e0e0;">
@@ -4054,16 +4070,20 @@
         }
         
         let ivaConfigCache = null;
-        let ivaDettagliSnapshot = null;
+        let ivaDettagliBaseline = null;
         let ivaDettagliOpen = false;
         let ivaResolveNaturaChange = null;
         let ivaDefaultAliquotaForId = null;
+        let ivaDettagliStatesEqual = null;
+        let ivaCloneDettagliState = null;
 
         async function ensureIvaNaturaHelpers() {
-            if (ivaResolveNaturaChange && ivaDefaultAliquotaForId) return;
+            if (ivaResolveNaturaChange && ivaDefaultAliquotaForId && ivaDettagliStatesEqual) return;
             const mod = await import('../models/IvaConfig.js');
             ivaResolveNaturaChange = mod.resolveAliquotaAfterNaturaChange;
             ivaDefaultAliquotaForId = mod.defaultAliquotaForCategoriaId;
+            ivaDettagliStatesEqual = mod.ivaDettagliStatesEqual;
+            ivaCloneDettagliState = mod.cloneIvaDettagliState;
         }
 
         function toggleIvaCompensazioneVisibility() {
@@ -4072,28 +4092,43 @@
             if (wrap) wrap.style.display = regime === 'speciale_agricolo' ? 'block' : 'none';
         }
 
-        function ivaDettagliSnapshotPayload() {
+        function ivaDettagliFormState() {
             const payload = readIvaFormPayload();
-            return JSON.stringify({
-                aliquote: payload.aliquote,
-                compensazione: payload.compensazione
-            });
+            return { aliquote: payload.aliquote, compensazione: payload.compensazione };
         }
 
         function ivaDettagliHasUnsavedChanges() {
-            if (ivaDettagliSnapshot == null) return false;
-            return ivaDettagliSnapshotPayload() !== ivaDettagliSnapshot;
+            if (ivaDettagliBaseline == null || !ivaDettagliStatesEqual) return false;
+            return !ivaDettagliStatesEqual(ivaDettagliFormState(), ivaDettagliBaseline);
         }
 
-        function openIvaDettagliModal() {
+        function captureIvaDettagliBaseline() {
+            if (!ivaCloneDettagliState) return;
+            ivaDettagliBaseline = ivaCloneDettagliState(ivaDettagliFormState());
+        }
+
+        function restoreIvaDettagliFromBaseline() {
+            if (!ivaDettagliBaseline || !ivaConfigCache) return;
+            ivaConfigCache = {
+                ...ivaConfigCache,
+                aliquote: (ivaDettagliBaseline.aliquote || []).map((r) => ({ ...r })),
+                compensazione: (ivaDettagliBaseline.compensazione || []).map((r) => ({ ...r }))
+            };
+            renderIvaAliquoteTable(ivaConfigCache.aliquote);
+            renderIvaCompensazioneTable(ivaConfigCache.compensazione);
+            toggleIvaCompensazioneVisibility();
+        }
+
+        async function openIvaDettagliModal() {
             const modal = document.getElementById('iva-dettagli-modal');
             if (!modal) return;
+            await ensureIvaNaturaHelpers();
             toggleIvaCompensazioneVisibility();
-            if (!document.getElementById('iva-aliquote-tbody')?.children.length && ivaConfigCache) {
+            if (ivaConfigCache) {
                 renderIvaAliquoteTable(ivaConfigCache.aliquote);
                 renderIvaCompensazioneTable(ivaConfigCache.compensazione);
             }
-            ivaDettagliSnapshot = ivaDettagliSnapshotPayload();
+            captureIvaDettagliBaseline();
             modal.hidden = false;
             modal.classList.add('active');
             ivaDettagliOpen = true;
@@ -4102,10 +4137,14 @@
 
         function closeIvaDettagliModal(opts = {}) {
             const force = !!opts.force;
-            if (!force && ivaDettagliHasUnsavedChanges()) {
+            const dirty = ivaDettagliHasUnsavedChanges();
+            if (!force && dirty) {
                 if (!confirm('Ci sono modifiche non salvate. Chiudere comunque?')) {
                     return false;
                 }
+            }
+            if (dirty) {
+                restoreIvaDettagliFromBaseline();
             }
             const modal = document.getElementById('iva-dettagli-modal');
             if (modal) {
@@ -4113,7 +4152,7 @@
                 modal.hidden = true;
             }
             ivaDettagliOpen = false;
-            ivaDettagliSnapshot = null;
+            ivaDettagliBaseline = null;
             toggleIvaAddForm(false);
             return true;
         }
@@ -4319,7 +4358,7 @@
                 renderIvaAliquoteTable(ivaConfigCache.aliquote);
                 renderIvaCompensazioneTable(ivaConfigCache.compensazione);
                 if (ivaDettagliOpen) {
-                    ivaDettagliSnapshot = ivaDettagliSnapshotPayload();
+                    captureIvaDettagliBaseline();
                 }
                 showAlert('Impostazioni IVA salvate', 'success');
             } catch (error) {
@@ -4401,7 +4440,7 @@
             saveIvaImpostazioniUi();
         });
         document.getElementById('btn-iva-apri-dettagli')?.addEventListener('click', () => {
-            openIvaDettagliModal();
+            openIvaDettagliModal().catch((e) => showAlert(e.message || 'Errore apertura IVA', 'error'));
         });
         document.getElementById('btn-iva-chiudi-dettagli')?.addEventListener('click', () => {
             closeIvaDettagliModal();
