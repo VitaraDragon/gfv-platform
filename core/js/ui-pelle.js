@@ -21,7 +21,8 @@ import {
   moduleMenuEntries,
   accountMenuEntries,
   mapMenuEntries,
-  cardsModelFromRows
+  cardsModelFromRows,
+  filterPelleListHosts
 } from './ui-pelle-state.js';
 import { iconNameForEmoji, iconNameForModule, iconSvg } from './ui-pelle-icons.js';
 
@@ -510,13 +511,9 @@ function isOwnPelleMutation(record) {
 }
 
 function listHosts() {
+  // Opt-out: data-gfv-pelle-list="off" sull’host → niente schede (vedi filterPelleListHosts).
   const nodes = Array.from(document.querySelectorAll('[data-gfv-pelle-list], .table-responsive, .table-container'));
-  return nodes.filter((el) => {
-    if (el.closest('.modal') || el.closest('.gfv-pelle-cards')) return false;
-    const parent = el.parentElement;
-    if (parent && parent.closest('[data-gfv-pelle-list], .table-responsive, .table-container')) return false;
-    return true;
-  });
+  return filterPelleListHosts(nodes);
 }
 
 function syncLists() {
