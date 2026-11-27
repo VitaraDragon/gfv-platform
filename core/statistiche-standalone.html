@@ -925,7 +925,9 @@
             return await getOreMacchinaVsLavoratoreModule(
                 periodo,
                 hasParcoMacchineModule,
-                getAllAttivitaWrapper
+                getAllAttivitaWrapper,
+                currentTenantId,
+                dependencies
             );
         }
 
