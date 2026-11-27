@@ -69,7 +69,12 @@ export function updateChartOreTipo(data, state, updateState, formatOre) {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right'
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10,
+                        font: { size: 11 }
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -496,7 +501,14 @@ export function updateChartOreMacchinaVsLavoratore(data, state, updateState, for
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'right' },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10,
+                        font: { size: 11 }
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
