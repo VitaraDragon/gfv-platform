@@ -6,7 +6,9 @@ import { describe, expect, test } from 'vitest';
 import { dateLikeToLocalCalendarIso } from '../core/js/date-format-it.js';
 import {
   aggregaOreReport,
+  getTipoOperaioDisplay,
   isOraRifiutata,
+  matchesTipoOperaioFilter,
   riepilogoMediaOrePerPersona
 } from '../core/js/statistiche-ore-report.js';
 
@@ -34,6 +36,20 @@ describe('statistiche-ore-report', () => {
     expect(riepilogo.oreTotali).toBe(60);
     expect(riepilogo.giorniLavoratiSum).toBe(7);
     expect(riepilogo.mediaOreGiorno).toBeCloseTo(60 / 7, 5);
+  });
+
+  test('filtro non_specificato: include solo chi in tabella mostra «Non specificato»', () => {
+    const senzaTipo = { tipoOperaio: '', ruoli: ['operaio'] };
+    const caposquadraSenzaTipo = { tipoOperaio: '', ruoli: ['caposquadra'] };
+    const conTipo = { tipoOperaio: 'trattorista', ruoli: ['operaio'] };
+
+    expect(getTipoOperaioDisplay(senzaTipo)).toBe('Non specificato');
+    expect(getTipoOperaioDisplay(caposquadraSenzaTipo)).toBe('Caposquadra');
+    expect(getTipoOperaioDisplay(conTipo)).toBe('Trattorista');
+
+    expect(matchesTipoOperaioFilter(senzaTipo, 'non_specificato')).toBe(true);
+    expect(matchesTipoOperaioFilter(caposquadraSenzaTipo, 'non_specificato')).toBe(false);
+    expect(matchesTipoOperaioFilter(conTipo, 'non_specificato')).toBe(false);
   });
 
   test('giorno locale a cavallo della mezzanotte UTC (non toISOString)', () => {
