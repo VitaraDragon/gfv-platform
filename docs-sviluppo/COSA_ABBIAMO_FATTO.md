@@ -1,8 +1,17 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-27 — Ritocco IVA modal + icona Tony (post-#520).**
+**Ultimo aggiornamento documentazione: 2026-11-27 — Statistiche PR2 mobile + palette + loading filtri.**
 
-## 2026-11-27 — Ritocco modal IVA + FAB Tony senza emoji (post-#520)
+## 2026-11-27 — Statistiche: mobile come il resto, palette Report, loading filtri ore
+
+Su `fix/statistiche-pr2-mobile-colori` (PR verso develop). Nessun merge, nessun deploy. Niente functions/rules/indici. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO / DOMINIO_CONFERMATO invariati. Numeri e logica dati invariati.
+
+- Pagine Statistiche (generali, Manodopera, Vigneto, Frutteto): tolto `overflow:hidden` che tagliava; griglie `minmax(500px)` → `min(100%, 280px)`; filtri a capo senza `min-width:150px`; spazio FAB Tony; verifica statica `scrollWidth === clientWidth` a 360 e 390.
+- Report Ore Operai: tabella a schede sotto i 600 px (pattern Report Manodopera); al cambio filtro subito `.loading` su totali/tabella/schede (anche in errore).
+- Grafici e KPI: palette condivisa `report-chart-colors.js` / `report-chart-palette.css` (`chartColorsForItems`, «Altri» grigio); etichette barre orizzontali abbreviate su mobile.
+- Test: `statistiche-ore-report` (schede mobile), `statistiche-charts-labels` (truncate).
+
+## 2026-11-27 — Ritocco modal IVA + icona Tony (post-#520)
 
 Su `fix/iva-modal-tony-icon` (PR verso develop). Nessun merge. Niente functions/rules/indici. LANDING_ATTIVA / TONY_BUSSA_ATTIVO / URL_SITO / DOMINIO_CONFERMATO invariati.
 
