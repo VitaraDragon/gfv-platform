@@ -458,7 +458,9 @@
             #statistiche-conto-terzi-section h2,
             #statistiche-magazzino-section h2,
             #statistiche-vigneto-section h2,
-            #statistiche-frutteto-section h2 {
+            #statistiche-frutteto-section h2,
+            #statistiche-seminativo-section h2,
+            #statistiche-orticole-section h2 {
                 font-size: 1.4em !important;
             }
 
@@ -472,7 +474,9 @@
             #conto-terzi-lavori-cliente-cards,
             #magazzino-movimenti-prodotto-cards,
             #vigneto-produzione-varieta-cards,
-            #frutteto-produzione-specie-cards {
+            #frutteto-produzione-specie-cards,
+            #seminativo-produzione-coltura-cards,
+            #orticole-produzione-coltura-cards {
                 display: grid !important;
             }
         }
@@ -964,6 +968,94 @@
                 <p id="frutteto-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
             </div>
 
+            <!-- Blocco Seminativo compatto (solo se modulo seminativo attivo) -->
+            <div id="statistiche-seminativo-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
+                    <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">🌾 Seminativo</h2>
+                </div>
+                <div id="seminativo-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento seminativo…</div>
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card" style="background: var(--report-chart-1); color: white;">
+                        <div class="metric-value" id="kpi-sem-produzione" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Produzione (q.li annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-3); color: white;">
+                        <div class="metric-value" id="kpi-sem-resa-effettiva" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Resa effettiva (q.li/ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
+                        <div class="metric-value" id="kpi-sem-resa-prevista" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Resa prevista (q.li/ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-6); color: white;">
+                        <div class="metric-value" id="kpi-sem-n-campagne" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Campagne nell'annata</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="margin-bottom: 24px;">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Produzione per coltura (q.li)</h3>
+                        <div class="chart-container tall" data-chart-id="chart-seminativo-produzione-coltura">
+                            <canvas id="chart-seminativo-produzione-coltura"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Riparto produzione</h3>
+                    <div id="seminativo-produzione-coltura-cards" class="mano-operai-cards" style="display:grid;"></div>
+                </div>
+
+                <p id="seminativo-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
+            </div>
+
+            <!-- Blocco Orticole compatto (solo se modulo orticole attivo) -->
+            <div id="statistiche-orticole-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
+                    <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">🥬 Orticole</h2>
+                </div>
+                <div id="orticole-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento orticole…</div>
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card" style="background: var(--report-chart-1); color: white;">
+                        <div class="metric-value" id="kpi-ort-produzione" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Produzione (q.li annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-3); color: white;">
+                        <div class="metric-value" id="kpi-ort-resa-effettiva" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Resa effettiva (q.li/ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
+                        <div class="metric-value" id="kpi-ort-resa-prevista" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Resa prevista (q.li/ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-4); color: white;">
+                        <div class="metric-value" id="kpi-ort-acqua" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Acqua (m³ annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-6); color: white;">
+                        <div class="metric-value" id="kpi-ort-n-campagne" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Campagne nell'annata</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="margin-bottom: 24px;">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Produzione per coltura (q.li)</h3>
+                        <div class="chart-container tall" data-chart-id="chart-orticole-produzione-coltura">
+                            <canvas id="chart-orticole-produzione-coltura"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Riparto produzione</h3>
+                    <div id="orticole-produzione-coltura-cards" class="mano-operai-cards" style="display:grid;"></div>
+                </div>
+
+                <p id="orticole-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
+            </div>
+
             <!-- Sezione Statistiche Macchine (solo se modulo Parco Macchine attivo) -->
             <div id="statistiche-macchine-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
                 <h2 style="color: #2E8B57; font-size: 2em; margin-bottom: 30px; text-align: center;">🚜 Statistiche Macchine</h2>
@@ -1072,6 +1164,8 @@
         import { renderMagazzinoBlocco } from './js/statistiche-magazzino-section.js';
         import { renderVignetoBlocco } from './js/statistiche-vigneto-section.js';
         import { renderFruttetoBlocco } from './js/statistiche-frutteto-section.js';
+        import { renderSeminativoBlocco } from './js/statistiche-seminativo-section.js';
+        import { renderOrticoleBlocco } from './js/statistiche-orticole-section.js';
 
         import {
             updateChartOreTipo as updateChartOreTipoModule,
@@ -1142,7 +1236,9 @@
             chartContoTerziLavoriCliente: null,
             chartMagazzinoMovimentiProdotto: null,
             chartVignetoProduzioneVarieta: null,
-            chartFruttetoProduzioneSpecie: null
+            chartFruttetoProduzioneSpecie: null,
+            chartSeminativoProduzioneColtura: null,
+            chartOrticoleProduzioneColtura: null
         };
 
         // Funzione updateState
@@ -1165,6 +1261,8 @@
             if (updates.chartMagazzinoMovimentiProdotto !== undefined) window.chartMagazzinoMovimentiProdotto = updates.chartMagazzinoMovimentiProdotto;
             if (updates.chartVignetoProduzioneVarieta !== undefined) window.chartVignetoProduzioneVarieta = updates.chartVignetoProduzioneVarieta;
             if (updates.chartFruttetoProduzioneSpecie !== undefined) window.chartFruttetoProduzioneSpecie = updates.chartFruttetoProduzioneSpecie;
+            if (updates.chartSeminativoProduzioneColtura !== undefined) window.chartSeminativoProduzioneColtura = updates.chartSeminativoProduzioneColtura;
+            if (updates.chartOrticoleProduzioneColtura !== undefined) window.chartOrticoleProduzioneColtura = updates.chartOrticoleProduzioneColtura;
         }
 
         // Dependencies object
@@ -1508,6 +1606,8 @@
                             const hasMagazzinoModule = modules.includes('magazzino');
                             const hasVignetoModule = modules.includes('vigneto');
                             const hasFruttetoModule = modules.includes('frutteto');
+                            const hasSeminativoModule = modules.includes('seminativo');
+                            const hasOrticoleModule = modules.includes('orticole');
                             const hasReportModule = modules.includes('report');
 
                             // Inizializza context Tony con i moduli attivi usando helper
@@ -1533,7 +1633,8 @@
                             }
 
                             const needsAnnataModuli = hasManodoperaModule || hasContoTerziModule || hasMagazzinoModule
-                                || hasVignetoModule || hasFruttetoModule;
+                                || hasVignetoModule || hasFruttetoModule
+                                || hasSeminativoModule || hasOrticoleModule;
                             const annoSelect = document.getElementById('filter-anno-moduli');
                             const annataBar = document.getElementById('statistiche-annata-moduli-bar');
                             const annoCorrente = new Date().getFullYear();
@@ -1567,6 +1668,12 @@
                                 if (hasFruttetoModule) {
                                     jobs.push(renderFruttetoBlocco(currentTenantId, anno, dependencies, uiBase));
                                 }
+                                if (hasSeminativoModule) {
+                                    jobs.push(renderSeminativoBlocco(currentTenantId, anno, dependencies, uiBase));
+                                }
+                                if (hasOrticoleModule) {
+                                    jobs.push(renderOrticoleBlocco(currentTenantId, anno, dependencies, uiBase));
+                                }
                                 await Promise.all(jobs);
                             };
 
@@ -1598,13 +1705,23 @@
                                 const fruSection = document.getElementById('statistiche-frutteto-section');
                                 if (fruSection) fruSection.style.display = 'none';
                             }
+                            if (!hasSeminativoModule) {
+                                const semSection = document.getElementById('statistiche-seminativo-section');
+                                if (semSection) semSection.style.display = 'none';
+                            }
+                            if (!hasOrticoleModule) {
+                                const ortSection = document.getElementById('statistiche-orticole-section');
+                                if (ortSection) ortSection.style.display = 'none';
+                            }
 
                             const hashTarget = {
                                 '#manodopera': 'statistiche-manodopera-section',
                                 '#conto-terzi': 'statistiche-conto-terzi-section',
                                 '#magazzino': 'statistiche-magazzino-section',
                                 '#vigneto': 'statistiche-vigneto-section',
-                                '#frutteto': 'statistiche-frutteto-section'
+                                '#frutteto': 'statistiche-frutteto-section',
+                                '#seminativo': 'statistiche-seminativo-section',
+                                '#orticole': 'statistiche-orticole-section'
                             }[location.hash];
                             if (hashTarget) {
                                 const el = document.getElementById(hashTarget);

@@ -1166,3 +1166,39 @@ export function updateChartFruttetoProduzioneSpecie(data, state, updateState) {
         'kg'
     );
 }
+
+/**
+ * Produzione seminativo per coltura (q.li).
+ * @param {{ nome?: string, valore?: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ */
+export function updateChartSeminativoProduzioneColtura(data, state, updateState) {
+    updateHorizontalRipartoChart(
+        'chart-seminativo-produzione-coltura',
+        'chartSeminativoProduzioneColtura',
+        '🌾',
+        data,
+        state,
+        updateState,
+        'q.li'
+    );
+}
+
+/**
+ * Produzione orticole per coltura (q.li).
+ * @param {{ nome?: string, valore?: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ */
+export function updateChartOrticoleProduzioneColtura(data, state, updateState) {
+    updateHorizontalRipartoChart(
+        'chart-orticole-produzione-coltura',
+        'chartOrticoleProduzioneColtura',
+        '🥬',
+        data,
+        state,
+        updateState,
+        'q.li'
+    );
+}
