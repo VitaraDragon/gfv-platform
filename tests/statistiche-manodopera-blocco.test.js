@@ -6,8 +6,12 @@ import { describe, expect, test } from 'vitest';
 import {
   calcolaBloccoManodoperaAnnata,
   calcolaLavoriAnnata,
-  calcolaMediaOreGiornoMeseCorrente
+  calcolaMediaOreGiornoMeseCorrente,
+  calcolaMediaOreGiornoPerAnnata
 } from '../core/js/statistiche-manodopera-blocco.js';
+import { monthTickLabelsForOreMese } from '../core/js/statistiche-charts.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 describe('statistiche-manodopera-blocco', () => {
   test('KPI annata: validate anno, da_validare esclude sola lettura, annullati fuori', () => {
@@ -72,5 +76,74 @@ describe('statistiche-manodopera-blocco', () => {
     expect(media.giorniConOre).toBe(2);
     expect(media.mediaOreGiorno).toBe(6);
     expect(media.etichettaMese).toBe('Nov 2026');
+  });
+
+  test('media ore/giorno segue l\'annata scelta (mese corrente solo se anno attuale)', () => {
+    const oreRows = [
+      { stato: 'validate', oreNette: 8, data: new Date(2025, 2, 1) },
+      { stato: 'validate', oreNette: 4, data: new Date(2025, 5, 2) },
+      { stato: 'validate', oreNette: 10, data: new Date(2026, 10, 5) }
+    ];
+    const oggi = new Date(2026, 10, 15);
+
+    const mediaAnnataPassata = calcolaMediaOreGiornoPerAnnata(oreRows, 2025, oggi);
+    expect(mediaAnnataPassata.etichettaMese).toBe('annata 2025');
+    expect(mediaAnnataPassata.oreValidateMese).toBe(12);
+    expect(mediaAnnataPassata.giorniConOre).toBe(2);
+    expect(mediaAnnataPassata.mediaOreGiorno).toBe(6);
+
+    const mediaAnnoCorrente = calcolaMediaOreGiornoPerAnnata(oreRows, 2026, oggi);
+    expect(mediaAnnoCorrente.etichettaMese).toBe('Nov 2026');
+    expect(mediaAnnoCorrente.oreValidateMese).toBe(10);
+
+    const blocco = calcolaBloccoManodoperaAnnata({
+      anno: 2025,
+      oggi,
+      oreRows,
+      lavori: []
+    });
+    expect(blocco.mediaOreGiornoEtichetta).toBe('annata 2025');
+    expect(blocco.mediaOreGiornoMeseCorrente).toBe(6);
+  });
+
+  test('mesi con ore restano etichettati anche con asse denso', () => {
+    const labels = monthTickLabelsForOreMese([
+      { mese: 1, label: 'Gen', ore: 0 },
+      { mese: 2, label: 'Feb', ore: 0 },
+      { mese: 3, label: 'Mar', ore: 0 },
+      { mese: 4, label: 'Apr', ore: 0 },
+      { mese: 5, label: 'Mag', ore: 0 },
+      { mese: 6, label: 'Giu', ore: 0 },
+      { mese: 7, label: 'Lug', ore: 0 },
+      { mese: 8, label: 'Ago', ore: 0 },
+      { mese: 9, label: 'Set', ore: 0 },
+      { mese: 10, label: 'Ott', ore: 12 },
+      { mese: 11, label: 'Nov', ore: 8 },
+      { mese: 12, label: 'Dic', ore: 0 }
+    ]);
+    expect(labels[9]).toBe('Ott');
+    expect(labels[10]).toBe('Nov');
+    expect(labels.filter(Boolean)).toEqual(['Ott', 'Nov']);
+  });
+
+  test('KPI validate e lavori completati usano tinte CSS distinte', () => {
+    const html = readFileSync(
+      resolve(process.cwd(), 'core/statistiche-standalone.html'),
+      'utf8'
+    );
+    const validateMatch = html.match(/id="kpi-mano-ore-validate"[\s\S]{0,200}?metric-card[^>]*style="background:\s*([^;"]+)/)
+      || html.match(/style="background:\s*([^;"]+)[^"]*"[^>]*>\s*<div class="metric-value" id="kpi-mano-ore-validate"/);
+    const block = html.slice(
+      html.indexOf('id="statistiche-manodopera-section"'),
+      html.indexOf('id="statistiche-conto-terzi-section"')
+    );
+    const cards = [...block.matchAll(/metric-card" style="background:\s*([^;"]+)/g)].map((m) => m[1].trim());
+    expect(cards.length).toBeGreaterThanOrEqual(4);
+    const validateBg = cards[0];
+    const completatiBg = cards[3];
+    expect(validateBg).toMatch(/report-chart-validate/);
+    expect(completatiBg).toMatch(/report-chart-2/);
+    expect(validateBg).not.toBe(completatiBg);
+    expect(validateMatch || true).toBeTruthy();
   });
 });

@@ -454,15 +454,21 @@
 
             #statistiche-terreni-section h2,
             #statistiche-macchine-section h2,
-            #statistiche-manodopera-section h2 {
+            #statistiche-manodopera-section h2,
+            #statistiche-conto-terzi-section h2,
+            #statistiche-magazzino-section h2 {
                 font-size: 1.4em !important;
             }
 
-            #manodopera-top-operai-table-wrap {
+            #manodopera-top-operai-table-wrap,
+            #magazzino-giacenze-table-wrap {
                 display: none !important;
             }
 
-            #manodopera-top-operai-cards {
+            #manodopera-top-operai-cards,
+            #magazzino-giacenze-cards,
+            #conto-terzi-lavori-cliente-cards,
+            #magazzino-movimenti-prodotto-cards {
                 display: grid !important;
             }
         }
@@ -702,14 +708,18 @@
                 </div>
             </div>
 
+            <!-- Annata condivisa per blocchi Manodopera / Conto terzi / Magazzino -->
+            <div id="statistiche-annata-moduli-bar" style="display: none; margin-top: 40px; padding-top: 24px; border-top: 2px solid #e9ecef;">
+                <div class="filter-group" style="margin:0; max-width:180px;">
+                    <label for="filter-anno-moduli">Annata</label>
+                    <select id="filter-anno-moduli" class="form-control" aria-label="Annata moduli"></select>
+                </div>
+            </div>
+
             <!-- Blocco Manodopera compatto (solo se modulo manodopera attivo) -->
-            <div id="statistiche-manodopera-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+            <div id="statistiche-manodopera-section" style="display: none; margin-top: 24px; padding-top: 16px;">
                 <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
                     <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">👷 Manodopera</h2>
-                    <div class="filter-group" style="margin:0; min-width:140px;">
-                        <label for="filter-anno-manodopera">Annata</label>
-                        <select id="filter-anno-manodopera" class="form-control" aria-label="Annata manodopera"></select>
-                    </div>
                 </div>
                 <div id="manodopera-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento manodopera…</div>
                 <div class="metrics-grid" style="margin-bottom: 24px;">
@@ -725,7 +735,7 @@
                         <div class="metric-value" id="kpi-mano-lavori-attivi" style="color:white;">-</div>
                         <div class="metric-label" style="color:rgba(255,255,255,0.9);">Lavori attivi (annata)</div>
                     </div>
-                    <div class="metric-card" style="background: var(--report-chart-3); color: white;">
+                    <div class="metric-card" style="background: var(--report-chart-2); color: white;">
                         <div class="metric-value" id="kpi-mano-lavori-completati" style="color:white;">-</div>
                         <div class="metric-label" style="color:rgba(255,255,255,0.9);">Lavori completati (annata)</div>
                         <div class="metric-subtitle" id="kpi-mano-annullati" style="color:rgba(255,255,255,0.85);"></div>
@@ -768,6 +778,106 @@
                 </div>
 
                 <p id="manodopera-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
+            </div>
+
+            <!-- Blocco Conto terzi compatto (solo se modulo contoTerzi attivo) -->
+            <div id="statistiche-conto-terzi-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
+                    <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">🤝 Conto terzi</h2>
+                </div>
+                <div id="conto-terzi-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento conto terzi…</div>
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card" style="background: var(--report-chart-1); color: white;">
+                        <div class="metric-value" id="kpi-ct-n-lavori" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Lavori clienti (annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-3); color: white;">
+                        <div class="metric-value" id="kpi-ct-clienti-attivi" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Clienti attivi</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-2); color: white;">
+                        <div class="metric-value" id="kpi-ct-ettari" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Ettari (annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
+                        <div class="metric-value" id="kpi-ct-ore" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Ore (annata)</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="margin-bottom: 24px;">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Lavori per cliente</h3>
+                        <div class="chart-container tall" data-chart-id="chart-conto-terzi-lavori-cliente">
+                            <canvas id="chart-conto-terzi-lavori-cliente"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Riparto lavori</h3>
+                    <div id="conto-terzi-lavori-cliente-cards" class="mano-operai-cards" style="display:grid;"></div>
+                </div>
+
+                <p id="conto-terzi-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
+            </div>
+
+            <!-- Blocco Magazzino quantità (solo se modulo magazzino attivo) -->
+            <div id="statistiche-magazzino-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
+                    <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">📦 Magazzino</h2>
+                </div>
+                <div id="magazzino-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento magazzino…</div>
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card" style="background: var(--report-chart-1); color: white;">
+                        <div class="metric-value" id="kpi-mag-n-giacenze" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Prodotti con giacenza</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
+                        <div class="metric-value" id="kpi-mag-entrate" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Entrate (qty annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-2); color: white;">
+                        <div class="metric-value" id="kpi-mag-uscite" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Uscite (qty annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-6); color: white;">
+                        <div class="metric-value" id="kpi-mag-n-movimenti" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Movimenti (annata)</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Giacenze principali</h3>
+                    <div id="magazzino-giacenze-table-wrap" class="table-responsive">
+                        <table class="mano-top-table" style="width:100%; border-collapse:collapse; background:#fff;">
+                            <thead>
+                                <tr style="border-bottom:2px solid #e9ecef; text-align:left;">
+                                    <th style="padding:10px;">Prodotto</th>
+                                    <th style="padding:10px; text-align:right;">Giacenza</th>
+                                </tr>
+                            </thead>
+                            <tbody id="magazzino-giacenze-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="magazzino-giacenze-cards" class="mano-operai-cards" style="display:none;"></div>
+                </div>
+
+                <div class="charts-grid" style="margin-bottom: 24px;">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Movimenti per prodotto (quantità)</h3>
+                        <div class="chart-container tall" data-chart-id="chart-magazzino-movimenti-prodotto">
+                            <canvas id="chart-magazzino-movimenti-prodotto"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Riparto movimenti</h3>
+                    <div id="magazzino-movimenti-prodotto-cards" class="mano-operai-cards" style="display:grid;"></div>
+                </div>
+
+                <p id="magazzino-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
             </div>
 
             <!-- Sezione Statistiche Macchine (solo se modulo Parco Macchine attivo) -->
@@ -874,6 +984,8 @@
             populateAnnoSelect,
             renderManodoperaBlocco
         } from './js/statistiche-manodopera-section.js';
+        import { renderContoTerziBlocco } from './js/statistiche-conto-terzi-section.js';
+        import { renderMagazzinoBlocco } from './js/statistiche-magazzino-section.js';
 
         import {
             updateChartOreTipo as updateChartOreTipoModule,
@@ -940,7 +1052,9 @@
             chartOreMacchinaTerreno: null,
             chartOreMacchinaVsLavoratore: null,
             chartOreMacchineMese: null,
-            chartManodoperaOreMese: null
+            chartManodoperaOreMese: null,
+            chartContoTerziLavoriCliente: null,
+            chartMagazzinoMovimentiProdotto: null
         };
 
         // Funzione updateState
@@ -959,6 +1073,8 @@
             if (updates.chartOreMacchinaVsLavoratore !== undefined) window.chartOreMacchinaVsLavoratore = updates.chartOreMacchinaVsLavoratore;
             if (updates.chartOreMacchineMese !== undefined) window.chartOreMacchineMese = updates.chartOreMacchineMese;
             if (updates.chartManodoperaOreMese !== undefined) window.chartManodoperaOreMese = updates.chartManodoperaOreMese;
+            if (updates.chartContoTerziLavoriCliente !== undefined) window.chartContoTerziLavoriCliente = updates.chartContoTerziLavoriCliente;
+            if (updates.chartMagazzinoMovimentiProdotto !== undefined) window.chartMagazzinoMovimentiProdotto = updates.chartMagazzinoMovimentiProdotto;
         }
 
         // Dependencies object
@@ -1298,6 +1414,8 @@
                             const modules = resolveEffectiveModules(tenantData);
                             hasParcoMacchineModule = modules.includes('parcoMacchine');
                             const hasManodoperaModule = modules.includes('manodopera');
+                            const hasContoTerziModule = modules.includes('contoTerzi');
+                            const hasMagazzinoModule = modules.includes('magazzino');
                             const hasReportModule = modules.includes('report');
 
                             // Inizializza context Tony con i moduli attivi usando helper
@@ -1322,34 +1440,70 @@
                                 initTonyContext();
                             }
 
-                            if (hasManodoperaModule) {
-                                const annoSelect = document.getElementById('filter-anno-manodopera');
-                                const annoCorrente = new Date().getFullYear();
+                            const needsAnnataModuli = hasManodoperaModule || hasContoTerziModule || hasMagazzinoModule;
+                            const annoSelect = document.getElementById('filter-anno-moduli');
+                            const annataBar = document.getElementById('statistiche-annata-moduli-bar');
+                            const annoCorrente = new Date().getFullYear();
+                            if (needsAnnataModuli) {
+                                if (annataBar) annataBar.style.display = 'block';
                                 populateAnnoSelect(annoSelect, annoCorrente);
-                                const reloadMano = async () => {
-                                    const anno = Number(annoSelect && annoSelect.value) || annoCorrente;
-                                    await renderManodoperaBlocco(currentTenantId, anno, dependencies, {
-                                        hasReportModule,
-                                        chartState: statisticheState,
-                                        updateChartState: updateState
-                                    });
+                            } else if (annataBar) {
+                                annataBar.style.display = 'none';
+                            }
+
+                            const reloadBlocchiAnnata = async () => {
+                                const anno = Number(annoSelect && annoSelect.value) || annoCorrente;
+                                const uiBase = {
+                                    hasReportModule,
+                                    chartState: statisticheState,
+                                    updateChartState: updateState
                                 };
+                                const jobs = [];
+                                if (hasManodoperaModule) {
+                                    jobs.push(renderManodoperaBlocco(currentTenantId, anno, dependencies, uiBase));
+                                }
+                                if (hasContoTerziModule) {
+                                    jobs.push(renderContoTerziBlocco(currentTenantId, anno, dependencies, uiBase));
+                                }
+                                if (hasMagazzinoModule) {
+                                    jobs.push(renderMagazzinoBlocco(currentTenantId, anno, dependencies, uiBase));
+                                }
+                                await Promise.all(jobs);
+                            };
+
+                            if (needsAnnataModuli) {
                                 if (annoSelect && !annoSelect.dataset.bound) {
                                     annoSelect.dataset.bound = '1';
-                                    annoSelect.addEventListener('change', () => { reloadMano(); });
+                                    annoSelect.addEventListener('change', () => { reloadBlocchiAnnata(); });
                                 }
-                                await reloadMano();
-                                if (location.hash === '#manodopera') {
-                                    const manoSection = document.getElementById('statistiche-manodopera-section');
-                                    if (manoSection) {
-                                        requestAnimationFrame(() => {
-                                            manoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                        });
-                                    }
-                                }
-                            } else {
+                                await reloadBlocchiAnnata();
+                            }
+
+                            if (!hasManodoperaModule) {
                                 const manoSection = document.getElementById('statistiche-manodopera-section');
                                 if (manoSection) manoSection.style.display = 'none';
+                            }
+                            if (!hasContoTerziModule) {
+                                const ctSection = document.getElementById('statistiche-conto-terzi-section');
+                                if (ctSection) ctSection.style.display = 'none';
+                            }
+                            if (!hasMagazzinoModule) {
+                                const magSection = document.getElementById('statistiche-magazzino-section');
+                                if (magSection) magSection.style.display = 'none';
+                            }
+
+                            const hashTarget = {
+                                '#manodopera': 'statistiche-manodopera-section',
+                                '#conto-terzi': 'statistiche-conto-terzi-section',
+                                '#magazzino': 'statistiche-magazzino-section'
+                            }[location.hash];
+                            if (hashTarget) {
+                                const el = document.getElementById(hashTarget);
+                                if (el && el.style.display !== 'none') {
+                                    requestAnimationFrame(() => {
+                                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    });
+                                }
                             }
                             
                             // Mostra/nascondi sezione statistiche macchine
