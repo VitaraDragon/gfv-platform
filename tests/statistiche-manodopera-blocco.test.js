@@ -106,8 +106,8 @@ describe('statistiche-manodopera-blocco', () => {
     expect(blocco.mediaOreGiornoMeseCorrente).toBe(6);
   });
 
-  test('mesi con ore restano etichettati anche con asse denso', () => {
-    const labels = monthTickLabelsForOreMese([
+  test('desktop: tutti i mesi etichettati; mobile: solo mesi con ore', () => {
+    const rows = [
       { mese: 1, label: 'Gen', ore: 0 },
       { mese: 2, label: 'Feb', ore: 0 },
       { mese: 3, label: 'Mar', ore: 0 },
@@ -120,30 +120,35 @@ describe('statistiche-manodopera-blocco', () => {
       { mese: 10, label: 'Ott', ore: 12 },
       { mese: 11, label: 'Nov', ore: 8 },
       { mese: 12, label: 'Dic', ore: 0 }
-    ]);
-    expect(labels[9]).toBe('Ott');
-    expect(labels[10]).toBe('Nov');
-    expect(labels.filter(Boolean)).toEqual(['Ott', 'Nov']);
+    ];
+    const desktop = monthTickLabelsForOreMese(rows, { mobile: false });
+    expect(desktop).toHaveLength(12);
+    expect(desktop[0]).toBe('Gen');
+    expect(desktop[9]).toBe('Ott');
+    expect(desktop.filter(Boolean)).toHaveLength(12);
+
+    const mobile = monthTickLabelsForOreMese(rows, { mobile: true });
+    expect(mobile[9]).toBe('Ott');
+    expect(mobile[10]).toBe('Nov');
+    expect(mobile.filter(Boolean)).toEqual(['Ott', 'Nov']);
   });
 
-  test('KPI validate e lavori completati usano tinte CSS distinte', () => {
+  test('KPI da-validare e lavori completati usano tinte CSS distinte', () => {
     const html = readFileSync(
       resolve(process.cwd(), 'core/statistiche-standalone.html'),
       'utf8'
     );
-    const validateMatch = html.match(/id="kpi-mano-ore-validate"[\s\S]{0,200}?metric-card[^>]*style="background:\s*([^;"]+)/)
-      || html.match(/style="background:\s*([^;"]+)[^"]*"[^>]*>\s*<div class="metric-value" id="kpi-mano-ore-validate"/);
     const block = html.slice(
       html.indexOf('id="statistiche-manodopera-section"'),
       html.indexOf('id="statistiche-conto-terzi-section"')
     );
     const cards = [...block.matchAll(/metric-card" style="background:\s*([^;"]+)/g)].map((m) => m[1].trim());
     expect(cards.length).toBeGreaterThanOrEqual(4);
-    const validateBg = cards[0];
+    const daValidareBg = cards[1];
     const completatiBg = cards[3];
-    expect(validateBg).toMatch(/report-chart-validate/);
-    expect(completatiBg).toMatch(/report-chart-2/);
-    expect(validateBg).not.toBe(completatiBg);
-    expect(validateMatch || true).toBeTruthy();
+    expect(daValidareBg).toMatch(/report-chart-da-validare/);
+    expect(completatiBg).toMatch(/report-chart-4/);
+    expect(completatiBg).not.toMatch(/report-chart-2/);
+    expect(daValidareBg).not.toBe(completatiBg);
   });
 });

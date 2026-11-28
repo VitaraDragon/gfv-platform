@@ -5,7 +5,6 @@
  */
 
 import { dateLikeToLocalCalendarIso } from './date-format-it.js';
-import { boundsIsoAnnata } from './statistiche-ore-report.js';
 
 /**
  * @param {{ stato?: string }|null|undefined} lavoro
@@ -35,8 +34,8 @@ export function rowInAnnata(row, anno) {
 }
 
 /**
- * Ettari lavoro CT: superficie lavorata → terreno.
- * (Niente preventivo: il blocco Statistiche non carica i preventivi.)
+ * Superficie di un singolo lavoro (lavorata se > 0, altrimenti terreno).
+ * Usata solo come fallback quando non c’è terrenoId da deduplicare.
  *
  * @param {{ superficieTotaleLavorata?: * }|null|undefined} lavoro
  * @param {{ superficie?: * }|null|undefined} terreno
@@ -52,6 +51,63 @@ export function resolveEttariCtStats(lavoro, terreno = null) {
     : null;
   if (fromTerr != null && Number.isFinite(fromTerr) && fromTerr > 0) return fromTerr;
   return 0;
+}
+
+/**
+ * Ettari CT: superficie distinta dei terreni lavorati nell’annata.
+ * Non somma più volte lo stesso terreno; non usa il terreno intero come
+ * fallback su ogni lavoro.
+ *
+ * @param {Array<object>} lavoriAnnata
+ * @param {Map<string, object>|Record<string, object>|null|undefined} terreniById
+ * @returns {number}
+ */
+export function resolveEttariDistintiTerreni(lavoriAnnata, terreniById) {
+  const resolveTerreno = (id) => {
+    if (!id || !terreniById) return null;
+    if (terreniById instanceof Map) return terreniById.get(String(id)) || null;
+    return terreniById[String(id)] || null;
+  };
+
+  /** @type {Map<string, { superficieTerreno: number, maxLavorata: number }>} */
+  const byTerreno = new Map();
+  let senzaTerreno = 0;
+
+  for (const lav of lavoriAnnata || []) {
+    if (!lav) continue;
+    const tid = lav.terrenoId != null && String(lav.terrenoId).trim()
+      ? String(lav.terrenoId)
+      : '';
+    const lavorata = lav.superficieTotaleLavorata != null
+      ? Number(lav.superficieTotaleLavorata)
+      : 0;
+    const lavOk = Number.isFinite(lavorata) && lavorata > 0 ? lavorata : 0;
+
+    if (!tid) {
+      senzaTerreno += lavOk;
+      continue;
+    }
+
+    let row = byTerreno.get(tid);
+    if (!row) {
+      const terreno = resolveTerreno(tid);
+      const fromTerr = terreno && terreno.superficie != null
+        ? Number(terreno.superficie)
+        : 0;
+      row = {
+        superficieTerreno: (Number.isFinite(fromTerr) && fromTerr > 0) ? fromTerr : 0,
+        maxLavorata: 0
+      };
+      byTerreno.set(tid, row);
+    }
+    if (lavOk > row.maxLavorata) row.maxLavorata = lavOk;
+  }
+
+  let tot = senzaTerreno;
+  for (const row of byTerreno.values()) {
+    tot += row.superficieTerreno > 0 ? row.superficieTerreno : row.maxLavorata;
+  }
+  return Math.round(tot * 100) / 100;
 }
 
 /**
@@ -96,11 +152,12 @@ export function topNConAltri(items, topN = 7) {
 /**
  * KPI + riparto lavori per cliente (annata civile).
  *
- * Ore: somma da `attivita` con clienteId (una collezione, no N+1 oreOperai).
+ * Ettari = superficie distinta dei terreni lavorati (etichetta UI dedicata).
+ * Ore: non incluse (fonte ore validate lavori CT richiede oreOperai N+1;
+ * il Diario non è una fonte verificabile allineata a Gestione lavori).
  *
  * @param {{
  *   lavori?: Array<object>,
- *   attivita?: Array<object>,
  *   clientiById?: Map<string, object>|Record<string, object>|null,
  *   terreniById?: Map<string, object>|Record<string, object>|null,
  *   anno: number,
@@ -111,77 +168,43 @@ export function calcolaBloccoContoTerziAnnata(input) {
   const anno = Number(input && input.anno);
   const topN = (input && Number(input.topN) > 0) ? Number(input.topN) : 7;
   const lavori = (input && Array.isArray(input.lavori)) ? input.lavori : [];
-  const attivita = (input && Array.isArray(input.attivita)) ? input.attivita : [];
 
   const resolveCliente = (id) => {
     if (!id || !input.clientiById) return null;
     if (input.clientiById instanceof Map) return input.clientiById.get(String(id)) || null;
     return input.clientiById[String(id)] || null;
   };
-  const resolveTerreno = (id) => {
-    if (!id || !input.terreniById) return null;
-    if (input.terreniById instanceof Map) return input.terreniById.get(String(id)) || null;
-    return input.terreniById[String(id)] || null;
-  };
 
-  /** @type {Map<string, { clienteId: string, clienteNome: string, nLavori: number, ettari: number, ore: number }>} */
+  /** @type {object[]} */
+  const lavoriAnnata = [];
+  /** @type {Map<string, { clienteId: string, clienteNome: string, nLavori: number, lavori: object[] }>} */
   const byCliente = new Map();
   let nLavori = 0;
-  let ettariTot = 0;
 
   for (const lav of lavori) {
     if (!lav || !hasClienteId(lav) || !rowInAnnata(lav, anno)) continue;
     if (isLavoroCtAnnullato(lav)) continue;
     nLavori += 1;
+    lavoriAnnata.push(lav);
     const cid = String(lav.clienteId);
     const cliente = resolveCliente(cid);
-    const terreno = resolveTerreno(lav.terrenoId);
-    const ettari = resolveEttariCtStats(lav, terreno);
-    ettariTot += ettari;
     let row = byCliente.get(cid);
     if (!row) {
       row = {
         clienteId: cid,
         clienteNome: nomeClienteDisplay(cliente, cid),
         nLavori: 0,
-        ettari: 0,
-        ore: 0
+        lavori: []
       };
       byCliente.set(cid, row);
     }
     row.nLavori += 1;
-    row.ettari += ettari;
+    row.lavori.push(lav);
   }
 
-  /** Ore da attività CT nell'annata (anche senza lavoroId). */
-  let oreTot = 0;
-  const { isoFrom, isoTo } = boundsIsoAnnata(anno);
-  for (const att of attivita) {
-    if (!att || !hasClienteId(att)) continue;
-    const iso = dateLikeToLocalCalendarIso(att.data);
-    if (!iso || iso < isoFrom || iso > isoTo) continue;
-    const ore = typeof att.oreNette === 'number' && Number.isFinite(att.oreNette)
-      ? att.oreNette
-      : (Number(att.oreNette) || 0);
-    if (!(ore > 0)) continue;
-    oreTot += ore;
-    const cid = String(att.clienteId);
-    let row = byCliente.get(cid);
-    if (!row) {
-      const cliente = resolveCliente(cid);
-      row = {
-        clienteId: cid,
-        clienteNome: nomeClienteDisplay(cliente, cid),
-        nLavori: 0,
-        ettari: 0,
-        ore: 0
-      };
-      byCliente.set(cid, row);
-    }
-    row.ore += ore;
-  }
+  const ettariTot = resolveEttariDistintiTerreni(lavoriAnnata, input && input.terreniById);
 
-  const clientiAttivi = [...byCliente.values()].filter((r) => r.nLavori > 0 || r.ore > 0).length;
+  const clientiAttivi = [...byCliente.values()].filter((r) => r.nLavori > 0).length;
   const lavoriPerCliente = topNConAltri(
     [...byCliente.values()]
       .filter((r) => r.nLavori > 0)
@@ -197,8 +220,8 @@ export function calcolaBloccoContoTerziAnnata(input) {
     anno,
     nLavori,
     clientiAttivi,
-    ettari: Math.round(ettariTot * 100) / 100,
-    ore: Math.round(oreTot * 100) / 100,
+    ettari: ettariTot,
+    ettariLabel: 'Ettari terreni lavorati',
     lavoriPerCliente
   };
 }
