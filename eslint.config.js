@@ -5,18 +5,16 @@
  */
 import globals from 'globals';
 
-/** Globali CDN / assegnati su window e usati a bare name nel codice browser. */
+/**
+ * Globali CDN / widget sicuri su tutta l'app.
+ * NON includere db/auth/storage/firebaseConfig/currentTenant*:
+ * un modulo ESM che li usa senza import deve fallire no-undef.
+ * Handler onclick (closeAddModal, …) stanno in preesistentiPerFile per file.
+ */
 const browserAppGlobals = {
   ...globals.browser,
   firebase: 'readonly',
-  firebaseConfig: 'readonly',
-  db: 'readonly',
-  auth: 'readonly',
-  storage: 'readonly',
   google: 'readonly',
-  currentTenantId: 'writable',
-  currentUser: 'writable',
-  currentUserData: 'writable',
   Tony: 'readonly',
   Chart: 'readonly',
   // Mapping / filler / tour (script tag o file che assegnano su window)
@@ -27,50 +25,26 @@ const browserAppGlobals = {
   introJs: 'readonly',
   // Fallback Node-ish in browser (document-archive / document-capture)
   Buffer: 'readonly',
-  // Handler HTML/onclick: spesso `window.fn = …` e chiamata bare `fn()`
-  closeAddModal: 'writable',
-  closeModal: 'writable',
-  closeFruttetoModal: 'writable',
-  applyFilters: 'writable',
-  editFrutteto: 'writable',
-  editVigneto: 'writable',
-  loadDettaglioSpese: 'writable',
-  aggiungiRigaOperaio: 'writable',
-  calcolaResa: 'writable',
-  aggiornaTotaleOreOperai: 'writable',
-  aggiornaScartoCategorie: 'writable',
-  onVignetoChange: 'writable',
-  angoloReticolato: 'writable',
-  chiudiMappaTracciamento: 'writable',
-  chiudiMappaTracciamentoPotatura: 'writable',
-  chiudiMappaTracciamentoPotaturaFrutteto: 'writable',
-  chiudiMappaTracciamentoTrattamento: 'writable',
-  caricaTerrenoSullaMappaPotaturaFrutteto: 'writable',
-  loadProdotti: 'writable',
-  loadMovimenti: 'writable',
-  renderMovimenti: 'writable',
 };
 
 /**
- * Identificatori già noti come bug/storici (whitelist mirror di
- * tests/moduli-identificatori-definiti.test.js PREESISTENTI).
- * Non mascherati in silenzio: restano documentati qui finché non c’è fix dedicato.
+ * Eccezioni per file: bug storici PREESISTENTI + handler assegnati a window
+ * e richiamati a bare name (onclick / stesso file). Non globali su tutta l'app.
  */
 const preesistentiPerFile = [
   {
     files: ['core/js/dashboard-data.js'],
-    languageOptions: { globals: { caposquadraId: 'readonly' } },
+    languageOptions: { globals: { caposquadraId: 'readonly' } }, // PREESISTENTE: usato senza dich.
   },
   {
     files: ['core/js/attivita-events.js'],
-    languageOptions: { globals: { params: 'readonly' } },
+    languageOptions: { globals: { params: 'readonly' } }, // PREESISTENTE: params.db senza param
   },
   {
     files: ['core/services/tipi-lavoro-service.js'],
-    languageOptions: { globals: { sottocategoria: 'readonly' } },
+    languageOptions: { globals: { sottocategoria: 'readonly' } }, // PREESISTENTE
   },
-  // Usati prima della dichiarazione nested nello stesso file (scope runtime ok
-  // o debito da chiarire); non refactor Tony in questa PR.
+  // Usati prima della dichiarazione nested nello stesso file; non refactor Tony qui.
   {
     files: ['core/js/tony/main.js'],
     languageOptions: {
@@ -79,6 +53,80 @@ const preesistentiPerFile = [
         cancelTonyEarlyTyping: 'readonly',
       },
     },
+  },
+
+  // Handler window.* (stesso modulo assegna window.fn e chiama fn())
+  {
+    files: ['modules/frutteto/js/frutteti-page.js'],
+    languageOptions: {
+      globals: {
+        editFrutteto: 'writable',
+        applyFilters: 'writable',
+        closeAddModal: 'writable',
+        closeFruttetoModal: 'writable',
+        loadDettaglioSpese: 'writable',
+      },
+    },
+  },
+  {
+    files: ['modules/frutteto/js/raccolta-page.js'],
+    languageOptions: { globals: { aggiornaScartoCategorie: 'writable' } },
+  },
+  {
+    files: ['modules/frutteto/js/potatura-page.js'],
+    languageOptions: {
+      globals: {
+        caricaTerrenoSullaMappaPotaturaFrutteto: 'writable',
+        chiudiMappaTracciamentoPotaturaFrutteto: 'writable',
+      },
+    },
+  },
+  {
+    files: ['modules/frutteto/js/concimazioni-page.js'],
+    languageOptions: { globals: { chiudiMappaTracciamentoTrattamento: 'writable' } },
+  },
+  {
+    files: ['modules/vigneto/js/vigneti-page.js'],
+    languageOptions: {
+      globals: {
+        closeAddModal: 'writable',
+        editVigneto: 'writable',
+        applyFilters: 'writable',
+        closeModal: 'writable',
+        loadDettaglioSpese: 'writable',
+      },
+    },
+  },
+  {
+    files: ['modules/vigneto/js/vendemmia-page.js'],
+    languageOptions: {
+      globals: {
+        applyFilters: 'writable',
+        aggiungiRigaOperaio: 'writable',
+        onVignetoChange: 'writable',
+        calcolaResa: 'writable',
+        aggiornaTotaleOreOperai: 'writable',
+        closeModal: 'writable',
+        chiudiMappaTracciamento: 'writable',
+      },
+    },
+  },
+  {
+    files: ['modules/vigneto/js/potatura-page.js'],
+    languageOptions: { globals: { chiudiMappaTracciamentoPotatura: 'writable' } },
+  },
+  {
+    files: ['modules/vigneto/js/concimazioni-page.js'],
+    languageOptions: { globals: { chiudiMappaTracciamentoTrattamento: 'writable' } },
+  },
+  {
+    // Undef reale L824/L1046 (bare name, non window.*); fix fuori da questa PR.
+    files: ['modules/vigneto/js/pianifica-impianto-page.js'],
+    languageOptions: { globals: { angoloReticolato: 'readonly' } },
+  },
+  {
+    files: ['shared/js/trattamenti-coltura-page.js'],
+    languageOptions: { globals: { chiudiMappaTracciamentoTrattamento: 'writable' } },
   },
 ];
 
