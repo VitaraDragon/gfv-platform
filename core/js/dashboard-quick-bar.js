@@ -90,11 +90,10 @@ export const QUICK_BAR_CATALOG = {
         href: 'statistiche-standalone.html',
         modules: [],
         requireManodopera: false,
-        hideWhenManodopera: true,
         section: 'core'
     },
     statisticheManodopera: {
-        label: 'Statistiche',
+        label: 'Statistiche Manodopera',
         desc: 'Ore, lavori e squadre',
         icon: '📊',
         href: 'admin/statistiche-manodopera-standalone.html',
