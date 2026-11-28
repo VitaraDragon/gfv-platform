@@ -58,31 +58,25 @@ export async function runGestioneSquadreAssertions(page, expect) {
 }
 
 export async function runStatisticheManodoperaAssertions(page, expect) {
+  await expect(page).toHaveURL(/statistiche-standalone\.html/);
+  const section = page.locator('#statistiche-manodopera-section');
+  await expect(section).toBeVisible();
+  await expect(section.locator('h2').filter({ hasText: 'Manodopera' })).toBeVisible();
 
-  await expect(page).toHaveURL(/statistiche-manodopera-standalone\.html/);
-  await expect(page.locator('h1').filter({ hasText: 'Statistiche Manodopera' })).toBeVisible();
+  const oreValidate = page.locator('#kpi-mano-ore-validate');
+  await expect(oreValidate).not.toHaveText('-');
 
-  const lavoriTotali = page.locator('#stat-lavori-totali');
-  await expect(lavoriTotali).not.toHaveText('-');
-  expect(parseInt(await lavoriTotali.textContent(), 10)).toBeGreaterThanOrEqual(3);
+  const lavoriAttivi = page.locator('#kpi-mano-lavori-attivi');
+  await expect(lavoriAttivi).not.toHaveText('-');
 
-  const squadreTotali = page.locator('#stat-squadre-totali');
-  await expect(squadreTotali).not.toHaveText('-');
-  expect(parseInt(await squadreTotali.textContent(), 10)).toBeGreaterThanOrEqual(1);
+  const lavoriCompletati = page.locator('#kpi-mano-lavori-completati');
+  await expect(lavoriCompletati).not.toHaveText('-');
+  const attivi = parseInt((await lavoriAttivi.textContent()) || '0', 10);
+  const completati = parseInt((await lavoriCompletati.textContent()) || '0', 10);
+  expect(Number.isFinite(attivi)).toBe(true);
+  expect(Number.isFinite(completati)).toBe(true);
+  expect(attivi + completati).toBeGreaterThanOrEqual(1);
 
-  const superficieLavorata = page.locator('#stat-superficie-lavorata');
-  await expect(superficieLavorata).not.toHaveText('-');
-
-  const superficieTotale = page.locator('#stat-superficie-totale');
-  await expect(superficieTotale).not.toHaveText('-');
-  const terreniCopertiHa = page.locator('#stat-terreni-coperti-ha');
-  await expect(terreniCopertiHa).not.toHaveText('-');
-  const copertiHa = Number.parseFloat((await terreniCopertiHa.textContent()) || '');
-  const totaleHa = Number.parseFloat((await superficieTotale.textContent()) || '');
-  expect(Number.isFinite(copertiHa)).toBe(true);
-  expect(Number.isFinite(totaleHa)).toBe(true);
-  expect(copertiHa).toBeLessThanOrEqual(totaleHa);
-
-  await expect(page.locator('#stat-terreni-coperti-dettaglio')).toContainText('%');
-  await expect(page.locator('#stat-percentuale-lavorata')).toHaveCount(0);
+  await expect(page.locator('#filter-anno-manodopera')).toBeVisible();
+  await expect(page.locator('#manodopera-report-cta')).toBeVisible();
 }
