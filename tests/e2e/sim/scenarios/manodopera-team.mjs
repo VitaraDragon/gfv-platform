@@ -77,6 +77,6 @@ export async function runStatisticheManodoperaAssertions(page, expect) {
   expect(Number.isFinite(completati)).toBe(true);
   expect(attivi + completati).toBeGreaterThanOrEqual(1);
 
-  await expect(page.locator('#filter-anno-manodopera')).toBeVisible();
+  await expect(page.locator('#filter-anno-moduli')).toBeVisible();
   await expect(page.locator('#manodopera-report-cta')).toBeVisible();
 }

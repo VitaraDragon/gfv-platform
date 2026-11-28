@@ -757,6 +757,22 @@ export function updateChartDistribuzioneSuperficie(proprieta, affitto) {
 }
 
 /**
+ * Etichette asse X mesi: i mesi con ore restano sempre etichettati;
+ * i mesi a zero possono restare vuoti (evita che autoSkip nasconda Ott/Nov).
+ *
+ * @param {{ mese?: number, label?: string, ore?: number }[]|null|undefined} rows
+ * @returns {string[]}
+ */
+export function monthTickLabelsForOreMese(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    return list.map((d) => {
+        if (!d) return '';
+        if (!(Number(d.ore) > 0)) return '';
+        return d.label || String(d.mese || '');
+    });
+}
+
+/**
  * Grafico ore validate per mese (blocco Manodopera).
  * @param {{ mese: number, label: string, ore: number }[]} data
  * @param {Object} state
@@ -787,6 +803,7 @@ export function updateChartManodoperaOreMese(data, state, updateState, formatOre
 
     const colors = palette();
     const line = colors.validate || seriesColorAt(0, colors);
+    const tickLabels = monthTickLabelsForOreMese(rows);
     const ctx = canvas.getContext('2d');
     const chart = new Chart(ctx, {
         type: 'bar',
@@ -807,6 +824,11 @@ export function updateChartManodoperaOreMese(data, state, updateState, formatOre
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
+                        title(items) {
+                            const idx = items && items[0] ? items[0].dataIndex : -1;
+                            const row = rows[idx];
+                            return (row && row.label) || '';
+                        },
                         label(context) {
                             const fmt = typeof formatOre === 'function' ? formatOre : (v) => String(v);
                             return fmt(context.parsed.y);
@@ -815,6 +837,16 @@ export function updateChartManodoperaOreMese(data, state, updateState, formatOre
                 }
             },
             scales: {
+                x: {
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 0,
+                        minRotation: 0,
+                        callback(_value, index) {
+                            return tickLabels[index] || '';
+                        }
+                    }
+                },
                 y: {
                     beginAtZero: true,
                     ticks: {
@@ -829,4 +861,126 @@ export function updateChartManodoperaOreMese(data, state, updateState, formatOre
     });
 
     updateState({ chartManodoperaOreMese: chart });
+}
+
+/**
+ * Barre orizzontali: riparto lavori CT per cliente (con «Altri» grigio).
+ * @param {{ nome?: string, valore?: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ */
+export function updateChartContoTerziLavoriCliente(data, state, updateState) {
+    const mount = resolveChartMount('chart-conto-terzi-lavori-cliente', 0);
+    if (!mount) {
+        console.error('Container per chart-conto-terzi-lavori-cliente non trovato');
+        return;
+    }
+
+    if (state.chartContoTerziLavoriCliente) {
+        state.chartContoTerziLavoriCliente.destroy();
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const hasData = rows.some((d) => Number(d && d.valore) > 0);
+    if (!hasData) {
+        renderChartEmpty(mount, '🤝');
+        updateState({ chartContoTerziLavoriCliente: null });
+        return;
+    }
+
+    const canvas = ensureChartCanvas(mount, 'chart-conto-terzi-lavori-cliente');
+    if (!canvas) return;
+
+    const colors = palette();
+    const labels = rows.map((d) => d.nome || '—');
+    const bg = chartColorsForItems(labels, colors);
+    const ctx = canvas.getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Lavori',
+                data: rows.map((d) => Number(d.valore) || 0),
+                backgroundColor: bg.map((c) => hexWithAlpha(c, 0.8)),
+                borderColor: bg,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0 } },
+                y: { ticks: yTickTruncateOptions() }
+            }
+        }
+    });
+
+    updateState({ chartContoTerziLavoriCliente: chart });
+}
+
+/**
+ * Barre orizzontali: riparto quantità movimenti magazzino per prodotto.
+ * @param {{ nome?: string, valore?: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ */
+export function updateChartMagazzinoMovimentiProdotto(data, state, updateState) {
+    const mount = resolveChartMount('chart-magazzino-movimenti-prodotto', 0);
+    if (!mount) {
+        console.error('Container per chart-magazzino-movimenti-prodotto non trovato');
+        return;
+    }
+
+    if (state.chartMagazzinoMovimentiProdotto) {
+        state.chartMagazzinoMovimentiProdotto.destroy();
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const hasData = rows.some((d) => Number(d && d.valore) > 0);
+    if (!hasData) {
+        renderChartEmpty(mount, '📦');
+        updateState({ chartMagazzinoMovimentiProdotto: null });
+        return;
+    }
+
+    const canvas = ensureChartCanvas(mount, 'chart-magazzino-movimenti-prodotto');
+    if (!canvas) return;
+
+    const colors = palette();
+    const labels = rows.map((d) => d.nome || '—');
+    const bg = chartColorsForItems(labels, colors);
+    const ctx = canvas.getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Quantità',
+                data: rows.map((d) => Number(d.valore) || 0),
+                backgroundColor: bg.map((c) => hexWithAlpha(c, 0.8)),
+                borderColor: bg,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { beginAtZero: true },
+                y: { ticks: yTickTruncateOptions() }
+            }
+        }
+    });
+
+    updateState({ chartMagazzinoMovimentiProdotto: chart });
 }
