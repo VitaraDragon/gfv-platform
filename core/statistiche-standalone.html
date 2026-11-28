@@ -456,7 +456,9 @@
             #statistiche-macchine-section h2,
             #statistiche-manodopera-section h2,
             #statistiche-conto-terzi-section h2,
-            #statistiche-magazzino-section h2 {
+            #statistiche-magazzino-section h2,
+            #statistiche-vigneto-section h2,
+            #statistiche-frutteto-section h2 {
                 font-size: 1.4em !important;
             }
 
@@ -468,7 +470,9 @@
             #manodopera-top-operai-cards,
             #magazzino-giacenze-cards,
             #conto-terzi-lavori-cliente-cards,
-            #magazzino-movimenti-prodotto-cards {
+            #magazzino-movimenti-prodotto-cards,
+            #vigneto-produzione-varieta-cards,
+            #frutteto-produzione-specie-cards {
                 display: grid !important;
             }
         }
@@ -735,7 +739,7 @@
                         <div class="metric-value" id="kpi-mano-lavori-attivi" style="color:white;">-</div>
                         <div class="metric-label" style="color:rgba(255,255,255,0.9);">Lavori attivi (annata)</div>
                     </div>
-                    <div class="metric-card" style="background: var(--report-chart-2); color: white;">
+                    <div class="metric-card" style="background: var(--report-chart-4); color: white;">
                         <div class="metric-value" id="kpi-mano-lavori-completati" style="color:white;">-</div>
                         <div class="metric-label" style="color:rgba(255,255,255,0.9);">Lavori completati (annata)</div>
                         <div class="metric-subtitle" id="kpi-mano-annullati" style="color:rgba(255,255,255,0.85);"></div>
@@ -797,11 +801,7 @@
                     </div>
                     <div class="metric-card" style="background: var(--report-chart-2); color: white;">
                         <div class="metric-value" id="kpi-ct-ettari" style="color:white;">-</div>
-                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Ettari (annata)</div>
-                    </div>
-                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
-                        <div class="metric-value" id="kpi-ct-ore" style="color:white;">-</div>
-                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Ore (annata)</div>
+                        <div class="metric-label" id="kpi-ct-ettari-label" style="color:rgba(255,255,255,0.9);">Ettari terreni lavorati</div>
                     </div>
                 </div>
 
@@ -831,7 +831,7 @@
                 <div class="metrics-grid" style="margin-bottom: 24px;">
                     <div class="metric-card" style="background: var(--report-chart-1); color: white;">
                         <div class="metric-value" id="kpi-mag-n-giacenze" style="color:white;">-</div>
-                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Prodotti con giacenza</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Prodotti con giacenza di oggi</div>
                     </div>
                     <div class="metric-card" style="background: var(--report-chart-5); color: white;">
                         <div class="metric-value" id="kpi-mag-entrate" style="color:white;">-</div>
@@ -848,13 +848,13 @@
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Giacenze principali</h3>
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Giacenza di oggi — principali</h3>
                     <div id="magazzino-giacenze-table-wrap" class="table-responsive">
                         <table class="mano-top-table" style="width:100%; border-collapse:collapse; background:#fff;">
                             <thead>
                                 <tr style="border-bottom:2px solid #e9ecef; text-align:left;">
                                     <th style="padding:10px;">Prodotto</th>
-                                    <th style="padding:10px; text-align:right;">Giacenza</th>
+                                    <th style="padding:10px; text-align:right;">Giacenza di oggi</th>
                                 </tr>
                             </thead>
                             <tbody id="magazzino-giacenze-body"></tbody>
@@ -878,6 +878,90 @@
                 </div>
 
                 <p id="magazzino-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
+            </div>
+
+            <!-- Blocco Vigneto compatto (solo se modulo vigneto attivo) -->
+            <div id="statistiche-vigneto-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
+                    <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">🍇 Vigneto</h2>
+                </div>
+                <div id="vigneto-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento vigneto…</div>
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card" style="background: var(--report-chart-1); color: white;">
+                        <div class="metric-value" id="kpi-vig-superficie" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Superficie (ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-3); color: white;">
+                        <div class="metric-value" id="kpi-vig-produzione" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Produzione (q.li annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
+                        <div class="metric-value" id="kpi-vig-resa" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Resa (q.li/ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-6); color: white;">
+                        <div class="metric-value" id="kpi-vig-n-vigneti" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Vigneti aperti</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="margin-bottom: 24px;">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Produzione per varietà (q.li)</h3>
+                        <div class="chart-container tall" data-chart-id="chart-vigneto-produzione-varieta">
+                            <canvas id="chart-vigneto-produzione-varieta"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Riparto produzione</h3>
+                    <div id="vigneto-produzione-varieta-cards" class="mano-operai-cards" style="display:grid;"></div>
+                </div>
+
+                <p id="vigneto-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
+            </div>
+
+            <!-- Blocco Frutteto compatto (solo se modulo frutteto attivo) -->
+            <div id="statistiche-frutteto-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
+                    <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">🌳 Frutteto</h2>
+                </div>
+                <div id="frutteto-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento frutteto…</div>
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card" style="background: var(--report-chart-1); color: white;">
+                        <div class="metric-value" id="kpi-fru-superficie" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Superficie (ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-3); color: white;">
+                        <div class="metric-value" id="kpi-fru-produzione" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Produzione (kg annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
+                        <div class="metric-value" id="kpi-fru-resa" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Resa (kg/ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-6); color: white;">
+                        <div class="metric-value" id="kpi-fru-n-frutteti" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Frutteti aperti</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="margin-bottom: 24px;">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Produzione per specie (kg)</h3>
+                        <div class="chart-container tall" data-chart-id="chart-frutteto-produzione-specie">
+                            <canvas id="chart-frutteto-produzione-specie"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Riparto produzione</h3>
+                    <div id="frutteto-produzione-specie-cards" class="mano-operai-cards" style="display:grid;"></div>
+                </div>
+
+                <p id="frutteto-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
             </div>
 
             <!-- Sezione Statistiche Macchine (solo se modulo Parco Macchine attivo) -->
@@ -986,6 +1070,8 @@
         } from './js/statistiche-manodopera-section.js';
         import { renderContoTerziBlocco } from './js/statistiche-conto-terzi-section.js';
         import { renderMagazzinoBlocco } from './js/statistiche-magazzino-section.js';
+        import { renderVignetoBlocco } from './js/statistiche-vigneto-section.js';
+        import { renderFruttetoBlocco } from './js/statistiche-frutteto-section.js';
 
         import {
             updateChartOreTipo as updateChartOreTipoModule,
@@ -1054,7 +1140,9 @@
             chartOreMacchineMese: null,
             chartManodoperaOreMese: null,
             chartContoTerziLavoriCliente: null,
-            chartMagazzinoMovimentiProdotto: null
+            chartMagazzinoMovimentiProdotto: null,
+            chartVignetoProduzioneVarieta: null,
+            chartFruttetoProduzioneSpecie: null
         };
 
         // Funzione updateState
@@ -1075,6 +1163,8 @@
             if (updates.chartManodoperaOreMese !== undefined) window.chartManodoperaOreMese = updates.chartManodoperaOreMese;
             if (updates.chartContoTerziLavoriCliente !== undefined) window.chartContoTerziLavoriCliente = updates.chartContoTerziLavoriCliente;
             if (updates.chartMagazzinoMovimentiProdotto !== undefined) window.chartMagazzinoMovimentiProdotto = updates.chartMagazzinoMovimentiProdotto;
+            if (updates.chartVignetoProduzioneVarieta !== undefined) window.chartVignetoProduzioneVarieta = updates.chartVignetoProduzioneVarieta;
+            if (updates.chartFruttetoProduzioneSpecie !== undefined) window.chartFruttetoProduzioneSpecie = updates.chartFruttetoProduzioneSpecie;
         }
 
         // Dependencies object
@@ -1416,6 +1506,8 @@
                             const hasManodoperaModule = modules.includes('manodopera');
                             const hasContoTerziModule = modules.includes('contoTerzi');
                             const hasMagazzinoModule = modules.includes('magazzino');
+                            const hasVignetoModule = modules.includes('vigneto');
+                            const hasFruttetoModule = modules.includes('frutteto');
                             const hasReportModule = modules.includes('report');
 
                             // Inizializza context Tony con i moduli attivi usando helper
@@ -1440,7 +1532,8 @@
                                 initTonyContext();
                             }
 
-                            const needsAnnataModuli = hasManodoperaModule || hasContoTerziModule || hasMagazzinoModule;
+                            const needsAnnataModuli = hasManodoperaModule || hasContoTerziModule || hasMagazzinoModule
+                                || hasVignetoModule || hasFruttetoModule;
                             const annoSelect = document.getElementById('filter-anno-moduli');
                             const annataBar = document.getElementById('statistiche-annata-moduli-bar');
                             const annoCorrente = new Date().getFullYear();
@@ -1468,6 +1561,12 @@
                                 if (hasMagazzinoModule) {
                                     jobs.push(renderMagazzinoBlocco(currentTenantId, anno, dependencies, uiBase));
                                 }
+                                if (hasVignetoModule) {
+                                    jobs.push(renderVignetoBlocco(currentTenantId, anno, dependencies, uiBase));
+                                }
+                                if (hasFruttetoModule) {
+                                    jobs.push(renderFruttetoBlocco(currentTenantId, anno, dependencies, uiBase));
+                                }
                                 await Promise.all(jobs);
                             };
 
@@ -1491,11 +1590,21 @@
                                 const magSection = document.getElementById('statistiche-magazzino-section');
                                 if (magSection) magSection.style.display = 'none';
                             }
+                            if (!hasVignetoModule) {
+                                const vigSection = document.getElementById('statistiche-vigneto-section');
+                                if (vigSection) vigSection.style.display = 'none';
+                            }
+                            if (!hasFruttetoModule) {
+                                const fruSection = document.getElementById('statistiche-frutteto-section');
+                                if (fruSection) fruSection.style.display = 'none';
+                            }
 
                             const hashTarget = {
                                 '#manodopera': 'statistiche-manodopera-section',
                                 '#conto-terzi': 'statistiche-conto-terzi-section',
-                                '#magazzino': 'statistiche-magazzino-section'
+                                '#magazzino': 'statistiche-magazzino-section',
+                                '#vigneto': 'statistiche-vigneto-section',
+                                '#frutteto': 'statistiche-frutteto-section'
                             }[location.hash];
                             if (hashTarget) {
                                 const el = document.getElementById(hashTarget);

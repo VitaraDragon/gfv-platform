@@ -9,9 +9,9 @@ import {
 } from '../core/js/statistiche-magazzino-blocco.js';
 
 describe('statistiche-magazzino-blocco', () => {
-  test('KPI quantità annata senza euro; giacenze e riparto prodotti', () => {
+  test('KPI quantità annata senza euro; giacenze di oggi indipendenti dall’annata', () => {
     const result = calcolaBloccoMagazzinoAnnata({
-      anno: 2026,
+      anno: 2025,
       prodotti: [
         { id: 'p1', nome: 'Zolfo', giacenza: 50, unitaMisura: 'kg' },
         { id: 'p2', nome: 'Rame', giacenza: 12, unitaMisura: 'kg' },
@@ -27,13 +27,14 @@ describe('statistiche-magazzino-blocco', () => {
       ]
     });
 
+    // Giacenze = snapshot prodotti.giacenza (oggi), anche se annata 2025
     expect(result.nProdottiConGiacenza).toBe(2);
     expect(result.giacenzePrincipali[0].nome).toBe('Zolfo');
     expect(result.giacenzePrincipali[0].giacenza).toBe(50);
-    expect(result.qtyEntrate).toBe(20);
-    expect(result.qtyUscite).toBe(8);
-    expect(result.nMovimenti).toBe(3);
-    expect(result.movimentiPerProdotto.some((r) => r.nome === 'Zolfo' && r.valore === 25)).toBe(true);
+    // Movimenti filtrati sull’annata 2025
+    expect(result.qtyEntrate).toBe(10);
+    expect(result.qtyUscite).toBe(0);
+    expect(result.nMovimenti).toBe(1);
     expect(result).not.toHaveProperty('valoreEntrate');
     expect(JSON.stringify(result)).not.toMatch(/€|euro/i);
   });

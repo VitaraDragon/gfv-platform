@@ -42,6 +42,46 @@ function hexWithAlpha(hex, alpha) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+/**
+ * Etichette asse Y a capo (max ~18 caratteri/riga) per barre orizzontali su mobile.
+ * @param {string} label
+ * @param {number} [lineMax=18]
+ * @returns {string|string[]}
+ */
+export function wrapChartAxisLabel(label, lineMax = 18) {
+    const s = String(label || '');
+    const max = Number(lineMax) > 0 ? Number(lineMax) : 18;
+    if (s.length <= max) return s;
+    /** @type {string[]} */
+    const lines = [];
+    let rest = s;
+    while (rest.length > max) {
+        let cut = rest.lastIndexOf(' ', max);
+        if (cut < Math.floor(max / 2)) cut = max;
+        lines.push(rest.slice(0, cut).trim());
+        rest = rest.slice(cut).trim();
+        if (lines.length >= 3) {
+            lines.push(rest.length > max ? `${rest.slice(0, max - 1)}…` : rest);
+            return lines;
+        }
+    }
+    if (rest) lines.push(rest);
+    return lines;
+}
+
+function yTickWrapOptions() {
+    return {
+        autoSkip: false,
+        callback: function (value) {
+            const label = this.getLabelForValue
+                ? this.getLabelForValue(value)
+                : String(value ?? '');
+            return wrapChartAxisLabel(label, 18);
+        }
+    };
+}
+
+/** @deprecated Prefer yTickWrapOptions — tenuto per grafici legacy non in scope. */
 function yTickTruncateOptions() {
     return {
         callback: function (value) {
@@ -51,6 +91,16 @@ function yTickTruncateOptions() {
             return truncateChartLabel(label, 16);
         }
     };
+}
+
+/**
+ * @returns {boolean}
+ */
+export function isStatisticheChartsMobile() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return false;
+    }
+    return window.matchMedia('(max-width: 768px)').matches;
 }
 
 /**
@@ -757,18 +807,22 @@ export function updateChartDistribuzioneSuperficie(proprieta, affitto) {
 }
 
 /**
- * Etichette asse X mesi: i mesi con ore restano sempre etichettati;
- * i mesi a zero possono restare vuoti (evita che autoSkip nasconda Ott/Nov).
+ * Etichette asse X mesi.
+ * Desktop: tutti i mesi. Mobile: almeno i mesi con ore (i vuoti restano senza label).
  *
  * @param {{ mese?: number, label?: string, ore?: number }[]|null|undefined} rows
+ * @param {{ mobile?: boolean }|null|undefined} [options]
  * @returns {string[]}
  */
-export function monthTickLabelsForOreMese(rows) {
+export function monthTickLabelsForOreMese(rows, options = {}) {
     const list = Array.isArray(rows) ? rows : [];
+    const mobile = options && options.mobile === true;
     return list.map((d) => {
         if (!d) return '';
+        const label = d.label || String(d.mese || '');
+        if (!mobile) return label;
         if (!(Number(d.ore) > 0)) return '';
-        return d.label || String(d.mese || '');
+        return label;
     });
 }
 
@@ -803,7 +857,7 @@ export function updateChartManodoperaOreMese(data, state, updateState, formatOre
 
     const colors = palette();
     const line = colors.validate || seriesColorAt(0, colors);
-    const tickLabels = monthTickLabelsForOreMese(rows);
+    const tickLabels = monthTickLabelsForOreMese(rows, { mobile: isStatisticheChartsMobile() });
     const ctx = canvas.getContext('2d');
     const chart = new Chart(ctx, {
         type: 'bar',
@@ -840,7 +894,7 @@ export function updateChartManodoperaOreMese(data, state, updateState, formatOre
                 x: {
                     ticks: {
                         autoSkip: false,
-                        maxRotation: 0,
+                        maxRotation: isStatisticheChartsMobile() ? 0 : 45,
                         minRotation: 0,
                         callback(_value, index) {
                             return tickLabels[index] || '';
@@ -915,8 +969,8 @@ export function updateChartContoTerziLavoriCliente(data, state, updateState) {
                 legend: { display: false }
             },
             scales: {
-                x: { beginAtZero: true, ticks: { precision: 0 } },
-                y: { ticks: yTickTruncateOptions() }
+                x: { beginAtZero: true, ticks: { precision: 0 }, grace: '8%' },
+                y: { ticks: yTickWrapOptions() }
             }
         }
     });
@@ -926,6 +980,7 @@ export function updateChartContoTerziLavoriCliente(data, state, updateState) {
 
 /**
  * Barre orizzontali: riparto quantità movimenti magazzino per prodotto.
+ * Etichette intere (a capo) + tooltip; barre piccole comunque visibili.
  * @param {{ nome?: string, valore?: number }[]} data
  * @param {Object} state
  * @param {Function} updateState
@@ -954,6 +1009,7 @@ export function updateChartMagazzinoMovimentiProdotto(data, state, updateState) 
 
     const colors = palette();
     const labels = rows.map((d) => d.nome || '—');
+    const values = rows.map((d) => Number(d.valore) || 0);
     const bg = chartColorsForItems(labels, colors);
     const ctx = canvas.getContext('2d');
     const chart = new Chart(ctx, {
@@ -962,25 +1018,151 @@ export function updateChartMagazzinoMovimentiProdotto(data, state, updateState) 
             labels,
             datasets: [{
                 label: 'Quantità',
-                data: rows.map((d) => Number(d.valore) || 0),
+                data: values,
                 backgroundColor: bg.map((c) => hexWithAlpha(c, 0.8)),
                 borderColor: bg,
-                borderWidth: 1
+                borderWidth: 1,
+                minBarLength: 8
             }]
         },
         options: {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { right: 28 } },
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title(items) {
+                            const idx = items && items[0] ? items[0].dataIndex : -1;
+                            return labels[idx] || '';
+                        },
+                        label(context) {
+                            return String(context.parsed.x ?? context.parsed.y ?? '');
+                        }
+                    }
+                }
             },
             scales: {
-                x: { beginAtZero: true },
-                y: { ticks: yTickTruncateOptions() }
+                x: {
+                    beginAtZero: true,
+                    grace: '8%'
+                },
+                y: { ticks: yTickWrapOptions() }
             }
         }
     });
 
     updateState({ chartMagazzinoMovimentiProdotto: chart });
+}
+
+/**
+ * @param {string} chartId
+ * @param {string} stateKey
+ * @param {string} emptyIcon
+ * @param {{ nome?: string, valore?: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ * @param {string} [datasetLabel]
+ */
+function updateHorizontalRipartoChart(chartId, stateKey, emptyIcon, data, state, updateState, datasetLabel = 'Quantità') {
+    const mount = resolveChartMount(chartId, 0);
+    if (!mount) {
+        console.error(`Container per ${chartId} non trovato`);
+        return;
+    }
+
+    if (state[stateKey]) {
+        state[stateKey].destroy();
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const hasData = rows.some((d) => Number(d && d.valore) > 0);
+    if (!hasData) {
+        renderChartEmpty(mount, emptyIcon);
+        updateState({ [stateKey]: null });
+        return;
+    }
+
+    const canvas = ensureChartCanvas(mount, chartId);
+    if (!canvas) return;
+
+    const colors = palette();
+    const labels = rows.map((d) => d.nome || '—');
+    const bg = chartColorsForItems(labels, colors);
+    const ctx = canvas.getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: datasetLabel,
+                data: rows.map((d) => Number(d.valore) || 0),
+                backgroundColor: bg.map((c) => hexWithAlpha(c, 0.8)),
+                borderColor: bg,
+                borderWidth: 1,
+                minBarLength: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { right: 28 } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title(items) {
+                            const idx = items && items[0] ? items[0].dataIndex : -1;
+                            return labels[idx] || '';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { beginAtZero: true, grace: '8%' },
+                y: { ticks: yTickWrapOptions() }
+            }
+        }
+    });
+
+    updateState({ [stateKey]: chart });
+}
+
+/**
+ * Produzione vigneto per varietà (q.li).
+ * @param {{ nome?: string, valore?: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ */
+export function updateChartVignetoProduzioneVarieta(data, state, updateState) {
+    updateHorizontalRipartoChart(
+        'chart-vigneto-produzione-varieta',
+        'chartVignetoProduzioneVarieta',
+        '🍇',
+        data,
+        state,
+        updateState,
+        'q.li'
+    );
+}
+
+/**
+ * Produzione frutteto per specie (kg).
+ * @param {{ nome?: string, valore?: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ */
+export function updateChartFruttetoProduzioneSpecie(data, state, updateState) {
+    updateHorizontalRipartoChart(
+        'chart-frutteto-produzione-specie',
+        'chartFruttetoProduzioneSpecie',
+        '🌳',
+        data,
+        state,
+        updateState,
+        'kg'
+    );
 }
