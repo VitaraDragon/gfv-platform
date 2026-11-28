@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 describe('statistiche — avviso indice Firestore una sola volta', () => {
-  it('notifyMissingFirestoreIndex mostra il banner una sola volta', () => {
+  it('notifyMissingFirestoreIndex mostra il banner una sola volta con link cliccabile', () => {
     notifyMissingFirestoreIndex('https://console.firebase.google.com/index-1');
     notifyMissingFirestoreIndex('https://console.firebase.google.com/index-2');
 
@@ -29,6 +29,11 @@ describe('statistiche — avviso indice Firestore una sola volta', () => {
     expect(el.classList.contains('is-visible')).toBe(true);
     expect(el.textContent).toContain('Necessario creare un indice Firestore');
     expect(el.getAttribute('data-index-link')).toContain('index-1');
+    const anchor = el.querySelector('a');
+    expect(anchor).toBeTruthy();
+    expect(anchor.getAttribute('href')).toContain('index-1');
+    expect(anchor.getAttribute('target')).toBe('_blank');
+    expect(anchor.getAttribute('rel')).toBe('noopener');
     expect(window.alert).not.toHaveBeenCalled();
   });
 

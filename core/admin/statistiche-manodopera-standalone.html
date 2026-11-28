@@ -186,6 +186,42 @@
             flex-wrap: wrap;
         }
 
+        .filters-ore-dates {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filters-ore-dates > div {
+            flex: 1 1 140px;
+            min-width: 0;
+        }
+
+        .filters-ore-dates input[type="date"] {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: normal;
+            height: auto;
+            min-height: 0;
+            max-height: none;
+        }
+
+        .filters-ore-date-error {
+            display: none;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #842029;
+        }
+
+        .filters-ore-date-error.is-visible {
+            display: block;
+        }
+
         .stat-value {
             font-size: 36px;
             font-weight: bold;
@@ -253,6 +289,16 @@
                 flex: 1 1 auto;
                 text-align: center;
             }
+
+            .filters-ore-dates {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filters-ore-dates > div {
+                flex: 0 1 auto;
+                width: 100%;
+            }
         }
 
         @media (max-width: 600px) {
@@ -293,7 +339,7 @@
                 <h1>📊 Statistiche Manodopera</h1>
                 <p style="opacity: 0.9; margin-top: 5px;">Visualizza statistiche e analisi dettagliate</p>
             </div>
-            <a href="../../modules/manodopera/views/manodopera-home-standalone.html" id="dashboard-link" class="btn btn-secondary">← Dashboard</a>
+            <a href="../dashboard-standalone.html" id="dashboard-link" class="btn btn-secondary">← Dashboard</a>
         </div>
 
         <div class="content">
@@ -435,16 +481,17 @@
                         </div>
                     </div>
                     <div id="date-range-group" style="display: none; margin-bottom: 15px;">
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <div style="flex: 1 1 140px; min-width: 0;">
+                        <div class="filters-ore-dates">
+                            <div>
                                 <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Da:</label>
-                                <input type="date" id="date-from-ore" style="width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                                <input type="date" id="date-from-ore">
                             </div>
-                            <div style="flex: 1 1 140px; min-width: 0;">
+                            <div>
                                 <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">A:</label>
-                                <input type="date" id="date-to-ore" style="width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                                <input type="date" id="date-to-ore">
                             </div>
                         </div>
+                        <div id="date-range-error" class="filters-ore-date-error" role="status" aria-live="polite">Seleziona entrambe le date per il periodo personalizzato</div>
                     </div>
                     <div class="filters-ore-actions">
                         <button onclick="loadReportOreOperai()" class="btn btn-primary" style="background: #2E8B57; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;" title="Aggiorna immediatamente il report">Aggiorna</button>
@@ -725,12 +772,24 @@
                 }, 700);
             };
             
+            const dateRangeError = document.getElementById('date-range-error');
+            const clearDateRangeError = () => {
+                if (dateRangeError) dateRangeError.classList.remove('is-visible');
+            };
+
+            // Se il browser ripristina «Personalizzato», mostra i campi senza caricare
+            if (periodoSelect.value === 'custom') {
+                dateRangeGroup.style.display = 'block';
+            }
+
             // Setup cambio periodo
             periodoSelect.addEventListener('change', () => {
                 if (periodoSelect.value === 'custom') {
                     dateRangeGroup.style.display = 'block';
+                    clearDateRangeError();
                 } else {
                     dateRangeGroup.style.display = 'none';
+                    clearDateRangeError();
                     // Aggiorna automaticamente se non è custom
                     triggerAutoUpdate();
                 }
@@ -846,6 +905,8 @@
             document.getElementById('date-range-group').style.display = 'none';
             document.getElementById('date-from-ore').value = '';
             document.getElementById('date-to-ore').value = '';
+            const dateRangeError = document.getElementById('date-range-error');
+            if (dateRangeError) dateRangeError.classList.remove('is-visible');
             
             // Aggiorna immediatamente dopo reset
             loadReportOreOperai();
@@ -881,7 +942,8 @@
         }
 
         // Carica report ore operai (usa cache lavori+ore se disponibile)
-        async function loadReportOreOperai(tenantId) {
+        // options.validateCustomDates: true solo da Aggiorna (messaggio inline se date vuote)
+        async function loadReportOreOperai(tenantId, options = {}) {
             if (!tenantId) {
                 const user = window.currentAuth.currentUser;
                 if (!user) return;
@@ -890,6 +952,12 @@
                 tenantId = userDoc.data().tenantId;
                 if (!tenantId) return;
             }
+
+            const dateRangeGroup = document.getElementById('date-range-group');
+            const dateRangeError = document.getElementById('date-range-error');
+            const clearDateRangeError = () => {
+                if (dateRangeError) dateRangeError.classList.remove('is-visible');
+            };
 
             try {
                 const periodo = document.getElementById('filter-periodo-ore').value;
@@ -914,12 +982,19 @@
                     dataFine = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
                     dataFine.setHours(23, 59, 59, 999);
                 } else if (periodo === 'custom') {
+                    if (dateRangeGroup) dateRangeGroup.style.display = 'block';
                     const dateFrom = document.getElementById('date-from-ore').value;
                     const dateTo = document.getElementById('date-to-ore').value;
                     if (!dateFrom || !dateTo) {
-                        alert('Seleziona entrambe le date per il periodo personalizzato');
+                        // Carico iniziale / F5 con «Personalizzato» vuoto: aspetta senza alert
+                        if (options.validateCustomDates && dateRangeError) {
+                            dateRangeError.classList.add('is-visible');
+                        } else {
+                            clearDateRangeError();
+                        }
                         return;
                     }
+                    clearDateRangeError();
                     dataInizio = new Date(dateFrom);
                     dataInizio.setHours(0, 0, 0, 0);
                     dataFine = new Date(dateTo);
@@ -1131,7 +1206,7 @@
             }
         }
         
-        // Export funzioni globali
+        // Export funzioni globali (bottone Aggiorna: valida le date custom)
         window.loadReportOreOperai = () => {
             const user = window.currentAuth.currentUser;
             if (!user) return;
@@ -1139,7 +1214,7 @@
                 if (userDoc.exists()) {
                     const tenantId = userDoc.data().tenantId;
                     if (tenantId) {
-                        loadReportOreOperai(tenantId);
+                        loadReportOreOperai(tenantId, { validateCustomDates: true });
                     }
                 }
             });

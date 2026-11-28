@@ -11,7 +11,7 @@ import { dashboardPerfAsync } from './dashboard-perf.js';
 
 export const MODULE_CATALOG = {
     amministrazione: { label: 'Amministrazione', href: 'admin/amministrazione-standalone.html', icon: '👑' },
-    statistiche: { label: 'Statistiche', href: 'statistiche-standalone.html', icon: '📊', hrefManodopera: 'admin/statistiche-manodopera-standalone.html' },
+    statistiche: { label: 'Statistiche', href: 'statistiche-standalone.html', icon: '📊' },
     terreni: { label: 'Terreni', href: 'terreni-standalone.html', icon: '🗺️' },
     diarioAttivita: { label: 'Diario attività', href: 'attivita-standalone.html', icon: '📝' },
     abbonamento: { label: 'Abbonamento', href: 'admin/abbonamento-standalone.html', icon: '💳' },
@@ -72,10 +72,9 @@ function pushRecent(uid, moduleId) {
     localStorage.setItem(recentStorageKey(uid), JSON.stringify(list));
 }
 
-function resolveModuleHref(moduleId, hasManodopera) {
+function resolveModuleHref(moduleId) {
     const meta = MODULE_CATALOG[moduleId];
     if (!meta) return '#';
-    if (moduleId === 'statistiche' && hasManodopera && meta.hrefManodopera) return meta.hrefManodopera;
     return meta.href;
 }
 
@@ -190,7 +189,7 @@ export async function initDashboardPanoramaHub(options) {
         const max = 8;
         shortcutsEl.innerHTML = chips.slice(0, max).map((c) => {
             const meta = MODULE_CATALOG[c.id];
-            const href = resolveModuleHref(c.id, hasManodopera);
+            const href = resolveModuleHref(c.id);
             const badge = c.kind === 'pin' ? '<span class="dashboard-hub-chip-badge">★</span>' : '';
             return `
                 <a class="dashboard-hub-chip" data-module="${escapeAttr(c.id)}" href="${escapeAttr(href)}">
@@ -232,7 +231,7 @@ export async function initDashboardPanoramaHub(options) {
                 items.push({
                     sev: 0,
                     text: `${sottoScorta} prodotto/i sotto scorta minima in magazzino.`,
-                    href: resolveModuleHref('magazzino', hasManodopera),
+                    href: resolveModuleHref('magazzino'),
                     mod: 'magazzino'
                 });
             }
@@ -248,7 +247,7 @@ export async function initDashboardPanoramaHub(options) {
                 items.push({
                     sev: 1,
                     text: `${scadenze} scadenze manutenzione imminenti o in ritardo.`,
-                    href: resolveModuleHref('parcoMacchine', hasManodopera),
+                    href: resolveModuleHref('parcoMacchine'),
                     mod: 'parcoMacchine'
                 });
             }
@@ -306,14 +305,14 @@ export async function initDashboardPanoramaHub(options) {
         const rows = [
             { text: 'Mappa satellitare terreni e lavori', href: 'mappa-aziendale-standalone.html' },
             {
-                text: hasManodopera ? 'Statistiche manodopera, ore e superficie' : 'Statistiche e indicatori aziendali',
-                href: resolveModuleHref('statistiche', hasManodopera)
+                text: 'Statistiche e indicatori aziendali',
+                href: resolveModuleHref('statistiche')
             }
         ];
         if (hasManodopera) {
             rows.push({
                 text: 'Manodopera: lavori, squadre e ore',
-                href: resolveModuleHref('manodopera', hasManodopera)
+                href: resolveModuleHref('manodopera')
             });
         } else {
             rows.push({ text: 'Diario attività in campo', href: 'attivita-standalone.html' });
