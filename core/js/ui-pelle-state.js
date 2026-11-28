@@ -206,7 +206,7 @@ export function moduleFromLocation(pathname, search) {
 }
 
 /**
- * @param {Record<string, { label?: string, href?: string, hrefManodopera?: string }>|null|undefined} catalog
+ * @param {Record<string, { label?: string, href?: string }>|null|undefined} catalog
  * @param {string[]|null|undefined} moduliAttivi null = non ancora noti (i moduli optional restano visibili)
  * @param {Array} [order]
  * @param {string[]|null|undefined} [ruoli] ruoli tenant; serve per voci requireManagerOrAdmin
@@ -229,18 +229,11 @@ export function visibleShellEntries(catalog, moduliAttivi, order, ruoli) {
       ) {
         return;
       }
-      const href =
-        item.catalogId === 'statistiche' &&
-        active &&
-        active.indexOf('manodopera') >= 0 &&
-        meta.hrefManodopera
-          ? meta.hrefManodopera
-          : meta.href;
       out.push({
         id: item.catalogId,
         label: meta.label || item.catalogId,
         hint: item.hint || '',
-        href,
+        href: meta.href,
         menu: item.menu || ''
       });
       return;

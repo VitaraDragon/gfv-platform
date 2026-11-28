@@ -75,9 +75,20 @@ export function notifyMissingFirestoreIndex(indexLink) {
         : null;
 
     if (el) {
-        el.textContent = indexLink ? `${base} Link: ${indexLink}` : base;
-        if (indexLink) el.setAttribute('data-index-link', indexLink);
-        else el.removeAttribute('data-index-link');
+        el.replaceChildren();
+        el.appendChild(document.createTextNode(base));
+        if (indexLink) {
+            el.appendChild(document.createTextNode(' '));
+            const link = document.createElement('a');
+            link.href = indexLink;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = 'Apri link per creare l\'indice';
+            el.appendChild(link);
+            el.setAttribute('data-index-link', indexLink);
+        } else {
+            el.removeAttribute('data-index-link');
+        }
         el.classList.add('is-visible');
         return;
     }
@@ -512,14 +523,20 @@ export async function getAllAttivita(currentTenantId, filters = {}, dependencies
 // ============================================
 
 /**
- * Calcola totale terreni
+ * Calcola totale terreni (allineato ai filtri della riga KPI: con terrenoId conta 0/1)
  * @param {Function} getAllTerreniCallback - Callback per ottenere tutti i terreni
- * @returns {Promise<number>} Numero totale terreni
+ * @param {Object} [periodo] - Filtri opzionali (`terrenoId`)
+ * @returns {Promise<number>} Numero terreni
  */
-export async function getTotaleTerreni(getAllTerreniCallback) {
+export async function getTotaleTerreni(getAllTerreniCallback, periodo = {}) {
     if (!getAllTerreniCallback) return 0;
     const terreni = await getAllTerreniCallback();
-    return terreni.length;
+    const list = Array.isArray(terreni) ? terreni : [];
+    if (periodo && periodo.terrenoId) {
+        const id = String(periodo.terrenoId);
+        return list.some((t) => String(t && t.id) === id) ? 1 : 0;
+    }
+    return list.length;
 }
 
 /**
@@ -866,7 +883,7 @@ export async function loadStatistiche(currentTenantId, dependencies, callbacks, 
 
         // Calcola statistiche
         const [totaleTerreni, totaleOre, totaleAttivita, orePerTipoLavoro, attivitaPerTerreno, orePerMese, tipiLavoroPiuFrequenti] = await Promise.all([
-            callbacks.getTotaleTerreni?.(),
+            callbacks.getTotaleTerreni?.(periodo),
             callbacks.getTotaleOre?.(periodo),
             callbacks.getTotaleAttivita?.(periodo),
             callbacks.getOrePerTipoLavoro?.(periodo),

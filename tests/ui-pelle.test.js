@@ -27,8 +27,7 @@ const catalog = {
   manodopera: { label: 'Manodopera', href: '../modules/manodopera/views/manodopera-home-standalone.html' },
   statistiche: {
     label: 'Statistiche',
-    href: 'statistiche-standalone.html',
-    hrefManodopera: 'admin/statistiche-manodopera-standalone.html'
+    href: 'statistiche-standalone.html'
   },
   abbonamento: { label: 'Abbonamento', href: 'admin/abbonamento-standalone.html' },
   diarioAttivita: { label: 'Diario attività', href: 'attivita-standalone.html' }
@@ -113,10 +112,10 @@ describe('ui-pelle stato', () => {
     expect(asOperaio).not.toContain('entrate');
   });
 
-  test('statistiche manodopera usa href del catalogo', () => {
+  test('statistiche resta sulla pagina generale anche con manodopera attiva', () => {
     const entries = visibleShellEntries(catalog, ['manodopera'], undefined);
     const stats = entries.find((e) => e.id === 'statistiche');
-    expect(stats.href).toBe('admin/statistiche-manodopera-standalone.html');
+    expect(stats.href).toBe('statistiche-standalone.html');
     expect(entries.map((e) => e.id)).not.toContain('diarioAttivita');
     expect(entries.map((e) => e.id)).toContain('lavori');
   });

@@ -297,24 +297,19 @@ window.GFVDashboardSections.createAmministrazioneCard = function createAmministr
 };
 
 /**
- * Card Statistiche (porta a pagina dedicata)
- * @param {boolean} hasManodopera - Se true, linka a statistiche manodopera, altrimenti a statistiche core
+ * Card Statistiche (porta alla pagina generale; Manodopera ha link interno da lì)
+ * @param {boolean} [_hasManodopera] - ignorato: ingresso unico su statistiche-standalone
  */
-window.GFVDashboardSections.createStatisticheCard = function createStatisticheCard(hasManodopera = false) {
+window.GFVDashboardSections.createStatisticheCard = function createStatisticheCard(_hasManodopera = false) {
     const section = document.createElement('div');
     section.className = 'dashboard-section dashboard-section--module-tile';
 
-    const linkUrl = hasManodopera ? 'admin/statistiche-manodopera-standalone.html' : 'statistiche-standalone.html';
-    const desc = hasManodopera
-        ? 'Lavori, ore, squadre e superficie. Costi, disponibilità e andamenti nel tempo.'
-        : 'KPI su attività, ore e terreni. Affitti e trend in sintesi per l\'azienda.';
-
     section.innerHTML = `
-        <a href="${linkUrl}" class="dashboard-module-tile" data-module="statistiche" style="--module-accent:#3949AB;">
+        <a href="statistiche-standalone.html" class="dashboard-module-tile" data-module="statistiche" style="--module-accent:#3949AB;">
             <span class="dashboard-module-tile__icon" aria-hidden="true">📊</span>
             <span class="dashboard-module-tile__body">
                 <span class="dashboard-module-tile__title">Statistiche</span>
-                <span class="dashboard-module-tile__desc">${desc}</span>
+                <span class="dashboard-module-tile__desc">KPI su attività, ore e terreni. Affitti e trend in sintesi per l'azienda.</span>
             </span>
         </a>
     `;
