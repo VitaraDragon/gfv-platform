@@ -755,3 +755,78 @@ export function updateChartDistribuzioneSuperficie(proprieta, affitto) {
         }
     });
 }
+
+/**
+ * Grafico ore validate per mese (blocco Manodopera).
+ * @param {{ mese: number, label: string, ore: number }[]} data
+ * @param {Object} state
+ * @param {Function} updateState
+ * @param {Function} formatOre
+ */
+export function updateChartManodoperaOreMese(data, state, updateState, formatOre) {
+    const mount = resolveChartMount('chart-manodopera-ore-mese', 0);
+    if (!mount) {
+        console.error('Container per chart-manodopera-ore-mese non trovato');
+        return;
+    }
+
+    if (state.chartManodoperaOreMese) {
+        state.chartManodoperaOreMese.destroy();
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const hasOre = rows.some((d) => Number(d && d.ore) > 0);
+    if (!hasOre) {
+        renderChartEmpty(mount, '👷');
+        updateState({ chartManodoperaOreMese: null });
+        return;
+    }
+
+    const canvas = ensureChartCanvas(mount, 'chart-manodopera-ore-mese');
+    if (!canvas) return;
+
+    const colors = palette();
+    const line = colors.validate || seriesColorAt(0, colors);
+    const ctx = canvas.getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: rows.map((d) => d.label || String(d.mese)),
+            datasets: [{
+                label: 'Ore validate',
+                data: rows.map((d) => Number(d.ore) || 0),
+                backgroundColor: hexWithAlpha(line, 0.75),
+                borderColor: line,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            const fmt = typeof formatOre === 'function' ? formatOre : (v) => String(v);
+                            return fmt(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback(value) {
+                            const fmt = typeof formatOre === 'function' ? formatOre : (v) => String(v);
+                            return fmt(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    updateState({ chartManodoperaOreMese: chart });
+}

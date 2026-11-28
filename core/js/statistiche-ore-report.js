@@ -186,6 +186,66 @@ export function matchesTipoOperaioFilter(operaio, filtroTipo) {
 }
 
 /**
+ * True se la data dell'ora cade nel range ISO inclusivo (calendario locale).
+ * @param {*} dataOra
+ * @param {string|null|undefined} isoFrom YYYY-MM-DD
+ * @param {string|null|undefined} isoTo YYYY-MM-DD
+ * @returns {boolean}
+ */
+export function oraInPeriodoIso(dataOra, isoFrom, isoTo) {
+  const iso = dateLikeToLocalCalendarIso(dataOra);
+  if (!iso) return false;
+  if (isoFrom && iso < String(isoFrom)) return false;
+  if (isoTo && iso > String(isoTo)) return false;
+  return true;
+}
+
+/**
+ * Bounds ISO inclusivi per un'annata civile.
+ * @param {number} anno
+ * @returns {{ isoFrom: string, isoTo: string }}
+ */
+export function boundsIsoAnnata(anno) {
+  const y = Number(anno);
+  if (!Number.isFinite(y) || y < 1970 || y > 2100) {
+    return { isoFrom: '', isoTo: '' };
+  }
+  return {
+    isoFrom: `${y}-01-01`,
+    isoTo: `${y}-12-31`
+  };
+}
+
+/**
+ * Aggrega ore per etichetta tipo operaio (include «Non specificato»).
+ * Input: operai già filtrati sul perimetro desiderato (es. annata KPI).
+ *
+ * @param {{
+ *   oreTotali?: number,
+ *   ruoli?: string[],
+ *   tipoOperaio?: string
+ * }[]|null|undefined} operai
+ * @returns {{ tipo: string, ore: number }[]}
+ */
+export function aggregaOrePerTipoDisplay(operai) {
+  /** @type {Record<string, number>} */
+  const orePerTipo = {};
+  const lista = Array.isArray(operai) ? operai : [];
+  for (const operaio of lista) {
+    if (!operaio || typeof operaio !== 'object') continue;
+    const ore = typeof operaio.oreTotali === 'number' && Number.isFinite(operaio.oreTotali)
+      ? operaio.oreTotali
+      : 0;
+    if (ore <= 0) continue;
+    const tipo = getTipoOperaioDisplay(operaio);
+    orePerTipo[tipo] = (orePerTipo[tipo] || 0) + ore;
+  }
+  return Object.keys(orePerTipo)
+    .map((tipo) => ({ tipo, ore: orePerTipo[tipo] }))
+    .sort((a, b) => b.ore - a.ore);
+}
+
+/**
  * Modelli scheda mobile per il report ore operai (pattern Report manodopera).
  *
  * @param {{

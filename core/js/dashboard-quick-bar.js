@@ -96,7 +96,7 @@ export const QUICK_BAR_CATALOG = {
         label: 'Statistiche Manodopera',
         desc: 'Ore, lavori e squadre',
         icon: '📊',
-        href: 'admin/statistiche-manodopera-standalone.html',
+        href: 'statistiche-standalone.html#manodopera',
         modules: [],
         requireManodopera: true,
         section: 'manodopera'

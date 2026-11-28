@@ -77,7 +77,7 @@ export const GESTIONE_OPERAI_PATH =
 export const GESTIONE_SQUADRE_PATH =
   '/core/admin/gestione-squadre-standalone.html?emulator=1';
 export const STATISTICHE_MANODOPERA_PATH =
-  '/core/admin/statistiche-manodopera-standalone.html?emulator=1';
+  '/core/statistiche-standalone.html?emulator=1#manodopera';
 export const LAVORI_CAPOSQUADRA_PATH =
   '/core/admin/lavori-caposquadra-standalone.html?emulator=1';
 export const MAPPA_AZIENDALE_PATH = '/core/mappa-aziendale-standalone.html?emulator=1';
@@ -911,10 +911,12 @@ export async function gotoGestioneSquadre(page) {
 }
 
 export async function waitForStatisticheManodoperaLoaded(page) {
-  await page.waitForURL(/statistiche-manodopera-standalone\.html/, { timeout: simE2eTimeout(60_000) });
-  await page.locator('h1').filter({ hasText: 'Statistiche Manodopera' }).waitFor({ timeout: simE2eTimeout(60_000) });
+  await page.waitForURL(/statistiche-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('#statistiche-manodopera-section').waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
-    const el = document.getElementById('stat-lavori-totali');
+    const section = document.getElementById('statistiche-manodopera-section');
+    if (!section || section.style.display === 'none') return false;
+    const el = document.getElementById('kpi-mano-ore-validate');
     const t = el && (el.textContent || '').trim();
     return t && t !== '-';
   }, { timeout: 90_000 });

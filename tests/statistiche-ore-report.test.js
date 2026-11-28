@@ -5,11 +5,14 @@
 import { describe, expect, test } from 'vitest';
 import { dateLikeToLocalCalendarIso } from '../core/js/date-format-it.js';
 import {
+  aggregaOrePerTipoDisplay,
   aggregaOreReport,
+  boundsIsoAnnata,
   buildReportOreMobileCardModels,
   getTipoOperaioDisplay,
   isOraRifiutata,
   matchesTipoOperaioFilter,
+  oraInPeriodoIso,
   renderReportOreMobileCardsHtml,
   riepilogoMediaOrePerPersona
 } from '../core/js/statistiche-ore-report.js';
@@ -90,6 +93,38 @@ describe('statistiche-ore-report', () => {
     expect(html).toContain('&lt;b&gt;X&lt;/b&gt;');
     expect(html).not.toContain('<b>X</b>');
     expect(renderReportOreMobileCardsHtml([], (s) => s)).toContain('Nessun dato');
+  });
+
+  test('ore per tipo sull’annata: marzo senza tipo → Non specificato; novembre vuoto', () => {
+    const operaioSenzaTipo = { tipoOperaio: '', ruoli: ['operaio'], oreTotali: 0 };
+    const oreMarzo = [
+      { operaioId: 'x', oreNette: 10, stato: 'validate', data: new Date(2026, 2, 15) }
+    ];
+    const oreNovembre = [
+      { operaioId: 'x', oreNette: 10, stato: 'validate', data: new Date(2026, 2, 15) }
+    ].filter((ora) => oraInPeriodoIso(ora.data, '2026-11-01', '2026-11-30'));
+
+    const { isoFrom, isoTo } = boundsIsoAnnata(2026);
+    const oreAnnata = oreMarzo.filter((ora) => oraInPeriodoIso(ora.data, isoFrom, isoTo));
+    expect(oreAnnata).toHaveLength(1);
+    expect(oreNovembre).toHaveLength(0);
+
+    const aggAnno = aggregaOreReport(oreAnnata);
+    const operaiAnno = Object.values(aggAnno.orePerOperaio).map((base) => ({
+      ...operaioSenzaTipo,
+      oreTotali: base.oreTotali
+    }));
+    const tipiAnno = aggregaOrePerTipoDisplay(operaiAnno);
+    expect(tipiAnno.some((t) => t.tipo === 'Non specificato' && t.ore === 10)).toBe(true);
+
+    const aggNov = aggregaOreReport(oreNovembre);
+    const tipiNov = aggregaOrePerTipoDisplay(
+      Object.values(aggNov.orePerOperaio).map((base) => ({
+        ...operaioSenzaTipo,
+        oreTotali: base.oreTotali
+      }))
+    );
+    expect(tipiNov).toHaveLength(0);
   });
 
   test('giorno locale a cavallo della mezzanotte UTC (non toISOString)', () => {

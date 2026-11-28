@@ -261,6 +261,66 @@
             height: 360px;
         }
 
+        .mano-tipo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+            gap: 12px;
+        }
+
+        .mano-tipo-chip {
+            border-radius: 10px;
+            padding: 14px 12px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .mano-tipo-ore {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .mano-tipo-label {
+            font-size: 0.9rem;
+            opacity: 0.92;
+            margin-top: 4px;
+        }
+
+        .mano-operai-cards {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .mano-operaio-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .mano-operaio-card .title {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .mano-operaio-card .meta {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .mano-operaio-card .tot {
+            margin-top: 8px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2E8B57;
+        }
+
+        .mano-top-table th,
+        .mano-top-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
         #statistiche-index-warning {
             display: none;
             margin: 0 0 16px;
@@ -393,8 +453,17 @@
             }
 
             #statistiche-terreni-section h2,
-            #statistiche-macchine-section h2 {
+            #statistiche-macchine-section h2,
+            #statistiche-manodopera-section h2 {
                 font-size: 1.4em !important;
+            }
+
+            #manodopera-top-operai-table-wrap {
+                display: none !important;
+            }
+
+            #manodopera-top-operai-cards {
+                display: grid !important;
             }
         }
 
@@ -540,10 +609,6 @@
                     <div class="metric-subtitle" id="metric-ore-mese-subtitle">Periodo selezionato</div>
                 </div>
             </div>
-            <p id="link-statistiche-manodopera-wrap" style="display: none; margin: -10px 0 24px; font-size: 0.95em;">
-                <a id="link-statistiche-manodopera" href="admin/statistiche-manodopera-standalone.html">Vai a Statistiche Manodopera</a>
-            </p>
-
             <!-- Grafici -->
             <div class="charts-grid">
                 <div class="chart-card">
@@ -635,6 +700,74 @@
                         <div style="text-align: center; color: #666;">Caricamento...</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Blocco Manodopera compatto (solo se modulo manodopera attivo) -->
+            <div id="statistiche-manodopera-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px;">
+                    <h2 style="color: #2E8B57; font-size: 2em; margin: 0;">👷 Manodopera</h2>
+                    <div class="filter-group" style="margin:0; min-width:140px;">
+                        <label for="filter-anno-manodopera">Annata</label>
+                        <select id="filter-anno-manodopera" class="form-control" aria-label="Annata manodopera"></select>
+                    </div>
+                </div>
+                <div id="manodopera-blocco-loading" class="empty-state" style="display:none; padding:12px;">Caricamento manodopera…</div>
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card" style="background: var(--report-chart-validate, #2563eb); color: white;">
+                        <div class="metric-value" id="kpi-mano-ore-validate" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Ore validate (annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-da-validare, #c2410c); color: white;">
+                        <div class="metric-value" id="kpi-mano-ore-da-validare" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Ore da validare</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-1); color: white;">
+                        <div class="metric-value" id="kpi-mano-lavori-attivi" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Lavori attivi (annata)</div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-3); color: white;">
+                        <div class="metric-value" id="kpi-mano-lavori-completati" style="color:white;">-</div>
+                        <div class="metric-label" style="color:rgba(255,255,255,0.9);">Lavori completati (annata)</div>
+                        <div class="metric-subtitle" id="kpi-mano-annullati" style="color:rgba(255,255,255,0.85);"></div>
+                    </div>
+                    <div class="metric-card" style="background: var(--report-chart-5); color: white;">
+                        <div class="metric-value" id="kpi-mano-media-giorno" style="color:white;">-</div>
+                        <div class="metric-label" id="kpi-mano-media-giorno-sub" style="color:rgba(255,255,255,0.9);">Media ore/giorno · mese in corso</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Ore per tipo operaio (annata)</h3>
+                    <div id="manodopera-ore-per-tipo" class="mano-tipo-grid"></div>
+                </div>
+
+                <div class="charts-grid" style="margin-bottom: 24px;">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Ore validate per mese</h3>
+                        <div class="chart-container tall" data-chart-id="chart-manodopera-ore-mese">
+                            <canvas id="chart-manodopera-ore-mese"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color:#495057; font-size:16px; margin-bottom:12px;">Primi operai per ore</h3>
+                    <div id="manodopera-top-operai-table-wrap" class="table-responsive">
+                        <table class="mano-top-table" style="width:100%; border-collapse:collapse; background:#fff;">
+                            <thead>
+                                <tr style="border-bottom:2px solid #e9ecef; text-align:left;">
+                                    <th style="padding:10px;">Operaio</th>
+                                    <th style="padding:10px;">Tipo</th>
+                                    <th style="padding:10px; text-align:right;">Ore</th>
+                                </tr>
+                            </thead>
+                            <tbody id="manodopera-top-operai-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="manodopera-top-operai-cards" class="mano-operai-cards" style="display:none;"></div>
+                </div>
+
+                <p id="manodopera-report-cta" style="font-size:0.95em; color:#495057; margin: 8px 0 0;"></p>
             </div>
 
             <!-- Sezione Statistiche Macchine (solo se modulo Parco Macchine attivo) -->
@@ -738,6 +871,11 @@
         } from './js/statistiche-controller.js';
 
         import {
+            populateAnnoSelect,
+            renderManodoperaBlocco
+        } from './js/statistiche-manodopera-section.js';
+
+        import {
             updateChartOreTipo as updateChartOreTipoModule,
             updateChartAttivitaTerreno as updateChartAttivitaTerrenoModule,
             updateChartOreMese as updateChartOreMeseModule,
@@ -801,7 +939,8 @@
             chartTopMacchine: null,
             chartOreMacchinaTerreno: null,
             chartOreMacchinaVsLavoratore: null,
-            chartOreMacchineMese: null
+            chartOreMacchineMese: null,
+            chartManodoperaOreMese: null
         };
 
         // Funzione updateState
@@ -819,6 +958,7 @@
             if (updates.chartOreMacchinaTerreno !== undefined) window.chartOreMacchinaTerreno = updates.chartOreMacchinaTerreno;
             if (updates.chartOreMacchinaVsLavoratore !== undefined) window.chartOreMacchinaVsLavoratore = updates.chartOreMacchinaVsLavoratore;
             if (updates.chartOreMacchineMese !== undefined) window.chartOreMacchineMese = updates.chartOreMacchineMese;
+            if (updates.chartManodoperaOreMese !== undefined) window.chartManodoperaOreMese = updates.chartManodoperaOreMese;
         }
 
         // Dependencies object
@@ -1158,11 +1298,8 @@
                             const modules = resolveEffectiveModules(tenantData);
                             hasParcoMacchineModule = modules.includes('parcoMacchine');
                             const hasManodoperaModule = modules.includes('manodopera');
-                            const manodoperaLinkWrap = document.getElementById('link-statistiche-manodopera-wrap');
-                            if (manodoperaLinkWrap) {
-                                manodoperaLinkWrap.style.display = hasManodoperaModule ? 'block' : 'none';
-                            }
-                            
+                            const hasReportModule = modules.includes('report');
+
                             // Inizializza context Tony con i moduli attivi usando helper
                             if (window.Tony && window.Tony.initContextWithModules) {
                                 window.Tony.initContextWithModules(modules);
@@ -1183,6 +1320,36 @@
                                     }
                                 };
                                 initTonyContext();
+                            }
+
+                            if (hasManodoperaModule) {
+                                const annoSelect = document.getElementById('filter-anno-manodopera');
+                                const annoCorrente = new Date().getFullYear();
+                                populateAnnoSelect(annoSelect, annoCorrente);
+                                const reloadMano = async () => {
+                                    const anno = Number(annoSelect && annoSelect.value) || annoCorrente;
+                                    await renderManodoperaBlocco(currentTenantId, anno, dependencies, {
+                                        hasReportModule,
+                                        chartState: statisticheState,
+                                        updateChartState: updateState
+                                    });
+                                };
+                                if (annoSelect && !annoSelect.dataset.bound) {
+                                    annoSelect.dataset.bound = '1';
+                                    annoSelect.addEventListener('change', () => { reloadMano(); });
+                                }
+                                await reloadMano();
+                                if (location.hash === '#manodopera') {
+                                    const manoSection = document.getElementById('statistiche-manodopera-section');
+                                    if (manoSection) {
+                                        requestAnimationFrame(() => {
+                                            manoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        });
+                                    }
+                                }
+                            } else {
+                                const manoSection = document.getElementById('statistiche-manodopera-section');
+                                if (manoSection) manoSection.style.display = 'none';
                             }
                             
                             // Mostra/nascondi sezione statistiche macchine
