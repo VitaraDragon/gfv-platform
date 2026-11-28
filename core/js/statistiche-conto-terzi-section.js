@@ -1,6 +1,6 @@
 /**
  * Caricamento e render del blocco Conto terzi su Statistiche.
- * Una query per collezione (lavori, clienti, terreni, attivita); aggrega in memoria.
+ * Una query per collezione (lavori, clienti, terreni); aggrega in memoria.
  * @module core/js/statistiche-conto-terzi-section
  */
 
@@ -12,7 +12,7 @@ import {
 import { updateChartContoTerziLavoriCliente } from './statistiche-charts.js';
 import { escapeHtml } from './statistiche-utils.js';
 
-/** @type {{ lavori: object[], attivita: object[], clientiById: Map<string, object>, terreniById: Map<string, object> }|null} */
+/** @type {{ lavori: object[], clientiById: Map<string, object>, terreniById: Map<string, object> }|null} */
 let _cache = null;
 /** @type {string|null} */
 let _cacheTenantId = null;
@@ -28,22 +28,18 @@ export async function loadContoTerziBloccoBundle(tenantId, dependencies, options
   }
   const { db, collection, getDocs } = dependencies;
   if (!tenantId || !db) {
-    _cache = { lavori: [], attivita: [], clientiById: new Map(), terreniById: new Map() };
+    _cache = { lavori: [], clientiById: new Map(), terreniById: new Map() };
     _cacheTenantId = tenantId || null;
     return _cache;
   }
 
-  const [lavoriSnap, clientiSnap, terreniSnap, attivitaSnap] = await Promise.all([
+  const [lavoriSnap, clientiSnap, terreniSnap] = await Promise.all([
     getDocs(collection(db, 'tenants', tenantId, 'lavori')),
     getDocs(collection(db, 'tenants', tenantId, 'clienti')),
-    getDocs(collection(db, 'tenants', tenantId, 'terreni')),
-    getDocs(collection(db, 'tenants', tenantId, 'attivita'))
+    getDocs(collection(db, 'tenants', tenantId, 'terreni'))
   ]);
 
   const lavori = (lavoriSnap.docs || []).map((d) =>
-    Object.assign({ id: d.id }, d.data() || {})
-  );
-  const attivita = (attivitaSnap.docs || []).map((d) =>
     Object.assign({ id: d.id }, d.data() || {})
   );
   /** @type {Map<string, object>} */
@@ -57,7 +53,7 @@ export async function loadContoTerziBloccoBundle(tenantId, dependencies, options
     terreniById.set(d.id, Object.assign({ id: d.id }, d.data() || {}));
   });
 
-  _cache = { lavori, attivita, clientiById, terreniById };
+  _cache = { lavori, clientiById, terreniById };
   _cacheTenantId = tenantId;
   return _cache;
 }
@@ -98,7 +94,6 @@ export async function renderContoTerziBlocco(tenantId, anno, dependencies, ui = 
     const data = await loadContoTerziBloccoBundle(tenantId, dependencies);
     const kpi = calcolaBloccoContoTerziAnnata({
       lavori: data.lavori,
-      attivita: data.attivita,
       clientiById: data.clientiById,
       terreniById: data.terreniById,
       anno,
@@ -113,7 +108,8 @@ export async function renderContoTerziBlocco(tenantId, anno, dependencies, ui = 
     setText('kpi-ct-n-lavori', String(kpi.nLavori));
     setText('kpi-ct-clienti-attivi', String(kpi.clientiAttivi));
     setText('kpi-ct-ettari', formatNum(kpi.ettari, 2));
-    setText('kpi-ct-ore', formatNum(kpi.ore, 1));
+    const ettariLabel = document.getElementById('kpi-ct-ettari-label');
+    if (ettariLabel) ettariLabel.textContent = kpi.ettariLabel || 'Ettari terreni lavorati';
 
     renderLavoriPerClienteCards(kpi.lavoriPerCliente);
     renderCtaReport(!!ui.hasReportModule);
