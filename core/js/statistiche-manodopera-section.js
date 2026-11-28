@@ -63,7 +63,7 @@ export async function loadManodoperaBloccoBundle(tenantId, dependencies, options
     db, collection, getDocs, query, where
   });
 
-  const terreniSnap = await getDocs(collection(db, `tenants/${tenantId}/terreni`));
+  const terreniSnap = await getDocs(collection(db, 'tenants', tenantId, 'terreni'));
   /** @type {Map<string, object>} */
   const terreniById = new Map();
   (terreniSnap.docs || []).forEach((tDoc) => {

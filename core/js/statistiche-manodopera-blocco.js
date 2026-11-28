@@ -87,18 +87,15 @@ export function calcolaLavoriAnnata(lavori, anno) {
 }
 
 /**
- * Media ore validate / giorni con ore nel mese civile di `oggi`.
+ * Media ore validate / giorni con ore nel periodo ISO inclusivo.
  *
  * @param {{ stato?: string, oreNette?: number, data?: * }[]|null|undefined} oreRows
- * @param {Date} [oggi]
+ * @param {string} isoFrom
+ * @param {string} isoTo
+ * @param {string} etichetta
  * @returns {{ oreValidateMese: number, giorniConOre: number, mediaOreGiorno: number, etichettaMese: string }}
  */
-export function calcolaMediaOreGiornoMeseCorrente(oreRows, oggi = new Date()) {
-  const y = oggi.getFullYear();
-  const m = oggi.getMonth();
-  const isoFrom = `${y}-${String(m + 1).padStart(2, '0')}-01`;
-  const lastDay = new Date(y, m + 1, 0).getDate();
-  const isoTo = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+function mediaOreValidateInPeriodo(oreRows, isoFrom, isoTo, etichetta) {
   const giorni = new Set();
   let oreValidateMese = 0;
   const lista = Array.isArray(oreRows) ? oreRows : [];
@@ -117,8 +114,51 @@ export function calcolaMediaOreGiornoMeseCorrente(oreRows, oggi = new Date()) {
     oreValidateMese,
     giorniConOre,
     mediaOreGiorno: giorniConOre > 0 ? oreValidateMese / giorniConOre : 0,
-    etichettaMese: `${MESI_IT_BREVI[m]} ${y}`
+    etichettaMese: etichetta
   };
+}
+
+/**
+ * Media ore validate / giorni con ore nel mese civile di `oggi`.
+ *
+ * @param {{ stato?: string, oreNette?: number, data?: * }[]|null|undefined} oreRows
+ * @param {Date} [oggi]
+ * @returns {{ oreValidateMese: number, giorniConOre: number, mediaOreGiorno: number, etichettaMese: string }}
+ */
+export function calcolaMediaOreGiornoMeseCorrente(oreRows, oggi = new Date()) {
+  const y = oggi.getFullYear();
+  const m = oggi.getMonth();
+  const isoFrom = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const isoTo = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  return mediaOreValidateInPeriodo(
+    oreRows,
+    isoFrom,
+    isoTo,
+    `${MESI_IT_BREVI[m]} ${y}`
+  );
+}
+
+/**
+ * Media ore/giorno allineata all'annata scelta:
+ * - se `anno` è l'anno di `oggi` → mese civile corrente;
+ * - altrimenti → media sull'intera annata (etichetta «annata YYYY»).
+ *
+ * @param {{ stato?: string, oreNette?: number, data?: * }[]|null|undefined} oreRows
+ * @param {number} anno
+ * @param {Date} [oggi]
+ * @returns {{ oreValidateMese: number, giorniConOre: number, mediaOreGiorno: number, etichettaMese: string }}
+ */
+export function calcolaMediaOreGiornoPerAnnata(oreRows, anno, oggi = new Date()) {
+  const y = Number(anno);
+  if (!Number.isFinite(y)) {
+    return calcolaMediaOreGiornoMeseCorrente(oreRows, oggi);
+  }
+  if (y === oggi.getFullYear()) {
+    return calcolaMediaOreGiornoMeseCorrente(oreRows, oggi);
+  }
+  const { isoFrom, isoTo } = boundsIsoAnnata(y);
+  return mediaOreValidateInPeriodo(oreRows, isoFrom, isoTo, `annata ${y}`);
 }
 
 /**
@@ -260,7 +300,7 @@ export function calcolaBloccoManodoperaAnnata(input) {
 
   const orePerTipo = aggregaOrePerTipoDisplay(operaiLista);
   const lavoriStats = calcolaLavoriAnnata(lavori, anno);
-  const mediaMese = calcolaMediaOreGiornoMeseCorrente(oreRows, oggi);
+  const mediaMese = calcolaMediaOreGiornoPerAnnata(oreRows, anno, oggi);
   const orePerMese = aggregaOreValidatePerMeseAnnata(oreRows, anno);
 
   return {
